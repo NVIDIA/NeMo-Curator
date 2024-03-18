@@ -22,6 +22,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ScoreFilter, Score, Filter, Sequential
 from nemo_curator.filters import DocumentFilter, NonAlphaNumericFilter, SymbolsToWordsFilter, NumbersFilter, UrlsFilter, BulletsFilter, WhiteSpaceFilter, ParenthesesFilter, LongWordFilter, WordCountFilter, BoilerPlateStringFilter, MeanWordLengthFilter, RepeatedLinesFilter, RepeatedParagraphsFilter, RepeatedLinesByCharFilter, RepeatedParagraphsByCharFilter, RepeatingTopNGramsFilter, RepeatingDuplicateNGramsFilter, PunctuationFilter, EllipsisFilter, CommonEnglishWordsFilter, WordsWithoutAlphabetsFilter, PornographicUrlsFilter
 from nemo_curator.filters import PythonCommentToCodeFilter, GeneralCommentToCodeFilter, NumberOfLinesOfCodeFilter, TokenizerFertilityFilter, XMLHeaderFilter, AlphaFilter, HTMLBoilerplateFilter, PerExtensionFilter
+from nemo_curator.utils.decorators import batched
 
 class LetterCountFilter(DocumentFilter):
     """
@@ -47,9 +48,11 @@ class BatchedLengthFilter(DocumentFilter):
         self.min_length = min_length
         self.max_length = max_length
     
+    @batched
     def score_document(self, df):
         return df.str.len()
 
+    @batched
     def keep_document(self, scores):
         min_threshold = self.min_length <= scores
         max_threshold = scores <= self.max_length
@@ -135,7 +138,7 @@ class TestFilterModule:
 
     def test_batch_score_filter(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
-        filter_step = ScoreFilter(length_filter, text_field="documents", batched=True)
+        filter_step = ScoreFilter(length_filter, text_field="documents")
         filtered_data = filter_step(letter_count_data)
 
         expected_indices = [1, 2]
@@ -145,7 +148,7 @@ class TestFilterModule:
     def test_batch_score(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
         score_field = "lengths"
-        score_step = Score(length_filter.score_document, text_field="documents", score_field=score_field, batched=True)
+        score_step = Score(length_filter.score_document, text_field="documents", score_field=score_field)
         scored_data = score_step(letter_count_data)
 
         expected_scores = pd.Series([6, 11, 11, 13])
@@ -155,9 +158,9 @@ class TestFilterModule:
     def test_batch_filter(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
         score_field = "lengths"
-        score_step = Score(length_filter.score_document, text_field="documents", score_field=score_field, batched=True)
+        score_step = Score(length_filter.score_document, text_field="documents", score_field=score_field)
         scored_data = score_step(letter_count_data)
-        filter_step = Filter(length_filter.keep_document, score_field, batched=True)
+        filter_step = Filter(length_filter.keep_document, score_field)
         filtered_data = filter_step(scored_data)
 
         expected_indices = [1, 2]
