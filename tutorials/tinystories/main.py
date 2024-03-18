@@ -28,7 +28,7 @@ from nemo_curator.filters import (
     RepeatingTopNGramsFilter,
     WordCountFilter,
 )
-from nemo_curator.modifiers.pii_modifier import PiiModifierBatched
+from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.modules import ExactDuplicates
 from nemo_curator.modules.modify import Modify
@@ -131,12 +131,11 @@ def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
         DocumentDataset: The redacted dataset with PII replaced by a generic value.
     """
     redactor = Modify(
-        PiiModifierBatched(
+        PiiModifier(
             supported_entities=["PERSON"],
             anonymize_action="replace",
             device="cpu",
         ),
-        batched=True,
     )
     return redactor(dataset)
 
