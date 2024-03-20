@@ -14,12 +14,12 @@
 
 import argparse
 
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import reshard_jsonl
 
 def main(args):
-  client = get_client(args, args.device)
+  client = get_client(**parse_client_args(args))
 
   reshard_jsonl(args.input_data_dir, args.output_resharded_dir, output_file_size=args.output_file_size, start_index=args.start_index, file_prefix=args.prefix)
 

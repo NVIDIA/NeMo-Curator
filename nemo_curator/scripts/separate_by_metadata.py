@@ -21,11 +21,12 @@ from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.script_utils import (
     attach_bool_arg,
     add_distributed_args,
+    parse_client_args
 )
 
 
 def main(args):
-  client = get_client(args, args.device)
+  client = get_client(**parse_client_args(args))
 
   files = get_all_files_paths_under(args.input_data_dir)
   input_data = read_data(files, file_type=args.input_file_type, backend="pandas", add_filename=True)

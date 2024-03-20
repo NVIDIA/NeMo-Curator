@@ -18,12 +18,12 @@ import pickle
 import nemo_curator
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 from nemo_curator.utils.distributed_utils import get_client, read_data
 
 
 def main(args):
-  client = get_client(args, args.device)
+  client = get_client(**parse_client_args(args))
 
   # Each rank read in the task data
   with open(args.input_task_ngrams, 'rb') as fp:

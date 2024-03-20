@@ -20,6 +20,7 @@ from nemo_curator.gpu_deduplication.utils import (
     enable_spilling,
     parse_nc_args,
 )
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def main(args):
@@ -34,7 +35,7 @@ def main(args):
     st = time.time()
     output_path = os.path.join(args.output_dir, "connected_components.parquet")
     args.set_torch_to_use_rmm = False
-    client = get_client(args, cluster_type="gpu")
+    client = get_client(**parse_client_args(args), cluster_type="gpu")
     enable_spilling()
     client.run(enable_spilling)
     components_stage = ConnectedComponents(

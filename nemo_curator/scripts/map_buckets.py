@@ -21,6 +21,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
 )
 from nemo_curator.gpu_deduplication.utils import get_client, get_num_workers, parse_nc_args
 from nemo_curator.modules.fuzzy_dedup import _MapBuckets
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def get_anchor_and_output_map_info(
@@ -153,7 +154,7 @@ def main(args):
     output_anchor_docs_with_bk_path = os.path.join(
         OUTPUT_PATH, "anchor_docs_with_bk.parquet"
     )
-    client = get_client(args)
+    client = get_client(**parse_client_args(args))
     print(f"Num Workers = {get_num_workers(client)}", flush=True)
     print("Connected to dask cluster", flush=True)
     print("Running jaccard map buckets script", flush=True)
