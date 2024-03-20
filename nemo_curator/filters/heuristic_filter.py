@@ -14,7 +14,7 @@
 
 import regex
 
-from nemo_curator.filters import DocumentFilter, import_filter
+from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
 from nemo_curator.utils.constants import (
     bullet_list,
     common_english_words,

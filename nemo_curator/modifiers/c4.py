@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nemo_curator.modifiers import DocumentModifier
+from nemo_curator.modifiers.doc_modifier import DocumentModifier
 from nemo_curator.utils.constants import policy_substrings
 from nemo_curator.utils.text_utils import (
     get_paragraphs,

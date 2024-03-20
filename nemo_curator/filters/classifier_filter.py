@@ -16,7 +16,7 @@ import fasttext
 import numpy as np
 import pandas as pd
 
-from nemo_curator.filters import DocumentFilter
+from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
 

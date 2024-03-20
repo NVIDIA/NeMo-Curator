@@ -20,7 +20,7 @@ from bs4 import BeautifulSoup
 from comment_parser import comment_parser
 from nemo.collections.common.tokenizers import SentencePieceTokenizer
 
-from nemo_curator.filters import DocumentFilter, import_filter
+from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
 from nemo_curator.utils.constants import regex_alpha, regex_alphanum
 from nemo_curator.utils.text_utils import get_comments_and_docstring
 
