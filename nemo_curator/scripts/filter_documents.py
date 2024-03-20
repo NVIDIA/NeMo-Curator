@@ -20,7 +20,7 @@ from nemo_curator.utils.file_utils import (
     expand_outdir_and_mkdir,
     get_batched_files,
 )
-from nemo_curator.utils.script_utils import attach_bool_arg, add_distributed_args
+from nemo_curator.utils.script_utils import attach_bool_arg, add_distributed_args, parse_client_args
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk, get_client
 from nemo_curator.utils.config_utils import build_filter_pipeline
@@ -52,7 +52,7 @@ def write_scores(df, output_dir):
     df[column].to_csv(output_path, single_file=True, encoding="utf-8", header=False, index=False, mode="a")
 
 def main(args):
-  client = get_client(args, args.device)
+  client = get_client(**parse_client_args(args))
   if args.device == "cpu":
     backend = "pandas"
   elif args.device == "gpu":

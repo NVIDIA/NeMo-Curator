@@ -21,7 +21,7 @@ from nemo_curator.filters import FastTextLangId
 from nemo_curator.modifiers import UnicodeReformatter
 from nemo_curator.utils.file_utils import get_all_files_paths_under, separate_by_metadata
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk, get_client
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 
 
 def load_dataset(input_data_dir):
@@ -45,7 +45,7 @@ def main(args):
     language_field = "language"
 
     # Prepare samples for the classifier
-    client = get_client(args, args.device)
+    client = get_client(**parse_client_args(args))
 
     # Filter data
     multilingual_dataset = load_dataset(multilingual_data_path)

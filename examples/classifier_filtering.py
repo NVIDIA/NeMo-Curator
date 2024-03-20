@@ -22,7 +22,7 @@ from nemo_curator.modifiers import FastTextLabelModifier
 from nemo_curator.filters import BatchedFastTextQualityFilter
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk, get_client
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 
 
 def load_dataset(input_data_dir):
@@ -50,7 +50,7 @@ def main(args):
     filtered_output = "/path/to/output"
 
     # Prepare samples for the classifier
-    client = get_client(args, args.device)
+    client = get_client(**parse_client_args(args))
     low_quality_samples = create_samples(low_quality_data_path, "__label__lq", num_low_quality_samples)
     high_quality_samples = create_samples(high_quality_data_path, "__label__hq", num_high_quality_samples)
 

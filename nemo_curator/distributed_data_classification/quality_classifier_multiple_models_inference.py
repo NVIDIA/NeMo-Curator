@@ -30,6 +30,7 @@ from nemo_curator.utils.distributed_utils import (
     write_to_disk,
 )
 from nemo_curator.utils.file_utils import get_remaining_files
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def delete_model_and_tokenizer_from_workers(client):
@@ -79,7 +80,7 @@ def main():
     max_chars = 6000
     batch_size = args.batch_size
     num_workers = 0
-    client = get_client(args, cluster_type="gpu")
+    client = get_client(**parse_client_args(args), cluster_type="gpu")
     client.upload_file("quality_classifier_inference.py")
 
     print("Starting quality classifier inference", flush=True)

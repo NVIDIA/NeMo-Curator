@@ -37,6 +37,7 @@ from nemo_curator.utils.distributed_utils import (
     write_to_disk,
 )
 from nemo_curator.utils.file_utils import get_remaining_files
+from nemo_curator.utils.script_utils import parse_client_args
 
 warnings.filterwarnings("ignore")
 
@@ -212,7 +213,7 @@ def main():
     batch_size = args.batch_size
     num_workers = 0
 
-    client = get_client(args, cluster_type="gpu")
+    client = get_client(**parse_client_args(args), cluster_type="gpu")
     print("Starting domain classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2

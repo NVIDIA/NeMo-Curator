@@ -16,7 +16,7 @@ import argparse
 import os
 from nemo_curator.download import batch_download, download_and_extract
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import attach_bool_arg, add_distributed_args
+from nemo_curator.utils.script_utils import attach_bool_arg, add_distributed_args, parse_client_args
 from nemo_curator.utils.config_utils import build_downloader
 from nemo_curator.utils.file_utils import get_all_files_paths_under, expand_outdir_and_mkdir
 
@@ -26,7 +26,7 @@ def read_urls(file_path):
   return [url.strip() for url in urls]
 
 def main(args):
-  client = get_client(args, args.device)
+  client = get_client(**parse_client_args(args))
 
   if args.input_url_file:
     urls = read_urls(args.input_url_file)

@@ -22,6 +22,7 @@ from nemo_curator.gpu_deduplication.ioutils import strip_trailing_sep
 from nemo_curator.gpu_deduplication.utils import (create_logger, parse_nc_args)
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.distributed_utils import read_data, get_client
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def pre_imports():
@@ -36,7 +37,7 @@ def main(args):
 
   assert args.hash_method == "md5", "Currently only md5 hash is supported"
   args.set_torch_to_use_rmm = False
-  client = get_client(args, cluster_type="cpu" if args.no_gpu else "gpu")
+  client = get_client(**parse_client_args(args), cluster_type="cpu" if args.no_gpu else "gpu")
   logger.info(f"Client Created {client}")
   if not args.no_gpu:
     client.run(pre_imports)
