@@ -22,13 +22,6 @@ jobs:
         python-version: ["3.9", "3.10"]
     steps:
       - uses: actions/checkout@v4
-      # TODO: Should not be needed after GPU imports are optional
-      - name: Optionally free up space on Ubuntu
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -41,10 +34,11 @@ jobs:
         # Explicitly install cython: https://github.com/VKCOM/YouTokenToMe/issues/94
         run: |
           pip install wheel cython
-          pip install --extra-index-url https://pypi.nvidia.com .
+          pip install --no-cache-dir --extra-index-url https://pypi.nvidia.com .
           pip install pytest
       - name: Run tests
+        # TODO: Remove env variable when gpu dependencies are optional
         run: |
-          python -m pytest -v --cpu
+          RAPIDS_NO_INITIALIZE=true python -m pytest -v --cpu
 
 
