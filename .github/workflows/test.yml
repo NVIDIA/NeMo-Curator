@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.10"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -39,6 +39,6 @@ jobs:
       - name: Run tests
         # TODO: Remove env variable when gpu dependencies are optional
         run: |
-          RAPIDS_NO_INITIALIZE=true python -m pytest -v --cpu
+          RAPIDS_NO_INITIALIZE=1 python -m pytest -v --cpu
 
 
