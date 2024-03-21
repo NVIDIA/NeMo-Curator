@@ -31,7 +31,7 @@ jobs:
         # Installing wheel beforehand due to fasttext issue:
         # https://github.com/facebookresearch/fastText/issues/512#issuecomment-1837367666
         run: |
-          pip install wheel
+          pip install wheel setuptools pip --upgrade
           pip install --extra-index-url https://pypi.nvidia.com .
           pip install pytest
       - name: Run tests
