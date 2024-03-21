@@ -27,7 +27,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install NeMo-Curator and pytest
         # Remove installing pytest when optional test dependencies are added to setup.py
+        # Installing wheel beforehand due to fasttext issue:
+        # https://github.com/facebookresearch/fastText/issues/512#issuecomment-1837367666
         run: |
+          pip install wheel
           pip install --extra-index-url https://pypi.nvidia.com .
           pip install pytest
       - name: Run tests
