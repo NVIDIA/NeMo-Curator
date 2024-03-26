@@ -53,8 +53,8 @@ from nemo_curator.filters import (
     XMLHeaderFilter,
 )
 from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
-
 from nemo_curator.utils.decorators import batched
+
 
 class LetterCountFilter(DocumentFilter):
     """
@@ -82,7 +82,7 @@ class BatchedLengthFilter(DocumentFilter):
         super().__init__()
         self.min_length = min_length
         self.max_length = max_length
-    
+
     @batched
     def score_document(self, df):
         return df.str.len()

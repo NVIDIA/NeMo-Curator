@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def batched(function):
     """
     Marks a function as accepting a pandas series of elements instead of a single element

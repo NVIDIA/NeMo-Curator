@@ -18,8 +18,8 @@ import pandas as pd
 
 from nemo_curator.modifiers import DocumentModifier
 from nemo_curator.pii.algorithm import DEFAULT_LANGUAGE
-from nemo_curator.utils.distributed_utils import load_object_on_worker
 from nemo_curator.utils.decorators import batched
+from nemo_curator.utils.distributed_utils import load_object_on_worker
 
 __all__ = ["PiiModifier"]
 

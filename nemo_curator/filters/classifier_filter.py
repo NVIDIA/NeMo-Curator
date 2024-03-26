@@ -17,8 +17,8 @@ import numpy as np
 import pandas as pd
 
 from nemo_curator.filters.doc_filter import DocumentFilter
-from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 from nemo_curator.utils.decorators import batched
+from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
 
 class FastTextQualityFilter(DocumentFilter):
@@ -35,13 +35,13 @@ class FastTextQualityFilter(DocumentFilter):
         self._seed = np.random.seed(seed)
         self._name = "fasttext_quality_filter"
 
-  @batched
-  def score_document(self, df):
-    model_attr = f"{self._name}_{self._model_path}"
-    try:
-      model = load_object_on_worker(model_attr, self._load_model, {})
-    except NoWorkerError:
-      return pd.Series(np.ones(len(df)), dtype=float)
+    @batched
+    def score_document(self, df):
+        model_attr = f"{self._name}_{self._model_path}"
+        try:
+            model = load_object_on_worker(model_attr, self._load_model, {})
+        except NoWorkerError:
+            return pd.Series(np.ones(len(df)), dtype=float)
 
         def _score_document(text):
             text = text.replace("\n", " ").replace("__label__", " ")
@@ -54,12 +54,12 @@ class FastTextQualityFilter(DocumentFilter):
 
         return df.apply(_score_document)
 
-  @batched
-  def keep_document(self, df):
-    return np.random.pareto(self._alpha, size=len(df)) > 1 - df
-  
-  def _load_model(self):
-    return fasttext.load_model(self._model_path)
+    @batched
+    def keep_document(self, df):
+        return np.random.pareto(self._alpha, size=len(df)) > 1 - df
+
+    def _load_model(self):
+        return fasttext.load_model(self._model_path)
 
 
 class FastTextLangId(DocumentFilter):
@@ -75,28 +75,26 @@ class FastTextLangId(DocumentFilter):
         self._cutoff = min_langid_score
         self._name = "lang_id"
 
-  @batched
-  def score_document(self, df):
-    model_attr = f"{self._name}_{self._model_path}"
-    try:
-      model = load_object_on_worker(model_attr, self._load_model, {})
-    except NoWorkerError:
-      return pd.Series([[1.0, 'N/A'] for _ in range(len(df))])
+    @batched
+    def score_document(self, df):
+        model_attr = f"{self._name}_{self._model_path}"
+        try:
+            model = load_object_on_worker(model_attr, self._load_model, {})
+        except NoWorkerError:
+            return pd.Series([[1.0, "N/A"] for _ in range(len(df))])
 
-    def _score_document(text):
-      pp = text.strip().replace('\n', ' ')
-      label, score = model.predict(pp, k=1)
-      score = score[0]
-      lang_code = label[0][-2:].upper()
+        def _score_document(text):
+            pp = text.strip().replace("\n", " ")
+            label, score = model.predict(pp, k=1)
+            score = score[0]
+            lang_code = label[0][-2:].upper()
 
-      return [score, lang_code]
+            return [score, lang_code]
 
-    return df.apply(_score_document)
-  
+        return df.apply(_score_document)
 
-  def keep_document(self, score):
-    return score[0] >= self._cutoff
-  
-  def _load_model(self):
-    return fasttext.load_model(self._model_path)
+    def keep_document(self, score):
+        return score[0] >= self._cutoff
 
+    def _load_model(self):
+        return fasttext.load_model(self._model_path)

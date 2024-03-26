@@ -12,5 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def is_batched(function):
-    return hasattr(function, 'batched') and function.batched
+    return hasattr(function, "batched") and function.batched

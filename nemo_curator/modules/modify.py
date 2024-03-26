@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nemo_curator.modifiers import DocumentModifier
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modifiers import DocumentModifier
 from nemo_curator.utils.module_utils import is_batched
 
 
@@ -24,7 +24,9 @@ class Modify:
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         if is_batched(self.modifier.modify_document):
-            dataset.df[self.text_field] = dataset.df[self.text_field].map_partitions(self.modifier.modify_document, meta=(None, str))
+            dataset.df[self.text_field] = dataset.df[self.text_field].map_partitions(
+                self.modifier.modify_document, meta=(None, str)
+            )
         else:
             dataset.df[self.text_field] = dataset.df[self.text_field].apply(
                 self.modifier.modify_document, meta=(None, str)
