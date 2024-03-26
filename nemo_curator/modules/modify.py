@@ -26,6 +26,8 @@ class Modify:
         if is_batched(self.modifier.modify_document):
             dataset.df[self.text_field] = dataset.df[self.text_field].map_partitions(self.modifier.modify_document, meta=(None, str))
         else:
-            dataset.df[self.text_field] = dataset.df[self.text_field].apply(self.modifier.modify_document, meta=(None, str))
+            dataset.df[self.text_field] = dataset.df[self.text_field].apply(
+                self.modifier.modify_document, meta=(None, str)
+            )
 
         return dataset

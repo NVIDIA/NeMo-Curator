@@ -16,22 +16,24 @@ import fasttext
 import numpy as np
 import pandas as pd
 
-from nemo_curator.filters import DocumentFilter
-from nemo_curator.utils.distributed_utils import load_object_on_worker, NoWorkerError
+from nemo_curator.filters.doc_filter import DocumentFilter
+from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 from nemo_curator.utils.decorators import batched
 
 
 class FastTextQualityFilter(DocumentFilter):
 
-  def __init__(self, model_path=None, label='__label__hq', alpha=3, seed=42):
-    if model_path is None:
-      raise ValueError("Must provide a valid path to a FastText model "
-                       "to compute document scores with this filter")
-    self._model_path = model_path
-    self._label = label
-    self._alpha = alpha
-    self._seed = np.random.seed(seed)
-    self._name = 'fasttext_quality_filter'
+    def __init__(self, model_path=None, label="__label__hq", alpha=3, seed=42):
+        if model_path is None:
+            raise ValueError(
+                "Must provide a valid path to a FastText model "
+                "to compute document scores with this filter"
+            )
+        self._model_path = model_path
+        self._label = label
+        self._alpha = alpha
+        self._seed = np.random.seed(seed)
+        self._name = "fasttext_quality_filter"
 
   @batched
   def score_document(self, df):
@@ -41,16 +43,16 @@ class FastTextQualityFilter(DocumentFilter):
     except NoWorkerError:
       return pd.Series(np.ones(len(df)), dtype=float)
 
-    def _score_document(text):
-      text = text.replace('\n', ' ').replace('__label__', ' ')
-      pred = model.predict(text)
-      document_score = pred[1][0]
-      if pred[0][0] != self._label:
-        document_score = 1 - document_score
+        def _score_document(text):
+            text = text.replace("\n", " ").replace("__label__", " ")
+            pred = model.predict(text)
+            document_score = pred[1][0]
+            if pred[0][0] != self._label:
+                document_score = 1 - document_score
 
-      return document_score
+            return document_score
 
-    return df.apply(_score_document)
+        return df.apply(_score_document)
 
   @batched
   def keep_document(self, df):
@@ -62,14 +64,16 @@ class FastTextQualityFilter(DocumentFilter):
 
 class FastTextLangId(DocumentFilter):
 
-  def __init__(self, model_path=None, min_langid_score=0.3):
-    if model_path is None:
-      raise ValueError("Must provide a valid path to a FastText model "
-                       "to identify languages with this filter")
-    self._model_path = model_path
-    self._lang_code = None
-    self._cutoff = min_langid_score
-    self._name = "lang_id"
+    def __init__(self, model_path=None, min_langid_score=0.3):
+        if model_path is None:
+            raise ValueError(
+                "Must provide a valid path to a FastText model "
+                "to identify languages with this filter"
+            )
+        self._model_path = model_path
+        self._lang_code = None
+        self._cutoff = min_langid_score
+        self._name = "lang_id"
 
   @batched
   def score_document(self, df):
