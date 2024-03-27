@@ -38,16 +38,16 @@ class Score:
             else:
                 meta = no_default
 
-        if is_batched(self.score_fn):
-            dataset.df[self.score_field] = dataset.df[self.text_field].map_partitions(
-                self.score_fn, meta=meta
-            )
-        else:
-            dataset.df[self.score_field] = dataset.df[self.text_field].apply(
-                self.score_fn, meta=meta
-            )
+            if is_batched(self.score_fn):
+                dataset.df[self.score_field] = dataset.df[
+                    self.text_field
+                ].map_partitions(self.score_fn, meta=meta)
+            else:
+                dataset.df[self.score_field] = dataset.df[self.text_field].apply(
+                    self.score_fn, meta=meta
+                )
 
-        return dataset
+            return dataset
 
 
 class Filter:
