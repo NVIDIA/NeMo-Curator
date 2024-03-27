@@ -31,23 +31,23 @@ class Score:
         self.text_field = text_field
         self.score_type = score_type
 
-        def __call__(self, dataset):
-            # Set the metadata for the function calls if provided
-            if self.score_type:
-                meta = (None, self.score_type)
-            else:
-                meta = no_default
+    def __call__(self, dataset):
+        # Set the metadata for the function calls if provided
+        if self.score_type:
+            meta = (None, self.score_type)
+        else:
+            meta = no_default
 
-            if is_batched(self.score_fn):
-                dataset.df[self.score_field] = dataset.df[
-                    self.text_field
-                ].map_partitions(self.score_fn, meta=meta)
-            else:
-                dataset.df[self.score_field] = dataset.df[self.text_field].apply(
-                    self.score_fn, meta=meta
-                )
+        if is_batched(self.score_fn):
+            dataset.df[self.score_field] = dataset.df[self.text_field].map_partitions(
+                self.score_fn, meta=meta
+            )
+        else:
+            dataset.df[self.score_field] = dataset.df[self.text_field].apply(
+                self.score_fn, meta=meta
+            )
 
-            return dataset
+        return dataset
 
 
 class Filter:
