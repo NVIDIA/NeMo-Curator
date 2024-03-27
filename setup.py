@@ -36,7 +36,7 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     packages=find_packages(),
-    python_requires="==3.10",
+    python_requires="3.10",
     install_requires=[
         "dask[complete]>=2021.7.1",
         "distributed>=2021.7.1",
