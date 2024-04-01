@@ -20,7 +20,8 @@ from .meta import Sequential
 from .modify import Modify
 from .task import TaskDecontamination
 
-# This import must come after all imports that require cugraph
+# Pytorch related imports must come after all imports that require cugraph,
+# because of context cleanup issues b/w pytorch and cugraph
 # See this issue: https://github.com/rapidsai/cugraph/issues/2718
 from .distributed_data_classifier import DomainClassifier, QualityClassifier
 
