@@ -13,13 +13,16 @@
 # limitations under the License.
 
 from .add_id import AddId
-from .distributed_data_classifier import DomainClassifier, QualityClassifier
 from .exact_dedup import ExactDuplicates
 from .filter import Filter, Score, ScoreFilter
 from .fuzzy_dedup import LSH, MinHash
 from .meta import Sequential
 from .modify import Modify
 from .task import TaskDecontamination
+
+# This import must come after all imports that require cugraph
+# See this issue: https://github.com/rapidsai/cugraph/issues/2718
+from .distributed_data_classifier import DomainClassifier, QualityClassifier
 
 __all__ = [
     "DomainClassifier",
