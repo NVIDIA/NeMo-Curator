@@ -87,7 +87,6 @@ def main(args):
     filter_pipeline = nc.ScoreFilter(
         FastTextQualityFilter(model_path),
         score_field="quality_score",
-        batched=True,
         score_type=float,
     )
     filtered_dataset = filter_pipeline(target_dataset)

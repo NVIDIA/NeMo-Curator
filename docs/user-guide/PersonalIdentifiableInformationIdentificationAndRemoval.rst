@@ -80,7 +80,7 @@ You could read, de-identify the dataset, and write it to an output directory usi
 
 Let's walk through this code line by line.
 
-* ``modifier = PiiModifierBatched`` creates an instance of ``PiiModifierBatched`` class that is responsible for PII de-identification
+* ``modifier = PiiModifier`` creates an instance of ``PiiModifier`` class that is responsible for PII de-identification
 * ``for file_names in get_batched_files`` retrieves a batch of 32 documents from the `book_dataset`
 * ``source_data = read_data(file_names, file_type="jsonl", backend='pandas', add_filename=True)`` reads the data from all the files using Dask using Pandas as the backend. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
 * ``dataset = DocumentDataset(source_data)``  creates an instance of ``DocumentDataset`` using the batch files. ``DocumentDataset`` is the standard format for text datasets in NeMo Curator.
