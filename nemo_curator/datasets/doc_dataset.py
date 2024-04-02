@@ -25,7 +25,7 @@ class DocumentDataset:
     Internally it may be distributed across multiple nodes, and may be on GPUs.
     """
 
-    def __init__(self, dataset_df):
+    def __init__(self, dataset_df: dd.DataFrame):
         self.df = dataset_df
 
     def __len__(self):
