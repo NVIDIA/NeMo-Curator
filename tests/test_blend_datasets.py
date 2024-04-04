@@ -61,4 +61,4 @@ class TestBlending:
         counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 4
         assert counts["a"] == 4
-        assert counts["b"] == 0
+        assert "b" not in counts["b"]
