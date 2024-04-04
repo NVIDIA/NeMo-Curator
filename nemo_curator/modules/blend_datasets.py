@@ -12,11 +12,15 @@ def blend_datasets(
     """
     Combined multiple datasets into one with different amounts of each dataset
     Args:
-        target_size: The number of documents the resulting dataset should have
+        target_size: The number of documents the resulting dataset should have.
+            The actual size of the dataset may be slightly larger if the normalized weights do not allow
+            for even mixtures of the datasets.
         datasets: A list of all datasets to combine together
         sampling_weights: A list of weights to assign to each dataset in the input. Weights will be
             normalized across the whole list as a part of the sampling process. For example, if the normalized
             sampling weight for dataset 1 is 0.02, 2% ofthe total samples will be sampled from dataset 1.
+            There are guaranteed to be math.ceil(normalized_weight_i * target_size) elements from dataset i in
+            the final blend.
     """
     if len(datasets) != len(sampling_weights):
         raise ValueError(

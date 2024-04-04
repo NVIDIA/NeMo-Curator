@@ -75,3 +75,17 @@ class TestBlending:
         assert counts["b"] == 2
         assert counts["c"] == 2
         assert counts["d"] == 2
+
+    def test_four_dataset_blend(self):
+        datasets = []
+        datasets.append(list_to_dataset(["a", "a"]))
+        datasets.append(list_to_dataset(["b", "b", "b"]))
+        datasets.append(list_to_dataset(["c"]))
+        datasets.append(list_to_dataset(["d", "d", "d", "d"]))
+        result_dataset = nc.blend_datasets(8, datasets, [1.0, 2.0, 3.0, 4.0])
+        counts = result_dataset.df["text"].value_counts().compute()
+        assert len(result_dataset) == 10
+        assert counts["a"] == 1
+        assert counts["b"] == 2
+        assert counts["c"] == 3
+        assert counts["d"] == 4
