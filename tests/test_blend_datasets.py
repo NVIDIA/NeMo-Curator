@@ -17,7 +17,7 @@ class TestBlending:
     def test_blend_as_original(self):
         first_dataset = list_to_dataset(["one", "two", "three"])
         result_dataset = nc.blend_datasets(len(first_dataset), [first_dataset], [1.0])
-        assert_eq(first_dataset, result_dataset)
+        assert_eq(first_dataset.df, result_dataset.df)
 
     def test_equal_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
@@ -25,7 +25,7 @@ class TestBlending:
         result_dataset = nc.blend_datasets(
             2, [first_dataset, second_dataset], [0.5, 0.5]
         )
-        counts = result_dataset.df["text"].value_counts()
+        counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 2
         assert counts["a"] == 1
         assert counts["b"] == 1
@@ -36,7 +36,7 @@ class TestBlending:
         result_dataset = nc.blend_datasets(
             2, [first_dataset, second_dataset], [2.0, 2.0]
         )
-        counts = result_dataset.df["text"].value_counts()
+        counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 2
         assert counts["a"] == 1
         assert counts["b"] == 1
@@ -47,7 +47,7 @@ class TestBlending:
         result_dataset = nc.blend_datasets(
             4, [first_dataset, second_dataset], [3.0, 1.0]
         )
-        counts = result_dataset.df["text"].value_counts()
+        counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 4
         assert counts["a"] == 3
         assert counts["b"] == 1
@@ -58,7 +58,7 @@ class TestBlending:
         result_dataset = nc.blend_datasets(
             4, [first_dataset, second_dataset], [1.0, 0.0]
         )
-        counts = result_dataset.df["text"].value_counts()
+        counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 4
         assert counts["a"] == 4
         assert counts["b"] == 0
