@@ -42,4 +42,4 @@ def blend_datasets(
 
     # TODO: Shuffle the dataset
 
-    return blended_dataset
+    return DocumentDataset(blended_dataset)
