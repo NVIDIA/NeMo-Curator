@@ -64,6 +64,7 @@ setup(
         "presidio-anonymizer==2.2.351",
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
+        "lxml[html_clean]",
     ],
     entry_points={
         "console_scripts": [
