@@ -14,12 +14,12 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
 
 
 class TestBlending:
-    def test_blend_as_original():
+    def test_blend_as_original(self):
         first_dataset = list_to_dataset(["one", "two", "three"])
         result_dataset = nc.blend_datasets(len(first_dataset), [first_dataset], [1.0])
         assert_eq(first_dataset, result_dataset)
 
-    def test_equal_blend():
+    def test_equal_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
         result_dataset = nc.blend_datasets(
@@ -30,7 +30,7 @@ class TestBlending:
         assert counts["a"] == 1
         assert counts["b"] == 1
 
-    def test_equal_blend_with_weights():
+    def test_equal_blend_with_weights(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
         result_dataset = nc.blend_datasets(
@@ -41,7 +41,7 @@ class TestBlending:
         assert counts["a"] == 1
         assert counts["b"] == 1
 
-    def test_uneven_blend():
+    def test_uneven_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
         result_dataset = nc.blend_datasets(
@@ -52,7 +52,7 @@ class TestBlending:
         assert counts["a"] == 3
         assert counts["b"] == 1
 
-    def test_very_uneven_blend():
+    def test_very_uneven_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
         result_dataset = nc.blend_datasets(
