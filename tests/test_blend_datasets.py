@@ -62,3 +62,16 @@ class TestBlending:
         assert len(result_dataset) == 4
         assert counts["a"] == 4
         assert "b" not in counts
+
+    def test_proper_uneven_blend(self):
+        first_dataset = list_to_dataset(["a", "b", "c", "d"])
+        second_dataset = list_to_dataset(["e", "f"])
+        result_dataset = nc.blend_datasets(
+            8, [first_dataset, second_dataset], [1.0, 0.0]
+        )
+        counts = result_dataset.df["text"].value_counts().compute()
+        assert len(result_dataset) == 8
+        assert counts["a"] == 2
+        assert counts["b"] == 2
+        assert counts["c"] == 2
+        assert counts["d"] == 2
