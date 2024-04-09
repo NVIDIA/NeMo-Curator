@@ -22,9 +22,6 @@ from datetime import datetime
 from typing import List, Tuple, Union
 
 import cudf
-import cugraph
-import cugraph.dask as dcg
-import cugraph.dask.comms.comms as Comms
 import cupy as cp
 import dask_cudf
 import numpy as np
@@ -39,8 +36,12 @@ from nemo_curator.gpu_deduplication.jaccard_utils.merge_utils import (
     filter_text_rows_by_bucket_batch,
     merge_left_to_shuffled_right,
 )
-from nemo_curator.gpu_deduplication.utils import create_logger, performance_report_if
-from nemo_curator.utils.distributed_utils import get_current_client, get_num_workers
+from nemo_curator.log import create_logger
+from nemo_curator.utils.distributed_utils import (
+    get_current_client,
+    get_num_workers,
+    performance_report_if,
+)
 from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import (
     convert_str_id_to_int,
     int_ids_to_str,
@@ -1106,6 +1107,10 @@ class ConnectedComponents:
         deduped_parsed_id_path,
         output_path,
     ):
+        import cugraph.dask as dcg
+        import cugraph.dask.comms.comms as Comms
+        from cugraph import MultiGraph
+
         Comms.initialize(p2p=True)
         df = dask_cudf.read_parquet(
             deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
@@ -1120,7 +1125,7 @@ class ConnectedComponents:
         df = df[[self.left_id, self.right_id]].astype(np.int64)
         df = dask_cudf.concat([df, self_edge_df])
 
-        G = cugraph.MultiGraph(directed=False)
+        G = MultiGraph(directed=False)
         G.from_dask_cudf_edgelist(
             df, source=self.left_id, destination=self.right_id, renumber=False
         )
