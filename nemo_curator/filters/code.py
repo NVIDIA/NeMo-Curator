@@ -103,9 +103,6 @@ class NumberOfLinesOfCodeFilter(DocumentFilter):
 class TokenizerFertilityFilter(DocumentFilter):
 
     def __init__(self, path_to_tokenizer=None, min_char_to_token_ratio=2.5):
-        import os
-
-        os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
         from nemo.collections.common.tokenizers import SentencePieceTokenizer
 
         if path_to_tokenizer is None:
