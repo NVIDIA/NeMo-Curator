@@ -127,11 +127,11 @@ class TestAddId:
         actual_ids = id_dataset.df[id_field].compute()
         expected_ids = pd.Series(
             [
-                "doc_id-01",
-                "doc_id-11",
-                "doc_id-21",
-                "doc_id-31",
-                "doc_id-41",
+                "doc_id-00",
+                "doc_id-10",
+                "doc_id-20",
+                "doc_id-30",
+                "doc_id-40",
             ]
         )
 
@@ -146,11 +146,11 @@ class TestAddId:
         actual_ids = id_dataset.df[id_field].compute()
         expected_ids = pd.Series(
             [
+                "doc_id-00",
+                "doc_id-10",
+                "doc_id-20",
                 "doc_id-01",
                 "doc_id-11",
-                "doc_id-21",
-                "doc_id-31",
-                "doc_id-41",
             ]
         )
 
