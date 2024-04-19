@@ -42,10 +42,7 @@ from nemo_curator.utils.distributed_utils import (
     get_num_workers,
     performance_report_if,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import (
-    convert_str_id_to_int,
-    int_ids_to_str,
-)
+from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import int_ids_to_str
 from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
     aggregated_anchor_docs_with_bk_read,
     get_restart_offsets,
