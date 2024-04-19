@@ -89,5 +89,6 @@ class AddId:
             for i in range(partition_start_id, len(partition) + partition_start_id)
         ]
         partition[self.id_field] = id_column
+        partition[self.id_field] = partition[self.id_field].astype("string")
 
         return partition
