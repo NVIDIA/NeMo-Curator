@@ -47,7 +47,7 @@ class Shuffle:
         dataset.df[rand_col] = rand_df[rand_col]
 
         shuffled_df = dataset.df.shuffle(rand_col, npartitions=new_npartitions)
-        shuffled_df.drop(columns=[rand_col])
+        shuffled_df = shuffled_df.drop(columns=[rand_col])
 
         if "filename" in shuffled_df.columns:
             shuffled_df = shuffled_df.map_partitions(self._overwrite_filename)
