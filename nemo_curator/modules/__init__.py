@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .add_id import AddId
-from .blend_datasets import blend_datasets
+from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
 from .filter import Filter, Score, ScoreFilter
 from .fuzzy_dedup import LSH, MinHash
@@ -40,4 +40,5 @@ __all__ = [
     "TaskDecontamination",
     "AddId",
     "blend_datasets",
+    "Shuffle",
 ]
