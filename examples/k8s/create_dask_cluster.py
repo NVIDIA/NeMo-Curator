@@ -48,7 +48,7 @@ def create_cluster(
     scheduler_spec["volumes"] = obj_vols
     for ctr in scheduler_spec["containers"]:
         ctr["volumeMounts"] = obj_vol_mounts
-    
+
     worker_spec["volumes"] = obj_vols
     for ctr in worker_spec["containers"]:
         ctr["volumeMounts"] = obj_vol_mounts
@@ -61,8 +61,11 @@ def create_cluster(
             if n_cpus_per_worker:
                 ctr["resources"]["limits"]["cpu"] = str(n_cpus_per_worker)
 
-    cluster = KubeCluster(custom_cluster_spec=custom_cluster_spec, shutdown_on_close=False)
-    print(f'{cluster = }')
+    cluster = KubeCluster(
+        custom_cluster_spec=custom_cluster_spec, shutdown_on_close=False
+    )
+    print(f"{cluster = }")
+
 
 if __name__ == "__main__":
 
@@ -81,7 +84,9 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--n_workers", type=int, default=2)
     parser.add_argument("-g", "--n_gpus_per_worker", type=int, default=None)
     parser.add_argument("-c", "--n_cpus_per_worker", type=int, default=None)
-    parser.add_argument("-i", "--image", type=str, default="nvcr.io/nvidia/nemo:24.01.framework")
+    parser.add_argument(
+        "-i", "--image", type=str, default="nvcr.io/nvidia/nemo:24.01.framework"
+    )
     parser.add_argument("-s", "--image_pull_secret", type=str, default=None)
     parser.add_argument(
         "-p",
