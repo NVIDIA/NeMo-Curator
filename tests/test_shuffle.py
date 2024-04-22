@@ -1,6 +1,5 @@
 import dask.dataframe as dd
 import pandas as pd
-from dask.dataframe.utils import assert_eq
 
 import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
@@ -14,7 +13,16 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
 
 
 def all_equal(left_dataset, right_dataset):
-    return all(left_dataset.df.compute() == right_dataset.df.compute())
+    left_result = left_dataset.df.compute()
+    right_result = right_dataset.df.compute()
+
+    l_cols = set(left_result.columns)
+    r_cols = set(right_result.columns)
+    assert l_cols == r_cols
+    for col in left_result.columns:
+        left = left_result[col]
+        right = right_result[col]
+        assert all(left == right), f"Mismatch in {col} column.\n{left}\n{right}\n"
 
 
 class TestShuffling:
@@ -23,7 +31,7 @@ class TestShuffling:
         expected_dataset = list_to_dataset(["two", "three", "one", "four", "five"])
         shuffle = nc.Shuffle(seed=42)
         result_dataset = shuffle(original_dataset)
-        assert all_equal(expected_dataset, result_dataset)
+        all_equal(expected_dataset, result_dataset)
 
     def test_new_partitions(self):
         original_dataset = list_to_dataset(
@@ -34,7 +42,7 @@ class TestShuffling:
         )
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
-        assert all_equal(expected_dataset, result_dataset)
+        all_equal(expected_dataset, result_dataset)
 
     def test_filename(self):
         original_dataset = list_to_dataset(
@@ -57,7 +65,7 @@ class TestShuffling:
 
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
-        assert all_equal(expected_dataset, result_dataset)
+        all_equal(expected_dataset, result_dataset)
 
     def test_custom_filenames(self):
         original_dataset = list_to_dataset(
@@ -83,4 +91,4 @@ class TestShuffling:
 
         shuffle = nc.Shuffle(seed=42, npartitions=2, partition_to_filename=filename_fn)
         result_dataset = shuffle(original_dataset)
-        assert all_equal(expected_dataset, result_dataset)
+        all_equal(expected_dataset, result_dataset)

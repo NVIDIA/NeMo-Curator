@@ -50,18 +50,22 @@ class Shuffle:
             rand_col, npartitions=new_npartitions, ignore_index=True
         )
         shuffled_df = shuffled_df.drop(columns=[rand_col])
-
-        if "filename" in shuffled_df.columns:
-            shuffled_df = shuffled_df.map_partitions(self._overwrite_filename)
+        shuffled_df = shuffled_df.map_partitions(self._partition_shuffle)
 
         return DocumentDataset(shuffled_df)
 
-    def _overwrite_filename(self, partition, partition_info=None):
+    def _partition_shuffle(self, partition, partition_info=None):
         if partition_info is None:
             return partition
 
-        filename = self.partition_to_filename(partition_info["number"])
-        partition["filename"] = filename
+        partition_num = partition_info["number"]
+        partition = partition.sample(
+            frac=1, random_state=self.seed + partition_num
+        ).reset_index(drop=True)
+
+        if "filename" in partition:
+            filename = self.partition_to_filename(partition_num)
+            partition["filename"] = filename
 
         return partition
 
