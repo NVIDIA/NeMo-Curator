@@ -40,7 +40,7 @@ class Shuffle:
         )
 
         rng = da.random.default_rng(seed=self.seed)
-        rand_array = rng.randint(0, new_npartitions, size=len(dataset.df))
+        rand_array = rng.integers(0, new_npartitions, size=len(dataset.df))
         rand_df = dd.from_dask_array(rand_array, columns=[rand_col]).repartition(
             npartitions=dataset.df.npartitions
         )
