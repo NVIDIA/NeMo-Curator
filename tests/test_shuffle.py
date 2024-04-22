@@ -13,20 +13,24 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
     return DocumentDataset(dd.from_pandas(pdf, npartitions=npartitions))
 
 
+def all_equal(left_dataset, right_dataset):
+    return all(left_dataset.df.compute() == right_dataset.df.compute())
+
+
 class TestShuffling:
     def test_shuffle(self):
         original_dataset = list_to_dataset(["one", "two", "three"])
         expected_dataset = list_to_dataset(["one", "two", "three"])
         shuffle = nc.Shuffle(seed=42)
         result_dataset = shuffle(original_dataset)
-        assert_eq(expected_dataset.df, result_dataset.df)
+        all_equal(expected_dataset, result_dataset)
 
     def test_new_partitions(self):
         original_dataset = list_to_dataset(["one", "two", "three"], npartitions=3)
-        expected_dataset = list_to_dataset(["one", "two", "three"])
+        expected_dataset = list_to_dataset(["one", "two", "three"]).compute()
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
-        assert_eq(expected_dataset.df, result_dataset.df)
+        all_equal(expected_dataset, result_dataset)
 
     def test_filename(self):
         original_dataset = list_to_dataset(["one", "two", "three"], npartitions=1)
@@ -45,7 +49,7 @@ class TestShuffling:
 
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
-        assert_eq(expected_dataset.df, result_dataset.df)
+        all_equal(expected_dataset, result_dataset)
 
     def test_custom_filenames(self):
         original_dataset = list_to_dataset(["one", "two", "three"], npartitions=1)
@@ -63,4 +67,4 @@ class TestShuffling:
 
         shuffle = nc.Shuffle(seed=42, npartitions=2, partition_to_filename=filename_fn)
         result_dataset = shuffle(original_dataset)
-        assert_eq(expected_dataset.df, result_dataset.df)
+        all_equal(expected_dataset, result_dataset)
