@@ -13,6 +13,10 @@
 # limitations under the License.
 import os
 
+# Disables multiprocessing in torch.compile calls.
+# Without this, Dasks multiprocessing combined with PyTorch's
+# gives errors like "daemonic processes are not allowed to have children"
+# See https://github.com/NVIDIA/NeMo-Curator/issues/31
 os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
 
 from .add_id import AddId
