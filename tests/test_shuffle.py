@@ -23,7 +23,7 @@ class TestShuffling:
         expected_dataset = list_to_dataset(["two", "three", "one", "four", "five"])
         shuffle = nc.Shuffle(seed=42)
         result_dataset = shuffle(original_dataset)
-        all_equal(expected_dataset, result_dataset)
+        assert all_equal(expected_dataset, result_dataset)
 
     def test_new_partitions(self):
         original_dataset = list_to_dataset(
@@ -34,7 +34,7 @@ class TestShuffling:
         )
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
-        all_equal(expected_dataset, result_dataset)
+        assert all_equal(expected_dataset, result_dataset)
 
     def test_filename(self):
         original_dataset = list_to_dataset(
@@ -57,7 +57,7 @@ class TestShuffling:
 
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
-        all_equal(expected_dataset, result_dataset)
+        assert all_equal(expected_dataset, result_dataset)
 
     def test_custom_filenames(self):
         original_dataset = list_to_dataset(
@@ -83,4 +83,4 @@ class TestShuffling:
 
         shuffle = nc.Shuffle(seed=42, npartitions=2, partition_to_filename=filename_fn)
         result_dataset = shuffle(original_dataset)
-        all_equal(expected_dataset, result_dataset)
+        assert all_equal(expected_dataset, result_dataset)
