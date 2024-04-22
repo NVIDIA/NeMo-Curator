@@ -52,7 +52,7 @@ class Shuffle:
         if "filename" in shuffled_df.columns:
             shuffled_df = shuffled_df.map_partitions(self._overwrite_filename)
 
-        return shuffled_df
+        return DocumentDataset(shuffled_df)
 
     def _overwrite_filename(self, partition, partition_info=None):
         if partition_info is None:
