@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GPU_INSTALL_STRING = """Install GPU packages via `pip install --extra-index-url https://pypi.nvidia.com nemo_curator[cuda-12x]`
-or use `pip install --extra-index-url https://pypi.nvidia.com ".[cuda-12x]"` if installing from source"""
+GPU_INSTALL_STRING = """Install GPU packages via `pip install --extra-index-url https://pypi.nvidia.com nemo_curator[cuda12x]`
+or use `pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"` if installing from source"""
 
 
 def is_cudf_type(obj):
