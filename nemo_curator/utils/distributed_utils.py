@@ -25,11 +25,11 @@ import dask.dataframe as dd
 import pandas as pd
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
-from nemo_curator.utils.gpu_utils import (
-    GPU_INSTALL_STRING,
-    is_cudf_type,
-    try_dask_cudf_import_and_raise,
-)
+from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
+from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+
+cudf = gpu_only_import("cudf")
+LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
 
 
 class DotDict:
@@ -53,13 +53,6 @@ def start_dask_gpu_local_cluster(args) -> Client:
     GPUs present on the machine.
 
     """
-    try:
-        from dask_cuda import LocalCUDACluster
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(
-            f"Starting a GPU cluster requires GPU dependencies. {GPU_INSTALL_STRING}"
-        )
-
     # Setting conservative defaults
     # which should work across most systems
     nvlink_only = getattr(args, "nvlink_only", False)
@@ -197,9 +190,6 @@ def read_single_partition(
         A cudf DataFrame or a pandas DataFrame.
 
     """
-    if backend == "cudf":
-        try_dask_cudf_import_and_raise("Backend=cudf requires GPU packages")
-
     if filetype == "jsonl":
         read_kwargs = {"lines": True}
         if backend == "cudf":
@@ -282,7 +272,8 @@ def read_data(
 
     """
     if backend == "cudf":
-        try_dask_cudf_import_and_raise("Backend=cudf requires GPU packages")
+        # Try using cuDF. If not availible will throw an error.
+        test_obj = cudf.Series
 
     if file_type == "pickle":
         df = read_pandas_pickle(input_files[0], add_filename=add_filename)

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GPU_INSTALL_STRING = """Install GPU packages via `pip install --extra-index-url https://pypi.nvidia.com nemo_curator[cuda]`
-or use `pip install --extra-index-url https://pypi.nvidia.com ".[cuda]` if installing from source"""
+GPU_INSTALL_STRING = """Install GPU packages via `pip install --extra-index-url https://pypi.nvidia.com nemo_curator[cuda-12x]`
+or use `pip install --extra-index-url https://pypi.nvidia.com ".[cuda-12x]"` if installing from source"""
 
 
 def is_cudf_type(obj):
@@ -26,16 +26,3 @@ def is_cudf_type(obj):
         str(getattr(obj, "_meta", "")),
     ]
     return any("cudf" in obj_type for obj_type in types)
-
-
-def try_dask_cudf_import_and_raise(message_prefix: str):
-    """
-    Try to import cudf/dask-cudf and raise an error message on installing dependencies.
-    Optionally prepends msg
-
-    """
-    try:
-        import cudf
-        import dask_cudf
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(f"{message_prefix}. {GPU_INSTALL_STRING}")

@@ -22,9 +22,12 @@ from datetime import datetime
 from typing import List, Tuple, Union
 
 import cudf
+import cugraph.dask as dcg
+import cugraph.dask.comms.comms as Comms
 import cupy as cp
 import dask_cudf
 import numpy as np
+from cugraph import MultiGraph
 from dask import dataframe as dd
 from dask.dataframe.shuffle import shuffle as dd_shuffle
 from dask.utils import M
@@ -1104,10 +1107,6 @@ class ConnectedComponents:
         deduped_parsed_id_path,
         output_path,
     ):
-        import cugraph.dask as dcg
-        import cugraph.dask.comms.comms as Comms
-        from cugraph import MultiGraph
-
         Comms.initialize(p2p=True)
         df = dask_cudf.read_parquet(
             deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
