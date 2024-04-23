@@ -125,9 +125,9 @@ use ``kubectl cp``, but ``exec`` has fewer surprises regarding compressed files:
     # Replace <...> with a path on your local machine 
     LOCAL_WORKSPACE=<...>
 
-    # This copies $LOCAL_WORKSPACE/big_english to /big_english within the PVC.
+    # This copies $LOCAL_WORKSPACE/my_dataset to /my_dataset within the PVC.
     # Change foobar to the directory or file you wish to upload.
-    ( cd $LOCAL_WORKSPACE; tar cf - big_english | kubectl exec -i nemo-workspace-busybox -- tar xf - -C /nemo-workspace )
+    ( cd $LOCAL_WORKSPACE; tar cf - my_dataset | kubectl exec -i nemo-workspace-busybox -- tar xf - -C /nemo-workspace )
 
 .. note::
     See :ref:`data-curator-download` for an example of how to download local data that can be uploaded to the PVC
@@ -186,178 +186,180 @@ After creating a cluster, you should be able to proceed after confirming the sch
     # rapids-dask-default-worker-f8ff963886-5577fff76b-qmvcd   1/1     Running   3 (52m ago)   57m
     # rapids-dask-scheduler-654799869d-9bw4z                   1/1     Running   0             57m
 
-.. tab-set::
+(Opt #1) Running Existing Module
+--------------------------------
 
-    .. tab-item:: Running Existing Module
+Here is an example of running the existing `gpu_exact_dedup` Curator module. The arguments and script name
+will need to be changed according to the module you wish to run:
 
-        Here is an example of running the existing `gpu_exact_dedup` Curator module. The arguments and script name
-        will need to be changed according to the module you wish to run:
+.. code-block:: bash
 
-        .. code-block:: bash
+    # Set DASK_CLUSTER_NAME to the value of --name
+    DASK_CLUSTER_NAME=rapids-dask
+    SCHEDULER_POD=$(kubectl get pods -l "dask.org/cluster-name=$DASK_CLUSTER_NAME,dask.org/component=scheduler" -o name)
+    # Starts an interactive shell session in the scheduler pod
+    kubectl exec -it $SCHEDULER_POD -- bash
+
+    ########################
+    # Inside SCHEDULER_POD #
+    ########################
+    # Run the following inside the interactive shell to launch script in the background and
+    # tee the logs to the /nemo-workspace PVC that was mounted in for persistence.
+    # The command line flags will need to be replaced with whatever the module script accepts.
+    # Recall that the PVC is mounted at /nemo-workspace, so any outputs should be written
+    # to somewhere under /nemo-workspace.
+
+    mkdir -p /nemo-workspace/curator/{output,log,profile}
+    # Write logs to script.log and to a log file with a date suffix
+    LOGS="/nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.$(date +%y_%m_%d-%H-%M-%S)"
+    (
+    echo "Writing to: $LOGS"
+    gpu_exact_dedup \
+        --input-data-dirs /nemo-workspace/my_dataset \
+        --output-dir /nemo-workspace/curator/output \
+        --hash-method md5 \
+        --log-dir /nemo-workspace/curator/log \
+        --num-files -1 \
+        --files-per-partition 1 \
+        --profile-path /nemo-workspace/curator/profile \
+        --log-frequency 250 \
+        --scheduler-address localhost:8786 \
+        2>&1
+    echo "Finished!"
+    ) | tee $LOGS &
+
+    # At this point, feel free to disconnect the shell via Ctrl+D or simply
+    exit
+
+At this point you can tail the logs and look for ``Finished!`` in ``/nemo-workspace/curator/script.log``:
+
+.. code-block:: bash
+
+    # Command will follow the logs of the running module (Press ctrl+C to close)
+    kubectl exec -it $SCHEDULER_POD -- tail -f /nemo-workspace/curator/script.log
+
+    # Writing to: /nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.24_03_27-15-52-31
+    # Computing hashes for /nemo-workspace/my_dataset
+    #                  adlr_id                           _hashes
+    # 0  cc-2023-14-0397113620  91b77eae49c10a65d485ac8ca18d6c43
+    # 1  cc-2023-14-0397113621  a266f0794cc8ffbd431823e6930e4f80
+    # 2  cc-2023-14-0397113622  baee533e2eddae764de2cd6faaa1286c
+    # 3  cc-2023-14-0397113623  87dd52a468448b99078f97e76f528eab
+    # 4  cc-2023-14-0397113624  a17664daf4f24be58e0e3a3dcf81124a
+    # Finished!
+
+
+(Opt #2) Running Custom Module
+------------------------------
+
+In this example, we'll demonstrate how to run a NeMo Curator module that you have defined locally.
+
+Since your curator module may depend on version of the Curator that differs from what is in the
+container, we will need to build a custom image with your code installed:
+
+.. code-block:: bash
+
+    # Clone your repo. This example uses the official repo
+    git clone https://github.com/NVIDIA/NeMo-Curator.git NeMo-Curator-dev
+
+    # Checkout specific ref. This example uses a commit in the main branch
+    git -C NeMo-Curator-dev checkout fc167a6edffd38a55c333742972a5a25b901cb26
+
+    # Example NeMo base image. Change it according to your requirements
+    BASE_IMAGE=nvcr.io/nvidian/bignlp-train:nemofw-nightly
+    docker build -t nemo-curator-custom ./NeMo-Curator-dev -f - <<EOF
+    FROM ${BASE_IMAGE}
+
+    COPY ./ /NeMo-Curator-dev/
+    RUN pip install -e /NeMo-Curator-dev
+    EOF
+
+    # Then push this image to your registry: Change <private-registry>/<image>:<tag> accordingly
+    docker tag nemo-curator-custom <private-registry>/<image>:<tag>
+    docker push <private-registry>/<image>:<tag>
+
+.. note::
+    When using a custom image, you will likely need to create a different secret unless you pushed to a public registry:
+
+    .. code-block:: bash
         
-            # Set DASK_CLUSTER_NAME to the value of --name
-            DASK_CLUSTER_NAME=rapids-dask
-            SCHEDULER_POD=$(kubectl get pods -l "dask.org/cluster-name=$DASK_CLUSTER_NAME,dask.org/component=scheduler" -o name)
-            # Starts an interactive shell session in the scheduler pod
-            kubectl exec -it $SCHEDULER_POD -- bash
+        # Fill in <private-registry>/<username>/<password>
+        kubectl create secret docker-registry my-private-registry --docker-server=<private-registry> --docker-username=<username> --docker-password=<password>
 
-            ########################
-            # Inside SCHEDULER_POD #
-            ########################
-            # Run the following inside the interactive shell to launch script in the background and
-            # tee the logs to the /nemo-workspace PVC that was mounted in for persistence.
-            # The command line flags will need to be replaced with whatever the module script accepts.
-            # Recall that the PVC is mounted at /nemo-workspace, so any outputs should be written
-            # to somewhere under /nemo-workspace.
+    And with this new secret, you create your new dask cluster:
 
-            mkdir -p /nemo-workspace/curator/{output,log,profile}
-            # Write logs to script.log and to a log file with a date suffix
-            LOGS="/nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.$(date +%y_%m_%d-%H-%M-%S)"
-            (
-            echo "Writing to: $LOGS"
-            gpu_exact_dedup \
-                --input-data-dirs /nemo-workspace/big_english \
-                --output-dir /nemo-workspace/curator/output \
-                --hash-method md5 \
-                --log-dir /nemo-workspace/curator/log \
-                --num-files -1 \
-                --files-per-partition 1 \
-                --profile-path /nemo-workspace/curator/profile \
-                --log-frequency 250 \
-                --scheduler-address localhost:8786 \
-                2>&1
-            echo "Finished!"
-            ) | tee $LOGS &
+    .. code-block:: bash
 
-            # At this point, feel free to disconnect the shell via Ctrl+D or simply
-            exit
+        # Fill in <private-registry>/<username>/<password>
+        python create_dask_cluster.py \
+            --name rapids-dask \
+            --n_workers 2 \
+            --n_gpus_per_worker 1 \
+            --image <private-registry>/<image>:<tag> \
+            --image_pull_secret my-private-registry \
+            --pvcs nemo-workspace:/nemo-workspace
 
-        At this point you can tail the logs and look for ``Finished!`` in ``/nemo-workspace/curator/script.log``:
+After the Dask cluster is deployed, you can proceed to run your module. In this example we'll use
+the ``NeMo-Curator/nemo_curator/scripts/find_exact_duplicates.py`` module, but you can find other templates
+in `NeMo-Curator/examples <https://github.com/NVIDIA/NeMo-Curator/tree/main/examples>`__:
 
-        .. code-block:: bash
-        
-            # Command will follow the logs of the running module (Press ctrl+C to close)
-            kubectl exec -it $SCHEDULER_POD -- tail -f /nemo-workspace/curator/script.log
+.. code-block:: bash
 
-            # Writing to: /nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.24_03_27-15-52-31
-            # Computing hashes for /nemo-workspace/big_english
-            #                  adlr_id                           _hashes
-            # 0  cc-2023-14-0397113620  91b77eae49c10a65d485ac8ca18d6c43
-            # 1  cc-2023-14-0397113621  a266f0794cc8ffbd431823e6930e4f80
-            # 2  cc-2023-14-0397113622  baee533e2eddae764de2cd6faaa1286c
-            # 3  cc-2023-14-0397113623  87dd52a468448b99078f97e76f528eab
-            # 4  cc-2023-14-0397113624  a17664daf4f24be58e0e3a3dcf81124a
-            # Finished!
+    # Set DASK_CLUSTER_NAME to the value of --name
+    DASK_CLUSTER_NAME=rapids-dask
+    SCHEDULER_POD=$(kubectl get pods -l "dask.org/cluster-name=$DASK_CLUSTER_NAME,dask.org/component=scheduler" -o name)
+    # Starts an interactive shell session in the scheduler pod
+    kubectl exec -it $SCHEDULER_POD -- bash
 
+    ########################
+    # Inside SCHEDULER_POD #
+    ########################
+    # Run the following inside the interactive shell to launch script in the background and
+    # tee the logs to the /nemo-workspace PVC that was mounted in for persistence.
+    # The command line flags will need to be replaced with whatever the module script accepts.
+    # Recall that the PVC is mounted at /nemo-workspace, so any outputs should be written
+    # to somewhere under /nemo-workspace.
 
-    .. tab-item:: Running Custom Module
+    mkdir -p /nemo-workspace/curator/{output,log,profile}
+    # Append logs to script.log and write to a log file with a date suffix
+    LOGS="/nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.$(date +%y_%m_%d-%H-%M-%S)"
+    (
+    echo "Writing to: $LOGS"
+    # Recall that /NeMo-Curator-dev was copied and installed in the Dockerfile above
+    python3 -u /NeMo-Curator-dev/nemo_curator/scripts/find_exact_duplicates.py \
+        --input-data-dirs /nemo-workspace/my_dataset \
+        --output-dir /nemo-workspace/curator/output \
+        --hash-method md5 \
+        --log-dir /nemo-workspace/curator/log \
+        --files-per-partition 1 \
+        --profile-path /nemo-workspace/curator/profile \
+        --log-frequency 250 \
+        --scheduler-address localhost:8786 \
+        2>&1
+    echo "Finished!"
+    ) | tee $LOGS &
 
-        In this example, we'll demonstrate how to run a NeMo Curator module that you have defined locally.
-    
-        Since your curator module may depend on version of the Curator that differs from what is in the
-        container, we will need to build a custom image with your code installed:
+    # At this point, feel free to disconnect the shell via Ctrl+D or simply
+    exit
 
-        .. code-block:: bash
+At this point you can tail the logs and look for ``Finished!`` in ``/nemo-workspace/curator/script.log``:
 
-            # Clone your repo. This example uses the official repo
-            git clone https://github.com/NVIDIA/NeMo-Curator.git NeMo-Curator-dev
+.. code-block:: bash
 
-            # Checkout specific ref. This example uses a commit in the main branch
-            git -C NeMo-Curator-dev checkout fc167a6edffd38a55c333742972a5a25b901cb26
+    # Command will follow the logs of the running module (Press ctrl+C to close)
+    kubectl exec -it $SCHEDULER_POD -- tail -f /nemo-workspace/curator/script.log
 
-            # Example NeMo base image. Change it according to your requirements
-            BASE_IMAGE=nvcr.io/nvidian/bignlp-train:nemofw-nightly
-            docker build -t nemo-curator-custom ./NeMo-Curator-dev -f - <<EOF
-            FROM ${BASE_IMAGE}
-
-            COPY ./ /NeMo-Curator-dev/
-            RUN pip install -e /NeMo-Curator-dev
-            EOF
-
-            # Then push this image to your registry: Change <private-registry>/<image>:<tag> accordingly
-            docker tag nemo-curator-custom <private-registry>/<image>:<tag>
-            docker push <private-registry>/<image>:<tag>
-
-        .. note::
-            When using a custom image, you will likely need to create a different secret unless you pushed to a public registry:
-
-            .. code-block:: bash
-                
-                # Fill in <private-registry>/<username>/<password>
-                kubectl create secret docker-registry my-private-registry --docker-server=<private-registry> --docker-username=<username> --docker-password=<password>
-
-            And with this new secret, you create your new dask cluster:
-
-            .. code-block:: bash
-
-                # Fill in <private-registry>/<username>/<password>
-                python create_dask_cluster.py \
-                    --name rapids-dask \
-                    --n_workers 2 \
-                    --n_gpus_per_worker 1 \
-                    --image <private-registry>/<image>:<tag> \
-                    --image_pull_secret my-private-registry \
-                    --pvcs nemo-workspace:/nemo-workspace
-    
-        After the Dask cluster is deployed, you can proceed to run your module. In this example we'll use
-        the ``NeMo-Curator/nemo_curator/scripts/find_exact_duplicates.py`` module, but you can find other templates
-        in `NeMo-Curator/examples <https://github.com/NVIDIA/NeMo-Curator/tree/main/examples>`__:
-
-        .. code-block:: bash
-        
-            # Set DASK_CLUSTER_NAME to the value of --name
-            DASK_CLUSTER_NAME=rapids-dask
-            SCHEDULER_POD=$(kubectl get pods -l "dask.org/cluster-name=$DASK_CLUSTER_NAME,dask.org/component=scheduler" -o name)
-            # Starts an interactive shell session in the scheduler pod
-            kubectl exec -it $SCHEDULER_POD -- bash
-
-            ########################
-            # Inside SCHEDULER_POD #
-            ########################
-            # Run the following inside the interactive shell to launch script in the background and
-            # tee the logs to the /nemo-workspace PVC that was mounted in for persistence.
-            # The command line flags will need to be replaced with whatever the module script accepts.
-            # Recall that the PVC is mounted at /nemo-workspace, so any outputs should be written
-            # to somewhere under /nemo-workspace.
-
-            mkdir -p /nemo-workspace/curator/{output,log,profile}
-            # Append logs to script.log and write to a log file with a date suffix
-            LOGS="/nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.$(date +%y_%m_%d-%H-%M-%S)"
-            (
-            echo "Writing to: $LOGS"
-            # Recall that /NeMo-Curator-dev was copied and installed in the Dockerfile above
-            python3 -u /NeMo-Curator-dev/nemo_curator/scripts/find_exact_duplicates.py \
-                --input-data-dirs /nemo-workspace/big_english \
-                --output-dir /nemo-workspace/curator/output \
-                --hash-method md5 \
-                --log-dir /nemo-workspace/curator/log \
-                --files-per-partition 1 \
-                --profile-path /nemo-workspace/curator/profile \
-                --log-frequency 250 \
-                --scheduler-address localhost:8786 \
-                2>&1
-            echo "Finished!"
-            ) | tee $LOGS &
-
-            # At this point, feel free to disconnect the shell via Ctrl+D or simply
-            exit
-
-        At this point you can tail the logs and look for ``Finished!`` in ``/nemo-workspace/curator/script.log``:
-
-        .. code-block:: bash
-        
-            # Command will follow the logs of the running module (Press ctrl+C to close)
-            kubectl exec -it $SCHEDULER_POD -- tail -f /nemo-workspace/curator/script.log
-
-            # Writing to: /nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.24_03_27-20-52-07
-            # Reading 2 files
-            # /NeMo-Curator-dev/nemo_curator/modules/exact_dedup.py:157: UserWarning: Output path f/nemo-workspace/curator/output/_exact_duplicates.parquet already exists and will be overwritten
-            #   warnings.warn(
-            # Finished!
+    # Writing to: /nemo-workspace/curator/script.log /nemo-workspace/curator/script.log.24_03_27-20-52-07
+    # Reading 2 files
+    # /NeMo-Curator-dev/nemo_curator/modules/exact_dedup.py:157: UserWarning: Output path f/nemo-workspace/curator/output/_exact_duplicates.parquet already exists and will be overwritten
+    #   warnings.warn(
+    # Finished!
 
 Deleting Cluster
 ----------------
-After you have finished using the created dask cluster, you can delete it to release the resources::
+After you have finished using the created dask cluster, you can delete it to release the resources:
+
+.. code-block:: bash
 
     # Where <name> is the flag passed to create_dask_cluster.py. Example: `--name <name>`
     kubectl delete daskcluster <name>
