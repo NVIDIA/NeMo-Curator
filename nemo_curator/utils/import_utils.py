@@ -23,8 +23,9 @@ from contextlib import contextmanager
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("import_logger")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 
 class UnavailableError(Exception):
