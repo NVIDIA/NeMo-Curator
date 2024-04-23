@@ -1,8 +1,13 @@
 import dask.dataframe as dd
 import pandas as pd
+from dask.distributed import Client
 
 import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
+
+# Single threaded Dask is the only way to guarantee shuffle determinism
+# Docs: https://docs.dask.org/en/latest/generated/dask.dataframe.DataFrame.shuffle.html
+client = Client(n_workers=1, threads_per_worker=1)
 
 
 def list_to_dataset(documents, col_name="text", npartitions=2):
@@ -28,7 +33,7 @@ def all_equal(left_dataset, right_dataset):
 class TestShuffling:
     def test_shuffle(self):
         original_dataset = list_to_dataset(["one", "two", "three", "four", "five"])
-        expected_dataset = list_to_dataset(["three", "one", "five", "two", "four"])
+        expected_dataset = list_to_dataset(["three", "one", "four", "five", "two"])
         shuffle = nc.Shuffle(seed=42)
         result_dataset = shuffle(original_dataset)
         all_equal(expected_dataset, result_dataset)
@@ -38,7 +43,7 @@ class TestShuffling:
             ["one", "two", "three", "four", "five"], npartitions=3
         )
         expected_dataset = list_to_dataset(
-            ["one", "five", "four", "two", "three"], npartitions=3
+            ["one", "four", "three", "five", "two"], npartitions=3
         )
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
