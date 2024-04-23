@@ -1,8 +1,8 @@
 import math
 from typing import Any, Callable, List, Optional
 
-import dask.array as da
 import dask.dataframe as dd
+import numpy as np
 
 from nemo_curator.datasets.doc_dataset import DocumentDataset
 
@@ -32,27 +32,35 @@ class Shuffle:
         self.seed = seed
         self.npartitions = npartitions
         self.partition_to_filename = partition_to_filename
+        self.rand_col = "_shuffle_rand"
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-        rand_col = "_shuffle_rand"
         new_npartitions = (
             dataset.df.npartitions if self.npartitions is None else self.npartitions
         )
 
-        rng = da.random.default_rng(seed=self.seed)
-        rand_array = rng.integers(0, new_npartitions, size=len(dataset.df))
-        rand_df = dd.from_dask_array(rand_array, columns=[rand_col]).repartition(
-            npartitions=dataset.df.npartitions
-        )
-        dataset.df[rand_col] = rand_df[rand_col]
+        rand_df = dataset.df.map_partitions(self._add_rand_col, new_npartitions)
 
-        shuffled_df = dataset.df.shuffle(
-            rand_col, npartitions=new_npartitions, ignore_index=True
+        shuffled_df = rand_df.shuffle(
+            self.rand_col, npartitions=new_npartitions, ignore_index=True
         )
-        shuffled_df = shuffled_df.drop(columns=[rand_col])
+        shuffled_df = shuffled_df.drop(columns=[self.rand_col])
         shuffled_df = shuffled_df.map_partitions(self._partition_shuffle)
 
         return DocumentDataset(shuffled_df)
+
+    def _add_rand_col(self, partition, new_npartitions, partition_info=None):
+        if partition_info is None:
+            partition_info = {
+                "number": 0,
+            }
+
+        np.random.seed(self.seed + partition_info["number"])
+        partition[self.rand_col] = np.random.random_integers(
+            0, new_npartitions, size=len(partition)
+        )
+
+        return partition
 
     def _partition_shuffle(self, partition, partition_info=None):
         if partition_info is None:
