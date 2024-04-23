@@ -53,11 +53,11 @@ class TestShuffling:
         expected_data = {
             "text": ["one", "three", "four", "five", "two"],
             "filename": [
+                "file_0000000000.jsonl",
+                "file_0000000000.jsonl",
+                "file_0000000000.jsonl",
                 "file_0000000001.jsonl",
                 "file_0000000001.jsonl",
-                "file_0000000001.jsonl",
-                "file_0000000002.jsonl",
-                "file_0000000002.jsonl",
             ],
         }
         pdf = pd.DataFrame(expected_data)
@@ -76,11 +76,11 @@ class TestShuffling:
         expected_data = {
             "text": ["one", "three", "four", "five", "two"],
             "filename": [
+                "my_0.test",
+                "my_0.test",
+                "my_0.test",
                 "my_1.test",
                 "my_1.test",
-                "my_1.test",
-                "my_2.test",
-                "my_2.test",
             ],
         }
         pdf = pd.DataFrame(expected_data)
