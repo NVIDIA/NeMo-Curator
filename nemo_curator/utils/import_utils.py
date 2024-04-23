@@ -23,7 +23,8 @@ from contextlib import contextmanager
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING
 
-logger = logging.Logger("import_logger", level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("import_logger")
 
 
 class UnavailableError(Exception):
@@ -235,7 +236,7 @@ def safe_import(module, *, msg=None, alt=None):
     """A function used to import modules that may not be available
 
     This function will attempt to import a module with the given name, but it
-    will not throw an ImportError if the module is not found. Instead, it will
+    will not throw an ModuleNotFoundError if the module is not found. Instead, it will
     return a placeholder object which will raise an exception only if used.
 
     Parameters
@@ -257,12 +258,12 @@ def safe_import(module, *, msg=None, alt=None):
     """
     try:
         return importlib.import_module(module)
-    except ImportError:
+    except ModuleNotFoundError:
         exception_text = traceback.format_exc()
         logger.debug(f"Import of {module} failed with: {exception_text}")
     except Exception:
         exception_text = traceback.format_exc()
-        logger.info(f"Import of {module} failed with: {exception_text}")
+        raise
     if msg is None:
         msg = f"{module} could not be imported"
     if alt is None:
@@ -301,15 +302,15 @@ def safe_import_from(module, symbol, *, msg=None, alt=None):
     try:
         imported_module = importlib.import_module(module)
         return getattr(imported_module, symbol)
-    except ImportError:
+    except ModuleNotFoundError:
         exception_text = traceback.format_exc()
         logger.debug(f"Import of {module} failed with: {exception_text}")
     except AttributeError:
         exception_text = traceback.format_exc()
-        logger.debug(f"Import of {symbol} from {module} failed with: {exception_text}")
+        logger.info(f"Import of {symbol} from {module} failed with: {exception_text}")
     except Exception:
         exception_text = traceback.format_exc()
-        logger.info(f"Import of {module}.{symbol} failed with: {exception_text}")
+        raise
     if msg is None:
         msg = f"{module}.{symbol} could not be imported"
     if alt is None:
