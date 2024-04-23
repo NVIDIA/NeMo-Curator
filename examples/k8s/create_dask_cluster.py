@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("-g", "--n_gpus_per_worker", type=int, default=None)
     parser.add_argument("-c", "--n_cpus_per_worker", type=int, default=None)
     parser.add_argument(
-        "-i", "--image", type=str, default="nvcr.io/nvidia/nemo:24.01.framework"
+        "-i", "--image", type=str, default="nvcr.io/nvidia/nemo:24.03.framework"
     )
     parser.add_argument("-s", "--image_pull_secret", type=str, default=None)
     parser.add_argument(
