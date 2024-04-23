@@ -105,7 +105,9 @@ the key in single quotes (``'``) so it can be parsed correctly by k8s)::
 Setup Python Environment
 ------------------------
 
-Setup a virtual environment:
+The environment to run the provided scripts in this example does not need the full
+``nemo_curator`` package, so you can create a virtual environment with just the
+required packages as follows:
 
 .. code-block:: bash
 
