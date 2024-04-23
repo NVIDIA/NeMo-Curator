@@ -59,7 +59,7 @@ Setup PVC Busybox Helper Pod
 ############################
 
 Inspecting the PVC and copying to and from it is facilitated with a busybox container.
-Some examples below assume you have this Pod running to copy to and from the PVC. 
+Some examples below assume you have this Pod running to copy to and from the PVC.
 
 .. code-block:: bash
 
@@ -123,8 +123,8 @@ To copy into the ``nemo-workspace`` PVC, we will do so with ``kubectl exec``. Yo
 use ``kubectl cp``, but ``exec`` has fewer surprises regarding compressed files:
 
 .. code-block:: bash
-  
-    # Replace <...> with a path on your local machine 
+
+    # Replace <...> with a path on your local machine
     LOCAL_WORKSPACE=<...>
 
     # This copies $LOCAL_WORKSPACE/my_dataset to /my_dataset within the PVC.
@@ -284,7 +284,7 @@ container, we will need to build a custom image with your code installed:
     When using a custom image, you will likely need to create a different secret unless you pushed to a public registry:
 
     .. code-block:: bash
-        
+
         # Fill in <private-registry>/<username>/<password>
         kubectl create secret docker-registry my-private-registry --docker-server=<private-registry> --docker-username=<username> --docker-password=<password>
 
@@ -373,7 +373,7 @@ To download data from your PVC, you can use the ``nemo-workspace-busybox`` Pod c
 
 .. code-block:: bash
 
-    # Replace <...> with a path on your local machine 
+    # Replace <...> with a path on your local machine
     LOCAL_WORKSPACE=<...>
 
     # Tar will fail if LOCAL_WORKSPACE doesn't exist

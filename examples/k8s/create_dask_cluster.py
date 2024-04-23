@@ -1,5 +1,6 @@
-from dask_kubernetes.operator.kubecluster import make_cluster_spec, KubeCluster
 import argparse
+
+from dask_kubernetes.operator.kubecluster import KubeCluster, make_cluster_spec
 
 
 def create_cluster(
