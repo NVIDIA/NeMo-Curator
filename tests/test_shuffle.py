@@ -33,7 +33,7 @@ def all_equal(left_dataset, right_dataset):
 class TestShuffling:
     def test_shuffle(self):
         original_dataset = list_to_dataset(["one", "two", "three", "four", "five"])
-        expected_dataset = list_to_dataset(["three", "one", "four", "five", "two"])
+        expected_dataset = list_to_dataset(["four", "three", "two", "one", "five"])
         shuffle = nc.Shuffle(seed=42)
         result_dataset = shuffle(original_dataset)
         all_equal(expected_dataset, result_dataset)
@@ -43,7 +43,7 @@ class TestShuffling:
             ["one", "two", "three", "four", "five"], npartitions=3
         )
         expected_dataset = list_to_dataset(
-            ["one", "four", "three", "five", "two"], npartitions=3
+            ["four", "three", "two", "one", "five"], npartitions=3
         )
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
@@ -56,11 +56,11 @@ class TestShuffling:
         original_dataset.df["filename"] = "original.jsonl"
 
         expected_data = {
-            "text": ["one", "three", "four", "five", "two"],
+            "text": ["four", "three", "two", "one", "five"],
             "filename": [
-                "file_0000000000.jsonl",
-                "file_0000000000.jsonl",
-                "file_0000000000.jsonl",
+                "file_0000000001.jsonl",
+                "file_0000000001.jsonl",
+                "file_0000000001.jsonl",
                 "file_0000000001.jsonl",
                 "file_0000000001.jsonl",
             ],
@@ -79,11 +79,11 @@ class TestShuffling:
         original_dataset.df["filename"] = "original.jsonl"
 
         expected_data = {
-            "text": ["one", "three", "four", "five", "two"],
+            "text": ["four", "three", "two", "one", "five"],
             "filename": [
-                "my_0.test",
-                "my_0.test",
-                "my_0.test",
+                "my_1.test",
+                "my_1.test",
+                "my_1.test",
                 "my_1.test",
                 "my_1.test",
             ],
