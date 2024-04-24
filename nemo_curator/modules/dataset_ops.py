@@ -58,7 +58,7 @@ class Shuffle:
             }
 
         np.random.seed(self.seed + partition_info["number"])
-        partition[self.rand_col] = np.random.random_integers(
+        partition[self.rand_col] = np.random.randint(
             0, new_npartitions, size=len(partition)
         )
 
