@@ -149,12 +149,6 @@ def attach_args(parser=None):
         "Each file is a parquet file that contains two series, the document ids, "
         "and a series of lists, each list denoting the minhash signature for that document id.",
     )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="gpu",
-        help="Type of cluster to start up",
-    )
     return parser
 
 

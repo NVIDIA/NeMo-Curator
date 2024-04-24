@@ -121,6 +121,9 @@ def parse_gpu_dedup_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser = add_distributed_args(parser)
+
+    # Set default device to GPU for dedup
+    parser.set_defaults(device="gpu")
     parser.add_argument(
         "--input-data-dirs",
         type=str,

@@ -110,12 +110,6 @@ def attach_args(parser=None):
         help="Number of buckets to shuffle per batch",
     )
     parser.add_argument(
-        "--device",
-        type=str,
-        default="gpu",
-        help="Type of cluster to start up",
-    )
-    parser.add_argument(
         "--output-bucket-dir",
         type=str,
         required=True,
