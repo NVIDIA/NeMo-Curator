@@ -110,8 +110,7 @@ def blend_datasets(
     blend_components = []
     for dataset, num_documents in zip(datasets, num_documents_per_dataset):
         # Repeatedly sample from the dataset
-        num_epochs = math.ceil(num_documents / len(dataset))
-        for _ in range(num_epochs):
+        while num_documents > 0:
             sample = dataset.df.head(n=num_documents, npartitions=-1, compute=False)
             blend_components.append(sample)
             num_documents -= len(sample)
