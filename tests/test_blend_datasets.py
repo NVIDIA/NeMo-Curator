@@ -1,6 +1,5 @@
 import dask.dataframe as dd
 import pandas as pd
-from dask.dataframe.utils import assert_eq
 
 import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
@@ -13,11 +12,24 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
     return DocumentDataset(dd.from_pandas(pdf, npartitions=npartitions))
 
 
+def all_equal(left_dataset, right_dataset):
+    left_result = left_dataset.df.compute()
+    right_result = right_dataset.df.compute()
+
+    l_cols = set(left_result.columns)
+    r_cols = set(right_result.columns)
+    assert l_cols == r_cols
+    for col in left_result.columns:
+        left = left_result[col].reset_index(drop=True)
+        right = right_result[col].reset_index(drop=True)
+        assert all(left == right), f"Mismatch in {col} column.\n{left}\n{right}\n"
+
+
 class TestBlending:
     def test_blend_as_original(self):
         first_dataset = list_to_dataset(["one", "two", "three"])
         result_dataset = nc.blend_datasets(len(first_dataset), [first_dataset], [1.0])
-        assert_eq(first_dataset.df, result_dataset.df)
+        all_equal(first_dataset, result_dataset)
 
     def test_equal_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
