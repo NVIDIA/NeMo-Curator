@@ -111,10 +111,40 @@ def blend_datasets(
     for dataset, num_documents in zip(datasets, num_documents_per_dataset):
         # Repeatedly sample from the dataset
         while num_documents > 0:
-            sample = dataset.df.head(n=num_documents, npartitions=-1, compute=False)
+            sample = _partition_head(dataset.df, num_documents)
             blend_components.append(sample)
             num_documents -= len(sample)
 
     blended_dataset = dd.concat(blend_components)
 
     return DocumentDataset(blended_dataset)
+
+
+def _partition_head(ddf: dd.DataFrame, n: int) -> dd.DataFrame:
+    """
+    Returns the first n rows in a dataframe while preserving the partitions.
+    Meant as a replacement for ddf.head(npartitions=-1, compute=False) as it
+    uses too much memory at large scales
+
+    Args:
+        ddf: The dataframe to get the first rows from
+        n: The number of rows to get
+    """
+    original_meta = ddf.dtypes.to_dict()
+    partition_lengths = ddf.map_partitions(len)
+    num_partitions = 0
+    total_size = 0
+    last_length = 0
+    for length in partition_lengths:
+        total_size += length
+        num_partitions += 1
+        last_length = length
+        if total_size >= n:
+            break
+
+    delayed_df = ddf.to_delayed()
+    excess_elems = max(0, total_size - n)
+    delayed_df = delayed_df[:num_partitions]
+    delayed_df[-1] = delayed_df[-1].head(last_length - excess_elems)
+
+    return dd.from_delayed(delayed_df, meta=original_meta)
