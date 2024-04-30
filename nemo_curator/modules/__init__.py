@@ -32,6 +32,12 @@ from .task import TaskDecontamination
 # GPU packages
 LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "LSH")
 MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "MinHash")
+FuzzyDuplicates = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup", "FuzzyDuplicates"
+)
+FuzzyDeDupConfig = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup", "FuzzyDeDupConfig"
+)
 
 # Pytorch related imports must come after all imports that require cugraph,
 # because of context cleanup issues b/w pytorch and cugraph
@@ -42,6 +48,8 @@ __all__ = [
     "DomainClassifier",
     "ExactDuplicates",
     "Filter",
+    "FuzzyDeDupConfig",
+    "FuzzyDuplicates",
     "LSH",
     "MinHash",
     "Modify",

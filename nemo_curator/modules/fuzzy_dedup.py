@@ -18,6 +18,7 @@ import math
 import os
 import time
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Tuple, Union
 
@@ -35,6 +36,7 @@ from tqdm import tqdm
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import (
     get_current_client,
     get_num_workers,
@@ -380,6 +382,198 @@ class LSH:
 
         buckets_df = dask_cudf.read_parquet(write_path, split_row_groups=False)
         return DocumentDataset(buckets_df)
+
+
+@dataclass
+class FuzzyDeDupConfig:
+    """
+    Configuration for MinHash based fuzzy deduplication
+    Parameters
+    ----------
+    seed: Seed for minhash permutations
+    char_ngrams: Size of Char ngram shingles used in minhash computation
+    num_buckets: Number of Bands or buckets to use during Locality Sensitive Hashing
+    hashes_per_bucket: Number of hashes per bucket/band.
+    use_64_bit_hash: Whether to use a 32bit or 64bit hash function for minhashing.
+    buckets_per_shuffle: Number of bands/buckets to shuffle concurrently.
+        Larger values process larger batches by processing multiple bands
+        but might lead to memory pressures and related errors.
+    id_field: Column in the Dataset denoting document ID.
+    text_field: Column in the Dataset denoting document content.
+    profile_dir: str, Default None
+        If specified directory to write dask profile
+    cache_dir: str, Default None
+        Location to store deduplcation intermediates such as minhashes/buckets etc.
+    false_positive_check: bool,
+        Whether to run a check to look for false positives within buckets.
+        Note: This is a computationally expensive step.
+    num_anchors: int
+        Number of documents per bucket to use as reference for computing jaccard
+        pairs within that bucket to identify false positives.
+    jaccard_threshold: float
+        The Jaccard similariy threshold to consider a document a near duplicate
+        during false positive evaluations.
+    """
+
+    # General config
+    cache_dir: str
+    profile_dir: str = None
+    id_field: str = "id"
+    text_field: str = "text"
+
+    # Minhash + LSH Config
+    seed: int = 42
+    char_ngrams: int = 5
+    num_buckets: int = 20
+    hashes_per_bucket: int = 13
+    use_64_bit_hash: bool = False
+    buckets_per_shuffle: int = 1
+
+    false_postive_check: bool = True
+    # Only required for fp check
+    num_anchors: int = 2
+    jaccard_threshold: float = 0.8
+
+    def __post_init__(self):
+        self.num_hashes = self.num_buckets * self.hashes_per_bucket
+        if self.cache_dir is None:
+            raise ValueError(
+                "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
+            )
+        if not self.false_postive_check:
+            raise NotImplementedError(
+                "Skipping false positive checks is not supported at the moment"
+            )
+        if self.num_anchors > 2:
+            warnings.warn(
+                "Using a higher number of anchor docs might lead to higher memory footprint and might impact performance",
+                category=UserWarning,
+            )
+
+
+class FuzzyDuplicates:
+    def __init__(
+        self,
+        config: FuzzyDeDupConfig,
+        logger: Union[logging.LoggerAdapter, str] = "./",
+    ):
+        if isinstance(logger, str):
+            self._logger = create_logger(
+                rank=0,
+                log_file=os.path.join(logger, "FuzzyDuplicates.log"),
+                name="FuzzyDuplicates",
+            )
+        else:
+            self._logger = logger
+
+        self.config = config
+        self.minhash = MinHash(
+            seed=self.config.seed,
+            num_hashes=self.config.num_hashes,
+            char_ngrams=self.config.char_ngrams,
+            use_64bit_hash=self.config.use_64_bit_hash,
+            logger=self._logger,
+            id_field=self.config.id_field,
+            text_field=self.config.text_field,
+            profile_dir=self.config.profile_dir,
+            cache_dir=self.config.cache_dir,
+        )
+        self.lsh = LSH(
+            cache_dir=self.config.cache_dir,
+            minhash_length=self.config.num_hashes,
+            num_buckets=self.config.num_buckets,
+            buckets_per_shuffle=self.config.buckets_per_shuffle,
+            logger=self._logger,
+            id_fields=[self.config.id_field],
+            profile_dir=self.config.profile_dir,
+        )
+        self.map_buckets = _MapBuckets(
+            id_fields=[self.config.id_field],
+            text_field=self.config.text_field,
+            logger=self._logger,
+            num_anchors=self.config.num_anchors,
+        )
+        self.jaccard_shuffle = _Shuffle(
+            id_fields=[self.config.id_field],
+            text_field=self.config.text_field,
+            logger=self._logger,
+            profile_dir=self.config.profile_dir,
+        )
+        self.jaccard_compute = JaccardSimilarity(
+            id_field=self.config.id_field,
+            text_field=self.config.text_field,
+            ngram_width=self.config.char_ngrams,
+            anchor_id_fields=[
+                f"anchor_{i}_{self.config.id_field}"
+                for i in range(self.config.num_anchors)
+            ],
+        )
+        self.connected_components = ConnectedComponents(
+            cache_dir=self.config.cache_dir,
+            jaccard_pairs_path=os.path.join(
+                self.config.cache_dir, "jaccard_similarity_results.parquet"
+            ),
+            id_column=self.config.id_field,
+            convert_str_ids=False,
+            jaccard_threshold=self.config.jaccard_threshold,
+        )
+
+    def __call__(self, dataset: DocumentDataset):
+        # Minhash + LSH
+        print("Stage1: Starting Minhash + LSH computation")
+        minhashLSH = Sequential([self.minhash, self.lsh])
+        buckets_df = minhashLSH(dataset)
+        print("Stage1: Minhash + LSH complete!")
+
+        # Map buckets to lower cardinality distribution
+        print("Stage2 (False Postive Check): Starting Map_Buckets")
+        ddf_mapped_buckets_w_anchors = self.map_buckets.map_buckets_with_anchors(
+            documents_df=dataset.df, buckets_df=buckets_df.df
+        )
+        mapped_buckets_w_anchors_path = os.path.join(
+            self.config.cache_dir, "anchor_docs_with_bk.parquet"
+        )
+        ddf_mapped_buckets_w_anchors.to_parquet(
+            mapped_buckets_w_anchors_path, write_index=False
+        )
+        print("Stage2 (False Postive Check): Map_Buckets Complete!")
+
+        # Shuffle documents based on mapped buckets
+        print("Stage3 (False Postive Check): Shuffle docs")
+        shuffled_docs_path = os.path.join(
+            self.config.cache_dir, "shuffled_docs.parquet"
+        )
+        self.jaccard_shuffle.shuffle_docs_on_buckets(
+            documents_df=dataset.df,
+            bucket_w_anchors_path=mapped_buckets_w_anchors_path,
+            output_shuffled_docs_path=shuffled_docs_path,
+            bucket_mapping_df_blocksize=256,
+            parts_per_worker=1,
+            bucket_parts_per_worker=8,
+        )
+        print("Stage3 (False Postive Check): Shuffle docs complete!")
+
+        # jaccard comparision within buckets
+        print("Stage4 (False Postive Check): Jaccard Similarity in Buckets")
+        jaccard_pairs_path = os.path.join(
+            self.config.cache_dir, "jaccard_similarity_results.parquet"
+        )
+        jaccard_pairs_df = self.jaccard_compute.jaccard_compute(
+            shuffled_docs_path=shuffled_docs_path
+        )
+        jaccard_pairs_df.to_parquet(
+            jaccard_pairs_path,
+            write_index=False,
+            write_metadata_file=False,
+        )
+        print("Stage4 (False Postive Check): Jaccard Similarity in Buckets Complete!")
+
+        # Connected components across buckets
+        print("Stage5: Connected Components across buckets")
+        cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
+        self.connected_components.cc_workflow(cc_path)
+        print("Stage5: Connected Components across buckets complete!")
+        return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
 
 
 class _MapBuckets:
@@ -1301,11 +1495,11 @@ class ConnectedComponents:
                     how="inner",
                     broadcast=True,
                 )
+                subset_ddf = subset_ddf.drop(
+                    columns=pair_ids,
+                )
                 subset_ddf = subset_ddf.rename(
                     columns={"uid": f"{self.id_column}_{tag}"}
-                )
-                subset_ddf = subset_ddf.drop(
-                    columns=[f"dataset_id_{tag}", f"doc_id_{tag}"]
                 )
 
             subset_ddf = subset_ddf[[self.left_id, self.right_id, "jaccard"]]

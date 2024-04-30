@@ -19,9 +19,16 @@ from typing import Iterable
 import numpy as np
 import pytest
 from dask.dataframe.utils import assert_eq
+from dask_cuda import LocalCUDACluster
+from distributed import Client
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules import LSH, MinHash
+from nemo_curator.modules.fuzzy_dedup import (
+    LSH,
+    FuzzyDeDupConfig,
+    FuzzyDuplicates,
+    MinHash,
+)
 from nemo_curator.utils.import_utils import gpu_only_import
 
 cudf = gpu_only_import("cudf")
@@ -42,7 +49,8 @@ def fuzzy_dedup_data():
             ],
         }
     )
-    df = dask_cudf.from_cudf(df, 2)
+    # df's with without index reset on each partition might lead to errors downstream
+    df = dask_cudf.from_cudf(df, 2).reset_index(drop=True)
     return DocumentDataset(df)
 
 
@@ -180,3 +188,66 @@ class TestLSH:
             [[(1, 1), (1, 2)], [(1, 2), (2, 3)], [(3, 4), (4, 5)]], name="new_id"
         )
         assert_eq(expected_df, docs_list, check_index=False)
+
+
+@pytest.mark.gpu
+class TestFuzzyDuplicates:
+    @pytest.fixture(autouse=True, scope="class")
+    def gpu_client(self, request):
+        cluster = LocalCUDACluster(n_workers=1)
+        client = Client(cluster)
+        request.cls.client = client
+        request.cls.cluster = cluster
+        yield
+
+        client.close()
+        cluster.close()
+
+    @pytest.mark.parametrize("use_64_bit_hash", [False, True])
+    @pytest.mark.parametrize(
+        "num_buckets,jaccard_threshold,duplicate_docs",
+        # Duplcated docs estimated from true_jaccard values
+        [
+            (5, 0.5, [[4, -1]]),
+            (10, 0.39, [[4, -1], [1, 2]]),
+            (3, 0.3, [[4, -1], [1, 2, 300]]),
+        ],
+    )
+    def test_fuzzy_dedup(
+        self,
+        fuzzy_dedup_data,
+        use_64_bit_hash,
+        num_buckets,
+        jaccard_threshold,
+        duplicate_docs,
+        tmpdir,
+    ):
+        print(self.client)
+        config = FuzzyDeDupConfig(
+            cache_dir=tmpdir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=5,
+            num_buckets=num_buckets,
+            hashes_per_bucket=1,
+            use_64_bit_hash=use_64_bit_hash,
+            buckets_per_shuffle=5,
+            false_postive_check=True,
+            num_anchors=2,
+            jaccard_threshold=jaccard_threshold,
+        )
+        fuzzy_duplicates = FuzzyDuplicates(config=config)
+        result = fuzzy_duplicates(fuzzy_dedup_data)
+        result_df = result.df.compute()
+        # Drop non duplicated docs
+        result_df = result_df[result_df.group.duplicated(keep=False)]
+        result_df = result_df.groupby("group").id.collect()
+        # Sort to maintain uniform ordering
+
+        result_df = result_df.list.sort_values()
+        result_df = result_df.sort_values()
+        expected_df = cudf.Series(duplicate_docs, name="id")
+        expected_df = expected_df.list.sort_values()
+        expected_df = expected_df.sort_values()
+        assert_eq(expected_df, result_df, check_index=False)
