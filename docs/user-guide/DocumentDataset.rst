@@ -186,7 +186,7 @@ Let's take a look at how datasets can be combined using ``nc.blend_datasets``
 
   .. math::
 
-    `\lceil target\_samples \cdot w_i\rceil=\lceil 1000\cdot \frac{5}{8}\rceil=625`
+    \lceil target\_samples \cdot w_i\rceil=\lceil 1000\cdot \frac{5}{8}\rceil=625
   If any datasets have fewer samples than the calculated weight, they will be oversampled to meet the quota.
   For example, if the books dataset only had 500 documents in it, the first 125 would be repeated to achieve
   the 625 samples.
