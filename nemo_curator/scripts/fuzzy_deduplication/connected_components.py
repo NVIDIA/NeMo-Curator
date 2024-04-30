@@ -15,9 +15,9 @@
 import os
 import time
 
-from nemo_curator.gpu_deduplication.utils import enable_spilling, parse_nc_args
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
 from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.script_utils import parse_gpu_dedup_args
 
 
 def main(args):
@@ -32,9 +32,10 @@ def main(args):
     st = time.time()
     output_path = os.path.join(args.output_dir, "connected_components.parquet")
     args.set_torch_to_use_rmm = False
+    args.enable_spilling = True
+
     client = get_client(args, cluster_type="gpu")
-    enable_spilling()
-    client.run(enable_spilling)
+
     components_stage = ConnectedComponents(
         cache_dir=args.cache_dir,
         jaccard_pairs_path=args.jaccard_pairs_path,
@@ -50,7 +51,7 @@ def main(args):
 def attach_args(parser=None):
     description = """Computes connected component"""
     if not parser:
-        parser = parse_nc_args(description=description)
+        parser = parse_gpu_dedup_args(description=description)
 
     parser.add_argument(
         "--jaccard-pairs-path",
