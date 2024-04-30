@@ -814,7 +814,7 @@ class _MapBuckets:
             ddf_anchor_docs_with_bk,
             self.id_fields,
             ignore_index=True,
-            shuffle=shuffle_type,
+            shuffle_method=shuffle_type,
         ).map_partitions(
             M.drop_duplicates,
             meta=ddf_anchor_docs_with_bk._meta,
@@ -1389,7 +1389,7 @@ class ConnectedComponents:
             ddf,
             [self.left_id, self.right_id],
             ignore_index=True,
-            shuffle="tasks",
+            shuffle_method="tasks",
         )
         ddf = ddf.map_partitions(
             M.drop_duplicates,
