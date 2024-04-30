@@ -19,7 +19,6 @@ from typing import Iterable
 import numpy as np
 import pytest
 from dask.dataframe.utils import assert_eq
-from dask_cuda import LocalCUDACluster
 from distributed import Client
 
 from nemo_curator.datasets import DocumentDataset
@@ -29,10 +28,11 @@ from nemo_curator.modules.fuzzy_dedup import (
     FuzzyDuplicates,
     MinHash,
 )
-from nemo_curator.utils.import_utils import gpu_only_import
+from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
+LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
 
 
 @pytest.fixture
