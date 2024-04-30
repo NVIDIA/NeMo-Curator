@@ -151,6 +151,7 @@ Online blending is currently possible in NeMo, and NeMo Curator offers a way to 
 Let's take a look at how datasets can be combined using ``nc.blend_datasets``
 
 .. code-block:: python
+
   import nemo_curator as nc
 
   books = DocumentDataset.read_json("books_dataset/")
@@ -181,8 +182,11 @@ Let's take a look at how datasets can be combined using ``nc.blend_datasets``
   Weights can be a list of non-negative real numbers.
   ``nc.blend_datasets`` will do the normalization and combine the normalized weights with the target samples to determine
   how many samples should be taken from each dataset.
-  In the case of the books dataset, this would be the calculation:
-  :math:`\lceil target\_samples \cdot w_i\rceil=\lceil 1000\cdot \frac{5}{8}\rceil=625`
+  In the case of the books dataset, the following would be the calculation.
+
+  .. math::
+
+    `\lceil target\_samples \cdot w_i\rceil=\lceil 1000\cdot \frac{5}{8}\rceil=625`
   If any datasets have fewer samples than the calculated weight, they will be oversampled to meet the quota.
   For example, if the books dataset only had 500 documents in it, the first 125 would be repeated to achieve
   the 625 samples.
@@ -201,6 +205,7 @@ NeMo Curator's ``nc.Shuffle`` allows users to reorder all entries in the dataset
 Here is a small example on how this can be done:
 
 .. code-block:: python
+
   import nemo_curator as nc
 
   books = DocumentDataset.read_json("books_dataset/")
