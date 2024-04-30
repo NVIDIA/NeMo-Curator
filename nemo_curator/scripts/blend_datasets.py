@@ -17,7 +17,10 @@ import argparse
 import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
-from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+from nemo_curator.utils.file_utils import (
+    expand_outdir_and_mkdir,
+    get_all_files_paths_under,
+)
 from nemo_curator.utils.script_utils import add_distributed_args, attach_bool_arg
 
 
@@ -31,7 +34,11 @@ def main(args):
 
     datasets = [
         DocumentDataset(
-            read_data(path, file_type=args.input_file_type, backend="pandas")
+            read_data(
+                get_all_files_paths_under(path),
+                file_type=args.input_file_type,
+                backend="pandas",
+            )
         )
         for path in input_dirs
     ]
