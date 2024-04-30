@@ -21,13 +21,8 @@ import pytest
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
+from nemo_curator import LSH, FuzzyDeDupConfig, FuzzyDuplicates, MinHash
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.fuzzy_dedup import (
-    LSH,
-    FuzzyDeDupConfig,
-    FuzzyDuplicates,
-    MinHash,
-)
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
