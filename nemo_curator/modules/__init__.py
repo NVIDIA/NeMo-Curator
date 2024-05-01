@@ -22,6 +22,7 @@ os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
 from nemo_curator.utils.import_utils import gpu_only_import_from
 
 from .add_id import AddId
+from .config import FuzzyDeDupConfig
 from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
 from .filter import Filter, Score, ScoreFilter
@@ -34,9 +35,6 @@ LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "LSH")
 MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "MinHash")
 FuzzyDuplicates = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup", "FuzzyDuplicates"
-)
-FuzzyDeDupConfig = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup", "FuzzyDeDupConfig"
 )
 
 # Pytorch related imports must come after all imports that require cugraph,

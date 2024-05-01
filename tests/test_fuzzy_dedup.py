@@ -18,6 +18,7 @@ from typing import Iterable
 
 import numpy as np
 import pytest
+import yaml
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
@@ -339,7 +340,7 @@ class TestFuzzyDuplicates:
 
 
 class TestFuzzyDeDupConfig:
-    def test_bad_inputs(tmpdir):
+    def test_bad_inputs(self, tmpdir):
         with pytest.raises(ValueError):
             FuzzyDeDupConfig(cache_dir=tmpdir, num_anchors=0)
         with pytest.warns(
@@ -350,3 +351,19 @@ class TestFuzzyDeDupConfig:
             FuzzyDeDupConfig(cache_dir=tmpdir, jaccard_threshold=1.2)
         with pytest.raises(NotImplementedError):
             FuzzyDeDupConfig(cache_dir=tmpdir, false_postive_check=False)
+        with pytest.raises(ValueError):
+            FuzzyDeDupConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
+
+    def test_from_yaml(self, tmpdir):
+        yaml_params = {
+            "cache_dir": "./",
+            "num_anchors": 2,
+            "jaccard_threshold": 0.8,
+            "false_postive_check": True,
+            "buckets_per_shuffle": 1,
+        }
+        with open(tmpdir / "config.yaml", "w") as f:
+            yaml.dump(yaml_params, f)
+        config = FuzzyDeDupConfig.from_yaml(tmpdir / "config.yaml")
+        for param in yaml_params:
+            assert getattr(config, param) == yaml_params[param]
