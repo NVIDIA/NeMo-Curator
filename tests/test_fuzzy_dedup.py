@@ -245,7 +245,7 @@ class TestFuzzyDuplicates:
             hashes_per_bucket=1,
             use_64_bit_hash=use_64_bit_hash,
             buckets_per_shuffle=5,
-            false_postive_check=True,
+            false_positive_check=True,
             num_anchors=2,
             jaccard_threshold=jaccard_threshold,
         )
@@ -296,7 +296,7 @@ class TestFuzzyDuplicates:
             hashes_per_bucket=1,
             use_64_bit_hash=False,
             buckets_per_shuffle=5,
-            false_postive_check=True,
+            false_positive_check=True,
             num_anchors=2,
             jaccard_threshold=0.39,
         )
@@ -327,7 +327,7 @@ class TestFuzzyDuplicates:
             hashes_per_bucket=1,
             use_64_bit_hash=False,
             buckets_per_shuffle=5,
-            false_postive_check=True,
+            false_positive_check=True,
             num_anchors=num_anchors,
             jaccard_threshold=0.39,
         )
@@ -350,7 +350,7 @@ class TestFuzzyDeDupConfig:
         with pytest.raises(ValueError):
             FuzzyDeDupConfig(cache_dir=tmpdir, jaccard_threshold=1.2)
         with pytest.raises(NotImplementedError):
-            FuzzyDeDupConfig(cache_dir=tmpdir, false_postive_check=False)
+            FuzzyDeDupConfig(cache_dir=tmpdir, false_positive_check=False)
         with pytest.raises(ValueError):
             FuzzyDeDupConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
 
@@ -359,7 +359,7 @@ class TestFuzzyDeDupConfig:
             "cache_dir": "./",
             "num_anchors": 2,
             "jaccard_threshold": 0.8,
-            "false_postive_check": True,
+            "false_positive_check": True,
             "buckets_per_shuffle": 1,
         }
         with open(tmpdir / "config.yaml", "w") as f:
