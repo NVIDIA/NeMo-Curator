@@ -44,8 +44,26 @@ def fuzzy_dedup_data():
             ],
         }
     )
-    # df's with without index reset on each partition might lead to errors downstream
-    df = dask_cudf.from_cudf(df, 2).reset_index(drop=True)
+    df = dask_cudf.from_cudf(df, 2)
+    return DocumentDataset(df)
+
+
+@pytest.fixture
+def large_fuzzy_dedup_data():
+    df = cudf.DataFrame(
+        {
+            "id": np.arange(500),
+            "text": [
+                "A test string",
+                "A different test string",
+                "A different object",
+                "The quick brown fox jumps over the lazy dog",
+                "The quick black cat jumps over the lazy dog",
+            ]
+            * 100,
+        }
+    )
+    df = dask_cudf.from_cudf(df, 5).reset_index(drop=True)
     return DocumentDataset(df)
 
 
@@ -189,14 +207,10 @@ class TestLSH:
 class TestFuzzyDuplicates:
     @pytest.fixture(autouse=True, scope="class")
     def gpu_client(self, request):
-        cluster = LocalCUDACluster(n_workers=1)
-        client = Client(cluster)
-        request.cls.client = client
-        request.cls.cluster = cluster
-        yield
-
-        client.close()
-        cluster.close()
+        with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
+            request.cls.client = client
+            request.cls.cluster = cluster
+            yield
 
     @pytest.mark.parametrize("use_64_bit_hash", [False, True])
     @pytest.mark.parametrize(
@@ -218,6 +232,8 @@ class TestFuzzyDuplicates:
         tmpdir,
     ):
         print(self.client)
+        # Dedup might fail when indices per partition do not start from 0
+        fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True)
         config = FuzzyDeDupConfig(
             cache_dir=tmpdir,
             id_field="id",
@@ -246,3 +262,91 @@ class TestFuzzyDuplicates:
         expected_df = expected_df.list.sort_values()
         expected_df = expected_df.sort_values()
         assert_eq(expected_df, result_df, check_index=False)
+
+    @pytest.mark.xfail
+    def test_non_uniform_indices(
+        self,
+        tmpdir,
+    ):
+        print(self.client)
+        # Dedup might fail when indices per partition do not start from 0
+        df = cudf.DataFrame(
+            {
+                "id": [1, 2, 300, 4, -1],
+                "text": [
+                    "A test string",
+                    "A different test string",
+                    "A different object",
+                    "The quick brown fox jumps over the lazy dog",
+                    "The quick black cat jumps over the lazy dog",
+                ],
+            }
+        )
+        df = dask_cudf.from_cudf(df, 2)
+        data = DocumentDataset(df)
+        duplicate_docs = [[4, -1], [1, 2, 300]]
+        config = FuzzyDeDupConfig(
+            cache_dir=tmpdir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=5,
+            num_buckets=10,
+            hashes_per_bucket=1,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=5,
+            false_postive_check=True,
+            num_anchors=2,
+            jaccard_threshold=0.39,
+        )
+        fuzzy_duplicates = FuzzyDuplicates(config=config)
+        result = fuzzy_duplicates(data)
+        result_df = result.df.compute()
+        # Drop non duplicated docs
+        result_df = result_df[result_df.group.duplicated(keep=False)]
+        result_df = result_df.groupby("group").id.collect()
+        # Sort to maintain uniform ordering
+
+        result_df = result_df.list.sort_values()
+        result_df = result_df.sort_values()
+        expected_df = cudf.Series(duplicate_docs, name="id")
+        expected_df = expected_df.list.sort_values()
+        expected_df = expected_df.sort_values()
+        assert_eq(expected_df, result_df, check_index=False)
+
+    @pytest.mark.parametrize("num_anchors", [1, 3, 10])
+    def test_num_anchors(self, large_fuzzy_dedup_data, num_anchors, tmpdir):
+        config = FuzzyDeDupConfig(
+            cache_dir=tmpdir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=5,
+            num_buckets=5,
+            hashes_per_bucket=1,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=5,
+            false_postive_check=True,
+            num_anchors=num_anchors,
+            jaccard_threshold=0.39,
+        )
+        fuzzy_duplicates = FuzzyDuplicates(config=config)
+        fuzzy_duplicates(large_fuzzy_dedup_data)
+        anchor_docs_df_cols = dask_cudf.read_parquet(
+            tmpdir / "anchor_docs_with_bk.parquet"
+        ).columns
+        assert all(f"anchor_{i}_id" in anchor_docs_df_cols for i in range(num_anchors))
+
+
+class TestFuzzyDeDupConfig:
+    def test_bad_inputs(tmpdir):
+        with pytest.raises(ValueError):
+            FuzzyDeDupConfig(cache_dir=tmpdir, num_anchors=0)
+        with pytest.warns(
+            UserWarning, match="Using a higher number of anchor docs might"
+        ):
+            FuzzyDeDupConfig(cache_dir=tmpdir, num_anchors=3)
+        with pytest.raises(ValueError):
+            FuzzyDeDupConfig(cache_dir=tmpdir, jaccard_threshold=1.2)
+        with pytest.raises(NotImplementedError):
+            FuzzyDeDupConfig(cache_dir=tmpdir, false_postive_check=False)

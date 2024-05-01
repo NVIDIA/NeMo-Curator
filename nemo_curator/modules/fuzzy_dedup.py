@@ -444,11 +444,15 @@ class FuzzyDeDupConfig:
             raise NotImplementedError(
                 "Skipping false positive checks is not supported at the moment"
             )
+        if self.num_anchors <= 0:
+            raise ValueError("Number of anchors must be greater than 0")
         if self.num_anchors > 2:
             warnings.warn(
                 "Using a higher number of anchor docs might lead to higher memory footprint and might impact performance",
                 category=UserWarning,
             )
+        if not 0 <= self.jaccard_threshold <= 1:
+            raise ValueError("Jaccard Threshold must be between [0,1]")
 
 
 class FuzzyDuplicates:
