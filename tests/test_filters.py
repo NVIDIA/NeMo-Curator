@@ -784,14 +784,14 @@ class FakeLangId(DocumentFilter):
     Emulates FastTextLangId without a model
     """
 
-    def __init__(self, min_langid_score=0.3):
+    def __init__(self, min_langid_score=0.3, convert_string=False):
         super().__init__()
         self._cutoff = min_langid_score
 
         # Dask will automatically convert the list score type
         # to a string without this option.
         # See https://github.com/NVIDIA/NeMo-Curator/issues/33
-        dask.config.set({"dataframe.convert-string": False})
+        dask.config.set({"dataframe.convert-string": convert_string})
 
     @batched
     def score_document(self, df):
@@ -826,3 +826,13 @@ class TestClassifierFilters:
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_fake_langid_failure(self):
+        with pytest.raises(TypeError):
+            dataset = list_to_dataset(["a", "b", "c", "d"], npartitions=1)
+            filters = ScoreFilter(FakeLangId(convert_string=True))
+            filtered_data = filters(dataset)
+
+            expected_indices = [0, 1, 3]
+            expected_data = DocumentDataset(dataset.df.loc[expected_indices])
+            all_equal(expected_data, filtered_data)
