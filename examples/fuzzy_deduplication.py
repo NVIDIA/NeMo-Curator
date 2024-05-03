@@ -93,7 +93,7 @@ def main(args):
                 docs_to_remove[dataset_id_field].compute()
             )
         ]
-        write_to_disk(result, output_dir, output_type="parquet")
+        write_to_disk(result, output_dir, output_type=filetype)
         print(time.time() - t0)
 
 
