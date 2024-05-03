@@ -389,6 +389,18 @@ class FuzzyDuplicates:
         config: FuzzyDuplicatesConfig,
         logger: Union[logging.LoggerAdapter, str] = "./",
     ):
+        """
+        Parameters
+        ----------
+        config: FuzzyDuplicatesConfig,
+            Config options for finding FuzzyDuplicates
+        logger: Existing logger to log to, or a path to a log directory.
+
+        Returns
+        -------
+        DocumentDataset containing IDs of all documents and the corresponding duplicate group
+        they belong to. Documents in the same group are near duplicates.
+        """
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -451,6 +463,17 @@ class FuzzyDuplicates:
         )
 
     def __call__(self, dataset: DocumentDataset):
+        """
+        Parameters
+        ----------
+        dataset: DocumentDataset
+            The input datset to compute FuzzyDuplicates. Must contain a text and unique id field.
+
+        Returns
+        -------
+        DocumentDataset containing IDs of all documents and the corresponding duplicate group
+        they belong to. Documents in the same group are near duplicates.
+        """
         # Minhash + LSH
         print("Stage1: Starting Minhash + LSH computation")
         minhashLSH = Sequential([self.minhash, self.lsh])
@@ -634,6 +657,7 @@ class _MapBuckets:
         """
         Add output_partition_id to buckets_ddf
         """
+        documents_df = documents_df.copy()
         documents_df[bytes_column] = documents_df[self.text_field].map_partitions(
             lambda s: s.str.byte_count()
         )

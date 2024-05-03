@@ -33,25 +33,36 @@ def main(args):
     dataset_dir = "/path/to/dataset"
     log_dir = "./"
     cache_dir = "./fuzzy_cache"
-    output_dir = "./"
+    output_dir = "./output"
     dataset_id_field = "id"
     dataset_text_field = "text"
 
+    filetype = "parquet"
+
+    # Fuzzy dup calculation only supports the cuDF/GPU backend
+    backend = "cudf"
     assert args.device == "gpu"
 
-    with dask.config.set({"dataframe.backend": "cudf"}):
+    with dask.config.set({"dataframe.backend": backend}):
         client = get_client(args, args.device)
         client.run(pre_imports)
 
         t0 = time.time()
-        input_dataset = DocumentDataset(
-            dd.read_parquet(
-                dataset_dir,
-                columns=[dataset_id_field, dataset_text_field],
-                blocksize="256MiB",
-                aggregate_files=True,
+        if filetype == "parquet":
+            input_dataset = DocumentDataset(
+                dd.read_parquet(
+                    dataset_dir,
+                    columns=[dataset_id_field, dataset_text_field],
+                    blocksize="256MiB",
+                    aggregate_files=True,
+                )
             )
-        )
+        elif filetype == "jsonl":
+            input_dataset = DocumentDataset.read_json(
+                dataset_dir,
+                backend=backend,
+            )
+
         fuzzy_dedup_config = FuzzyDuplicatesConfig(
             cache_dir=cache_dir,
             id_field=dataset_id_field,
