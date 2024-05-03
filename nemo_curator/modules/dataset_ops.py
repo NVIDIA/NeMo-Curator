@@ -22,8 +22,8 @@ class Shuffle:
         Randomly permutes the dataset. This will make the original "filename" column invalid, so if the column is present it will be overwritten.
         Args:
             seed: The random seed that will be used to determine which partition (file) each datapoint goes to.
-                Even with the seed set, the shuffle is not guaranteed to be deterministic if done in parallel.
-                Intiailize the Dask client with a single worker and single thread in order to ensure determinism.
+                Setting the seed will guarantee determinism, but may be slightly slower (20-30% slower)
+                depending on the dataset size.
             npartitions: The output number of partitions to create in the dataset.
                 If None, it will retain the same number of partitions as the original dataset.
             partition_to_filename: If the filename column is present, it will be overwritten.
@@ -50,6 +50,7 @@ class Shuffle:
         dataset.df[self.rand_col] = dataset.df.map_partitions(self._add_rand_col)
 
         shuffled_df = dataset.df.set_index(self.rand_col, npartitions=new_npartitions)
+        shuffled_df = shuffled_df.reset_index(drop=True)
 
         if "filename" in shuffled_df:
             shuffled_df["filename"] = shuffled_df.map_partitions(self._add_filename)

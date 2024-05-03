@@ -218,7 +218,6 @@ Here is a small example on how this can be done:
 
 * ``shuffle = nc.Shuffle(seed=42)`` This creates a shuffle operation that can be chained with
   the various other modules in NeMo Curator. In this example, we fix the seed to be 42.
-  Even with a fixed seed, shuffling is only guaranteed to be deterministic if done with a single-threaded
-  and single process client. Dask allows us to perform the shuffling in parallel for speed gains, so using a
-  multiprocessing client is recommended where determinism is optional.
+  Setting the seed will guarantee determinism, but may be slightly slower (20-30% slower)
+  depending on the dataset size.
 * ``shuffled_books = shuffle(books)`` The dataset has now been shuffled, and we can save it to the filesystem.
