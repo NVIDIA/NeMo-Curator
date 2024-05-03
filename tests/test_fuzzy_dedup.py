@@ -22,7 +22,7 @@ import yaml
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
-from nemo_curator import LSH, FuzzyDeDupConfig, FuzzyDuplicates, MinHash
+from nemo_curator import LSH, FuzzyDuplicates, FuzzyDuplicatesConfig, MinHash
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -171,7 +171,7 @@ class TestLSH:
     def test_lsh(self, tmpdir, buckets_per_shuffle):
         lsh = LSH(
             cache_dir=tmpdir,
-            minhash_length=6,
+            num_hashes=6,
             num_buckets=3,
             buckets_per_shuffle=buckets_per_shuffle,
             minhash_field="minhash_sig",
@@ -186,7 +186,7 @@ class TestLSH:
     def test_multiple_id_cols(self, tmpdir):
         lsh = LSH(
             cache_dir=tmpdir,
-            minhash_length=6,
+            num_hashes=6,
             num_buckets=3,
             buckets_per_shuffle=1,
             id_fields=["id", "dataset_id"],
@@ -235,7 +235,7 @@ class TestFuzzyDuplicates:
         print(self.client)
         # Dedup might fail when indices per partition do not start from 0
         fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True)
-        config = FuzzyDeDupConfig(
+        config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
             text_field="text",
@@ -286,7 +286,7 @@ class TestFuzzyDuplicates:
         df = dask_cudf.from_cudf(df, 2)
         data = DocumentDataset(df)
         duplicate_docs = [[4, -1], [1, 2, 300]]
-        config = FuzzyDeDupConfig(
+        config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
             text_field="text",
@@ -317,7 +317,7 @@ class TestFuzzyDuplicates:
 
     @pytest.mark.parametrize("num_anchors", [1, 3, 10])
     def test_num_anchors(self, large_fuzzy_dedup_data, num_anchors, tmpdir):
-        config = FuzzyDeDupConfig(
+        config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
             text_field="text",
@@ -339,20 +339,20 @@ class TestFuzzyDuplicates:
         assert all(f"anchor_{i}_id" in anchor_docs_df_cols for i in range(num_anchors))
 
 
-class TestFuzzyDeDupConfig:
+class TestFuzzyDuplicatesConfig:
     def test_bad_inputs(self, tmpdir):
         with pytest.raises(ValueError):
-            FuzzyDeDupConfig(cache_dir=tmpdir, num_anchors=0)
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=0)
         with pytest.warns(
             UserWarning, match="Using a higher number of anchor docs might"
         ):
-            FuzzyDeDupConfig(cache_dir=tmpdir, num_anchors=3)
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=3)
         with pytest.raises(ValueError):
-            FuzzyDeDupConfig(cache_dir=tmpdir, jaccard_threshold=1.2)
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, jaccard_threshold=1.2)
         with pytest.raises(NotImplementedError):
-            FuzzyDeDupConfig(cache_dir=tmpdir, false_positive_check=False)
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, false_positive_check=False)
         with pytest.raises(ValueError):
-            FuzzyDeDupConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
 
     def test_from_yaml(self, tmpdir):
         yaml_params = {
@@ -364,6 +364,6 @@ class TestFuzzyDeDupConfig:
         }
         with open(tmpdir / "config.yaml", "w") as f:
             yaml.dump(yaml_params, f)
-        config = FuzzyDeDupConfig.from_yaml(tmpdir / "config.yaml")
+        config = FuzzyDuplicatesConfig.from_yaml(tmpdir / "config.yaml")
         for param in yaml_params:
             assert getattr(config, param) == yaml_params[param]

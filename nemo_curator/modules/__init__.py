@@ -22,7 +22,7 @@ os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
 from nemo_curator.utils.import_utils import gpu_only_import_from
 
 from .add_id import AddId
-from .config import FuzzyDeDupConfig
+from .config import FuzzyDuplicatesConfig
 from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
 from .filter import Filter, Score, ScoreFilter
@@ -46,7 +46,7 @@ __all__ = [
     "DomainClassifier",
     "ExactDuplicates",
     "Filter",
-    "FuzzyDeDupConfig",
+    "FuzzyDuplicatesConfig",
     "FuzzyDuplicates",
     "LSH",
     "MinHash",

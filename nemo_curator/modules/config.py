@@ -28,9 +28,9 @@ class BaseConfig:
 
 
 @dataclass
-class FuzzyDeDupConfig(BaseConfig):
+class FuzzyDuplicatesConfig(BaseConfig):
     """
-    Configuration for MinHash based fuzzy deduplication
+    Configuration for MinHash based fuzzy duplicates detection.
     Parameters
     ----------
     seed: Seed for minhash permutations

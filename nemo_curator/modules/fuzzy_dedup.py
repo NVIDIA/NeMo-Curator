@@ -35,7 +35,7 @@ from tqdm import tqdm
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
-from nemo_curator.modules.config import FuzzyDeDupConfig
+from nemo_curator.modules.config import FuzzyDuplicatesConfig
 from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import (
     get_current_client,
@@ -196,7 +196,7 @@ class LSH:
     def __init__(
         self,
         cache_dir: str,
-        minhash_length: int,
+        num_hashes: int,
         num_buckets: int,
         buckets_per_shuffle: int = 1,
         logger: Union[logging.LoggerAdapter, str] = "./",
@@ -209,9 +209,9 @@ class LSH:
         ----------
         cache_dir: str
           Needs to be specified, will compute & write duplicate id, bucket pairs to cache directory.
-        minhash_length: Length of minhash signature
+        num_hashes: Length of minhash signature
         num_buckets: Number of bands/buckets to create from the minhash signature.
-          Hashes_per_signature = minhash_length / num_buckets
+          Hashes_per_signature = num_hashes / num_buckets
         buckets_per_shuffle: Number of bands/buckets to shuffle concurrently.
           Larger values process larger batches by processing multiple bands
           but might lead to memory pressures and related errors.
@@ -221,13 +221,13 @@ class LSH:
         profile_dir: str, Default None
           If specified directory to write dask profile
         """
-        self.minhash_length = minhash_length
+        self.num_hashes = num_hashes
         self.num_buckets = num_buckets
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
         self.minhash_field = minhash_field
         self.buckets_per_shuffle = buckets_per_shuffle
         self.bucket_ranges = self._generate_bucket_ranges(
-            self.num_buckets, self.minhash_length
+            self.num_buckets, self.num_hashes
         )
 
         if cache_dir is None:
@@ -247,15 +247,15 @@ class LSH:
             self._logger = logger
 
     def _generate_bucket_ranges(
-        self, num_buckets: int, minhash_length: int
+        self, num_buckets: int, num_hashes: int
     ) -> List[List[int]]:
         """
         Generates a list of indices for the minhash ranges given num_bands &
-        minhash_length.
-        eg: num_bands=3, minhash_length=6
+        num_hashes.
+        eg: num_bands=3, num_hashes=6
         [[0, 1], [2, 3], [4, 5]]
         """
-        minhashes_per_bucket = minhash_length // num_buckets
+        minhashes_per_bucket = num_hashes // num_buckets
 
         bucket_ranges = [
             list(
@@ -310,7 +310,7 @@ class LSH:
         self, df: dask_cudf.DataFrame
     ) -> Tuple[cudf.DataFrame, int]:
         meta = df._meta_nonempty[self.id_fields]
-        meta[self.minhash_field] = [np.ones(self.minhash_length)] * len(meta)
+        meta[self.minhash_field] = [np.ones(self.num_hashes)] * len(meta)
         return self.minhash_to_buckets(meta, self.bucket_ranges)
 
     def lsh(
@@ -327,7 +327,6 @@ class LSH:
             bucket_ranges=self.bucket_ranges,
             meta=meta,
         )
-
         bucket_start_id = 0
         for i in range(0, self.num_buckets, self.buckets_per_shuffle):
             value_vars = [
@@ -387,7 +386,7 @@ class LSH:
 class FuzzyDuplicates:
     def __init__(
         self,
-        config: FuzzyDeDupConfig,
+        config: FuzzyDuplicatesConfig,
         logger: Union[logging.LoggerAdapter, str] = "./",
     ):
         if isinstance(logger, str):
@@ -413,7 +412,7 @@ class FuzzyDuplicates:
         )
         self.lsh = LSH(
             cache_dir=self.config.cache_dir,
-            minhash_length=self.config.num_hashes,
+            num_hashes=self.config.num_hashes,
             num_buckets=self.config.num_buckets,
             buckets_per_shuffle=self.config.buckets_per_shuffle,
             logger=self._logger,

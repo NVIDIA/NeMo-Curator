@@ -18,7 +18,7 @@ import time
 import dask
 from dask import dataframe as dd
 
-from nemo_curator import FuzzyDeDupConfig, FuzzyDuplicates
+from nemo_curator import FuzzyDuplicates, FuzzyDuplicatesConfig
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, write_to_disk
 from nemo_curator.utils.script_utils import add_distributed_args
@@ -52,7 +52,7 @@ def main(args):
                 aggregate_files=True,
             )
         )
-        fuzzy_dedup_config = FuzzyDeDupConfig(
+        fuzzy_dedup_config = FuzzyDuplicatesConfig(
             cache_dir=cache_dir,
             id_field=dataset_id_field,
             text_field=dataset_text_field,
