@@ -37,13 +37,33 @@ class Shuffle:
         self.rand_col = "_shuffle_rand"
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if self.seed is None:
+            return self.shuffle_nondeterministic(dataset)
+        else:
+            return self.shuffle_deterministic(dataset)
+
+    def shuffle_deterministic(self, dataset: DocumentDataset) -> DocumentDataset:
         new_npartitions = (
             dataset.df.npartitions if self.npartitions is None else self.npartitions
         )
 
-        rand_df = dataset.df.map_partitions(self._add_rand_col, new_npartitions)
+        dataset.df[self.rand_col] = dataset.df.map_partitions(self._add_rand_col)
 
-        shuffled_df = rand_df.shuffle(
+        shuffled_df = dataset.df.set_index(self.rand_col, npartitions=new_npartitions)
+
+        if "filename" in shuffled_df:
+            shuffled_df["filename"] = shuffled_df.map_partitions(self._add_filename)
+
+        return DocumentDataset(shuffled_df)
+
+    def shuffle_nondeterministic(self, dataset: DocumentDataset) -> DocumentDataset:
+        new_npartitions = (
+            dataset.df.npartitions if self.npartitions is None else self.npartitions
+        )
+
+        dataset.df[self.rand_col] = dataset.df.map_partitions(self._add_rand_col)
+
+        shuffled_df = dataset.df.shuffle(
             self.rand_col, npartitions=new_npartitions, ignore_index=True
         )
         shuffled_df = shuffled_df.drop(columns=[self.rand_col])
@@ -51,33 +71,45 @@ class Shuffle:
 
         return DocumentDataset(shuffled_df)
 
-    def _add_rand_col(self, partition, new_npartitions, partition_info=None):
+    def _add_rand_col(self, partition, partition_info=None):
         if partition_info is None:
             partition_info = {
                 "number": 0,
             }
 
-        np.random.seed(self.seed + partition_info["number"])
-        partition[self.rand_col] = np.random.randint(
-            0, new_npartitions, size=len(partition)
-        )
+        if self.seed is not None:
+            np.random.seed(self.seed + partition_info["number"])
+        rand_col = np.random.randint(0, np.iinfo("int64").max, size=len(partition))
 
-        return partition
+        return rand_col
 
     def _partition_shuffle(self, partition, partition_info=None):
         if partition_info is None:
             return partition
 
         partition_num = partition_info["number"]
-        partition = partition.sample(
-            frac=1, random_state=self.seed + partition_num
-        ).reset_index(drop=True)
+        if self.seed is not None:
+            random_state = self.seed + partition_num
+        else:
+            random_state = None
+
+        partition = partition.sample(frac=1, random_state=random_state).reset_index(
+            drop=True
+        )
 
         if "filename" in partition:
             filename = self.partition_to_filename(partition_num)
             partition["filename"] = filename
 
         return partition
+
+    def _add_filename(self, partition, partition_info=None):
+        if partition_info is None:
+            return ["filename"] * len(partition)
+
+        filename = self.partition_to_filename(partition_info["number"])
+
+        return [filename for _ in range(len(partition))]
 
 
 def blend_datasets(

@@ -26,7 +26,7 @@ def all_equal(left_dataset, right_dataset):
         assert all(left == right), f"Mismatch in {col} column.\n{left}\n{right}\n"
 
 
-class TestShuffling:
+class TestShuffleNondeterministic:
     def test_shuffle(self):
         # Single threaded Dask is the only way to guarantee shuffle determinism
         # Docs: https://docs.dask.org/en/latest/generated/dask.dataframe.DataFrame.shuffle.html
@@ -36,10 +36,10 @@ class TestShuffling:
                     ["one", "two", "three", "four", "five"]
                 )
                 expected_dataset = list_to_dataset(
-                    ["four", "three", "two", "one", "five"]
+                    ["two", "five", "three", "one", "four"]
                 )
                 shuffle = nc.Shuffle(seed=42)
-                result_dataset = shuffle(original_dataset)
+                result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
 
     def test_new_partitions(self):
@@ -49,10 +49,10 @@ class TestShuffling:
                     ["one", "two", "three", "four", "five"], npartitions=3
                 )
                 expected_dataset = list_to_dataset(
-                    ["four", "three", "two", "one", "five"], npartitions=3
+                    ["two", "five", "three", "one", "four"], npartitions=3
                 )
                 shuffle = nc.Shuffle(seed=42, npartitions=2)
-                result_dataset = shuffle(original_dataset)
+                result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
 
     def test_filename(self):
@@ -64,11 +64,11 @@ class TestShuffling:
                 original_dataset.df["filename"] = "original.jsonl"
 
                 expected_data = {
-                    "text": ["four", "three", "two", "one", "five"],
+                    "text": ["one", "two", "three", "five", "four"],
                     "filename": [
-                        "file_0000000001.jsonl",
-                        "file_0000000001.jsonl",
-                        "file_0000000001.jsonl",
+                        "file_0000000000.jsonl",
+                        "file_0000000000.jsonl",
+                        "file_0000000000.jsonl",
                         "file_0000000001.jsonl",
                         "file_0000000001.jsonl",
                     ],
@@ -77,7 +77,7 @@ class TestShuffling:
                 expected_dataset = DocumentDataset(dd.from_pandas(pdf, npartitions=2))
 
                 shuffle = nc.Shuffle(seed=42, npartitions=2)
-                result_dataset = shuffle(original_dataset)
+                result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
 
     def test_custom_filenames(self):
@@ -89,11 +89,11 @@ class TestShuffling:
                 original_dataset.df["filename"] = "original.jsonl"
 
                 expected_data = {
-                    "text": ["four", "three", "two", "one", "five"],
+                    "text": ["one", "two", "three", "five", "four"],
                     "filename": [
-                        "my_1.test",
-                        "my_1.test",
-                        "my_1.test",
+                        "my_0.test",
+                        "my_0.test",
+                        "my_0.test",
                         "my_1.test",
                         "my_1.test",
                     ],
@@ -107,5 +107,80 @@ class TestShuffling:
                 shuffle = nc.Shuffle(
                     seed=42, npartitions=2, partition_to_filename=filename_fn
                 )
-                result_dataset = shuffle(original_dataset)
+                result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
+
+    def test_shuffle_no_seed(self):
+        original_dataset = list_to_dataset(["one", "two", "three", "four", "five"])
+        shuffle = nc.Shuffle()
+        result_dataset = shuffle(original_dataset)
+        assert len(result_dataset.df.compute()) == 5
+
+
+class TestShuffleDeterministic:
+    def test_shuffle(self):
+        original_dataset = list_to_dataset(["one", "two", "three", "four", "five"])
+        expected_dataset = list_to_dataset(["five", "four", "three", "one", "two"])
+        shuffle = nc.Shuffle(seed=42)
+        result_dataset = shuffle(original_dataset)
+        all_equal(expected_dataset, result_dataset)
+
+    def test_new_partitions(self):
+        original_dataset = list_to_dataset(
+            ["one", "two", "three", "four", "five"], npartitions=3
+        )
+        expected_dataset = list_to_dataset(
+            ["four", "three", "five", "one", "two"], npartitions=3
+        )
+        shuffle = nc.Shuffle(seed=42, npartitions=2)
+        result_dataset = shuffle(original_dataset)
+        all_equal(expected_dataset, result_dataset)
+
+    def test_filename(self):
+        original_dataset = list_to_dataset(
+            ["one", "two", "three", "four", "five"], npartitions=1
+        )
+        original_dataset.df["filename"] = "original.jsonl"
+
+        expected_data = {
+            "text": ["four", "five", "three", "one", "two"],
+            "filename": [
+                "file_0000000000.jsonl",
+                "file_0000000001.jsonl",
+                "file_0000000001.jsonl",
+                "file_0000000001.jsonl",
+                "file_0000000001.jsonl",
+            ],
+        }
+        pdf = pd.DataFrame(expected_data)
+        expected_dataset = DocumentDataset(dd.from_pandas(pdf, npartitions=2))
+
+        shuffle = nc.Shuffle(seed=42, npartitions=2)
+        result_dataset = shuffle(original_dataset)
+        all_equal(expected_dataset, result_dataset)
+
+    def test_custom_filenames(self):
+        original_dataset = list_to_dataset(
+            ["one", "two", "three", "four", "five"], npartitions=1
+        )
+        original_dataset.df["filename"] = "original.jsonl"
+
+        expected_data = {
+            "text": ["four", "five", "three", "one", "two"],
+            "filename": [
+                "my_0.test",
+                "my_1.test",
+                "my_1.test",
+                "my_1.test",
+                "my_1.test",
+            ],
+        }
+        pdf = pd.DataFrame(expected_data)
+        expected_dataset = DocumentDataset(dd.from_pandas(pdf, npartitions=2))
+
+        def filename_fn(x):
+            return f"my_{x}.test"
+
+        shuffle = nc.Shuffle(seed=42, npartitions=2, partition_to_filename=filename_fn)
+        result_dataset = shuffle(original_dataset)
+        all_equal(expected_dataset, result_dataset)

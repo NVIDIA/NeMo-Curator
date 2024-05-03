@@ -146,7 +146,7 @@ Blending data from multiple sources can be a great way of improving downstream m
 This blending can be done during model training itself (i.e., *online* blending) or it can be done before training (i.e., *offline* blending).
 Online blending is useful for rapidly iterating in the training process.
 Meanwhile, offline blending is useful if you want to distribute the dataset.
-Online blending is currently possible in NeMo, and NeMo Curator offers a way to perform blending offline.
+Online blending is currently possible in `NeMo via NVIDIA Megatron Core <https://github.com/NVIDIA/Megatron-LM/blob/main/megatron/core/datasets/blended_dataset.py>`_, and NeMo Curator offers a way to perform blending offline.
 
 Let's take a look at how datasets can be combined using ``nc.blend_datasets``
 
