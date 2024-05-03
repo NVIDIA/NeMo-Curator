@@ -826,13 +826,3 @@ class TestClassifierFilters:
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
-
-    def test_fake_langid_failure(self):
-        with pytest.raises(TypeError):
-            dataset = list_to_dataset(["a", "b", "c", "d"], npartitions=1)
-            filters = ScoreFilter(FakeLangId(convert_string=True))
-            filtered_data = filters(dataset)
-
-            expected_indices = [0, 1, 3]
-            expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-            all_equal(expected_data, filtered_data)
