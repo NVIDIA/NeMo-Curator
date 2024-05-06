@@ -19,6 +19,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from dask import dataframe as dd
+from dask.distributed import Client, LocalCluster
 
 import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
@@ -150,32 +151,38 @@ class BatchedLengthFilter(DocumentFilter):
 
 class TestPIIModule:
     def test_filter_chain(self):
-        pipeline = nc.Sequential(
-            [
-                nc.ScoreFilter(BatchedLengthFilter(min_length=0, max_length=25)),
-                nc.Modify(
-                    PiiModifier(language="en", anonymize_action="mask", device="cpu")
-                ),
-            ]
-        )
         inputs = [
-            "Alice is an engineer",
-            "Bob is an engineer",
-            "Someone named Charlie is an engineer",
-            "An engineer is David",
-            "An engineer is Eliza",
+            "Alice goes on a walk",
+            "Bob goes on a walk",
+            "Someone named Charlie goes on a walk",
+            "A human walking is David",
+            "A human walking is Eliza",
         ]
         targets = [
-            "***** is an engineer",
-            "*** is an engineer",
-            "An engineer is *****",
-            "An engineer is *****",
+            "***** goes on a walk",
+            "*** goes on a walk",
+            "A human walking is *****",
+            "A human walking is *****",
         ]
-        input_df = pd.DataFrame({"documents": inputs})
-        target_df = pd.DataFrame({"documents": targets})
-        input_dataset = DocumentDataset(dd.from_pandas(input_df, npartitions=1))
-        output_dataset = pipeline(input_dataset)
+        input_df = pd.DataFrame({"text": inputs})
+        target_df = pd.DataFrame({"text": targets})
+        with LocalCluster(n_workers=1, threads_per_worker=1) as cluster:
+            with Client(cluster):
+                input_dataset = DocumentDataset(dd.from_pandas(input_df, npartitions=1))
+                pipeline = nc.Sequential(
+                    [
+                        nc.ScoreFilter(
+                            BatchedLengthFilter(min_length=0, max_length=25)
+                        ),
+                        nc.Modify(
+                            PiiModifier(
+                                language="en", anonymize_action="mask", device="cpu"
+                            )
+                        ),
+                    ]
+                )
+                output_dataset = pipeline(input_dataset)
 
-        output_df = output_dataset.df.compute()
-        match = all(output_df["documents"] == target_df["documents"])
-        assert match
+                output_df = output_dataset.df.compute().reset_index(drop=True)
+                match = all(output_df["text"] == target_df["text"])
+                assert match
