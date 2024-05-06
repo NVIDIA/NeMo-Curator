@@ -150,12 +150,14 @@ class BatchedLengthFilter(DocumentFilter):
 
 class TestPIIModule:
     def test_filter_chain(self):
-        pipeline = [
-            nc.ScoreFilter(BatchedLengthFilter(min_length=0, max_length=25)),
-            nc.Modify(
-                PiiModifier(language="en", anonymize_action="mask", device="cpu")
-            ),
-        ]
+        pipeline = nc.Sequential(
+            [
+                nc.ScoreFilter(BatchedLengthFilter(min_length=0, max_length=25)),
+                nc.Modify(
+                    PiiModifier(language="en", anonymize_action="mask", device="cpu")
+                ),
+            ]
+        )
         inputs = [
             "Alice is an engineer",
             "Bob is an engineer",
