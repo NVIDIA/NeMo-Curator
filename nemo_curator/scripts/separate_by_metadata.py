@@ -19,8 +19,8 @@ import shutil
 from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import (
     expand_outdir_and_mkdir,
+    get_batched_files,
     separate_by_metadata,
-    get_batched_files
 )
 from nemo_curator.utils.script_utils import add_distributed_args, attach_bool_arg
 
