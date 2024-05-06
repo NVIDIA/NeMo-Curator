@@ -182,7 +182,7 @@ def _save_jsonl(documents, output_path, start_index=0, max_index=10000, prefix=N
     """Worker function to write out the data to jsonl files"""
 
     def _output_json(document):
-        return document.strip().encode('utf-8')
+        return document.strip().encode("utf-8")
 
     def _name(start_index, npad, prefix, i):
         tag = str(start_index + i).rjust(npad, "0")
@@ -205,7 +205,10 @@ def _save_jsonl(documents, output_path, start_index=0, max_index=10000, prefix=N
             if os.path.getsize(output_file) == 0:
                 os.remove(output_file)
         except Exception as exception:
-            print(f"An exception occurred when trying to delete {output_file}.\n{exception}", flush=True)
+            print(
+                f"An exception occurred when trying to delete {output_file}.\n{exception}",
+                flush=True,
+            )
 
 
 def reshard_jsonl(
