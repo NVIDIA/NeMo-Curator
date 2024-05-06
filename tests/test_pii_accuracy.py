@@ -16,9 +16,16 @@ import logging
 import re
 from pathlib import Path
 
+import pandas as pd
 import pytest
+from dask import dataframe as dd
 
+import nemo_curator as nc
+from nemo_curator.datasets import DocumentDataset
+from nemo_curator.filters import DocumentFilter
+from nemo_curator.modifiers import PiiModifier
 from nemo_curator.pii.algorithm import PiiDeidentifier
+from nemo_curator.utils.decorators import batched
 
 LOGGER = logging.getLogger(__name__)
 
@@ -118,3 +125,55 @@ class TestPIIAccuracy:
         match = all(compare_outputs(x, y) for x, y in zip(outputs, targets))
         print("Matches:", "No" if not match else "Yes")
         assert match == True
+
+
+class BatchedLengthFilter(DocumentFilter):
+    """
+    Keeps documents of a given length
+    """
+
+    def __init__(self, min_length=5, max_length=10):
+        super().__init__()
+        self.min_length = min_length
+        self.max_length = max_length
+
+    @batched
+    def score_document(self, df):
+        return df.str.len()
+
+    @batched
+    def keep_document(self, scores):
+        min_threshold = self.min_length <= scores
+        max_threshold = scores <= self.max_length
+        return min_threshold & max_threshold
+
+
+class TestPIIModule:
+    def test_filter_chain(self):
+        pipeline = [
+            nc.ScoreFilter(BatchedLengthFilter(min_length=0, max_length=25)),
+            nc.Modify(
+                PiiModifier(language="en", anonymize_action="mask", device="cpu")
+            ),
+        ]
+        inputs = [
+            "Alice is an engineer",
+            "Bob is an engineer",
+            "Someone named Charlie is an engineer",
+            "An engineer is David",
+            "An engineer is Eliza",
+        ]
+        targets = [
+            "***** is an engineer",
+            "*** is an engineer",
+            "An engineer is *****",
+            "An engineer is *****",
+        ]
+        input_df = pd.DataFrame({"documents": inputs})
+        target_df = pd.DataFrame({"documents": targets})
+        input_dataset = DocumentDataset(dd.from_pandas(input_df, npartitions=1))
+        output_dataset = pipeline(input_dataset)
+
+        output_df = output_dataset.df.compute()
+        match = all(output_df["documents"] == target_df["documents"])
+        assert match
