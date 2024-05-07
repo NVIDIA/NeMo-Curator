@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask_cudf
 import dask.dataframe as dd
 
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk
@@ -24,7 +23,8 @@ class DocumentDataset:
     A collection of documents and document metadata.
     Internally it may be distributed across multiple nodes, and may be on GPUs.
     """
-    def __init__(self, dataset_df):
+
+    def __init__(self, dataset_df: dd.DataFrame):
         self.df = dataset_df
 
     def __len__(self):
@@ -41,13 +41,15 @@ class DocumentDataset:
         files_per_partition=1,
         add_filename=False,
     ):
-        return cls(_read_json_or_parquet(
-            input_files=input_files,
-            file_type="jsonl",
-            backend=backend,
-            files_per_partition=files_per_partition,
-            add_filename=add_filename,
-        ))
+        return cls(
+            _read_json_or_parquet(
+                input_files=input_files,
+                file_type="jsonl",
+                backend=backend,
+                files_per_partition=files_per_partition,
+                add_filename=add_filename,
+            )
+        )
 
     @classmethod
     def read_parquet(
@@ -57,13 +59,15 @@ class DocumentDataset:
         files_per_partition=1,
         add_filename=False,
     ):
-        return cls(_read_json_or_parquet(
-            input_files=input_files,
-            file_type="parquet",
-            backend=backend,
-            files_per_partition=files_per_partition,
-            add_filename=add_filename,
-        ))
+        return cls(
+            _read_json_or_parquet(
+                input_files=input_files,
+                file_type="parquet",
+                backend=backend,
+                files_per_partition=files_per_partition,
+                add_filename=add_filename,
+            )
+        )
 
     @classmethod
     def read_pickle(
@@ -177,10 +181,7 @@ def _read_json_or_parquet(
                 )
                 dfs.append(df)
 
-            if backend == "cudf":
-                raw_data = dask_cudf.concat(dfs, ignore_unknown_divisions=True)
-            else:
-                raw_data = dd.concat(dfs, ignore_unknown_divisions=True)
+            raw_data = dd.concat(dfs, ignore_unknown_divisions=True)
 
     elif isinstance(input_files, str):
         # Single file

@@ -11,25 +11,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import os
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import warnings
-import cudf
-import dask.dataframe as dd
-import dask_cudf
-import pandas as pd
-from dask.distributed import Client, LocalCluster, get_worker
-from dask_cuda import LocalCUDACluster
-from typing import Union
+from contextlib import nullcontext
 from pathlib import Path
+from typing import Union
+
+import dask.dataframe as dd
+import pandas as pd
+from dask.distributed import Client, LocalCluster, get_worker, performance_report
+
+from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
+from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+
+cudf = gpu_only_import("cudf")
+LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
 
 
 class NoWorkerError(Exception):
     pass
 
-def start_dask_gpu_local_cluster(nvlink_only=False, protocol="tcp", rmm_pool_size="1024M", enable_spilling=True, set_torch_to_use_rmm=True) -> Client:
+
+def start_dask_gpu_local_cluster(
+    nvlink_only=False,
+    protocol="tcp",
+    rmm_pool_size="1024M",
+    enable_spilling=True,
+    set_torch_to_use_rmm=True,
+) -> Client:
     """
     This function sets up a Dask cluster across all the
     GPUs present on the machine.
@@ -65,7 +78,9 @@ def start_dask_gpu_local_cluster(nvlink_only=False, protocol="tcp", rmm_pool_siz
     return client
 
 
-def start_dask_cpu_local_cluster(n_workers=os.cpu_count(), threads_per_worker=1) -> Client:
+def start_dask_cpu_local_cluster(
+    n_workers=os.cpu_count(), threads_per_worker=1
+) -> Client:
     """
     This function sets up a Dask cluster across all the
     CPUs present on the machine.
@@ -76,7 +91,18 @@ def start_dask_cpu_local_cluster(n_workers=os.cpu_count(), threads_per_worker=1)
     return client
 
 
-def get_client(cluster_type="cpu", scheduler_address=None, scheduler_file=None, n_workers=os.cpu_count(), threads_per_worker=1, nvlink_only=False, protocol="tcp", rmm_pool_size="1024M", enable_spilling=True, set_torch_to_use_rmm=True) -> Client:
+def get_client(
+    cluster_type="cpu",
+    scheduler_address=None,
+    scheduler_file=None,
+    n_workers=os.cpu_count(),
+    threads_per_worker=1,
+    nvlink_only=False,
+    protocol="tcp",
+    rmm_pool_size="1024M",
+    enable_spilling=True,
+    set_torch_to_use_rmm=True,
+) -> Client:
     """
     Initializes or connects to a Dask cluster.
     The Dask cluster can be CPU-based or GPU-based (if GPUs are available).
@@ -121,13 +147,17 @@ def get_client(cluster_type="cpu", scheduler_address=None, scheduler_file=None, 
         return Client(scheduler_file=scheduler_file, timeout="30s")
     else:
         if cluster_type == "gpu":
-            return start_dask_gpu_local_cluster(nvlink_only=nvlink_only,
-                                                protocol=protocol,
-                                                rmm_pool_size=rmm_pool_size,
-                                                enable_spilling=enable_spilling,
-                                                set_torch_to_use_rmm=set_torch_to_use_rmm)
+            return start_dask_gpu_local_cluster(
+                nvlink_only=nvlink_only,
+                protocol=protocol,
+                rmm_pool_size=rmm_pool_size,
+                enable_spilling=enable_spilling,
+                set_torch_to_use_rmm=set_torch_to_use_rmm,
+            )
         else:
-            return start_dask_cpu_local_cluster(n_workers=n_workers, threads_per_worker=threads_per_worker)
+            return start_dask_cpu_local_cluster(
+                n_workers=n_workers, threads_per_worker=threads_per_worker
+            )
 
 
 def _set_torch_to_use_rmm():
@@ -152,6 +182,8 @@ def _enable_spilling():
     i.e., computing on objects that occupy more memory than is available on the GPU.
 
     """
+    import cudf
+
     cudf.set_option("spill", True)
 
 
@@ -250,6 +282,10 @@ def read_data(
         A Dask-cuDF or a Dask-pandas DataFrame.
 
     """
+    if backend == "cudf":
+        # Try using cuDF. If not availible will throw an error.
+        test_obj = cudf.Series
+
     if file_type == "pickle":
         df = read_pandas_pickle(input_files[0], add_filename=add_filename)
         df = dd.from_pandas(df, npartitions=16)
@@ -354,10 +390,12 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         warnings.warn(f"Empty partition found")
         empty_partition = False
 
-    if isinstance(df, pd.DataFrame):
-        success_ser = pd.Series([empty_partition])
-    else:
+    if is_cudf_type(df):
+        import cudf
+
         success_ser = cudf.Series([empty_partition])
+    else:
+        success_ser = pd.Series([empty_partition])
 
     if empty_partition:
         filename = df.filename.iloc[0]
@@ -371,7 +409,9 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         if output_type == "jsonl":
             output_file_path = output_file_path + ".jsonl"
             if isinstance(df, pd.DataFrame):
-                df.to_json(output_file_path, orient="records", lines=True, force_ascii=False)
+                df.to_json(
+                    output_file_path, orient="records", lines=True, force_ascii=False
+                )
             else:
                 # See open issue here: https://github.com/rapidsai/cudf/issues/15211
                 # df.to_json(
@@ -408,10 +448,13 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         )
 
     if write_to_filename:
-        if isinstance(df, dd.DataFrame):
-            output_meta = pd.Series([True], dtype="bool")
-        else:
+        if is_cudf_type(df):
+            import cudf
+
             output_meta = cudf.Series([True])
+        else:
+            output_meta = pd.Series([True], dtype="bool")
+
         os.makedirs(output_file_dir, exist_ok=True)
         output = df.map_partitions(
             single_partition_write_with_filename,
@@ -423,12 +466,16 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         output = output.compute()
     else:
         if output_type == "jsonl":
-            if isinstance(df, dask_cudf.DataFrame):
+            if is_cudf_type(df):
                 # See open issue here: https://github.com/rapidsai/cudf/issues/15211
                 # df.to_json(output_file_dir, orient="records", lines=True, engine="cudf", force_ascii=False)
-                df.to_json(output_file_dir, orient="records", lines=True, force_ascii=False)
+                df.to_json(
+                    output_file_dir, orient="records", lines=True, force_ascii=False
+                )
             else:
-                df.to_json(output_file_dir, orient="records", lines=True, force_ascii=False)
+                df.to_json(
+                    output_file_dir, orient="records", lines=True, force_ascii=False
+                )
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
         else:
@@ -479,3 +526,31 @@ def offload_object_on_worker(attr):
     if hasattr(worker, attr):
         delattr(worker, attr)
     return True
+
+
+def get_num_workers(client):
+    """
+    Returns the number of workers in the cluster
+    """
+    if client is None:
+        return None
+    worker_list = list(client.scheduler_info()["workers"].keys())
+    return len(worker_list)
+
+
+def get_current_client():
+    """
+    Returns the context-local or latest initailised client.
+    If no Client instances exist, returns None
+    """
+    try:
+        return Client.current()
+    except ValueError:
+        return None
+
+
+def performance_report_if(path=None, report_name="dask-profile.html"):
+    if path is not None:
+        return performance_report(os.path.join(path, report_name))
+    else:
+        return nullcontext()

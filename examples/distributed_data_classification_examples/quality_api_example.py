@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
-
-import argparse
 
 from nemo_curator import QualityClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args
-
 
 
 def main(args):
@@ -56,7 +54,12 @@ def main(args):
 
     client.close()
 
-def attach_args(parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)):
+
+def attach_args(
+    parser=argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    ),
+):
     parser.add_argument(
         "--scheduler-address",
         type=str,
@@ -103,7 +106,7 @@ def attach_args(parser=argparse.ArgumentParser(formatter_class=argparse.Argument
         default="gpu",
         help="Device to run the script on. Either 'cpu' or 'gpu'.",
     )
-    
+
     return parser
 
 

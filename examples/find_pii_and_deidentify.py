@@ -18,7 +18,7 @@ import dask.dataframe
 import pandas as pd
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modifiers.pii_modifier import PiiModifierBatched
+from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
@@ -29,20 +29,23 @@ def console_script():
     arguments = add_distributed_args(parser).parse_args()
     _ = get_client(**parse_client_args(arguments))
 
-    dataframe = pd.DataFrame({'text': ['Sarah and Ryan went out to play', 'Jensen is the CEO of NVIDIA']})
+    dataframe = pd.DataFrame(
+        {"text": ["Sarah and Ryan went out to play", "Jensen is the CEO of NVIDIA"]}
+    )
     dd = dask.dataframe.from_pandas(dataframe, npartitions=1)
     dataset = DocumentDataset(dd)
 
-    modifier = PiiModifierBatched(
-        log_dir='./logs',
+    modifier = PiiModifier(
+        log_dir="./logs",
         batch_size=2000,
-        language='en',
-        supported_entities=['PERSON', "EMAIL_ADDRESS"],
-        anonymize_action='replace')
+        language="en",
+        supported_entities=["PERSON", "EMAIL_ADDRESS"],
+        anonymize_action="replace",
+    )
 
-    modify = Modify(modifier, batched=True)
+    modify = Modify(modifier)
     modified_dataset = modify(dataset)
-    modified_dataset.df.to_json('output_files/*.jsonl', lines=True, orient='records')
+    modified_dataset.df.to_json("output_files/*.jsonl", lines=True, orient="records")
 
 
 if __name__ == "__main__":
