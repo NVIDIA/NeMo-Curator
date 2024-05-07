@@ -181,7 +181,7 @@ def parse_str_of_num_bytes(s, return_str=False):
 def _save_jsonl(documents, output_path, start_index=0, max_index=10000, prefix=None):
     """Worker function to write out the data to jsonl files"""
 
-    def _output_json(document):
+    def _encode_text(document):
         return document.strip().encode("utf-8")
 
     def _name(start_index, npad, prefix, i):
@@ -194,7 +194,7 @@ def _save_jsonl(documents, output_path, start_index=0, max_index=10000, prefix=N
 
     output_glob_string = os.path.join(output_path, "*.jsonl")
 
-    output_files = documents.map(_output_json).to_textfiles(
+    output_files = documents.map(_encode_text).to_textfiles(
         output_glob_string,
         name_function=name,
     )
