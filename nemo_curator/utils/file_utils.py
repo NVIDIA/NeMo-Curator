@@ -222,7 +222,8 @@ def reshard_jsonl(
         output_dir: The output directory where the resharded jsonl files will be written
         output_file_size: Approximate size of output files. Must specify with a string and
             with the unit K, M or G for kilo, mega or gigabytes
-        start_index: Starting index for naming the output files
+        start_index: Starting index for naming the output files. Note: The indices may not
+            be continuous if the sharding process would output an empty file in its place
         file_prefix: Prefix to use to prepend to output file number
     """
 
