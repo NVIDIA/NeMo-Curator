@@ -4,7 +4,7 @@ NeMo Curator is a Python library that consists of a collection of scalable data-
 
 NeMo Curator is built on [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids) to scale data curation and provide GPU acceleration. The Python interface provides easy methods to expand the functionality of your curation pipeline without worrying about how it will scale. More information can be found in the [usage section](#usage). There are many ways to integrate NeMo Curator in your pipeline. Check out the [installation instructions](#installation) for how to get started using it.
 
-## Features
+## Key Features
 We currently support the following data-curation modules. For more details on each module, visit its documentation page in the [NeMo framework user guide](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/index.html).
  - [Data download and text extraction](docs/user-guide/Download.rst)
    - Default implementations of download and extraction of Common Crawl, Wikipedia, and ArXiv data
