@@ -26,6 +26,12 @@ from packaging import version
 from transformers import AutoConfig, AutoModel
 from transformers import __version__ as TRANSFORMERS_VERSION
 from transformers.models.deberta_v2 import DebertaV2TokenizerFast
+from transformers import AutoConfig, AutoModel
+from dataclasses import dataclass
+import torch
+import torch.nn as nn
+from crossfit import op
+from crossfit.backend.torch.hf.model import HFModel
 
 from nemo_curator.datasets import DocumentDataset
 
@@ -97,6 +103,79 @@ class CustomModel(nn.Module):
             return self._forward(batch)
 
 
+class CustomModel(nn.Module):
+    def __init__(self, config, out_dim, config_path=None, pretrained=False, autocast=False):
+        super().__init__()
+        self.config = config
+        if config_path is None:
+            self.config = AutoConfig.from_pretrained(
+                config.model, output_hidden_states=True
+            )
+        else:
+            self.config = torch.load(config_path)
+        if pretrained:
+            self.model = AutoModel.from_pretrained(config.model, config=self.config)
+        else:
+            self.model = AutoModel(self.config)
+        self.fc_dropout = nn.Dropout(config.fc_dropout)
+        self.fc = nn.Linear(self.config.hidden_size, out_dim)
+        self._init_weights(self.fc)
+        self.autocast = autocast
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.Embedding):
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+            if module.padding_idx is not None:
+                module.weight.data[module.padding_idx].zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+
+    def feature(self, input_ids, attention_mask):
+        outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+        last_hidden_states = outputs[0]
+        return last_hidden_states
+
+    def forward(self, batch):
+        if self.autocast:
+            with torch.autocast(device_type="cuda"):
+                feature = self.feature(batch["input_ids"], batch["attention_mask"])
+                output = self.fc(self.fc_dropout(feature))
+                output = output.to(torch.float32)
+        else:
+            feature = self.feature(batch["input_ids"], batch["attention_mask"])
+            output = self.fc(self.fc_dropout(feature))
+        return torch.softmax(output[:, 0, :], dim=1)
+    
+
+def _load_model(model, device, model_path):
+    """
+    This function loads the domain model and prepares it to be used for inference.
+    It is needed as an input to the `process_all_batches` function within the `inference_per_partition` function.
+
+    Args:
+        model: Model Class
+        device: A specified PyTorch device, such as torch.device("cuda") or torch.device("cpu").
+    Returns:
+        The loaded model.
+
+    """
+    model = model.to(device)
+    if os.path.exists(model_path):
+        sd = torch.load(os.path.join(model_path), map_location="cpu")
+        sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
+        if version.parse(TRANSFORMERS_VERSION) >= version.parse("4.31.0"):
+            sd.pop("model.embeddings.position_ids", None)
+        model.load_state_dict(sd, strict=True)
+    model.eval()
+    return model
+
+
+    
 class DistributedDataClassifier(ABC):
     """Abstract class for running multi-node multi-GPU data classification"""
 
@@ -341,8 +420,8 @@ class QualityClassifier(DistributedDataClassifier):
             if out_dim is None:
                 out_dim = len(labels)  # Multiclass classification
 
-        self.prob_column = prob_column
-        self.max_len = max_len
+#         self.prob_column = prob_column
+#         self.max_len = max_len
 
         model = QualityModel(
             config=QualityModelConfig,
