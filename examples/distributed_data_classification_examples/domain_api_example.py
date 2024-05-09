@@ -56,7 +56,9 @@ def main(args):
     model_file_name = "/home/nfs/syurick/LLM_domain_classifier_inference/GoogleDebertaAgree_v3b_bce_maxlen512_bs64_noRef_best.pth"
 
     # Input can be a string or list
-    input_file_path = "/home/nfs/syurick/LLM_domain_classifier_inference/4360_results_jsonl_dir/"
+    input_file_path = (
+        "/home/nfs/syurick/LLM_domain_classifier_inference/4360_results_jsonl_dir/"
+    )
     output_file_path = "/raid/vjawa/output_file.parquet"
 
     client = get_client(args, cluster_type=args.device)
@@ -68,7 +70,7 @@ def main(args):
     domain_classifier = DomainClassifier(
         model_file_name=model_file_name,
         labels=labels,
-        #filter_by=["Games", "Sports"],
+        # filter_by=["Games", "Sports"],
     )
     result_dataset = domain_classifier(dataset=input_dataset)
 

@@ -28,6 +28,7 @@ from crossfit.backend.torch.hf.model import HFModel
 
 from nemo_curator.datasets import DocumentDataset
 
+
 @dataclass
 class domain_Config:
     model = "microsoft/deberta-v3-base"
@@ -36,7 +37,9 @@ class domain_Config:
 
 
 class CustomModel(nn.Module):
-    def __init__(self, config, out_dim, config_path=None, pretrained=False, autocast=False):
+    def __init__(
+        self, config, out_dim, config_path=None, pretrained=False, autocast=False
+    ):
         super().__init__()
         self.config = config
         if config_path is None:
@@ -82,7 +85,7 @@ class CustomModel(nn.Module):
             feature = self.feature(batch["input_ids"], batch["attention_mask"])
             output = self.fc(self.fc_dropout(feature))
         return torch.softmax(output[:, 0, :], dim=1)
-    
+
 
 def _load_model(model, device, model_path):
     """
@@ -107,7 +110,6 @@ def _load_model(model, device, model_path):
     return model
 
 
-    
 class DistributedDataClassifier(ABC):
     """Abstract class for running multi-node multi-GPU data classification"""
 
@@ -144,7 +146,6 @@ class DistributedDataClassifier(ABC):
     def _run_classifier(self):
         pass
 
-
     def _filter_documents(
         self,
         dataset: DocumentDataset,
@@ -167,20 +168,26 @@ class DomainModel(HFModel):
         self.config = config
         self.out_dim = out_dim
         self.model_path = model_path
-        self.autocast=autocast
+        self.autocast = autocast
         super().__init__(self.config.model)
 
     def load_model(self, device="cuda"):
-        model = CustomModel(self.config, out_dim=self.out_dim, config_path=None, pretrained=True, autocast=self.autocast)
+        model = CustomModel(
+            self.config,
+            out_dim=self.out_dim,
+            config_path=None,
+            pretrained=True,
+            autocast=self.autocast,
+        )
         return _load_model(model, device, self.model_path)
-    
+
     def load_tokenizer(self):
         return DebertaV2TokenizerFast.from_pretrained(self.config.model)
 
     def load_config(self):
         return AutoConfig.from_pretrained(self.path_or_name)
 
-    
+
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
@@ -197,11 +204,12 @@ class DomainClassifier(DistributedDataClassifier):
         if out_dim is None:
             out_dim = len(labels)
 
-        model = DomainModel(config=domain_Config,
-                            out_dim=out_dim, 
-                            model_path=model_file_name,
-                            autocast=autocast)
-
+        model = DomainModel(
+            config=domain_Config,
+            out_dim=out_dim,
+            model_path=model_file_name,
+            autocast=autocast,
+        )
 
         super().__init__(
             model=model,
@@ -219,13 +227,17 @@ class DomainClassifier(DistributedDataClassifier):
         print("Starting domain classifier inference", flush=True)
 
         df = dataset.df
-        df['sliced_text'] = df['text'].str.slice(0, self.max_chars)
+        df["sliced_text"] = df["text"].str.slice(0, self.max_chars)
         columns_to_keep_list = df.columns.to_list()
-        columns_to_keep_list.remove('sliced_text')
+        columns_to_keep_list.remove("sliced_text")
 
         pipe = op.Sequential(
-            op.Tokenizer(self.model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
-            op.Predictor(self.model, sorted_data_loader=True, batch_size=self.batch_size),
+            op.Tokenizer(
+                self.model, cols=["sliced_text"], tokenizer_type="sentencepiece"
+            ),
+            op.Predictor(
+                self.model, sorted_data_loader=True, batch_size=self.batch_size
+            ),
             op.Labeler(self.labels, cols=["preds"]),
             repartition=df.npartitions,
             keep_cols=columns_to_keep_list,

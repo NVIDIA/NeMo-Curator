@@ -15,6 +15,7 @@
 import os
 import time
 import warnings
+
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import torch
 from packaging import version
@@ -38,8 +39,8 @@ from nemo_curator.utils.distributed_utils import read_data
 from nemo_curator.utils.file_utils import get_remaining_files
 
 
-
 warnings.filterwarnings("ignore")
+
 
 @dataclass
 class Config:
@@ -49,7 +50,9 @@ class Config:
 
 
 class CustomModel(nn.Module):
-    def __init__(self, config, out_dim, config_path=None, pretrained=False, autocast=False):
+    def __init__(
+        self, config, out_dim, config_path=None, pretrained=False, autocast=False
+    ):
         super().__init__()
         self.config = config
         if config_path is None:
@@ -95,7 +98,7 @@ class CustomModel(nn.Module):
             feature = self.feature(batch["input_ids"], batch["attention_mask"])
             output = self.fc(self.fc_dropout(feature))
         return torch.softmax(output[:, 0, :], dim=1)
-    
+
 
 def load_model(config, device, model_path, autocast):
     """
@@ -111,7 +114,9 @@ def load_model(config, device, model_path, autocast):
         The loaded model.
 
     """
-    model = CustomModel(config, out_dim=27, config_path=None, pretrained=True, autocast=autocast)
+    model = CustomModel(
+        config, out_dim=27, config_path=None, pretrained=True, autocast=autocast
+    )
     model = model.to(device)
     if os.path.exists(model_path):
         sd = torch.load(os.path.join(model_path), map_location="cpu")
@@ -127,20 +132,22 @@ class DomainModel(HFModel):
     def __init__(self, config, model_path=None, autocast=False):
         self.config = config
         self.model_path = model_path
-        self.autocast=autocast
+        self.autocast = autocast
         super().__init__(self.config.model)
 
     def load_model(self, device="cuda"):
-        return load_model(self.config, device=device,
-                         model_path=self.model_path or self.path_or_name,
-                         autocast=self.autocast)
-    
+        return load_model(
+            self.config,
+            device=device,
+            model_path=self.model_path or self.path_or_name,
+            autocast=self.autocast,
+        )
+
     def load_tokenizer(self):
         return DebertaV2TokenizerFast.from_pretrained(self.config.model)
 
     def load_config(self):
         return AutoConfig.from_pretrained(self.path_or_name)
-
 
 
 def main():
@@ -205,11 +212,11 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df['sliced_text'] = df['text'].str.slice(0, max_chars)
+        df["sliced_text"] = df["text"].str.slice(0, max_chars)
         columns_to_keep_list = df.columns.to_list()
-        columns_to_keep_list.remove('sliced_text')
+        columns_to_keep_list.remove("sliced_text")
 
-        model_path ="/home/nfs/syurick/LLM_domain_classifier_inference/GoogleDebertaAgree_v3b_bce_maxlen512_bs64_best.pth"
+        model_path = "/home/nfs/syurick/LLM_domain_classifier_inference/GoogleDebertaAgree_v3b_bce_maxlen512_bs64_best.pth"
         model = DomainModel(Config, model_path=model_path, autocast=args.autocast)
         pipe = op.Sequential(
             op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
