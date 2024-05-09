@@ -216,8 +216,9 @@ def main():
         columns_to_keep_list = df.columns.to_list()
         columns_to_keep_list.remove("sliced_text")
 
-        model_path = "/home/nfs/syurick/LLM_domain_classifier_inference/GoogleDebertaAgree_v3b_bce_maxlen512_bs64_best.pth"
-        model = DomainModel(Config, model_path=model_path, autocast=args.autocast)
+        model = DomainModel(
+            Config, model_path=args.model_file_name, autocast=args.autocast
+        )
         pipe = op.Sequential(
             op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
             op.Predictor(model, sorted_data_loader=True, batch_size=batch_size),
