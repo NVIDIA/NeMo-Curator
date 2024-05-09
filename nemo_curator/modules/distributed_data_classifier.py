@@ -28,10 +28,15 @@ from transformers import __version__ as TRANSFORMERS_VERSION
 from transformers.models.deberta_v2 import DebertaV2TokenizerFast
 from transformers import AutoConfig, AutoModel
 from dataclasses import dataclass
+
 import torch
 import torch.nn as nn
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
+from packaging import version
+from transformers import AutoConfig, AutoModel
+from transformers import __version__ as TRANSFORMERS_VERSION
+from transformers.models.deberta_v2 import DebertaV2TokenizerFast
 
 from nemo_curator.datasets import DocumentDataset
 
