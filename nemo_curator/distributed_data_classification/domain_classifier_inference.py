@@ -17,28 +17,20 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
-import torch
-from packaging import version
-from transformers import __version__ as TRANSFORMERS_VERSION
-from transformers.models.deberta_v2 import DebertaV2TokenizerFast
-from transformers import AutoConfig, AutoModel
 from dataclasses import dataclass
+
 import torch
 import torch.nn as nn
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
-
-
+from packaging import version
+from transformers import AutoConfig, AutoModel
+from transformers import __version__ as TRANSFORMERS_VERSION
+from transformers.models.deberta_v2 import DebertaV2TokenizerFast
 
 from nemo_curator.distributed_data_classification.arg_utils import create_arg_parser
-from nemo_curator.utils.distributed_utils import (
-    get_client,
-    read_data,
-    write_to_disk,
-)
-from nemo_curator.utils.distributed_utils import read_data
+from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
-
 
 warnings.filterwarnings("ignore")
 
