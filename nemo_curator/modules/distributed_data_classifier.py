@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+
+os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
