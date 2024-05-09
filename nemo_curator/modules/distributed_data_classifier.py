@@ -104,7 +104,9 @@ class CustomModel(nn.Module):
 
 
 class CustomModel(nn.Module):
-    def __init__(self, config, out_dim, config_path=None, pretrained=False, autocast=False):
+    def __init__(
+        self, config, out_dim, config_path=None, pretrained=False, autocast=False
+    ):
         super().__init__()
         self.config = config
         if config_path is None:
@@ -150,7 +152,7 @@ class CustomModel(nn.Module):
             feature = self.feature(batch["input_ids"], batch["attention_mask"])
             output = self.fc(self.fc_dropout(feature))
         return torch.softmax(output[:, 0, :], dim=1)
-    
+
 
 def _load_model(model, device, model_path):
     """
@@ -175,7 +177,6 @@ def _load_model(model, device, model_path):
     return model
 
 
-    
 class DistributedDataClassifier(ABC):
     """Abstract class for running multi-node multi-GPU data classification"""
 
