@@ -15,14 +15,19 @@
 import math
 from operator import getitem
 
+import dask
 import numpy as np
+import pandas as pd
 from dask.base import tokenize
 from dask.dataframe.core import new_dd_object
 from dask.dataframe.shuffle import partitioning_index
 from dask.highlevelgraph import HighLevelGraph
 from dask.utils import M
+from packaging.version import Version
 
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import rearange_by_column_direct
+
+DASK_GT_2023_12_0 = Version(dask.__version__) > Version("2023.12.0")
 
 
 def _split_part(part, nsplits):
@@ -129,6 +134,19 @@ def extract_partitioning_index(
     # a partition-wise merge between `left_df` and `right_df`.
     # We call this `global_partitioning_index`:
 
+    if DASK_GT_2023_12_0:
+        # Need to use the same type-casting logic as `shuffle`
+        dtypes = {}
+        for col, dtype in left_df[merge_on].dtypes.items():
+            if pd.api.types.is_numeric_dtype(dtype):
+                dtypes[col] = np.float64
+        if not dtypes:
+            dtypes = None
+        cast_dtype = {"cast_dtype": dtypes}
+    else:
+        # `cast_dtype` argument doesn't exist yet
+        cast_dtype = {}
+
     num_bucket_files = bk_mapping.file_id.max() + 1
     global_partitioning_index = left_df[merge_on].map_partitions(
         partitioning_index,
@@ -137,6 +155,7 @@ def extract_partitioning_index(
         enforce_metadata=False,
         transform_divisions=False,
         align_dataframes=False,
+        **cast_dtype,
     )
 
     if total_bucket_partitions < num_bucket_files:
