@@ -30,34 +30,14 @@ from presidio_analyzer.predefined_recognizers import (
 from presidio_anonymizer import AnonymizerEngine, BatchAnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
+from nemo_curator.pii.constants import DEFAULT_LANGUAGE, SUPPORTED_ENTITIES
 from nemo_curator.pii.custom_batch_analyzer_engine import CustomBatchAnalyzerEngine
 from nemo_curator.pii.custom_nlp_engine import CustomNlpEngine
 from nemo_curator.pii.recognizers.address_recognizer import AddressRecognizer
 
 __all__ = [
-    "DEFAULT_LANGUAGE",
-    "SUPPORTED_ENTITIES",
-    "DEFAULT_MAX_DOC_SIZE",
     "PiiDeidentifier",
 ]
-
-
-DEFAULT_LANGUAGE = "en"
-SUPPORTED_ENTITIES = [
-    "ADDRESS",
-    "CREDIT_CARD",
-    "EMAIL_ADDRESS",
-    "DATE_TIME",
-    "IP_ADDRESS",
-    "LOCATION",
-    "PERSON",
-    "URL",
-    "US_SSN",
-    "US_PASSPORT",
-    "US_DRIVER_LICENSE",
-    "PHONE_NUMBER",
-]
-DEFAULT_MAX_DOC_SIZE = 2000000
 
 
 class PiiDeidentifier(object):
