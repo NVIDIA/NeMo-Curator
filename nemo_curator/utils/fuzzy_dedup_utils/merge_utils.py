@@ -15,7 +15,6 @@
 import math
 from operator import getitem
 
-import dask
 import numpy as np
 import pandas as pd
 from dask.base import tokenize
@@ -23,11 +22,9 @@ from dask.dataframe.core import new_dd_object
 from dask.dataframe.shuffle import partitioning_index
 from dask.highlevelgraph import HighLevelGraph
 from dask.utils import M
-from packaging.version import Version
 
+from nemo_curator._compat import DASK_SHUFFLE_CAST_DTYPE
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import rearange_by_column_direct
-
-DASK_GT_2023_12_0 = Version(dask.__version__) > Version("2023.12.0")
 
 
 def _split_part(part, nsplits):
@@ -134,7 +131,7 @@ def extract_partitioning_index(
     # a partition-wise merge between `left_df` and `right_df`.
     # We call this `global_partitioning_index`:
 
-    if DASK_GT_2023_12_0:
+    if DASK_SHUFFLE_CAST_DTYPE:
         # Need to use the same type-casting logic as `shuffle`
         dtypes = {}
         for col, dtype in left_df[merge_on].dtypes.items():
