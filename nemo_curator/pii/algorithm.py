@@ -15,6 +15,10 @@
 from pathlib import Path
 from typing import Any, List, Mapping, Union
 
+# NOTE: Importing this module before cluster creation will create a primary CUDA context
+# that leads to issues of all GPUs not being used when creating a cluster/client later on.
+# Ensure that this module is always imported after cluster creation only when the algorithm
+# needs to be executed. See: https://github.com/NVIDIA/NeMo-Curator/issues/64
 import yaml
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_analyzer.nlp_engine import NerModelConfiguration
