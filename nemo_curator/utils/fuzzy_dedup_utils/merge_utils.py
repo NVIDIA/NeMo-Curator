@@ -24,7 +24,6 @@ from dask.highlevelgraph import HighLevelGraph
 from dask.utils import M
 
 from nemo_curator._compat import DASK_SHUFFLE_CAST_DTYPE
-from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import rearange_by_column_direct
 
 
 def _split_part(part, nsplits):
@@ -213,6 +212,10 @@ def merge_left_to_shuffled_right(
     subset_bucket_df,
     merge_on,
 ):
+    from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
+        rearange_by_column_direct,
+    )
+
     # We are merging an unshuffled batch of "left" partitions
     # with a shuffled batch of "right" partitions. To minimize
     # data movement, we can manaully rerrange the "left" batch

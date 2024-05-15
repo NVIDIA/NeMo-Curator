@@ -26,6 +26,7 @@ from distributed import Client
 
 from nemo_curator import LSH, FuzzyDuplicates, FuzzyDuplicatesConfig, MinHash
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import extract_partitioning_index
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
@@ -371,13 +372,17 @@ class TestFuzzyDuplicatesConfig:
             assert getattr(config, param) == yaml_params[param]
 
 
-# TODO: This test should also work on CPU. However,
-# `shuffle_utils.py` will still try to import cudf
-@pytest.mark.gpu
-def test_extract_partitioning_index():
-    from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import (
-        extract_partitioning_index,
-    )
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "pandas",
+        pytest.param(
+            "cudf",
+            marks=pytest.mark.gpu,
+        ),
+    ],
+)
+def test_extract_partitioning_index(backend):
 
     def add_partiton_info(df, partition_info=None):
         if partition_info is None:
@@ -386,7 +391,7 @@ def test_extract_partitioning_index():
             df["file_id"] = partition_info["number"]
         return df
 
-    with config.set({"dataframe.backend": "cudf"}):
+    with config.set({"dataframe.backend": backend}):
 
         # Create a random `unshuffled` DataFrame with a
         # "part_id" column to be used as the shuffle index
