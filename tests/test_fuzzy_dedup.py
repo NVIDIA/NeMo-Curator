@@ -26,7 +26,6 @@ from distributed import Client
 
 from nemo_curator import LSH, FuzzyDuplicates, FuzzyDuplicatesConfig, MinHash
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import extract_partitioning_index
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
@@ -376,6 +375,9 @@ class TestFuzzyDuplicatesConfig:
 # `shuffle_utils.py` will still try to import cudf
 @pytest.mark.gpu
 def test_extract_partitioning_index():
+    from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import (
+        extract_partitioning_index,
+    )
 
     def add_partiton_info(df, partition_info=None):
         if partition_info is None:
