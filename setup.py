@@ -54,7 +54,7 @@ setup(
         "jieba==0.42.1",
         "comment_parser",
         "beautifulsoup4",
-        "mwparserfromhell @ git+https://github.com/earwig/mwparserfromhell.git@0f89f44",
+        "mwparserfromhell==0.6.5",
         "spacy>=3.6.0, <4.0.0",
         "presidio-analyzer==2.2.351",
         "presidio-anonymizer==2.2.351",
