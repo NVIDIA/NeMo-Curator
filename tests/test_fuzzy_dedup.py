@@ -20,6 +20,7 @@ import dask.dataframe as dd
 import numpy as np
 import pytest
 import yaml
+from dask import config
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
@@ -371,6 +372,9 @@ class TestFuzzyDuplicatesConfig:
             assert getattr(config, param) == yaml_params[param]
 
 
+# TODO: This test should also work on CPU. However,
+# `shuffle_utils.py` will still try to import cudf
+@pytest.mark.gpu
 def test_extract_partitioning_index():
 
     def add_partiton_info(df, partition_info=None):
@@ -380,27 +384,29 @@ def test_extract_partitioning_index():
             df["file_id"] = partition_info["number"]
         return df
 
-    # Create a random `unshuffled` DataFrame with a
-    # "part_id" column to be used as the shuffle index
-    npartitions_left = 7
-    unshuffled = dd.from_dict(
-        {"part_id": np.random.randint(25, size=1000, dtype="int32")},
-        npartitions=npartitions_left,
-    )
+    with config.set({"dataframe.backend": "cudf"}):
 
-    # Create a `bk_mapping` DataFrame that defines
-    # the "correct" mapping beween "part_id" and
-    # the destination partition ("file_id")
-    npartitions_right = 5
-    bk_mapping = (
-        dd.from_dict(
-            {"part_id": np.arange(25, dtype="int32")},
-            npartitions=npartitions_right,
+        # Create a random `unshuffled` DataFrame with a
+        # "part_id" column to be used as the shuffle index
+        npartitions_left = 7
+        unshuffled = dd.from_dict(
+            {"part_id": np.random.randint(25, size=1000, dtype="int32")},
+            npartitions=npartitions_left,
         )
-        .shuffle("part_id")
-        .map_partitions(add_partiton_info)
-        .compute()
-    )
+
+        # Create a `bk_mapping` DataFrame that defines
+        # the "correct" mapping beween "part_id" and
+        # the destination partition ("file_id")
+        npartitions_right = 5
+        bk_mapping = (
+            dd.from_dict(
+                {"part_id": np.arange(25, dtype="int32")},
+                npartitions=npartitions_right,
+            )
+            .shuffle("part_id")
+            .map_partitions(add_partiton_info)
+            .compute()
+        )
 
     # Use `extract_partitioning_index` to calculate
     # the partitioning index and assign it as a new
