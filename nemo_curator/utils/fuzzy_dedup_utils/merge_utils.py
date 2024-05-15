@@ -134,6 +134,8 @@ def extract_partitioning_index(
     if DASK_SHUFFLE_CAST_DTYPE:
         # Need to use the same type-casting logic as `shuffle`
         dtypes = {}
+        if not isinstance(merge_on, list):
+            merge_on = [merge_on]
         for col, dtype in left_df[merge_on].dtypes.items():
             if pd.api.types.is_numeric_dtype(dtype):
                 dtypes[col] = np.float64
@@ -173,7 +175,7 @@ def extract_partitioning_index(
     # want to send the rows of `left_df` to the partition
     # indices encoded in `global_partitioning_index`. Instead, we
     # need to take a modulus with `parts_per_bucket_batch` to
-    # define a `"_partitoins"` column.
+    # define a `"_partitions"` column.
     left_df["_partitions"] = global_partitioning_index % parts_per_bucket_batch
 
     return left_df, global_partitioning_index
