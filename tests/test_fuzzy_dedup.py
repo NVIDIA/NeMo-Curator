@@ -384,7 +384,7 @@ class TestFuzzyDuplicatesConfig:
 )
 def test_extract_partitioning_index(backend):
 
-    def add_partiton_info(df, partition_info=None):
+    def add_partition_info(df, partition_info=None):
         if partition_info is None:
             df["file_id"] = -1
         else:
@@ -411,7 +411,7 @@ def test_extract_partitioning_index(backend):
                 npartitions=npartitions_right,
             )
             .shuffle("part_id")
-            .map_partitions(add_partiton_info)
+            .map_partitions(add_partition_info)
             .compute()
         )
 
@@ -435,7 +435,7 @@ def test_extract_partitioning_index(backend):
             "part_id",
             npartitions=npartitions_right,
         )
-        .map_partitions(add_partiton_info)
+        .map_partitions(add_partition_info)
         .compute()
     )
 
