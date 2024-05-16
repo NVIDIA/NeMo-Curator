@@ -38,11 +38,9 @@ def main(args):
 
     assert args.hash_method == "md5", "Currently only md5 hash is supported"
     args.set_torch_to_use_rmm = False
-    client = get_client(
-        **parse_client_args(args), cluster_type="cpu" if args.no_gpu else "gpu"
-    )
+    client = get_client(**parse_client_args(args))
     logger.info(f"Client Created {client}")
-    if not args.no_gpu:
+    if args.device == "gpu":
         client.run(pre_imports)
         logger.info("Pre imports complete")
 
@@ -104,9 +102,6 @@ def attach_args(parser=None):
         help="Output directory where duplicate docs will be written. "
         "Each file is a pickle file that contains a dictionary of numpy arrays. "
         "The keys are the document ids and the values are the duplicate docs",
-    )
-    parser.add_argument(
-        "--no-gpu", action="store_true", help="Use CPU based exact dedup"
     )
 
     return parser
