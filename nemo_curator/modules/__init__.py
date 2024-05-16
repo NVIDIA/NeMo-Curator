@@ -40,9 +40,7 @@ FuzzyDuplicates = gpu_only_import_from(
 # Pytorch related imports must come after all imports that require cugraph,
 # because of context cleanup issues b/w pytorch and cugraph
 # See this issue: https://github.com/rapidsai/cugraph/issues/2718
-from .distributed_data_classifier import DomainClassifier
-
-# , QualityClassifier
+from .distributed_data_classifier import DomainClassifier, QualityClassifier
 
 __all__ = [
     "DomainClassifier",
@@ -53,7 +51,7 @@ __all__ = [
     "LSH",
     "MinHash",
     "Modify",
-    # "QualityClassifier",
+    "QualityClassifier",
     "Score",
     "ScoreFilter",
     "Sequential",

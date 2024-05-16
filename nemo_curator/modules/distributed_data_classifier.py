@@ -368,13 +368,42 @@ class QualityModel(HFModel):
             pretrained=True,
             autocast=self.autocast,
         )
-        return _load_model(model, device, self.model_path)
+        model = model.to(device)
+        sd = torch.load(self.model_path, map_location="cpu")
+        if "model_state_dict" in sd:
+            sd = sd["model_state_dict"]
+        sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
+        model.load_state_dict(sd, strict=True)
+        model.eval()
+        return model
 
     def load_tokenizer(self):
         return DebertaV2TokenizerFast.from_pretrained(self.config.model)
 
     def load_config(self):
         return AutoConfig.from_pretrained(self.path_or_name)
+
+
+def _run_classifier_helper(
+    df: "dask_cudf.DataFrame",
+    model: "HFModel",
+    labels: list[str],
+    max_chars: int,
+    batch_size: int,
+):
+
+    df["sliced_text"] = df["text"].str.slice(0, max_chars)
+    columns_to_keep_list = df.columns.to_list()
+    columns_to_keep_list.remove("sliced_text")
+
+    pipe = op.Sequential(
+        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
+        op.Predictor(model, sorted_data_loader=True, batch_size=batch_size),
+        op.Labeler(labels, cols=["preds"]),
+        repartition=df.npartitions,
+        keep_cols=columns_to_keep_list,
+    )
+    return pipe(df)
 
 
 class DomainClassifier(DistributedDataClassifier):
