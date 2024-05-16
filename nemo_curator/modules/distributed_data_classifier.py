@@ -212,13 +212,42 @@ class QualityModel(HFModel):
             pretrained=True,
             autocast=self.autocast,
         )
-        return _load_model(model, device, self.model_path)
+        model = model.to(device)
+        sd = torch.load(self.model_path, map_location="cpu")
+        if "model_state_dict" in sd:
+            sd = sd["model_state_dict"]
+        sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
+        model.load_state_dict(sd, strict=True)
+        model.eval()
+        return model
 
     def load_tokenizer(self):
         return DebertaV2TokenizerFast.from_pretrained(self.config.model)
 
     def load_config(self):
         return AutoConfig.from_pretrained(self.path_or_name)
+
+
+def _run_classifier_helper(
+    df: "dask_cudf.DataFrame",
+    model: "HFModel",
+    labels: list[str],
+    max_chars: int,
+    batch_size: int,
+):
+
+    df["sliced_text"] = df["text"].str.slice(0, max_chars)
+    columns_to_keep_list = df.columns.to_list()
+    columns_to_keep_list.remove("sliced_text")
+
+    pipe = op.Sequential(
+        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
+        op.Predictor(model, sorted_data_loader=True, batch_size=batch_size),
+        op.Labeler(labels, cols=["preds"]),
+        repartition=df.npartitions,
+        keep_cols=columns_to_keep_list,
+    )
+    return pipe(df)
 
 
 class DomainClassifier(DistributedDataClassifier):
@@ -260,22 +289,9 @@ class DomainClassifier(DistributedDataClassifier):
         print("Starting domain classifier inference", flush=True)
 
         df = dataset.df
-        df["sliced_text"] = df["text"].str.slice(0, self.max_chars)
-        columns_to_keep_list = df.columns.to_list()
-        columns_to_keep_list.remove("sliced_text")
-
-        pipe = op.Sequential(
-            op.Tokenizer(
-                self.model, cols=["sliced_text"], tokenizer_type="sentencepiece"
-            ),
-            op.Predictor(
-                self.model, sorted_data_loader=True, batch_size=self.batch_size
-            ),
-            op.Labeler(self.labels, cols=["preds"]),
-            repartition=df.npartitions,
-            keep_cols=columns_to_keep_list,
+        df = _run_classifier_helper(
+            df, self.model, self.labels, self.max_chars, self.batch_size
         )
-        df = pipe(df)
         return DocumentDataset(df)
 
 
@@ -290,7 +306,6 @@ class QualityClassifier(DistributedDataClassifier):
         pred_column="quality_pred",
         prob_column="quality_prob",
         max_chars=6000,
-        num_workers=0,
         device_type="cuda",
         autocast=True,
         max_len=1024,
@@ -319,7 +334,18 @@ class QualityClassifier(DistributedDataClassifier):
             out_dim=out_dim,
             pred_column=pred_column,
             max_chars=max_chars,
-            num_workers=num_workers,
             device_type=device_type,
             autocast=autocast,
         )
+
+    def _run_classifier(self, dataset: DocumentDataset):
+        print("Starting Quality classifier inference", flush=True)
+        df = dataset.df
+        df = _run_classifier_helper(
+            df=df,
+            model=self.model,
+            labels=self.labels,
+            max_chars=self.max_chars,
+            batch_size=self.batch_size,
+        )
+        return DocumentDataset(df)
