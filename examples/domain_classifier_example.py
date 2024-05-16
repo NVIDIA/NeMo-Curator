@@ -68,7 +68,7 @@ def main(args):
     domain_classifier = DomainClassifier(
         model_file_name=model_file_name,
         labels=labels,
-        # filter_by=["Games", "Sports"],
+        filter_by=["Games", "Sports"],
     )
     result_dataset = domain_classifier(dataset=input_dataset)
 
