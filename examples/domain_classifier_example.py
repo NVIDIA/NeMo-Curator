@@ -53,13 +53,11 @@ def main(args):
         "Travel_and_Transportation",
     ]
 
-    model_file_name = "/home/nfs/syurick/LLM_domain_classifier_inference/GoogleDebertaAgree_v3b_bce_maxlen512_bs64_noRef_best.pth"
+    model_file_name = "/path/to/pytorch_model_file.pth"
 
     # Input can be a string or list
-    input_file_path = (
-        "/home/nfs/syurick/LLM_domain_classifier_inference/4360_results_jsonl_dir/"
-    )
-    output_file_path = "/raid/vjawa/output_file.parquet"
+    input_file_path = "/path/to/data"
+    output_file_path = "./"
 
     client = get_client(args, cluster_type=args.device)
 
