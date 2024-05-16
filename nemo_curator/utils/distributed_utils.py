@@ -203,10 +203,11 @@ def read_single_partition(
 
     """
     if filetype == "jsonl":
-        read_kwargs = {"lines": True, "dtype": False}
+        read_kwargs = {"lines": True}
         if backend == "cudf":
             read_f = cudf.read_json
         else:
+            read_kwargs["dtype"] = False
             read_f = pd.read_json
     elif filetype == "parquet":
         read_kwargs = {}
