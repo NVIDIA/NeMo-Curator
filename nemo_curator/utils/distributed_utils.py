@@ -112,7 +112,7 @@ def get_client(
 
     Args:
         cluster_type: The type of cluster to set up. Either "cpu" or "gpu". Defaults to "cpu".
-        Many options in get_client only apply to CPU-based or GPU-based clusters. Make sure you check the description of the parameter.
+            Many options in get_client only apply to CPU-based or GPU-based clusters. Make sure you check the description of the parameter.
         scheduler_address: This can be the address of a Scheduler server like a string '127.0.0.1:8786' or a cluster object
             like LocalCluster(). If specified, all other arguments are ignored and the client is connected to the existing cluster.
         scheduler_file: Path to a file with scheduler information if available. If specified, all other arguments are ignored
