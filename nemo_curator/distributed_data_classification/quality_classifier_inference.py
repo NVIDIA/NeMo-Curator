@@ -69,6 +69,10 @@ def main():
     print("Starting quality classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
+
+    if not os.path.exists(args.output_file_path):
+        os.makedirs(args.output_file_path)
+
     input_files = get_remaining_files(
         args.input_file_path, args.output_file_path, args.input_file_type
     )
@@ -85,6 +89,7 @@ def main():
         labels=labels,
         batch_size=args.batch_size,
         autocast=args.autocast,
+        out_dim=len(labels),
     )
 
     for file_batch_id, i in enumerate(range(0, len(input_files), files_per_run)):
@@ -122,3 +127,7 @@ def main():
 
 def console_script():
     main()
+
+
+if __name__ == "__main__":
+    console_script()

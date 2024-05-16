@@ -49,7 +49,6 @@ def main():
         "People_and_Society",
         "Pets_and_Animals",
         "Real_Estate",
-        "Reference",
         "Science",
         "Sensitive_Subjects",
         "Shopping",
@@ -65,6 +64,10 @@ def main():
     print("Starting domain classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
+
+    if not os.path.exists(args.output_file_path):
+        os.makedirs(args.output_file_path)
+
     input_files = get_remaining_files(
         args.input_file_path, args.output_file_path, args.input_file_type
     )
@@ -80,6 +83,7 @@ def main():
         labels=labels,
         max_chars=max_chars,
         batch_size=args.batch_size,
+        out_dim=len(labels),
         autocast=args.autocast,
     )
 
