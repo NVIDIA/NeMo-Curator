@@ -83,39 +83,18 @@ class CustomModel(nn.Module):
         last_hidden_states = outputs[0]
         return last_hidden_states
 
+    def _forward(self, batch):
+        feature = self.feature(batch["input_ids"], batch["attention_mask"])
+        output = self.fc(self.fc_dropout(feature))
+        output = output.to(torch.float32)
+        return torch.softmax(output[:, 0, :], dim=1)
+
     def forward(self, batch):
         if self.autocast:
             with torch.autocast(device_type="cuda"):
-                feature = self.feature(batch["input_ids"], batch["attention_mask"])
-                output = self.fc(self.fc_dropout(feature))
-                output = output.to(torch.float32)
+                return self._forward(batch)
         else:
-            feature = self.feature(batch["input_ids"], batch["attention_mask"])
-            output = self.fc(self.fc_dropout(feature))
-        return torch.softmax(output[:, 0, :], dim=1)
-
-
-def _load_model(model, device, model_path):
-    """
-    This function loads the domain model and prepares it to be used for inference.
-    It is needed as an input to the `process_all_batches` function within the `inference_per_partition` function.
-
-    Args:
-        model: Model Class
-        device: A specified PyTorch device, such as torch.device("cuda") or torch.device("cpu").
-    Returns:
-        The loaded model.
-
-    """
-    model = model.to(device)
-    if os.path.exists(model_path):
-        sd = torch.load(os.path.join(model_path), map_location="cpu")
-        sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
-        if version.parse(TRANSFORMERS_VERSION) >= version.parse("4.31.0"):
-            sd.pop("model.embeddings.position_ids", None)
-        model.load_state_dict(sd, strict=True)
-    model.eval()
-    return model
+            return self._forward(batch)
 
 
 class DistributedDataClassifier(ABC):
@@ -171,6 +150,62 @@ class DistributedDataClassifier(ABC):
         raise TypeError("filter_by must be a string or list type")
 
 
+def _run_classifier_helper(
+    df: "dask_cudf.DataFrame",
+    model: "HFModel",
+    labels: list[str],
+    max_chars: int,
+    batch_size: int,
+    label_col: str,
+    prob_col: str = None,
+    keep_prob: bool = False,
+) -> "dask_cudf.DataFrame":
+
+    if keep_prob and prob_col is None:
+        raise ValueError("prob_col must be provided if keep_prob is True")
+
+    if prob_col is not None:
+        keep_prob = True
+
+    prob_internal_col = "_prob"
+    # TODO: Make crossfit handle this cleanly
+    pred_internal_col = "labels"
+
+    df["sliced_text"] = df["text"].str.slice(0, max_chars)
+    columns_to_keep_list = df.columns.to_list()
+    columns_to_keep_list.remove("sliced_text")
+
+    classifier_pipe = op.Sequential(
+        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
+        op.Predictor(
+            model,
+            sorted_data_loader=True,
+            batch_size=batch_size,
+            pred_output_col=prob_internal_col,
+        ),
+        repartition=df.npartitions,
+        keep_cols=columns_to_keep_list,
+    )
+    df = classifier_pipe(df)
+    # TODO: Make crossfit handle this cleanly
+    # to prevent the labeler from dropping the prob_internal_col
+    # and combine it into a single step
+    labeling_pipe = op.Sequential(
+        op.Labeler(labels, cols=[prob_internal_col]),
+        keep_cols=columns_to_keep_list + [prob_internal_col],
+    )
+    df = labeling_pipe(df)
+    if keep_prob:
+        df = df.rename(
+            columns={pred_internal_col: label_col, prob_internal_col: prob_col}
+        )
+    else:
+        df = df.rename(columns={pred_internal_col: label_col})
+        df = df.drop(columns=[prob_internal_col])
+
+    return df
+
+
 class DomainModel(HFModel):
     def __init__(self, config, out_dim=None, model_path=None, autocast=False):
         self.config = config
@@ -187,7 +222,14 @@ class DomainModel(HFModel):
             pretrained=True,
             autocast=self.autocast,
         )
-        return _load_model(model, device, self.model_path)
+        model = model.to(device)
+        if os.path.exists(self.model_path):
+            sd = torch.load(os.path.join(self.model_path), map_location="cpu")
+            sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
+            if version.parse(TRANSFORMERS_VERSION) >= version.parse("4.31.0"):
+                sd.pop("model.embeddings.position_ids", None)
+            model.load_state_dict(sd, strict=True)
+        return model.eval()
 
     def load_tokenizer(self):
         return DebertaV2TokenizerFast.from_pretrained(self.config.model)
@@ -228,28 +270,6 @@ class QualityModel(HFModel):
         return AutoConfig.from_pretrained(self.path_or_name)
 
 
-def _run_classifier_helper(
-    df: "dask_cudf.DataFrame",
-    model: "HFModel",
-    labels: list[str],
-    max_chars: int,
-    batch_size: int,
-):
-
-    df["sliced_text"] = df["text"].str.slice(0, max_chars)
-    columns_to_keep_list = df.columns.to_list()
-    columns_to_keep_list.remove("sliced_text")
-
-    pipe = op.Sequential(
-        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
-        op.Predictor(model, sorted_data_loader=True, batch_size=batch_size),
-        op.Labeler(labels, cols=["preds"]),
-        repartition=df.npartitions,
-        keep_cols=columns_to_keep_list,
-    )
-    return pipe(df)
-
-
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
@@ -258,7 +278,7 @@ class DomainClassifier(DistributedDataClassifier):
         filter_by=None,
         batch_size=256,
         out_dim=None,
-        pred_column="pred",
+        pred_column="domain_pred",
         max_chars=2000,
         device_type="cuda",
         autocast=True,
@@ -287,10 +307,15 @@ class DomainClassifier(DistributedDataClassifier):
 
     def _run_classifier(self, dataset: DocumentDataset):
         print("Starting domain classifier inference", flush=True)
-
         df = dataset.df
         df = _run_classifier_helper(
-            df, self.model, self.labels, self.max_chars, self.batch_size
+            df=df,
+            model=self.model,
+            labels=self.labels,
+            max_chars=self.max_chars,
+            batch_size=self.batch_size,
+            label_col=self.pred_column,
+            keep_prob=False,
         )
         return DocumentDataset(df)
 
@@ -320,7 +345,7 @@ class QualityClassifier(DistributedDataClassifier):
         self.max_len = max_len
 
         model = QualityModel(
-            config=quality_Config,  # Adjust or reuse domain_Config if suitable
+            config=quality_Config,
             out_dim=out_dim,
             model_path=model_file_name,
             autocast=autocast,
@@ -347,5 +372,8 @@ class QualityClassifier(DistributedDataClassifier):
             labels=self.labels,
             max_chars=self.max_chars,
             batch_size=self.batch_size,
+            label_col=self.pred_column,
+            prob_col=self.prob_column,
+            keep_prob=True,
         )
         return DocumentDataset(df)
