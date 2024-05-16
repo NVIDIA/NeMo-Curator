@@ -60,6 +60,7 @@ setup(
         "presidio-anonymizer==2.2.351",
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
+        "crossfit @ git+https://github.com/rapidsai/crossfit.git@1ee3de4",
         # justext installation breaks without lxml[html_clean]
         # due to this: https://github.com/miso-belica/jusText/issues/47
         "lxml[html_clean]",
@@ -72,7 +73,6 @@ setup(
             "cugraph-cu12>=24.2",
             "dask-cuda>=24.2",
             "spacy[cuda12x]>=3.6.0, <4.0.0",
-            "crossfit @ git+https://github.com/rapidsai/crossfit.git@1ee3de4",
         ]
     },
     entry_points={
