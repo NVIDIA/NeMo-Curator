@@ -352,6 +352,31 @@ class QualityModel(HFModel):
         return AutoConfig.from_pretrained(self.path_or_name)
 
 
+class QualityModel(HFModel):
+    def __init__(self, config, out_dim=None, model_path=None, autocast=False):
+        self.config = config
+        self.out_dim = out_dim
+        self.model_path = model_path
+        self.autocast = autocast
+        super().__init__(self.config.model)
+
+    def load_model(self, device="cuda"):
+        model = CustomModel(
+            self.config,
+            out_dim=self.out_dim,
+            config_path=None,
+            pretrained=True,
+            autocast=self.autocast,
+        )
+        return _load_model(model, device, self.model_path)
+
+    def load_tokenizer(self):
+        return DebertaV2TokenizerFast.from_pretrained(self.config.model)
+
+    def load_config(self):
+        return AutoConfig.from_pretrained(self.path_or_name)
+
+
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
@@ -426,8 +451,8 @@ class QualityClassifier(DistributedDataClassifier):
             if out_dim is None:
                 out_dim = len(labels)  # Multiclass classification
 
-#         self.prob_column = prob_column
-#         self.max_len = max_len
+        self.prob_column = prob_column
+        self.max_len = max_len
 
         model = QualityModel(
             config=QualityModelConfig,
