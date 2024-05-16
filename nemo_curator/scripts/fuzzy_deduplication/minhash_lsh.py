@@ -24,7 +24,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import convert_str_id_to_int
-from nemo_curator.utils.script_utils import parse_gpu_dedup_args, parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_gpu_dedup_args
 
 
 def pre_imports():

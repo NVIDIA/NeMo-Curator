@@ -21,7 +21,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
     get_bucket_ddf_from_parquet_path,
     get_text_ddf_from_json_path_with_blocksize,
 )
-from nemo_curator.utils.script_utils import parse_gpu_dedup_args, parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_gpu_dedup_args
 
 
 def get_anchor_and_output_map_info(

@@ -21,7 +21,11 @@ from nemo_curator.utils.file_utils import (
     expand_outdir_and_mkdir,
     get_all_files_paths_under,
 )
-from nemo_curator.utils.script_utils import add_distributed_args, attach_bool_arg, parse_client_args
+from nemo_curator.utils.script_utils import (
+    add_distributed_args,
+    attach_bool_arg,
+    parse_client_args,
+)
 
 
 def main(args):

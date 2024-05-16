@@ -17,7 +17,7 @@ import time
 
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import parse_gpu_dedup_args, parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_gpu_dedup_args
 
 
 def main(args):

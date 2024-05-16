@@ -25,7 +25,7 @@ from nemo_curator.utils.distributed_utils import (
 )
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.fuzzy_dedup_utils.io_utils import strip_trailing_sep
-from nemo_curator.utils.script_utils import parse_gpu_dedup_args, parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_gpu_dedup_args
 
 
 def pre_imports():

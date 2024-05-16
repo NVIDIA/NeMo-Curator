@@ -15,7 +15,7 @@ Initializing the Dask Cluster
 -----------------------------------------
 
 NeMo Curator provides a simple function ``get_client`` that can be used to start a local Dask cluster or connect to an existing one.
-All of the ``examples/`` use it to set up a Dask cluster. 
+All of the ``examples/`` use it to set up a Dask cluster.
 
 .. code-block:: python
 
@@ -23,8 +23,8 @@ All of the ``examples/`` use it to set up a Dask cluster.
 
     # Set up Dask client
     client = get_client(cluster_type="cpu")
-    
-    # Perform some computation... 
+
+    # Perform some computation...
 
 ``get_client`` takes a bunch of arguments that allow you to initialize or connect to an existing Dask cluster.
 
