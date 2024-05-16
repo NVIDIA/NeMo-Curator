@@ -68,9 +68,11 @@ setup(
         "cuda12x": [
             "cudf-cu12>=24.2",
             "dask-cudf-cu12>=24.2",
+            "cuml-cu12>=24.2",
             "cugraph-cu12>=24.2",
             "dask-cuda>=24.2",
             "spacy[cuda12x]>=3.6.0, <4.0.0",
+            "crossfit @ git+https://github.com/rapidsai/crossfit.git@1ee3de4",
         ]
     },
     entry_points={
