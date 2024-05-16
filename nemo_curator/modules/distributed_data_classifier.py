@@ -37,6 +37,13 @@ class domain_Config:
     max_len = 512
 
 
+@dataclass
+class quality_Config:
+    model = "microsoft/deberta-v3-base"
+    fc_dropout = 0.2
+    max_len = 512
+
+
 class CustomModel(nn.Module):
     def __init__(
         self, config, out_dim, config_path=None, pretrained=False, autocast=False
@@ -189,6 +196,31 @@ class DomainModel(HFModel):
         return AutoConfig.from_pretrained(self.path_or_name)
 
 
+class QualityModel(HFModel):
+    def __init__(self, config, out_dim=None, model_path=None, autocast=False):
+        self.config = config
+        self.out_dim = out_dim
+        self.model_path = model_path
+        self.autocast = autocast
+        super().__init__(self.config.model)
+
+    def load_model(self, device="cuda"):
+        model = CustomModel(
+            self.config,
+            out_dim=self.out_dim,
+            config_path=None,
+            pretrained=True,
+            autocast=self.autocast,
+        )
+        return _load_model(model, device, self.model_path)
+
+    def load_tokenizer(self):
+        return DebertaV2TokenizerFast.from_pretrained(self.config.model)
+
+    def load_config(self):
+        return AutoConfig.from_pretrained(self.path_or_name)
+
+
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
@@ -247,133 +279,47 @@ class DomainClassifier(DistributedDataClassifier):
         return DocumentDataset(df)
 
 
-# TODO: Implement MultipleModelQualityClassifier class
-# class QualityClassifier(DistributedDataClassifier):
-#     def __init__(
-#         self,
-#         model_file_name,
-#         labels,
-#         filter_by=None,
-#         batch_size=256,
-#         out_dim=None,
-#         pred_column="quality_pred",
-#         prob_column="quality_prob",
-#         max_chars=6000,
-#         num_workers=0,
-#         device_type="cuda",
-#         autocast=True,
-#         max_len=1024,
-#     ):
-#         # Binary case
-#         if len(labels) == 2:
-#             out_dim = 1
-#             self.binary_classification = True
-#         else:
-#             if out_dim is None:
-#                 out_dim = len(labels)
-#             self.binary_classification = False
+class QualityClassifier(DistributedDataClassifier):
+    def __init__(
+        self,
+        model_file_name,
+        labels,
+        filter_by=None,
+        batch_size=256,
+        out_dim=None,
+        pred_column="quality_pred",
+        prob_column="quality_prob",
+        max_chars=6000,
+        num_workers=0,
+        device_type="cuda",
+        autocast=True,
+        max_len=1024,
+    ):
+        if len(labels) == 2:
+            out_dim = 1  # Binary classification
+        else:
+            if out_dim is None:
+                out_dim = len(labels)  # Multiclass classification
 
-#         self.prob_column = prob_column
-#         self.max_len = max_len
+        self.prob_column = prob_column
+        self.max_len = max_len
 
-#         super().__init__(
-#             model_file_name=model_file_name,
-#             labels=labels,
-#             filter_by=filter_by,
-#             batch_size=batch_size,
-#             out_dim=out_dim,
-#             pred_column=pred_column,
-#             max_chars=max_chars,
-#             num_workers=num_workers,
-#             device_type=device_type,
-#             autocast=autocast,
-#         )
+        model = QualityModel(
+            config=quality_Config,  # Adjust or reuse domain_Config if suitable
+            out_dim=out_dim,
+            model_path=model_file_name,
+            autocast=autocast,
+        )
 
-#     def _run_classifier(self, dataset: DocumentDataset):
-#         print("Starting quality classifier inference", flush=True)
-
-#         df = dataset.df
-
-#         meta_df = df._meta.copy()
-#         meta_df[self.pred_column] = ["low"] * len(meta_df)
-#         meta_df[self.prob_column] = [[0, 0, 1]] * len(meta_df)
-
-#         df = df.map_partitions(
-#             self._inference_per_partition,
-#             meta=meta_df,
-#             enforce_metadata=False,
-#         )
-
-#         return DocumentDataset(df)
-
-#     def _inference_per_partition(self, df):
-#         cfg = self._cfg_per_partition()
-
-#         dataset_valid = TestDataset(cfg, df, self.max_chars)
-#         loader_valid = torch.utils.data.DataLoader(
-#             dataset_valid,
-#             batch_size=self.batch_size,
-#             shuffle=False,
-#             num_workers=self.num_workers,
-#         )
-#         device = torch.device(self.device_type)
-#         if len(self.labels) == 1:
-#             raise ValueError("Labels must be more than 1")
-
-#         load_model_kwargs = {
-#             "cfg": cfg,
-#             "device": device,
-#         }
-
-#         probs = process_all_batches(
-#             loader_valid,
-#             self._load_model,
-#             load_model_kwargs,
-#             self._run_inference,
-#             {},
-#         )
-
-#         if self.binary_classification:
-#             preds = (probs > 0.5).to(torch.int64).squeeze()
-#         else:
-#             preds = torch.argmax(probs, dim=1)
-
-#         df[self.pred_column] = [
-#             self.labels[i] for i in preds.to("cpu").numpy().tolist()
-#         ]
-#         df[self.prob_column] = probs.to("cpu").numpy().tolist()
-
-#         return df
-
-#     def _load_cfg_with_tokenizer(self):
-#         cfg = CFG(max_len=self.max_len)
-#         tokenizer = DebertaV2TokenizerFast.from_pretrained(cfg.model)
-#         cfg.tokenizer = tokenizer
-#         return cfg
-
-#     def _load_model(self, cfg, device):
-#         model = CustomModel(
-#             cfg, out_dim=self.out_dim, config_path=None, pretrained=True
-#         )
-#         model = model.to(device)
-#         sd = torch.load(self.model_file_name, map_location="cpu")
-#         if "model_state_dict" in sd:
-#             sd = sd["model_state_dict"]
-#         sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
-#         model.load_state_dict(sd, strict=True)
-#         model.eval()
-#         return model
-
-#     def _run_inference(self, batch, model):
-#         with torch.no_grad():
-#             batch = collate(batch)
-#             if self.autocast:
-#                 with torch.autocast(device_type=self.device_type):
-#                     out = model(batch)[:, 0, :]
-#             else:
-#                 out = model(batch)[:, 0, :]
-#             if self.binary_classification:
-#                 probs = torch.sigmoid(out)
-#             else:
-#                 probs = torch.softmax(out, dim=1)
-#         return probs
+        super().__init__(
+            model=model,
+            labels=labels,
+            filter_by=filter_by,
+            batch_size=batch_size,
+            out_dim=out_dim,
+            pred_column=pred_column,
+            max_chars=max_chars,
+            num_workers=num_workers,
+            device_type=device_type,
+            autocast=autocast,
+        )
