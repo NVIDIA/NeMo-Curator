@@ -33,7 +33,7 @@ def main(args):
 
     client = get_client(args, cluster_type=args.device)
 
-    input_dataset = DocumentDataset.from_json(
+    input_dataset = DocumentDataset.read_json(
         input_file_path, backend="cudf", add_filename=True
     )
 
