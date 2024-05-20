@@ -158,15 +158,9 @@ def _run_classifier_helper(
     batch_size: int,
     label_col: str,
     prob_col: str = None,
-    keep_prob: bool = False,
 ) -> "dask_cudf.DataFrame":
 
-    if keep_prob and prob_col is None:
-        raise ValueError("prob_col must be provided if keep_prob is True")
-
-    if prob_col is not None:
-        keep_prob = True
-
+    keep_prob = prob_col is not None
     prob_internal_col = "_prob"
     # TODO: Make crossfit handle this cleanly
     pred_internal_col = "labels"
@@ -380,6 +374,5 @@ class QualityClassifier(DistributedDataClassifier):
             batch_size=self.batch_size,
             label_col=self.pred_column,
             prob_col=self.prob_column,
-            keep_prob=True,
         )
         return DocumentDataset(df)
