@@ -19,9 +19,10 @@ import warnings
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from nemo_curator import QualityClassifier
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.distributed_data_classification.arg_utils import create_arg_parser
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
+
+from .classifier_arg_utils import create_arg_parser
 
 warnings.filterwarnings("ignore")
 

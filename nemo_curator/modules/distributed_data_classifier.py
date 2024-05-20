@@ -31,14 +31,14 @@ from nemo_curator.datasets import DocumentDataset
 
 
 @dataclass
-class domain_Config:
+class DomainModelConfig:
     model = "microsoft/deberta-v3-base"
     fc_dropout = 0.2
     max_len = 512
 
 
 @dataclass
-class quality_Config:
+class QualityModelConfig:
     model = "microsoft/deberta-v3-base"
     fc_dropout = 0.2
     max_len = 512
@@ -170,7 +170,6 @@ def _run_classifier_helper(
     prob_internal_col = "_prob"
     # TODO: Make crossfit handle this cleanly
     pred_internal_col = "labels"
-
     df["sliced_text"] = df["text"].str.slice(0, max_chars)
     columns_to_keep_list = df.columns.to_list()
     columns_to_keep_list.remove("sliced_text")
@@ -197,12 +196,11 @@ def _run_classifier_helper(
     df = labeling_pipe(df)
     if keep_prob:
         df = df.rename(
-            columns={pred_internal_col: label_col, prob_internal_col: prob_col}
+            columns={prob_internal_col: prob_col, pred_internal_col: label_col},
         )
     else:
         df = df.rename(columns={pred_internal_col: label_col})
         df = df.drop(columns=[prob_internal_col])
-
     return df
 
 
@@ -229,6 +227,8 @@ class DomainModel(HFModel):
             if version.parse(TRANSFORMERS_VERSION) >= version.parse("4.31.0"):
                 sd.pop("model.embeddings.position_ids", None)
             model.load_state_dict(sd, strict=True)
+        else:
+            raise ValueError(f"Model path {self.model_path} does not exist")
         return model.eval()
 
     def load_tokenizer(self):
@@ -255,11 +255,14 @@ class QualityModel(HFModel):
             autocast=self.autocast,
         )
         model = model.to(device)
-        sd = torch.load(self.model_path, map_location="cpu")
-        if "model_state_dict" in sd:
-            sd = sd["model_state_dict"]
-        sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
-        model.load_state_dict(sd, strict=True)
+        if os.path.exists(self.model_path):
+            sd = torch.load(self.model_path, map_location="cpu")
+            if "model_state_dict" in sd:
+                sd = sd["model_state_dict"]
+            sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
+            model.load_state_dict(sd, strict=True)
+        else:
+            raise ValueError(f"Model path {self.model_path} does not exist")
         model.eval()
         return model
 
@@ -273,12 +276,13 @@ class QualityModel(HFModel):
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
-        model_file_name,
+        model_path,
         labels,
         filter_by=None,
         batch_size=256,
         out_dim=None,
         pred_column="domain_pred",
+        prob_column=None,
         max_chars=2000,
         device_type="cuda",
         autocast=True,
@@ -286,10 +290,12 @@ class DomainClassifier(DistributedDataClassifier):
         if out_dim is None:
             out_dim = len(labels)
 
+        self.prob_column = prob_column
+
         model = DomainModel(
-            config=domain_Config,
+            config=DomainModelConfig,
             out_dim=out_dim,
-            model_path=model_file_name,
+            model_path=model_path,
             autocast=autocast,
         )
 
@@ -315,7 +321,7 @@ class DomainClassifier(DistributedDataClassifier):
             max_chars=self.max_chars,
             batch_size=self.batch_size,
             label_col=self.pred_column,
-            keep_prob=False,
+            prob_col=self.prob_column,
         )
         return DocumentDataset(df)
 
@@ -323,7 +329,7 @@ class DomainClassifier(DistributedDataClassifier):
 class QualityClassifier(DistributedDataClassifier):
     def __init__(
         self,
-        model_file_name,
+        model_path,
         labels,
         filter_by=None,
         batch_size=256,
@@ -345,9 +351,9 @@ class QualityClassifier(DistributedDataClassifier):
         self.max_len = max_len
 
         model = QualityModel(
-            config=quality_Config,
+            config=QualityModelConfig,
             out_dim=out_dim,
-            model_path=model_file_name,
+            model_path=model_path,
             autocast=autocast,
         )
 
