@@ -110,6 +110,7 @@ def main():
             df=df,
             output_file_dir=args.output_data_dir,
             write_to_filename=add_filename,
+            output_type=args.output_file_type,
         )
         batch_et = time.time()
         print(

@@ -207,6 +207,13 @@ def parse_distributed_classifier_args(
         required=True,
     )
     parser.add_argument(
+        "--output-file-type",
+        type=str,
+        default="jsonl",
+        help="The type of the output files",
+        required=False,
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=128,

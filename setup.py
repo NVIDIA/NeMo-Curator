@@ -99,7 +99,6 @@ setup(
             "gpu_connected_component=nemo_curator.scripts.fuzzy_deduplication.connected_components:console_script",
             "gpu_exact_dups=nemo_curator.scripts.find_exact_duplicates:console_script",
             "deidentify=nemo_curator.scripts.find_pii_and_deidentify:console_script",
-            "generate_statistics=nemo_curator.distributed_data_classification.generate_statistics:console_script",
             "domain_classifier_inference=nemo_curator.scripts.domain_classifier_inference:console_script",
             "quality_classifier_inference=nemo_curator.scripts.quality_classifier_inference:console_script",
             "verify_classification_results=nemo_curator.scripts.verify_classification_results:console_script",
