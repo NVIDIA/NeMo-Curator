@@ -21,8 +21,7 @@ from nemo_curator import QualityClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
-
-from .classifier_arg_utils import create_arg_parser
+from nemo_curator.utils.script_utils import parse_distributed_classifier_args
 
 warnings.filterwarnings("ignore")
 
@@ -59,7 +58,7 @@ def get_labels(num_labels):
 
 
 def main():
-    parser = create_arg_parser()
+    parser = parse_distributed_classifier_args()
     parser = add_quality_model_specific_args(parser)
     args = parser.parse_args()
     labels = get_labels(args.num_labels)
@@ -71,11 +70,11 @@ def main():
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
-    if not os.path.exists(args.output_file_path):
-        os.makedirs(args.output_file_path)
+    if not os.path.exists(args.output_data_dir):
+        os.makedirs(args.output_data_dir)
 
     input_files = get_remaining_files(
-        args.input_file_path, args.output_file_path, args.input_file_type
+        args.input_data_dir, args.output_data_dir, args.input_file_type
     )
     print(f"Total input files {len(input_files)}", flush=True)
 
@@ -85,7 +84,7 @@ def main():
         add_filename = True
 
     classifier = QualityClassifier(
-        model_file_name=args.model_file_name,
+        model_path=args.model_path,
         max_chars=max_chars,
         labels=labels,
         batch_size=args.batch_size,
@@ -109,7 +108,7 @@ def main():
         df = classifier(DocumentDataset(df)).df
         write_to_disk(
             df=df,
-            output_file_dir=args.output_file_path,
+            output_file_dir=args.output_data_dir,
             write_to_filename=add_filename,
         )
         batch_et = time.time()

@@ -97,53 +97,6 @@ class CustomModel(nn.Module):
             return self._forward(batch)
 
 
-class CustomModel(nn.Module):
-    def __init__(
-        self, config, out_dim, config_path=None, pretrained=False, autocast=False
-    ):
-        super().__init__()
-        self.config = config
-        if config_path is None:
-            self.config = AutoConfig.from_pretrained(
-                config.model, output_hidden_states=True
-            )
-        else:
-            self.config = torch.load(config_path)
-        if pretrained:
-            self.model = AutoModel.from_pretrained(config.model, config=self.config)
-        else:
-            self.model = AutoModel(self.config)
-        self.fc_dropout = nn.Dropout(config.fc_dropout)
-        self.fc = nn.Linear(self.config.hidden_size, out_dim)
-        self._init_weights(self.fc)
-        self.autocast = autocast
-
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-            if module.bias is not None:
-                module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-            if module.padding_idx is not None:
-                module.weight.data[module.padding_idx].zero_()
-        elif isinstance(module, nn.LayerNorm):
-            module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
-
-    def feature(self, input_ids, attention_mask):
-        outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        last_hidden_states = outputs[0]
-        return last_hidden_states
-
-    def forward(self, batch):
-        if self.autocast:
-            with torch.autocast(device_type="cuda"):
-                return self._forward(batch)
-        else:
-            return self._forward(batch)
-
-
 class DistributedDataClassifier(ABC):
     """Abstract class for running multi-node multi-GPU data classification"""
 
@@ -314,38 +267,6 @@ class QualityModel(HFModel):
         return AutoConfig.from_pretrained(self.path_or_name)
 
 
-class QualityModel(HFModel):
-    def __init__(self, config, out_dim=None, model_path=None, autocast=False):
-        self.config = config
-        self.out_dim = out_dim
-        self.model_path = model_path
-        self.autocast = autocast
-        super().__init__(self.config.model)
-
-    def load_model(self, device="cuda"):
-        model = CustomModel(
-            self.config,
-            out_dim=self.out_dim,
-            config_path=None,
-            pretrained=True,
-            autocast=self.autocast,
-        )
-        model = model.to(device)
-        sd = torch.load(self.model_path, map_location="cpu")
-        if "model_state_dict" in sd:
-            sd = sd["model_state_dict"]
-        sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
-        model.load_state_dict(sd, strict=True)
-        model.eval()
-        return model
-
-    def load_tokenizer(self):
-        return DebertaV2TokenizerFast.from_pretrained(self.config.model)
-
-    def load_config(self):
-        return AutoConfig.from_pretrained(self.path_or_name)
-
-
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
@@ -412,7 +333,6 @@ class QualityClassifier(DistributedDataClassifier):
         max_chars=6000,
         device_type="cuda",
         autocast=True,
-        max_len=1024,
     ):
         if len(labels) == 2:
             out_dim = 1  # Binary classification
@@ -421,7 +341,6 @@ class QualityClassifier(DistributedDataClassifier):
                 out_dim = len(labels)  # Multiclass classification
 
         self.prob_column = prob_column
-        self.max_len = max_len
 
         model = QualityModel(
             config=QualityModelConfig,

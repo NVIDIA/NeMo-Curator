@@ -21,9 +21,9 @@ from nemo_curator import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
-from nemo_curator.scripts.classifier_arg_utils import create_arg_parser
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
+from nemo_curator.utils.script_utils import parse_distributed_classifier_args
 
 warnings.filterwarnings("ignore")
 
@@ -58,7 +58,7 @@ def main():
         "Travel_and_Transportation",
     ]
 
-    args = create_arg_parser().parse_args()
+    args = parse_distributed_classifier_args().parse_args()
     print(f"Arguments parsed = {args}", flush=True)
     max_chars = 2000
 
@@ -67,11 +67,11 @@ def main():
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
-    if not os.path.exists(args.output_file_path):
-        os.makedirs(args.output_file_path)
+    if not os.path.exists(args.output_data_dir):
+        os.makedirs(args.output_data_dir)
 
     input_files = get_remaining_files(
-        args.input_file_path, args.output_file_path, args.input_file_type
+        args.input_data_dir, args.output_data_dir, args.input_file_type
     )
     print(f"Total input files {len(input_files)}", flush=True)
 
@@ -81,7 +81,7 @@ def main():
         add_filename = True
 
     domain_classifier = DomainClassifier(
-        model_file_name=args.model_file_name,
+        model_path=args.model_path,
         labels=labels,
         max_chars=max_chars,
         batch_size=args.batch_size,
@@ -106,7 +106,7 @@ def main():
 
         write_to_disk(
             df=df,
-            output_file_dir=args.output_file_path,
+            output_file_dir=args.output_data_dir,
             write_to_filename=add_filename,
         )
         batch_et = time.time()

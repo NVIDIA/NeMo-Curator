@@ -66,7 +66,7 @@ def main(args):
     )
 
     domain_classifier = DomainClassifier(
-        model_file_name=model_file_name,
+        model_path=model_file_name,
         labels=labels,
         filter_by=["Games", "Sports"],
     )

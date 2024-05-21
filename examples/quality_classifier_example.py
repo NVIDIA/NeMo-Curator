@@ -38,7 +38,7 @@ def main(args):
     )
 
     quality_classifier = QualityClassifier(
-        model_file_name=model_file_name,
+        model_path=model_file_name,
         labels=labels,
         filter_by=["High", "Medium"],
     )
