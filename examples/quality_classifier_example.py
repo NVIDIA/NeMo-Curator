@@ -25,7 +25,7 @@ def main(args):
     global_st = time.time()
 
     labels = ["High", "Medium", "Low"]
-    model_file_name = "/path/to/pytorch_model_file.pth"
+    model_path = "/path/to/pytorch_model_file.pth"
 
     # Input can be a string or list
     input_file_path = "/path/to/data"
@@ -38,7 +38,7 @@ def main(args):
     )
 
     quality_classifier = QualityClassifier(
-        model_path=model_file_name,
+        model_path=model_path,
         labels=labels,
         filter_by=["High", "Medium"],
     )
