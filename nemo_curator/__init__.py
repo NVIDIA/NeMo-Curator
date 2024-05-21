@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 
 import dask
@@ -48,3 +49,6 @@ from .utils.distributed_utils import get_client, get_network_interfaces
 # See https://github.com/NVIDIA/NeMo-Curator/issues/33
 # This also happens when reading and writing to files
 dask.config.set({"dataframe.convert-string": False})
+
+# Enable libcudf large string support
+os.environ["LIBCUDF_LARGE_STRINGS_ENABLED"] = "1"
