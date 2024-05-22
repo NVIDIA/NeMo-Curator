@@ -26,7 +26,7 @@ def main(args):
     global_st = time.time()
 
     labels = ["High", "Medium", "Low"]
-    model_file_name = "/path/to/pytorch_model_file.pth"
+    model_path = "/path/to/pytorch_model_file.pth"
 
     # Input can be a string or list
     input_file_path = "/path/to/data"
@@ -34,12 +34,12 @@ def main(args):
 
     client = get_client(**parse_client_args(args))
 
-    input_dataset = DocumentDataset.from_json(
+    input_dataset = DocumentDataset.read_json(
         input_file_path, backend="cudf", add_filename=True
     )
 
     quality_classifier = QualityClassifier(
-        model_file_name=model_file_name,
+        model_path=model_path,
         labels=labels,
         filter_by=["High", "Medium"],
     )
