@@ -26,6 +26,6 @@ from .modules import *
 dask.config.set(
     {
         "dataframe.convert-string": False,
-        "dataframe.query-planning": True,
+        "dataframe.query-planning": False,
     }
 )
