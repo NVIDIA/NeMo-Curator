@@ -8,7 +8,7 @@
 # Add snippet demonstrating usage
 ```
 ## Checklist
-- [ ] I am familiar with the [Contributing Guide](/CONTRIBUTING.md).
+- [ ] I am familiar with the [Contributing Guide](../CONTRIBUTING.md).
 <!--
 Note: All commits need to be signed and signed off. This can be done via `-sS` flags while commiting
 `git commit -sS -m "...."
