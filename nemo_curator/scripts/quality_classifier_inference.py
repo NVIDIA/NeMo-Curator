@@ -68,9 +68,9 @@ def main():
     print(f"Arguments parsed = {args}", flush=True)
     max_chars = 6000
 
-    args = parse_client_args(args)
-    args["cluster_type"] = "gpu"
-    client = get_client(**args)
+    client_args = parse_client_args(args)
+    client_args["cluster_type"] = "gpu"
+    client = get_client(**client_args)
     print("Starting quality classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
