@@ -40,7 +40,9 @@ def main(args):
         client.run(pre_imports)
 
     t0 = time.time()
-    input_dataset = DocumentDataset.read_json(dataset_dir, backend=backend)
+    input_dataset = DocumentDataset.read_json(
+        dataset_dir, backend=backend, input_meta=args.input_meta
+    )
 
     exact_dup = ExactDuplicates(
         logger=log_dir,
@@ -79,6 +81,14 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     ),
 ):
+    parser.add_argument(
+        "--input-meta",
+        type=str,
+        default=None,
+        help="A dictionary containing the json object field names and their "
+        "corresponding data types.",
+    )
+
     return add_distributed_args(parser)
 
 

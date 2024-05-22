@@ -62,7 +62,7 @@ def main(args):
     client = get_client(args, cluster_type=args.device)
 
     input_dataset = DocumentDataset.read_json(
-        input_file_path, backend="cudf", add_filename=True
+        input_file_path, backend="cudf", add_filename=True, input_meta=args.input_meta
     )
 
     domain_classifier = DomainClassifier(
@@ -133,6 +133,13 @@ def attach_args(
         type=str,
         default="gpu",
         help="Device to run the script on. Either 'cpu' or 'gpu'.",
+    )
+    parser.add_argument(
+        "--input-meta",
+        type=str,
+        default=None,
+        help="A dictionary containing the json object field names and their "
+        "corresponding data types.",
     )
 
     return parser

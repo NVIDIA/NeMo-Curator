@@ -100,7 +100,9 @@ def run_curation_pipeline(args: Any, jsonl_fp: str) -> str:
     """
     client = get_client(args, args.device)
     print(f"    Running the curation pipeline on '{jsonl_fp}'...")
-    orig_dataset = DocumentDataset.read_json(jsonl_fp, add_filename=True)
+    orig_dataset = DocumentDataset.read_json(
+        jsonl_fp, add_filename=True, input_meta=args.input_meta
+    )
     dataset = orig_dataset
 
     redact_pii_subject = partial(redact_pii, text_field="subject")
@@ -163,7 +165,15 @@ def run_curation_pipeline(args: Any, jsonl_fp: str) -> str:
 def main():
     parser = argparse.ArgumentParser()
     parser = add_distributed_args(parser)
+    parser.add_argument(
+        "--input-meta",
+        type=str,
+        default=None,
+        help="A dictionary containing the json object field names and their "
+        "corresponding data types.",
+    )
     args = parser.parse_args()
+
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 8)
 
