@@ -75,6 +75,11 @@ def get_news_warc_paths(
     # Get current year and month
     today = datetime.now()
 
+    if start_date > end_date:
+        raise ValueError(
+            f"Start snapshot '{start_date}' is after end snapshot '{end_date}'"
+        )
+
     if beg.year < 2016 or end.year > today.year:
         print(
             "Warning: WARC paths exist only from 2016-8 to "

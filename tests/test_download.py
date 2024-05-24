@@ -36,4 +36,23 @@ class TestDownload:
             start_snapshot = "2021-10"
             urls = get_common_crawl_urls(start_snapshot, end_snapshot)
 
-            assert urls == []
+    def test_common_crawl_news_urls(self):
+        start_snapshot = "2021-04"
+        end_snapshot = "2021-10"
+        urls = get_common_crawl_urls(start_snapshot, end_snapshot, news=True)
+
+        assert (
+            urls[0]
+            == "https://data.commoncrawl.org/crawl-data/CC-NEWS/2021/04/CC-NEWS-20210401004522-01022.warc.gz"
+        )
+        assert (
+            urls[-1]
+            == "https://data.commoncrawl.org/crawl-data/CC-NEWS/2021/10/CC-NEWS-20211031225258-00089.warc.gz"
+        )
+        assert len(urls) == 3838
+
+    def test_incorrect_snapshot_order_news(self):
+        with pytest.raises(ValueError):
+            end_snapshot = "2021-04"
+            start_snapshot = "2021-10"
+            urls = get_common_crawl_urls(start_snapshot, end_snapshot, news=True)
