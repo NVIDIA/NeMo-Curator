@@ -36,6 +36,11 @@ def get_main_warc_paths(
     start_date = datetime.fromisocalendar(beg_year, beg_week, 1)
     end_date = datetime.fromisocalendar(end_year, end_week, 1)
 
+    if start_date > end_date:
+        raise ValueError(
+            f"Start snapshot '{start_snapshot}' is after end snapshot '{end_snapshot}'"
+        )
+
     if beg_year < 2013 or end_year < 2013:
         print("Warning: Only snapshots after 2013 are supported by this script")
 
