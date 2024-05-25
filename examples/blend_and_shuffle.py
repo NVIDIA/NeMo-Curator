@@ -17,7 +17,7 @@ import argparse
 import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 
 
 def main(args):
@@ -28,13 +28,10 @@ def main(args):
     output_path = "/path/to/output"
 
     # Set up Dask client
-    client = get_client(args, args.device)
+    client = get_client(**parse_client_args(args))
 
     # Blend the datasets
-    datasets = [
-        DocumentDataset.read_json(path, input_meta=args.input_meta)
-        for path in dataset_paths
-    ]
+    datasets = [DocumentDataset.read_json(path) for path in dataset_paths]
     blended_dataset = nc.blend_datasets(target_size, datasets, dataset_weights)
 
     shuffle = nc.Shuffle(seed=42)
@@ -49,14 +46,6 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     ),
 ):
-    parser.add_argument(
-        "--input-meta",
-        type=str,
-        default=None,
-        help="A dictionary containing the json object field names and their "
-        "corresponding data types.",
-    )
-
     return add_distributed_args(parser)
 
 
