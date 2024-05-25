@@ -27,15 +27,9 @@ from nemo_curator.utils.file_utils import (
 from nemo_curator.utils.script_utils import add_distributed_args
 
 
-def load_dataset(input_data_dir: str, input_meta: str = None):
+def load_dataset(input_data_dir):
     files = list(get_all_files_paths_under(input_data_dir))
-    raw_data = read_data(
-        files,
-        file_type="jsonl",
-        backend="pandas",
-        add_filename=True,
-        input_meta=input_meta,
-    )
+    raw_data = read_data(files, file_type="jsonl", backend="pandas", add_filename=True)
     dataset = DocumentDataset(raw_data)
 
     return dataset
@@ -58,9 +52,7 @@ def main(args):
     client = get_client(args, args.device)
 
     # Filter data
-    multilingual_dataset = load_dataset(
-        input_data_dir=multilingual_data_path, input_meta=args.input_meta
-    )
+    multilingual_dataset = load_dataset(multilingual_data_path)
     language_id_pipeline = nc.ScoreFilter(
         FastTextLangId(model_path), score_field=language_field, score_type="object"
     )
@@ -82,7 +74,7 @@ def main(args):
     lang_data_path = os.path.join(language_separated_output_path, target_language)
     if not os.path.exists(lang_data_path):
         raise RuntimeError(f"Dataset did not have language: {target_language}")
-    lang_data = load_dataset(input_data_dir=lang_data_path, input_meta=args.input_meta)
+    lang_data = load_dataset(lang_data_path)
 
     cleaner = nc.Modify(UnicodeReformatter())
     cleaned_data = cleaner(lang_data)
@@ -96,14 +88,6 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     ),
 ):
-    parser.add_argument(
-        "--input-meta",
-        type=str,
-        default=None,
-        help="A dictionary containing the json object field names and their "
-        "corresponding data types.",
-    )
-
     return add_distributed_args(parser)
 
 
