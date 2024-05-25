@@ -42,7 +42,7 @@ class DocumentDataset:
         backend: str = "pandas",
         files_per_partition: int = 1,
         add_filename: bool = False,
-        input_meta: str = None,
+        input_meta: Union[str, dict] = None,
     ):
         return cls(
             _read_json_or_parquet(
@@ -137,7 +137,7 @@ def _read_json_or_parquet(
     backend: str,
     files_per_partition: int,
     add_filename: bool,
-    input_meta: str = None,
+    input_meta: Union[str, dict] = None,
 ):
     """
     `input_files` may be a list or a string type.
