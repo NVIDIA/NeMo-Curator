@@ -59,7 +59,8 @@ def main(args):
             )
         elif filetype == "jsonl":
             input_dataset = DocumentDataset.read_json(
-                dataset_dir, backend=backend, input_meta=args.input_meta
+                dataset_dir,
+                backend=backend,
             )
 
         fuzzy_dedup_config = FuzzyDuplicatesConfig(
@@ -101,14 +102,6 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     ),
 ):
-    parser.add_argument(
-        "--input-meta",
-        type=str,
-        default=None,
-        help="A dictionary containing the json object field names and their "
-        "corresponding data types.",
-    )
-
     return add_distributed_args(parser)
 
 
