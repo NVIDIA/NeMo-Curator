@@ -28,7 +28,7 @@ from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
@@ -98,11 +98,9 @@ def run_curation_pipeline(args: Any, jsonl_fp: str) -> str:
     Returns:
         str: The path to the curated JSONL file.
     """
-    client = get_client(args, args.device)
+    client = get_client(**parse_client_args(args))
     print(f"    Running the curation pipeline on '{jsonl_fp}'...")
-    orig_dataset = DocumentDataset.read_json(
-        jsonl_fp, add_filename=True, input_meta=args.input_meta
-    )
+    orig_dataset = DocumentDataset.read_json(jsonl_fp, add_filename=True)
     dataset = orig_dataset
 
     redact_pii_subject = partial(redact_pii, text_field="subject")
@@ -165,15 +163,7 @@ def run_curation_pipeline(args: Any, jsonl_fp: str) -> str:
 def main():
     parser = argparse.ArgumentParser()
     parser = add_distributed_args(parser)
-    parser.add_argument(
-        "--input-meta",
-        type=str,
-        default=None,
-        help="A dictionary containing the json object field names and their "
-        "corresponding data types.",
-    )
     args = parser.parse_args()
-
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 8)
 
