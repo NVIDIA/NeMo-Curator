@@ -20,7 +20,7 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 import dask.dataframe as dd
 import pandas as pd
