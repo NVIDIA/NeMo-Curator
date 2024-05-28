@@ -1,6 +1,6 @@
 # NeMo Curator
 
-NeMo Curator is a Python library designed for scalable and efficient dataset preparation, enhancing LLM training accuracy through GPU-accelerated data curation using [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids). It offers a customizable and modular interface that simplifies pipeline expansion and accelerates model convergence by preparing high-quality tokens.
+NeMo Curator is a Python library specifically designed for scalable and efficient dataset preparation. It greatly accelerates data curation by leveraging GPUs with [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids), resulting in significant time savings. The library provides a customizable and modular interface, simplifying pipeline expansion and accelerating model convergence through the preparation of high-quality tokens.
 
 At the core of the NeMo Curator is the DocumentDataset which serves as the the main dataset class. It acts as a straightforward wrapper around a Dask dataframe. The Python library offers easy-to-use methods for expanding the functionality of your curation pipeline while eliminating scalability concerns.
 
@@ -57,32 +57,41 @@ These modules offer flexibility and permit reordering, with only a few exception
 
 This section explains how to install NeMo Curator and use the Python library, Python modules, and CLI scripts. It also includes a list of tutorials to help you get started right away. Finally, this section explains how to use the NeMo Framework Launcher as an alternative method for interfacing with NeMo Curator.
 
-### Install NeMo Curator
-
-NeMo Curator is available in the [NeMo Framework Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo/tags). The latest release of NeMo Curator comes preinstalled in the container.
+## Requirements
 
 Before installing NeMo Curator, ensure that the following requirements are met:
 
-+- Python 3.10 (or above)
-+- CUDA 12 (or above)
-+- NVIDIA GPU (optional)
+- Python 3.10 (or above)
+- CUDA 12 (or above)
+- NVIDIA GPU (optional)
 
-First, clone the NeMo Curator repository in GitHub.
+## Install NeMo Curator
 
-Next, install the modules that you need.
+Two options are available for installing NeMo Curator. You  can install it from the repository or through the NeMo Framework container.
 
-To install the CPU-only modules:
+### Install from the Repository
 
-```
-pip install
-```
+1. Clone the NeMo Curator repository in GitHub.
 
-To install the CPU and CUDA-accelerated modules:
-```
-pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
-```
+2. Install the modules that you need.
 
-### Use the Python Library
+    To install the CPU-only modules:
+
+    ```
+    pip install
+    ```
+
+    To install the CPU and CUDA-accelerated modules:
+
+    ```
+    pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
+    ```
+
+### Install from the NeMo Framework Container
+
+NeMo Curator is available in the [NeMo Framework Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo/tags). The latest release of NeMo Curator comes preinstalled in the container.
+
+## Use the Python Library
 
 To download your dataset, build your pipeline, and curate your dataset:
 
@@ -100,15 +109,15 @@ curation_pipeline = Sequential([
 curated_dataset = curation_pipeline(dataset)
 ```
 
-### Explore NeMo Curator Tutorials
+## Explore NeMo Curator Tutorials
 
 To get started with NeMo Curator, you can follow the tutorials available here: [Tutorials]
 (https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials). These tutorials include:
 
-+- tinystories which focuses on data curation for training from scratch.
-+- peft-curation which focuses on data curation for parameter-efficient fine-tuning use-cases.
+- `tinystories` which focuses on data curation for training from scratch.
+- `peft-curation` which focuses on data curation for parameter-efficient fine-tuning use-cases.
 
-### Python Modules
+## Access Python Modules
 
 NeMo Curator provides a collection of robust Python modules that you can chain together to construct your entire data curation pipeline. You can run these modules on your local machine or in a distributed compute environment like SLURM without the need to make modifications.
 
@@ -116,15 +125,15 @@ NeMo Curator also offers simple base classes for inheritance, enabling you to de
 
 The [examples](examples/) directory contains scripts that showcase each of these modules. The Data Curation section of the [NeMo Framework User Guide](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/index.html) provides in-depth information on how each of the modules work. If you need more information about how to modify NeMo Curator for your use case, see [Implement NeMo Curator](#implement-nemo-curator).
 
-### CLI Scripts
+## Use CLI Scripts
 
 NeMo Curator also offers CLI scripts for you to use. The scripts in `nemo_curator/scripts` map closely to the supplied Python modules. Refer to the [NeMo Framework User Guide](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/index.html) for more information about the Python modules and scripts.
 
-### NeMo Framework Launcher
+## Use NeMo Framework Launcher
 
 As an alternative method for interfacing with NeMo Curator, you can use the [NeMo Framework Launcher](https://github.com/NVIDIA/NeMo-Megatron-Launcher). The launcher enables you to easily configure the parameters and cluster. It can also automatically generate the SLURM batch scripts that wrap around the CLI scripts required to run your pipeline.
 
-Note: Other methods are available to run NeMo Curator on SLURM. For example, refer to the example scripts in [`examples/slurm`](examples/slurm/) for information on how to run NeMo Curator on SLURM without the NeMo Framework Launcher.
+In addition, other methods are available to run NeMo Curator on SLURM. For example, refer to the example scripts in [`examples/slurm`](examples/slurm/) for information on how to run NeMo Curator on SLURM without the NeMo Framework Launcher.
 
 ## Module Ablation and Compute Performance
 
@@ -139,6 +148,7 @@ The following figure shows that the use of different data curation modules imple
 In terms of scalability and compute performance, using the combination of RAPIDS and Dask fuzzy deduplication enabled us to deduplicate the 1.1 Trillion token Red Pajama dataset in 1.8 hours with 64 NVIDIA A100 Tensor Core GPUs.
 
 Additionally, using the CPU-based modules, the following table shows the time required and resulting data size reduction for each processing step [Common Crawl snapshot from November/December of 2020](https://commoncrawl.org/2020/12/nov-dec-2020-crawl-archive-now-available/) using 30 CPU nodes (with hardware similar to the `c5.24xlarge` [Amazon AWS C5 instance](https://aws.amazon.com/ec2/instance-types/c5/)).
+
 
 <table>
   <thead>
@@ -171,8 +181,9 @@ Additionally, using the CPU-based modules, the following table shows the time re
   </tbody>
 </table>
 
-## Contribute to NeMo
 
-We welcome community contributions! Please refer to `CONTRIBUTING.md <https://github.com/NVIDIA/NeMo/blob/stable/CONTRIBUTING.md>`_ for the process.
+## Contribute to NeMo Curator
 
-To contribute an article to the collection, please submit a pull request to the ``gh-pages-src`` branch of this repository. For detailed information, please consult the README located at the `gh-pages-src branch <https://github.com/NVIDIA/NeMo/tree/gh-pages-src#readme>`_.
+We welcome community contributions! Please refer to [CONTRIBUTING.md](https://github.com/NVIDIA/NeMo/blob/stable/CONTRIBUTING.md) for the process.
+
+To contribute an article to the collection, please submit a pull request to the ``gh-pages-src`` branch of this repository. For detailed information, please consult the README located at the [gh-pages-src branch](https://github.com/NVIDIA/NeMo/tree/gh-pages-src#readme).
