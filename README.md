@@ -2,7 +2,7 @@
 
 NeMo Curator is a Python library specifically designed for scalable and efficient dataset preparation. It greatly accelerates data curation by leveraging GPUs with [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids), resulting in significant time savings. The library provides a customizable and modular interface, simplifying pipeline expansion and accelerating model convergence through the preparation of high-quality tokens.
 
-At the core of the NeMo Curator is the DocumentDataset which serves as the the main dataset class. It acts as a straightforward wrapper around a Dask dataframe. The Python library offers easy-to-use methods for expanding the functionality of your curation pipeline while eliminating scalability concerns.
+At the core of the NeMo Curator is the `DocumentDataset` which serves as the the main dataset class. It acts as a straightforward wrapper around a Dask `DataFrame`. The Python library offers easy-to-use methods for expanding the functionality of your curation pipeline while eliminating scalability concerns.
 
 ## Key Features
 
@@ -73,12 +73,17 @@ Two options are available for installing NeMo Curator. You  can install it from 
 
 1. Clone the NeMo Curator repository in GitHub.
 
+    ```
+    git clone https://github.com/NVIDIA/NeMo-Curator.git
+    cd NeMo-Curator
+    ```
+
 2. Install the modules that you need.
 
     To install the CPU-only modules:
 
     ```
-    pip install
+    pip install .
     ```
 
     To install the CPU and CUDA-accelerated modules:
@@ -93,7 +98,7 @@ NeMo Curator is available in the [NeMo Framework Container](https://catalog.ngc.
 
 ## Use the Python Library
 
-To download your dataset, build your pipeline, and curate your dataset:
+The following snippet demonstrates how to create a small data curation pipeline that downloads and curates a small subset of the Common Crawl dataset.
 
 ```Python
 # Download your dataset
@@ -119,11 +124,7 @@ To get started with NeMo Curator, you can follow the tutorials available here: [
 
 ## Access Python Modules
 
-NeMo Curator provides a collection of robust Python modules that you can chain together to construct your entire data curation pipeline. You can run these modules on your local machine or in a distributed compute environment like SLURM without the need to make modifications.
-
-NeMo Curator also offers simple base classes for inheritance, enabling you to develop your own filters, document modifiers, and additional extensions without the concern of scalability.
-
-The [examples](examples/) directory contains scripts that showcase each of these modules. The Data Curation section of the [NeMo Framework User Guide](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/index.html) provides in-depth information on how each of the modules work. If you need more information about how to modify NeMo Curator for your use case, see [Implement NeMo Curator](#implement-nemo-curator).
+The Data Curation section of the [NeMo Framework User Guide](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/index.html) provides in-depth information about how the Python modules work. The [examples](examples/) directory in the GitHub repository provides scripts that showcase these modules.
 
 ## Use CLI Scripts
 
