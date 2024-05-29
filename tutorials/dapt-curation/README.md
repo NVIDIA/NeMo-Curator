@@ -10,8 +10,5 @@ Here, we share playbooks with best practices on DAPT (domain-adaptive pre-traini
 * Playbook for data curation without NeMo Curator: `codegen_DAPT\llm_data_collection\notebooks\data_curation_DAPT.ipynb`
 * Playbook for data curation of pdfs (with conversion to txt): `codegen_DAPT\llm_data_collection\notebooks\data_curation_pdf.ipynb`
 
-Datasets adopted for the playbooks are located in `\datasets`
+Datasets adopted for the playbooks are located in [`\datasets`](https://drive.google.com/drive/folders/1cIo7ZkplEbN0fWPLugj-HFFtTWeEFXAm?usp=drive_link)
 
-```python
-
-```

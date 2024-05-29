@@ -9,8 +9,3 @@ Here, we share playbooks with best practices on DAPT (domain-adaptive pre-traini
 * Playbook for data curation with NeMo Curator: `\llm_data_collection\notebooks\data_curation-nemo-curator_DAPT.ipynb`
 * Playbook for data curation without NeMo Curator: `\llm_data_collection\notebooks\data_curation_DAPT.ipynb`
 * Playbook for data curation of pdfs (with conversion to txt): `\llm_data_collection\notebooks\data_curation_pdf.ipynb`
-
-
-```python
-
-```
