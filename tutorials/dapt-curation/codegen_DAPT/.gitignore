@@ -1,0 +1,9 @@
+*.code-workspace
+*.log
+*_token.txt
+tokens/
+*__pycache__*
+*.egg-info
+dist/
+build/
+venv/
