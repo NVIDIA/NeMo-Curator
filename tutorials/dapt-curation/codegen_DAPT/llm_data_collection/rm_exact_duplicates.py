@@ -3,16 +3,23 @@
 # reports and then offers to remove duplicates across different data source directories
 
 import os
-import sys
 import re
+import sys
+
 from tqdm import tqdm
+
 
 def is_md5(filename):
     """Check if the filename matches the MD5 hash format followed by .gz."""
     base_filename = os.path.basename(filename)
     name, ext = os.path.splitext(base_filename)
     name, ext2 = os.path.splitext(name)
-    return len(name) == 32 and all(c in '0123456789abcdefABCDEF' for c in name) and ext == '.gz'
+    return (
+        len(name) == 32
+        and all(c in "0123456789abcdefABCDEF" for c in name)
+        and ext == ".gz"
+    )
+
 
 def find_duplicates(paths):
     """Find duplicate files in the given paths."""
@@ -31,6 +38,7 @@ def find_duplicates(paths):
 
     return duplicates
 
+
 if __name__ == "__main__":
     # Get paths from command line arguments
     paths = sys.argv[1:]
@@ -39,9 +47,9 @@ if __name__ == "__main__":
 
     # Write out a list of all duplicate file paths
     print("Saving lists of duplicates to duplicates.txt...")
-    with open('duplicates.txt', 'w') as f:
+    with open("duplicates.txt", "w") as f:
         for duplicate in duplicates:
-            f.write(duplicate + '\n')
+            f.write(duplicate + "\n")
 
     print(f"Found {len(duplicates)} duplicates.")
     print("First 10 lines look like:")
@@ -52,8 +60,7 @@ if __name__ == "__main__":
         print(f"\t{i}")
     print(f"Remove?")
     response = input("y/n: ")
-    if response == 'y':
+    if response == "y":
         for duplicate in tqdm(duplicates):
             os.remove(duplicate)
         print("Removed.")
-    

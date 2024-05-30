@@ -1,4 +1,4 @@
-# Provide path to processed pdfs. 
+# Provide path to processed pdfs.
 ACADEMIC_OUT="/workspace/datasets/pdfs_txt/"
 
 for fin in $ACADEMIC_OUT*; do

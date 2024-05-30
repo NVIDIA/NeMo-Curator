@@ -1,5 +1,7 @@
-from .util import word_count, get_words, merge_parallel_structs
 import re
+
+from .util import get_words, merge_parallel_structs, word_count
+
 
 def manuals_filter(pages, err="errors.log"):
     """Filter out unwanted text from manuals"""
@@ -26,8 +28,7 @@ def manuals_filter(pages, err="errors.log"):
                 word_list = [w.lower() for w in get_words(flow)]
                 word_dump = " ".join(word_list)
 
-                if "table of contents" in word_dump \
-                            or "index" in word_dump:
+                if "table of contents" in word_dump or "index" in word_dump:
                     bad_section[idx] = True
 
                 # Detect consecutive integers
@@ -36,8 +37,10 @@ def manuals_filter(pages, err="errors.log"):
                         next_int = int(word_dump)
                         if next_int == last_int + 1:
                             is_consec_int[idx] = True
-                            if all(is_consec_int[idx-consec_limit:]):
-                                delete_me[idx-consec_limit:] = [True]*(consec_limit+1)
+                            if all(is_consec_int[idx - consec_limit :]):
+                                delete_me[idx - consec_limit :] = [True] * (
+                                    consec_limit + 1
+                                )
                         last_int = next_int
                     except:
                         pass
@@ -76,8 +79,10 @@ def manuals_filter(pages, err="errors.log"):
                         continue
 
                 # Detect loose bullet points
-                if word_list[-1] in ["•", "●", "o", "❍"] \
-                        and len(get_words(flow[0][-1])) == 1:
+                if (
+                    word_list[-1] in ["•", "●", "o", "❍"]
+                    and len(get_words(flow[0][-1])) == 1
+                ):
                     bullets[idx] = True
                     if len(word_list) == 1:
                         delete_me[idx] = True
@@ -94,7 +99,7 @@ def manuals_filter(pages, err="errors.log"):
                 # Use the index to detect unbroken chains of short flows
                 forward_chain = i
                 backward_chain = i
-                while forward_chain < num_flows-1 and is_short[forward_chain]:
+                while forward_chain < num_flows - 1 and is_short[forward_chain]:
                     forward_chain += 1
                 while backward_chain > 0 and is_short[backward_chain]:
                     backward_chain -= 1
@@ -112,7 +117,7 @@ def manuals_filter(pages, err="errors.log"):
                 # Use the index to detect unbroken chains of short flows
                 forward_chain = i
                 backward_chain = i
-                while forward_chain < num_flows-1 and is_short[forward_chain]:
+                while forward_chain < num_flows - 1 and is_short[forward_chain]:
                     forward_chain += 1
                 while backward_chain > 0 and is_short[backward_chain]:
                     backward_chain -= 1
@@ -122,7 +127,7 @@ def manuals_filter(pages, err="errors.log"):
                 extracted_table.append(page[0][i])
                 delete_me[i] = True
                 if forward_chain - i > i - backward_chain:
-                    for j in range(i+1, forward_chain):
+                    for j in range(i + 1, forward_chain):
                         extracted_table.append(page[0][j])
                         delete_me[j] = True
                 else:
@@ -138,8 +143,8 @@ def manuals_filter(pages, err="errors.log"):
                     extracted_tables[next_section] = extracted_table
 
             # Get miny / maxy for all long flows
-            miny = page[1][1]*0.05
-            maxy = page[1][1]*0.90
+            miny = page[1][1] * 0.05
+            maxy = page[1][1] * 0.90
 
             # Use these miny to see if we're in a bad section
             for idx, flow in enumerate(page[0]):
@@ -148,21 +153,19 @@ def manuals_filter(pages, err="errors.log"):
 
             # Use these miny / maxy to delete headers/footers
             for idx, flow in enumerate(page[0]):
-                if flow[1][1] < miny and not first_page \
-                        and idx not in table_caption:
+                if flow[1][1] < miny and not first_page and idx not in table_caption:
                     delete_me[idx] = True
                 if flow[1][3] > maxy:
                     delete_me[idx] = True
 
             # Merge bullet points
             for idx, flow in enumerate(page[0]):
-                if bullets[idx] and idx+1 < len(page[0]):
+                if bullets[idx] and idx + 1 < len(page[0]):
                     # Retrieve original bullet point block
                     orig_block = flow[0].pop(-1)
-                    orig_word = orig_block[0][0]\
-                                          [0][0]
+                    orig_word = orig_block[0][0][0][0]
                     # Insert it into the next flow's first word
-                    next_flow = page[0][idx+1]
+                    next_flow = page[0][idx + 1]
                     next_block = next_flow[0][0]
                     next_line = next_block[0][0]
                     next_line[0].insert(0, orig_word)
@@ -172,7 +175,7 @@ def manuals_filter(pages, err="errors.log"):
             new_page = ([], page[1])
             for i, flow in enumerate(page[0]):
                 if i in extracted_tables:
-                    l = len(new_page[0])-1
+                    l = len(new_page[0]) - 1
                     new_page[0][l:l] = extracted_tables[i]
                 if not delete_me[i]:
                     new_page[0].append(flow)
@@ -200,9 +203,21 @@ def academic_filter(pages, err="errors.log"):
     medium_limit = 15
     long_limit = 25
     consec_limit = 5
-    section_titles = ["abstract", "introduction", "conclusion", "references",
-            "acknowledgements", "problem", "evaluation", "method", "methods",
-            "results", "prior", "related", "discussion"]
+    section_titles = [
+        "abstract",
+        "introduction",
+        "conclusion",
+        "references",
+        "acknowledgements",
+        "problem",
+        "evaluation",
+        "method",
+        "methods",
+        "results",
+        "prior",
+        "related",
+        "discussion",
+    ]
     first_page = True
     err_out = open(err, "a+")
     for page in pages:
@@ -226,8 +241,10 @@ def academic_filter(pages, err="errors.log"):
                         next_int = int(word_dump)
                         if next_int == last_int + 1:
                             is_consec_int[idx] = True
-                            if all(is_consec_int[idx-consec_limit:]):
-                                delete_me[idx-consec_limit:] = [True]*(consec_limit+1)
+                            if all(is_consec_int[idx - consec_limit :]):
+                                delete_me[idx - consec_limit :] = [True] * (
+                                    consec_limit + 1
+                                )
                         last_int = next_int
                     except:
                         pass
@@ -242,7 +259,7 @@ def academic_filter(pages, err="errors.log"):
                 # Don't count section titles
                 for st in section_titles:
                     if st in word_list:
-                        flag=False
+                        flag = False
                         section_start.append(idx)
                         break
                 is_short[idx] = flag
@@ -265,7 +282,7 @@ def academic_filter(pages, err="errors.log"):
                 if "references" in word_list:
                     ref_section = True
                     delete_me[idx] = True
-                if ref_section and bool(re.search(r'\[\d+\]', word_list[0])):
+                if ref_section and bool(re.search(r"\[\d+\]", word_list[0])):
                     to_delete = True
                     delete_me[idx] = True
 
@@ -292,7 +309,7 @@ def academic_filter(pages, err="errors.log"):
                 # Use the index to detect unbroken chains of short flows
                 forward_chain = i
                 backward_chain = i
-                while forward_chain < num_flows-1 and is_short[forward_chain]:
+                while forward_chain < num_flows - 1 and is_short[forward_chain]:
                     forward_chain += 1
                 while backward_chain > 0 and is_short[backward_chain]:
                     backward_chain -= 1
@@ -310,7 +327,7 @@ def academic_filter(pages, err="errors.log"):
                 # Use the index to detect unbroken chains of short flows
                 forward_chain = i
                 backward_chain = i
-                while forward_chain < num_flows-1 and is_short[forward_chain]:
+                while forward_chain < num_flows - 1 and is_short[forward_chain]:
                     forward_chain += 1
                 while backward_chain > 0 and is_short[backward_chain]:
                     backward_chain -= 1
@@ -320,7 +337,7 @@ def academic_filter(pages, err="errors.log"):
                 extracted_table.append(page[0][i])
                 delete_me[i] = True
                 if forward_chain - i > i - backward_chain:
-                    for j in range(i+1, forward_chain):
+                    for j in range(i + 1, forward_chain):
                         extracted_table.append(page[0][j])
                         delete_me[j] = True
                 else:
@@ -359,10 +376,13 @@ def academic_filter(pages, err="errors.log"):
                 miny = 0
             # Use these miny / maxy to delete headers/footers
             for idx, flow in enumerate(page[0]):
-                if flow[1][1] < miny-15 and not first_page \
-                        and idx not in table_caption:
+                if (
+                    flow[1][1] < miny - 15
+                    and not first_page
+                    and idx not in table_caption
+                ):
                     delete_me[idx] = True
-                if flow[1][3] > maxy+15:
+                if flow[1][3] > maxy + 15:
                     delete_me[idx] = True
 
             # Delete all flows marked with delete_me
@@ -370,7 +390,7 @@ def academic_filter(pages, err="errors.log"):
             new_page = ([], page[1])
             for i, flow in enumerate(page[0]):
                 if i in extracted_tables:
-                    l = len(new_page[0])-1
+                    l = len(new_page[0]) - 1
                     new_page[0][l:l] = extracted_tables[i]
                 if not delete_me[i]:
                     new_page[0].append(flow)
@@ -387,6 +407,7 @@ def academic_filter(pages, err="errors.log"):
 
         except Exception as e:
             print(f"Error {e} in page\n{page}", file=err_out)
+
 
 if __name__ == "__main__":
     raise RuntimeError("This file is importable, but not executable")

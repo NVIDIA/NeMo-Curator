@@ -1,10 +1,24 @@
 # +
+import json
+import re
+
+import dask.dataframe as dd
+import pandas as pd
+
 from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import RepeatingTopNGramsFilter, WordCountFilter, DocumentFilter
-from nemo_curator.filters import RepeatedLinesFilter, RepeatedParagraphsFilter
-from nemo_curator.filters import UrlsFilter
-from nemo_curator.filters.code import PythonCommentToCodeFilter, NumberOfLinesOfCodeFilter
+from nemo_curator.filters import (
+    DocumentFilter,
+    RepeatedLinesFilter,
+    RepeatedParagraphsFilter,
+    RepeatingTopNGramsFilter,
+    UrlsFilter,
+    WordCountFilter,
+)
+from nemo_curator.filters.code import (
+    NumberOfLinesOfCodeFilter,
+    PythonCommentToCodeFilter,
+)
 from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.modules import ExactDuplicates
@@ -12,15 +26,11 @@ from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.script_utils import add_distributed_args
+
 from .modifiers import QuotationUnifier
 
-import dask.dataframe as dd
-import pandas as pd
-import json
-import re
-
-
 # -
+
 
 def clean_and_unify(dataset: DocumentDataset) -> DocumentDataset:
     """
@@ -96,8 +106,8 @@ def filter_dataset(dataset: DocumentDataset) -> DocumentDataset:
                 RepeatedParagraphsFilter(max_repeated_paragraphs_ratio=0.7),
                 text_field="text",
                 score_type=float,
-            ),  
-            #If more than 20% of the document is comprised of URLs then discard
+            ),
+            # If more than 20% of the document is comprised of URLs then discard
             ScoreFilter(
                 UrlsFilter(max_url_to_text_ratio=0.2),
                 text_field="text",
@@ -132,7 +142,6 @@ def filter_code(dataset: DocumentDataset) -> DocumentDataset:
                 score_field="word_count",
                 score_type=int,
             ),
-            
         ]
     )
     filtered_dataset = filters(dataset)
@@ -157,7 +166,9 @@ def filter_code_dataset(dataset: DocumentDataset) -> DocumentDataset:
             # if the comment to code ratio is not within the specified range,
             # discard the document
             ScoreFilter(
-                PythonCommentToCodeFilter(min_comment_to_code_ratio=0.001, max_comment_to_code_ratio=0.80),
+                PythonCommentToCodeFilter(
+                    min_comment_to_code_ratio=0.001, max_comment_to_code_ratio=0.80
+                ),
                 text_field="text",
                 score_type=float,
             ),
@@ -180,35 +191,37 @@ def comment_redaction(json_data):
     json_docs = data.get("documents", [])
     for doc in json_docs:
         if "text" in doc:
-            #print("initial", doc["text"])
-            
+            # print("initial", doc["text"])
+
             # Extract the comment content between /* and */
             start_idx = doc["text"].find("/*")
             end_idx = doc["text"].find("*/")
             if start_idx != -1 and end_idx != -1:
-                comment = doc["text"][start_idx:end_idx + 2]
-                
+                comment = doc["text"][start_idx : end_idx + 2]
+
                 # Create a Dask DataFrame from the given data
-                comment_df = dd.from_pandas(pd.DataFrame([{"text":comment}]), npartitions=1)
+                comment_df = dd.from_pandas(
+                    pd.DataFrame([{"text": comment}]), npartitions=1
+                )
                 # Create a DocumentDataset instance
                 comment_doc_dataset = DocumentDataset(comment_df)
                 redacted_comment = redact_pii(comment_doc_dataset)
 
                 # Extract the "text" column from the DocumentDataset
                 text_column = redacted_comment.df["text"]
-                
+
                 # Convert the Dask Series to a Pandas Series (if needed)
                 text_series = text_column.compute()
-                
+
                 # Get the first (and presumably only) value from the Series
                 text_value = text_series.iloc[0]
-                
+
                 # Convert the value to a string
                 redacted_text_string = str(text_value)
-                
+
                 doc["text"] = doc["text"].replace(comment, redacted_text_string)
-            
-                #print("final", doc["text"])
+
+                # print("final", doc["text"])
 
     # Serialize the updated dictionary back to a JSON string
     updated_json_data = json.dumps(data, indent=2)
@@ -219,7 +232,7 @@ def redact(dataset: DocumentDataset) -> DocumentDataset:
     # Extract relevant data from the Dask DataFrame
     length = len(dataset)
     data_dict = {
-    "documents": dataset.df.compute().to_dict(orient="records"),
+        "documents": dataset.df.compute().to_dict(orient="records"),
     }
     # Serialize the dictionary to a JSON string
     json_data = json.dumps(data_dict, indent=2)
@@ -227,14 +240,17 @@ def redact(dataset: DocumentDataset) -> DocumentDataset:
 
     # Deserialize the JSON string to a dictionary
     redactd_data_dict = json.loads(redactd_json_data)
-    
+
     # Create a DataFrame from the dictionary
-    redactd_dataset_df = dd.from_pandas(pd.DataFrame(redactd_data_dict["documents"]), npartitions=length)
-    
+    redactd_dataset_df = dd.from_pandas(
+        pd.DataFrame(redactd_data_dict["documents"]), npartitions=length
+    )
+
     # Create a DocumentDataset instance
     redactd_document_dataset = DocumentDataset(redactd_dataset_df)
 
     return redactd_document_dataset
+
 
 def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
     """
@@ -248,23 +264,25 @@ def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
     """
     redactor = Modify(
         PiiModifier(
-            supported_entities=["PERSON", 
-                               "EMAIL_ADDRESS",
-#                                "URL",
-#                                "PHONE_NUMBER",
-#                                "ADDRESS",
-#                                "LOCATION"
-                               ],
+            supported_entities=[
+                "PERSON",
+                "EMAIL_ADDRESS",
+                #                                "URL",
+                #                                "PHONE_NUMBER",
+                #                                "ADDRESS",
+                #                                "LOCATION"
+            ],
             anonymize_action="replace",
-#             batch_size=1000,
+            #             batch_size=1000,
             device="gpu",
         ),
-        text_field = "text"
+        text_field="text",
     )
     return redactor(dataset)
 
 
 # -
+
 
 def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     """
@@ -295,17 +313,25 @@ def FilterFilesBasedOnLines_txt(dataset: DocumentDataset) -> DocumentDataset:
     Discard files based on lines.
     """
     dataset_df = dataset.df
-#     print(len(dataset_df.index))
-    dataset_df = dataset_df.loc[~((dataset_df['file_type'] == 'text') & (dataset_df['lines'] < 10))]
-#     print(len(dataset_df.index))
+    #     print(len(dataset_df.index))
+    dataset_df = dataset_df.loc[
+        ~((dataset_df["file_type"] == "text") & (dataset_df["lines"] < 10))
+    ]
+    #     print(len(dataset_df.index))
     return DocumentDataset(dataset_df)
+
 
 def FilterFilesBasedOnLines_code(dataset: DocumentDataset) -> DocumentDataset:
     """
     Discard files based on lines.
     """
     dataset_df = dataset.df
-#     print(len(dataset_df.index))
-    dataset_df = dataset_df.loc[~((dataset_df['file_type'] == 'code') & ((dataset_df['lines'] < 10) | (dataset_df['lines'] >20000)))]
-#     print(len(dataset_df.index))
+    #     print(len(dataset_df.index))
+    dataset_df = dataset_df.loc[
+        ~(
+            (dataset_df["file_type"] == "code")
+            & ((dataset_df["lines"] < 10) | (dataset_df["lines"] > 20000))
+        )
+    ]
+    #     print(len(dataset_df.index))
     return DocumentDataset(dataset_df)

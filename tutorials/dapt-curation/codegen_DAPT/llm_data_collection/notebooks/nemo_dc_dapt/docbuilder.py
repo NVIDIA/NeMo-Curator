@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gzip
 import os
 from typing import Set, Tuple
-import gzip
-from bs4 import BeautifulSoup, Comment
 
 import requests
+from bs4 import BeautifulSoup, Comment
 
 from nemo_curator.download.doc_builder import (
     DocumentDownloader,
@@ -37,9 +37,9 @@ class DAPTtxtDownloader(DocumentDownloader):
         print("Download directory: ", self._download_dir)
 
     def download(self, url: str) -> str:
-        #download wiki urls
+        # download wiki urls
         filename = os.path.basename(url)
-        output_file = os.path.join(self._download_dir, filename)+'.wiki.gz'
+        output_file = os.path.join(self._download_dir, filename) + ".wiki.gz"
 
         if os.path.exists(output_file):
             print(f"File '{output_file}' already exists, skipping download.")
@@ -49,8 +49,8 @@ class DAPTtxtDownloader(DocumentDownloader):
         response = requests.get(url)
         html = BeautifulSoup(response.content, "lxml")
         title = html.select("#firstHeading")[0].text
-        paragraphs = html.find_all(["p","ul","li"])
-        intro = '\n'.join([ para.text for para in paragraphs])
+        paragraphs = html.find_all(["p", "ul", "li"])
+        intro = "\n".join([para.text for para in paragraphs])
         with gzip.open(output_file, "wt") as file:
             file.write(intro)
         return output_file
@@ -69,9 +69,10 @@ class DAPTtxtIterator(DocumentIterator):
         file_name = os.path.basename(file_path)
 
         with gzip.open(file_path, "rt") as file:
-            #file_content = file.read()
+            # file_content = file.read()
             example = []
-#             print(file_content)
+
+            #             print(file_content)
             def split_meta(example):
                 if example:
                     self._counter += 1

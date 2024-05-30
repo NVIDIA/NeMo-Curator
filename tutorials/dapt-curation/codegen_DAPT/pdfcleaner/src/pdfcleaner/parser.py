@@ -1,7 +1,10 @@
-import ftfy
-import subprocess
 import os
+import subprocess
+
+import ftfy
+
 from .util import sort_struct
+
 
 def _extract_raw(path):
     """Calls the pdftotext binary to extract HTML-formatted text from PDF"""
@@ -23,6 +26,7 @@ def _extract_raw(path):
             except UnicodeDecodeError:
                 continue
 
+
 def _extract_pages(raw_lines):
     """Turns a generator of lines into a generator of pages"""
     parse_flag = False
@@ -38,6 +42,7 @@ def _extract_pages(raw_lines):
         if line.startswith("<doc"):
             parse_flag = True
 
+
 def _parse_line(raw_line):
     """Parse a raw line into genre, pos, and text"""
     meta, text = raw_line.split(">", 1)
@@ -51,7 +56,8 @@ def _parse_line(raw_line):
     text = ftfy.fixes.unescape_html(text)
     return genre, pos, text
 
-def _parse_pages(raw_pages, multi_col = True):
+
+def _parse_pages(raw_pages, multi_col=True):
     """Parses a list of raw page HTML into words"""
     # The organization is
     # page > flow > block > line > word
@@ -59,9 +65,8 @@ def _parse_pages(raw_pages, multi_col = True):
     # The data structure is a list of lists of lists etc
 
     for page in raw_pages:
-        genres = {"page": [], "flow": [], "block":[], "line":[], "word":[]}
-        order = {"/page":"flow", "/flow":"block",
-                "/block":"line", "/line":"word"}
+        genres = {"page": [], "flow": [], "block": [], "line": [], "word": []}
+        order = {"/page": "flow", "/flow": "block", "/block": "line", "/line": "word"}
         for line in page:
             genre, pos, text = _parse_line(line)
             if genre in genres:
@@ -103,14 +108,16 @@ def _parse_pages(raw_pages, multi_col = True):
                 # Prepare for the next section
                 genres[this_section][-1][0].extend(genres[sub_section])
                 genres[sub_section] = []
-        yield sort_struct(genres["page"][0], multi_col = multi_col)
+        yield sort_struct(genres["page"][0], multi_col=multi_col)
 
-def parse(path, multi_col = True):
+
+def parse(path, multi_col=True):
     """Parses a given PDF into a collection of words and associated data"""
     raw_lines = _extract_raw(path)
     raw_pages = _extract_pages(raw_lines)
-    parsed_pages = _parse_pages(raw_pages, multi_col = multi_col)
+    parsed_pages = _parse_pages(raw_pages, multi_col=multi_col)
     return parsed_pages
+
 
 if __name__ == "__main__":
     raise RuntimeError("This file is importable, but not executable")
