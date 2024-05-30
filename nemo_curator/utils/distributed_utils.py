@@ -224,7 +224,7 @@ def read_single_partition(
             read_kwargs["dtype"] = False
             read_f = pd.read_json
 
-        if input_meta:
+        if input_meta is not None:
             read_kwargs["dtype"] = (
                 ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
             )
