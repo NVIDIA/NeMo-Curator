@@ -87,7 +87,7 @@ def jsonl_dataset():
 
 
 class TestIO:
-    def test_meta(self, jsonl_dataset):
+    def test_meta_dict(self, jsonl_dataset):
         with tempfile.NamedTemporaryFile(suffix=".jsonl") as temp_file:
             # Write the corpus to the file
             temp_file.write(jsonl_dataset.encode("utf-8"))
@@ -101,6 +101,32 @@ class TestIO:
             # Read the dataset
             dataset = DocumentDataset.read_json(
                 temp_file.name, input_meta={"id": float}
+            )
+
+        output_meta = str({col: str(dtype) for col, dtype in dataset.df.dtypes.items()})
+
+        expected_meta = (
+            "{'date': 'datetime64[ns, UTC]', 'id': 'float64', 'text': 'object'}"
+        )
+
+        assert (
+            output_meta == expected_meta
+        ), f"Expected: {expected_meta}, got: {output_meta}"
+
+    def test_meta_str(self, jsonl_dataset):
+        with tempfile.NamedTemporaryFile(suffix=".jsonl") as temp_file:
+            # Write the corpus to the file
+            temp_file.write(jsonl_dataset.encode("utf-8"))
+
+            # Flush the data to ensure it's written to disk
+            temp_file.flush()
+
+            # Move the cursor to the beginning of the file before reading
+            temp_file.seek(0)
+
+            # Read the dataset
+            dataset = DocumentDataset.read_json(
+                temp_file.name, input_meta='{"id": "float"}'
             )
 
         output_meta = str({col: str(dtype) for col, dtype in dataset.df.dtypes.items()})
