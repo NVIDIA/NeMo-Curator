@@ -16,12 +16,14 @@
 import os
 import subprocess
 import unicodedata
+import warnings
 from urllib.parse import urlparse
 
 import justext
 import lxml
 import pycld2 as cld2
 from charset_normalizer import detect
+from resiliparse.extract.html2text import extract_plain_text
 from warcio.archiveiterator import ArchiveIterator
 
 from nemo_curator.datasets import DocumentDataset
@@ -71,55 +73,125 @@ def lang_detect(decoded_html):
 def extract_text(
     html,
     stop_words,
-    length_low=70,
-    length_high=200,
-    stopwords_low=0.30,
+    algorithm="justext",
+    length_low=None,
+    length_high=None,
+    stopwords_low=None,
     stopwords_high=0.32,
-    max_link_density=0.2,
-    max_heading_distance=200,
-    no_headings=False,
+    max_link_density=None,
+    max_heading_distance=None,
+    no_headings=None,
     logger=None,
 ):
-    # Segment the HTML into paragraphs
-    try:
-        # Form the DOM tree
-        dom = justext.core.html_to_dom(html)
-        cleaned_dom = justext.core.preprocessor(dom)
-        # Get the paragraphs from the DOM
-        handler = justext.core.ParagraphMaker()
-        lxml.sax.saxify(cleaned_dom, handler)
-    except (lxml.etree.ParserError, ValueError, Exception):
-        # Return nothing when we cannot segment the document
-        if logger is not None:
-            logger.info("Could not segment paragaphs in the document")
-        return
-    paragraphs = handler.paragraphs
+    if algorithm.lower() == "justext":
+        if length_low is None:
+            length_low = 70
+        if length_high is None:
+            length_high = 200
+        if stopwords_low is None:
+            stopwords_low = 0.30
+        if max_link_density is None:
+            max_link_density = 0.2
+        if max_heading_distance is None:
+            max_heading_distance = 200
+        if no_headings is None:
+            no_headings = False
 
-    # Context free classification
-    justext.core.classify_paragraphs(
-        paragraphs,
-        stop_words,
-        length_low,
-        length_high,
-        stopwords_low,
-        stopwords_high,
-        max_link_density,
-        no_headings,
-    )
+        # Segment the HTML into paragraphs
+        try:
+            # Form the DOM tree
+            dom = justext.core.html_to_dom(html)
+            cleaned_dom = justext.core.preprocessor(dom)
+            # Get the paragraphs from the DOM
+            handler = justext.core.ParagraphMaker()
+            lxml.sax.saxify(cleaned_dom, handler)
+        except (lxml.etree.ParserError, ValueError, Exception):
+            # Return nothing when we cannot segment the document
+            if logger is not None:
+                logger.info("Could not segment paragaphs in the document")
+            return
+        paragraphs = handler.paragraphs
 
-    # Copy the context free class to the class_style
-    # This handles the headings as described in the
-    # documentation
-    for paragraph in paragraphs:
-        paragraph.class_type = paragraph.cf_class
+        # Context free classification
+        justext.core.classify_paragraphs(
+            paragraphs,
+            stop_words,
+            length_low,
+            length_high,
+            stopwords_low,
+            stopwords_high,
+            max_link_density,
+            no_headings,
+        )
 
-    # Context sensitive classification
-    justext.core.revise_paragraph_classification(
-        paragraphs,
-        max_heading_distance,
-    )
+        # Copy the context free class to the class_style
+        # This handles the headings as described in the
+        # documentation
+        for paragraph in paragraphs:
+            paragraph.class_type = paragraph.cf_class
 
-    return [p.text for p in paragraphs if not p.is_boilerplate]
+        # Context sensitive classification
+        justext.core.revise_paragraph_classification(
+            paragraphs,
+            max_heading_distance,
+        )
+
+        return [p.text for p in paragraphs if not p.is_boilerplate]
+    elif algorithm.lower() == "resiliparse":
+        if length_low is not None:
+            warnings.warn(
+                "jusText-specific parameter 'length_low' is set but will be ignored when using Resiliparse.",
+                UserWarning
+            )
+        if length_high is not None:
+            warnings.warn(
+                "jusText-specific parameter 'length_high' is set but will be ignored when using Resiliparse.",
+                UserWarning
+            )
+        if stopwords_low is not None:
+            warnings.warn(
+                "jusText-specific parameter 'stopwords_low' is set but will be ignored when using Resiliparse.",
+                UserWarning
+            )
+        if max_link_density is not None:
+            warnings.warn(
+                "jusText-specific parameter 'max_link_density' is set but will be ignored when using Resiliparse.",
+                UserWarning
+            )
+        if max_heading_distance is not None:
+            warnings.warn(
+                "jusText-specific parameter 'max_heading_distance' is set but will be ignored when using Resiliparse.",
+                UserWarning
+            )
+        if no_headings is not None:
+            warnings.warn(
+                "jusText-specific parameter 'no_headings' is set but will be ignored when using Resiliparse.",
+                UserWarning
+            )
+
+        text = extract_plain_text(html, main_content=True, alt_texts=False)
+
+        paragraphs = list(filter(None, text.split("\n")))
+        result = []
+        for paragraph in paragraphs:
+            words = paragraph.split()
+            length = len(words)
+            if length == 0:
+                continue
+            stopwords = [word for word in words if word in stop_words]
+            stopword_density = len(stopwords) / length
+
+            if stopword_density >= stopwords_high:
+                result.append(paragraph)
+
+        if len(result) == 0:
+            return None
+        return result
+    else:
+        raise ValueError(f"""
+                         Invalid text extraction algorithm: {algorithm}.
+                         Expected 'justext' or 'resiliparse'.
+                         """)
 
 
 def get_stop_list_dict(languages=[]):
@@ -254,8 +326,9 @@ class CommonCrawlWARCIterator(DocumentIterator):
 
 class CommonCrawlWARCExtractor(DocumentExtractor):
 
-    def __init__(self):
+    def __init__(self, algorithm="justext"):
         self._stop_lists = get_stop_list_dict()
+        self.algorithm = algorithm
         super().__init__()
 
     def extract(self, content):
@@ -265,7 +338,7 @@ class CommonCrawlWARCExtractor(DocumentExtractor):
             lang = lang_detect(html)
             text = None
             if lang in self._stop_lists:
-                text = extract_text(html, self._stop_lists[lang])
+                text = extract_text(html, self._stop_lists[lang], self.algorithm)
             if text is not None:
                 if len(text) > 0:
                     text = "\n\n".join(text)
@@ -280,6 +353,7 @@ def download_common_crawl(
     start_snapshot: str,
     end_snapshot: str,
     output_type: str = "jsonl",
+    algorithm: str = "justext",
     news=False,
     aws=False,
     raw_download_dir=None,
@@ -288,7 +362,7 @@ def download_common_crawl(
     url_limit=None,
 ) -> DocumentDataset:
     """
-    Downloads Common Crawl WARC snapshots and extracts them using jusText
+    Downloads Common Crawl WARC snapshots and extracts them using jusText or Resiliparse
 
     Args:
       output_path: The path to the root directory of the files
@@ -298,6 +372,7 @@ def download_common_crawl(
       end_snapshot: The last common crawl snapshot to include. Must be chronologically
         after the starting snapshot.
       output_type: The file type to save the data as.
+      algorithm: Whether to use jusText or Resiliparse algorithm for text extraction.
       news: If True, gets WARC URLs for the CC-NEWS dataset instead of the CC-MAIN datasets.
         Also assumes that the format for the start and end snapshots is 'YYYY-MM' (Year-Month).
       aws: Whether to download from Common Crawl's S3 bucket. If True, uses s5cmd to download.
@@ -329,7 +404,7 @@ def download_common_crawl(
     expand_outdir_and_mkdir(raw_download_dir)
     downloader = CommonCrawlWARCDownloader(raw_download_dir, aws=aws)
     iterator = CommonCrawlWARCIterator()
-    extractor = CommonCrawlWARCExtractor()
+    extractor = CommonCrawlWARCExtractor(algorithm=algorithm)
 
     output_format = {
         "text": str,
