@@ -210,6 +210,12 @@ def read_single_partition(
         A cudf DataFrame or a pandas DataFrame.
 
     """
+    if input_meta is not None and filetype != "jsonl":
+        warnings.warn(
+            "input_meta is only valid for JSONL files and will be ignored for other "
+            " file formats.."
+        )
+
     if filetype == "jsonl":
         read_kwargs = {"lines": True}
         if backend == "cudf":
@@ -217,6 +223,11 @@ def read_single_partition(
         else:
             read_kwargs["dtype"] = False
             read_f = pd.read_json
+
+        if input_meta:
+            read_kwargs["dtype"] = (
+                ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
+            )
     elif filetype == "parquet":
         read_kwargs = {}
         if backend == "cudf":
@@ -225,11 +236,6 @@ def read_single_partition(
             read_f = pd.read_parquet
     else:
         raise RuntimeError("Could not read data, please check file type")
-
-    if input_meta:
-        read_kwargs["dtype"] = (
-            ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
-        )
 
     if add_filename:
         read_files_one_at_a_time = True
