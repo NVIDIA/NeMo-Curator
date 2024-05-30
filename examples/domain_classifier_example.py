@@ -16,38 +16,68 @@ import argparse
 import os
 import time
 
-from nemo_curator import QualityClassifier
+from nemo_curator import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def main(args):
     global_st = time.time()
 
-    labels = ["High", "Medium", "Low"]
-    model_file_name = "/path/to/pytorch_model_file.pth"
+    labels = [
+        "Adult",
+        "Arts_and_Entertainment",
+        "Autos_and_Vehicles",
+        "Beauty_and_Fitness",
+        "Books_and_Literature",
+        "Business_and_Industrial",
+        "Computers_and_Electronics",
+        "Finance",
+        "Food_and_Drink",
+        "Games",
+        "Health",
+        "Hobbies_and_Leisure",
+        "Home_and_Garden",
+        "Internet_and_Telecom",
+        "Jobs_and_Education",
+        "Law_and_Government",
+        "News",
+        "Online_Communities",
+        "People_and_Society",
+        "Pets_and_Animals",
+        "Real_Estate",
+        "Science",
+        "Sensitive_Subjects",
+        "Shopping",
+        "Sports",
+        "Travel_and_Transportation",
+    ]
+
+    model_path = "/path/to/pytorch_model_file.pth"
 
     # Input can be a string or list
     input_file_path = "/path/to/data"
     output_file_path = "./"
 
-    client = get_client(args, cluster_type=args.device)
+    client = get_client(**parse_client_args(args))
 
-    input_dataset = DocumentDataset.from_json(
+    input_dataset = DocumentDataset.read_json(
         input_file_path, backend="cudf", add_filename=True
     )
 
-    quality_classifier = QualityClassifier(
-        model_file_name=model_file_name,
+    domain_classifier = DomainClassifier(
+        model_path=model_path,
         labels=labels,
-        filter_by=["High", "Medium"],
+        filter_by=["Games", "Sports"],
     )
-    result_dataset = quality_classifier(dataset=input_dataset)
-    print(result_dataset.df.head())
+    result_dataset = domain_classifier(dataset=input_dataset)
+
+    result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
 
     global_et = time.time()
     print(
-        f"Total time taken for quality classifier inference: {global_et-global_st} s",
+        f"Total time taken for domain classifier inference: {global_et-global_st} s",
         flush=True,
     )
 

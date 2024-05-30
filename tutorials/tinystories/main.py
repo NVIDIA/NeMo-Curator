@@ -31,7 +31,7 @@ from nemo_curator.modules import ExactDuplicates
 from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-from nemo_curator.utils.script_utils import add_distributed_args
+from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
@@ -97,19 +97,23 @@ def filter_dataset(dataset: DocumentDataset) -> DocumentDataset:
                 WordCountFilter(min_words=80),
                 text_field="text",
                 score_field="word_count",
+                score_type=int,
             ),
-            ScoreFilter(IncompleteStoryFilter(), text_field="text"),
+            ScoreFilter(IncompleteStoryFilter(), text_field="text", score_type=bool),
             ScoreFilter(
                 RepeatingTopNGramsFilter(n=2, max_repeating_ngram_ratio=0.2),
                 text_field="text",
+                score_type=float,
             ),
             ScoreFilter(
                 RepeatingTopNGramsFilter(n=3, max_repeating_ngram_ratio=0.18),
                 text_field="text",
+                score_type=float,
             ),
             ScoreFilter(
                 RepeatingTopNGramsFilter(n=4, max_repeating_ngram_ratio=0.16),
                 text_field="text",
+                score_type=float,
             ),
         ]
     )
@@ -169,7 +173,7 @@ def run_curation_pipeline(args: Any, jsonl_dir: str) -> None:
         jsonl_dir (str): Directory path where the JSONL files are stored.
     """
     # Initialize the Dask cluster.
-    client = get_client(args, args.device)
+    client = get_client(**parse_client_args(args))
     print(f"Running curation pipeline on '{jsonl_dir}'...")
     files = [
         fp
