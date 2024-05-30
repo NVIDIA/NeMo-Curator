@@ -25,11 +25,14 @@ from nemo_curator.datasets import DocumentDataset
 
 
 def _generate_dummy_dataset(num_rows: int = 50) -> str:
+    # Function to generate a shuffled sequence of integers
     def shuffled_integers(length: int = num_rows) -> int:
         # Create a list of numbers from 0 to length - 1
         integers = list(range(length))
+
         # Shuffle the list
         random.shuffle(integers)
+
         # Yield one number from the list each time the generator is invoked
         for integer in integers:
             yield integer
