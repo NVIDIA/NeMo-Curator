@@ -35,10 +35,9 @@ def _read_json_func(
     dataframe with an additional `path` column denoting the path
     of the input file.
     """
-    if input_meta:
-        read_kwargs["dtype"] = (
-            ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
-        )
+    if type(input_meta) == str:
+        input_meta = ast.literal_eval(input_meta)
+
     if not include_path_column:
         if columns:
             return cudf.read_json(files, engine="cudf", lines=True, dtype=input_meta)[
