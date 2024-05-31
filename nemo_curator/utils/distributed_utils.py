@@ -16,14 +16,18 @@ from __future__ import annotations
 import ast
 import os
 
+import fsspec
+
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Union
 
+import dask
 import dask.dataframe as dd
 import pandas as pd
+from dask.base import tokenize
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
@@ -240,7 +244,7 @@ def read_single_partition(
     if add_filename:
         read_files_one_at_a_time = True
     else:
-        if backend == "cudf":
+        if backend == "cudf" or filetype == "jsonl":
             # cuDF supports reading multiple files at once
             read_files_one_at_a_time = False
         else:
@@ -259,6 +263,16 @@ def read_single_partition(
                 df["filename"] = os.path.basename(file)
             df_ls.append(df)
         df = concat_f(df_ls, ignore_index=True)
+    elif filetype == "jsonl":
+        fs = fsspec.core.get_fs_token_paths(files[0])[0]
+        token = tokenize(files)
+        chunk_name = f"read-chunk-{token}"
+        dsk = {(chunk_name, i): (fs.cat_file, path) for i, path in enumerate(files)}
+        dsk[chunk_name] = (
+            lambda x: x if backend == "cudf" else b"".join,
+            list(dsk.keys()),
+        )
+        df = read_f(dask.threaded.get(dsk, chunk_name), **read_kwargs)
     else:
         df = read_f(files, **read_kwargs)
     df = df[sorted(df.columns)]
