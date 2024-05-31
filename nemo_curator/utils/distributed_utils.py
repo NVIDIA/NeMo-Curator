@@ -266,13 +266,13 @@ def read_single_partition(
     elif filetype == "jsonl":
         fs = fsspec.core.get_fs_token_paths(files[0])[0]
         token = tokenize(files)
-        chunk_name = f"read-chunk-{token}"
-        dsk = {(chunk_name, i): (fs.cat_file, path) for i, path in enumerate(files)}
-        dsk[chunk_name] = (
+        name = f"get_bytes-{token}"
+        dsk = {(name, i): (fs.cat_file, path) for i, path in enumerate(files)}
+        dsk[name] = (
             lambda x: x if backend == "cudf" else b"".join,
             list(dsk.keys()),
         )
-        df = read_f(dask.threaded.get(dsk, chunk_name), **read_kwargs)
+        df = read_f(dask.threaded.get(dsk, name), **read_kwargs)
     else:
         df = read_f(files, **read_kwargs)
     df = df[sorted(df.columns)]
