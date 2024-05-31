@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import os
+from io import BytesIO
 
 import fsspec
 
@@ -244,7 +245,7 @@ def read_single_partition(
     if add_filename:
         read_files_one_at_a_time = True
     else:
-        if backend == "cudf":
+        if backend == "cudf" or filetype == "jsonl":
             # cuDF supports reading multiple files at once
             read_files_one_at_a_time = False
         else:
@@ -268,8 +269,14 @@ def read_single_partition(
         token = tokenize(files)
         name = f"get_bytes-{token}"
         dsk = {(name, i): (fs.cat_file, path) for i, path in enumerate(files)}
-        dsk[name] = (lambda x: x, list(dsk.keys()))
-        df = read_f(dask.threaded.get(dsk, name), **read_kwargs)
+        if backend == "cudf":
+            # Cudf can read from list of bytes
+            dsk[name] = (lambda x: x, list(dsk.keys()))
+            df = read_f(dask.threaded.get(dsk, name), **read_kwargs)
+        else:
+            # Pandas requires single BytesIO object
+            dsk[name] = (b"".join, list(dsk.keys()))
+            df = read_f(BytesIO(dask.threaded.get(dsk, name)), **read_kwargs)
     else:
         df = read_f(files, **read_kwargs)
     df = df[sorted(df.columns)]
