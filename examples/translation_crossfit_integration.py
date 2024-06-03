@@ -88,12 +88,12 @@ def load_model(config, device):
 def translate_tokens(df, model):
     tokenizer = model.load_tokenizer()
     generated_tokens = df["translation"].to_arrow().to_pylist()
-    with tokenizer.as_target_tokenizer():
-        generated_tokens = tokenizer.batch_decode(
-            generated_tokens,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=True,
-        )
+    generated_tokens = tokenizer.batch_decode(
+        generated_tokens,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True,
+    )
+
     df["translation"] = cudf.Series(generated_tokens)
     return df
 
@@ -122,10 +122,7 @@ def parse_arguments():
         default="ai4bharat/indictrans2-en-indic-1B",
         help="Model name",
     )
-    parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
-    parser.add_argument(
-        "--partitions", type=int, default=2, help="Number of partitions"
-    )
+    parser.add_argument("--batch-size", type=int, default=256, help="Batch size")
     return parser.parse_args()
 
 
@@ -172,7 +169,8 @@ def main():
         os.path.join(args.input_jsonl_path, x)
         for x in os.listdir(args.input_jsonl_path)
     ]
-    ddf = dask_cudf.read_json(input_files, lines=True, include_path_column=True)
+    # ddf = dask_cudf.read_json(input_files, lines=True, include_path_column=True)
+    ddf = dask_cudf.read_parquet(input_files, include_path_column=True)
     columns = ddf.columns.tolist()
     model = ModelForSeq2SeqModel(translation_config)
     pipe = op.Sequential(
