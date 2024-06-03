@@ -57,7 +57,6 @@ These modules offer flexibility and permit reordering, with only a few exception
 
 This section explains how to install NeMo Curator and use the Python library, Python modules, and CLI scripts. It also includes a list of tutorials to help you get started right away. Finally, this section explains how to use the NeMo Framework Launcher as an alternative method for interfacing with NeMo Curator.
 
-
 ## Requirements
 
 Before installing NeMo Curator, ensure that the following requirements are met:
@@ -75,11 +74,13 @@ You can install NeMo-Curator from PyPi, from source or get it through the NeMo F
 NeMo Curator can be installed via PyPi as follows -
 
 To install the CPU-only modules:
+
 ```bash
 pip install nemo-curator
 ```
 
 To install the CPU and CUDA-accelerated modules:
+
 ```bash
 pip install --extra-index-url https://pypi.nvidia.com nemo-curator[cuda12x]
 ```
@@ -102,6 +103,10 @@ pip install --extra-index-url https://pypi.nvidia.com nemo-curator[cuda12x]
     ```
 
     To install the CPU and CUDA-accelerated modules:
+
+    ```bash
+    pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
+    ```
 
 ### Install from the NeMo Framework Container
 
