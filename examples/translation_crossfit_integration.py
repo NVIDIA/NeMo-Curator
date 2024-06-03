@@ -1,12 +1,12 @@
 import argparse
 import os
+import warnings
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
 import cudf
 import dask_cudf
-import torch
 import torch.nn as nn
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
@@ -17,26 +17,22 @@ from transformers import AutoConfig, AutoModelForSeq2SeqLM, AutoTokenizer
 
 @dataclass
 class TranslationConfig:
-    model: str
+    pretrained_model_name_or_path: str
     max_length: int = 256
     num_beams: int = 5
-    model_path: str = None
 
 
 class CustomModel(nn.Module):
-    def __init__(self, config, model_path=None):
+    def __init__(self, pretrained_model_name_or_path: str):
         super().__init__()
-        self.config = AutoConfig.from_pretrained(
-            config.model, output_hidden_states=True, trust_remote_code=True
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            trust_remote_code=True,
         )
-        if model_path:
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_path, config=self.config, trust_remote_code=True
-            )
-        else:
-            self.model = AutoModelForSeq2SeqLM.from_config(
-                self.config, trust_remote_code=True
-            )
+        self.config = AutoConfig.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            trust_remote_code=True,
+        )
 
     def forward(self, batch):
         outputs = self.model.generate(
@@ -50,14 +46,41 @@ class CustomModel(nn.Module):
         return outputs
 
 
-def load_model(config, device, model_path=None):
-    model = CustomModel(config)
+class ModelForSeq2SeqModel(HFModel):
+    def __init__(self, config):
+        self.config = config
+        super().__init__(config.pretrained_model_name_or_path)
+
+    def load_model(self, device="cuda"):
+        return load_model(config=self.config, device=device)
+
+    def load_config(self):
+        return AutoConfig.from_pretrained(
+            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+        )
+
+    @lru_cache(maxsize=1)
+    def load_tokenizer(self):
+        return AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+        )
+
+    def max_seq_length(self) -> int:
+        return self.config.max_length
+
+    @lru_cache(maxsize=1)
+    def load_cfg(self):
+        return AutoConfig.from_pretrained(
+            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+        )
+
+
+def load_model(config, device):
+    model = CustomModel(config.pretrained_model_name_or_path)
     model = model.to(device)
-    if model_path is not None:
-        print(f"Loading model from disk: {model_path}")
-        sd = torch.load(os.path.join(model_path), map_location="cpu")
-        sd = {k[7:] if k.startswith("module.") else k: v for k, v in sd.items()}
-        model.load_state_dict(sd, strict=True)
     model.eval()
     return model
 
@@ -73,30 +96,6 @@ def translate_tokens(df, model):
         )
     df["translation"] = cudf.Series(generated_tokens)
     return df
-
-
-class ModelForSeq2SeqModel(HFModel):
-    def __init__(self, config, model_path=None):
-        self.config = config
-        self.model_path = model_path
-        super().__init__(config.model)
-
-    def load_model(self, device="cuda"):
-        return load_model(config=self.config, device=device, model_path=self.model_path)
-
-    def load_config(self):
-        return AutoConfig.from_pretrained(self.config.model, trust_remote_code=True)
-
-    @lru_cache(maxsize=1)
-    def load_tokenizer(self):
-        return AutoTokenizer.from_pretrained(self.config.model, trust_remote_code=True)
-
-    def max_seq_length(self) -> int:
-        return self.config.max_length
-
-    @lru_cache(maxsize=1)
-    def load_cfg(self):
-        return AutoConfig.from_pretrained(self.config.model, trust_remote_code=True)
 
 
 def parse_arguments():
@@ -118,7 +117,7 @@ def parse_arguments():
     parser.add_argument("--pool-size", type=str, default="1GB", help="RMM pool size")
     parser.add_argument("--num-workers", type=int, default=1, help="Number of GPUs")
     parser.add_argument(
-        "--model-name",
+        "--pretrained-model-name-or-path",
         type=str,
         default="ai4bharat/indictrans2-en-indic-1B",
         help="Model name",
@@ -162,8 +161,12 @@ def main():
         rmm_pool_size=args.pool_size, n_workers=args.num_workers, rmm_async=True
     )
     client = Client(cluster)
+    print(client.dashboard_link)
+
     translation_config = TranslationConfig(
-        model=args.model_name, max_length=256, num_beams=5, model_path=None
+        pretrained_model_name_or_path=args.pretrained_model_name_or_path,
+        max_length=256,
+        num_beams=5,
     )
     input_files = [
         os.path.join(args.input_jsonl_path, x)
