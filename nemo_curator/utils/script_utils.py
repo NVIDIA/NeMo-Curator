@@ -219,7 +219,7 @@ def parse_distributed_classifier_args(
         required=True,
     )
     parser.add_argument(
-        "--model-path",
+        "--pretrained-model-name-or-path",
         type=str,
         help="The path to the model file",
         required=True,
