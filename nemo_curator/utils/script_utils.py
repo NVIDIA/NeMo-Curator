@@ -205,7 +205,13 @@ def parse_distributed_classifier_args(
     # Set low default RMM pool size for classifier
     # to allow pytorch to grow its memory usage
     # by default
+    parser.set_defaults(device="gpu")
     parser.set_defaults(rmm_pool_size="512MB")
+    # Seting the default to single files_per_partition to ensure
+    # input files map to output files of the classifier
+    parser.set_defaults(files_per_partition=1)
+    parser.set_defaults(n_workers=None)
+
     parser.add_argument(
         "--input-data-dir",
         type=str,

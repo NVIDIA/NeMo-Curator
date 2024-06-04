@@ -1,4 +1,6 @@
 import os
+
+os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import time
 from dataclasses import dataclass
 from functools import lru_cache
@@ -38,6 +40,7 @@ class CustomModel(nn.Module):
         )
         self.autocast = autocast
 
+    @torch.no_grad()
     def _forward(self, batch):
         return self.model.generate(
             **batch,
@@ -48,7 +51,6 @@ class CustomModel(nn.Module):
             num_return_sequences=1,
         )
 
-    @torch.no_grad()
     def forward(self, batch):
         if self.autocast:
             with torch.autocast(device_type="cuda"):
@@ -68,6 +70,7 @@ class ModelForSeq2SeqModel(HFModel):
             self.config.pretrained_model_name_or_path, self.config.autocast
         )
         model = model.to(device)
+        model = torch.compile(model)
         model.eval()
         return model
 
@@ -165,7 +168,8 @@ def main():
         write_to_filename=True,
         output_type=args.output_file_type,
     )
-    print("Total time taken for translation: ".format(time.time() - st))
+    print(f"Total time taken for translation: {time.time()-st} seconds", flush=True)
+
     client.close()
 
 
