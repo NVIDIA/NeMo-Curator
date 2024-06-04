@@ -2,7 +2,7 @@ Sample datasets can be downloaned from the following links:
 
 # GitHub Repositories
 
-Clone the following repositories into the folder `./github_repos`:
+Clone the following repositories into the folder `./github_repos`.
 * [32-Verilog-Mini-Projects](https://github.com/sudhamshu091/32-Verilog-Mini-Projects.git)
 * [Oh-lib](https://github.com/aolofsson/oh.git) 
 * [pdp6](https://github.com/aap/pdp6.git)
@@ -13,7 +13,7 @@ Clone the following repositories into the folder `./github_repos`:
 
 # Academic papers
 
-We save the following academic papers into the folder `./pdfs`:
+Save the following academic papers into the folder `./pdfs`.
 * (A bundle approach to efficient MAP-inference by Lagrangian relaxation | IEEE Conference Publication)[https://ieeexplore.ieee.org/document/6247863]
 * (Deep Learning Toolkit-Accelerated Analytical Co-optimization of CNN Hardware and Dataflow | IEEE Conference Publication)[https://ieeexplore.ieee.org/document/10069571]
 * (DECC: Differential ECC for Read Performance Optimization on High-Density NAND Flash Memory | IEEE Conference Publication)[https://ieeexplore.ieee.org/document/10044797] 
@@ -25,7 +25,9 @@ We save the following academic papers into the folder `./pdfs`:
 * (K-Means Hashing: An Affinity-Preserving Quantization Method for Learning Binary Compact Codes | IEEE Conference Publication)[https://ieeexplore.ieee.org/document/6619222]
 * (ViraEye: An Energy-Efficient Stereo Vision Accelerator with Binary Neural Network in 55 nm CMOS | IEEE Conference Publication)[https://ieeexplore.ieee.org/document/10044825]
 
-# Wikepedia links (Can be downloaded automatically within the code)
+# Wikepedia links
+
+Text from the following links can be extracted and downloaded automatically within the code. Output json files will be written to `./wiki`.
 
 "https://en.wikipedia.org/wiki/Memory%20rank"
 "https://en.wikipedia.org/wiki/Isochronous%20signal"
