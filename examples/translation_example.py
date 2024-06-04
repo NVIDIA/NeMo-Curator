@@ -10,6 +10,10 @@ import torch
 import torch.nn as nn
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
+
+# TODO: Import for IndicTransTokenizer
+# Check if we need to add this as a dependency
+from IndicTransTokenizer import IndicProcessor
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, AutoTokenizer
 
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
@@ -70,7 +74,6 @@ class ModelForSeq2SeqModel(HFModel):
             self.config.pretrained_model_name_or_path, self.config.autocast
         )
         model = model.to(device)
-        model = torch.compile(model)
         model.eval()
         return model
 
@@ -98,15 +101,31 @@ class ModelForSeq2SeqModel(HFModel):
         )
 
 
+def preprocess_df(df):
+    ip = IndicProcessor(inference=True)
+    sentences = df["text"].to_arrow().to_pylist()
+    sentences = ip.preprocess_batch(
+        sentences, src_lang="eng_Latn", tgt_lang="hin_Deva", show_progress_bar=False
+    )
+    df["translation"] = cudf.Series(sentences)
+    return df
+
+
 def translate_tokens(df, model):
     tokenizer = model.load_tokenizer()
     generated_tokens = df["translation"].to_arrow().to_pylist()
-    generated_tokens = tokenizer.batch_decode(
-        generated_tokens,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True,
-    )
 
+    with tokenizer.as_target_tokenizer():
+        generated_tokens = tokenizer.batch_decode(
+            generated_tokens,
+            src=False,
+        )
+    # TODO: Below is causing hang
+    # It causes hang even when run in a separate script
+    # ip = IndicProcessor(inference=True)
+    # print("Starting postprocess_batch")
+    # generated_tokens = ip.postprocess_batch(generated_tokens, lang="hin_Deva")
+    # print("Completed postprocess_batch")
     df["translation"] = cudf.Series(generated_tokens)
     return df
 
@@ -145,6 +164,7 @@ def main():
         files_per_partition=1,
         add_filename=True,
     )
+    ddf = ddf.map_partitions(preprocess_df)
     columns = ddf.columns.tolist()
     model = ModelForSeq2SeqModel(translation_config)
     pipe = op.Sequential(
@@ -161,7 +181,6 @@ def main():
     translated_meta = ddf._meta.copy()
     translated_meta["translation"] = "DUMMY_STRING"
     ddf = ddf.map_partitions(translate_tokens, model=model, meta=translated_meta)
-
     write_to_disk(
         ddf,
         output_file_dir=args.output_data_dir,
