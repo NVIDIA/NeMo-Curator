@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import os
 import random
 import string
 import tempfile
@@ -20,8 +21,13 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import pytest
+from dask.dataframe.utils import assert_eq
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.utils.distributed_utils import (
+    read_single_partition,
+    single_partition_write_with_filename,
+)
 
 
 def _generate_dummy_dataset(num_rows: int = 50) -> str:
@@ -138,3 +144,41 @@ class TestIO:
         assert (
             output_meta == expected_meta
         ), f"Expected: {expected_meta}, got: {output_meta}"
+
+
+class TestWriteWithFilename:
+    def test_multifile_partition(self, tmp_path):
+        df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
+        file_ext = "jsonl"
+
+        single_partition_write_with_filename(
+            df=df, output_file_dir=tmp_path, output_type=file_ext
+        )
+        assert os.path.exists(tmp_path / f"file0.{file_ext}")
+        assert os.path.exists(tmp_path / f"file1.{file_ext}")
+
+        df1 = pd.read_json(tmp_path / f"file0.{file_ext}", lines=True)
+        assert_eq(df1, df.iloc[0:1], check_index=False)
+        df2 = pd.read_json(tmp_path / f"file1.{file_ext}", lines=True)
+        assert_eq(df2, df.iloc[1:3], check_index=False)
+
+    @pytest.mark.parametrize("file_ext", ["jsonl", "parquet"])
+    def test_singlefile_partition(self, tmp_path, file_ext):
+        df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file2", "file2", "file2"]})
+        single_partition_write_with_filename(
+            df=df, output_file_dir=tmp_path, output_type=file_ext
+        )
+        assert len(os.listdir(tmp_path)) == 1
+        assert os.path.exists(tmp_path / f"file2.{file_ext}")
+        got = read_single_partition(
+            files=[tmp_path / f"file2.{file_ext}"], backend="pandas", filetype=file_ext
+        )
+        assert_eq(got, df)
+
+    def test_multifile_partition_error(self, tmp_path):
+        df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
+
+        with pytest.raises(ValueError, match="Found more than*"):
+            single_partition_write_with_filename(
+                df=df, output_file_dir=tmp_path, output_type="parquet"
+            )
