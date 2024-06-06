@@ -21,12 +21,14 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import pytest
+from dask import dataframe as dd
 from dask.dataframe.utils import assert_eq
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import (
     read_single_partition,
     single_partition_write_with_filename,
+    write_to_disk,
 )
 
 
@@ -147,7 +149,7 @@ class TestIO:
 
 
 class TestWriteWithFilename:
-    def test_multifile_partition(self, tmp_path):
+    def test_multifile_single_partition(self, tmp_path):
         df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
         file_ext = "jsonl"
 
@@ -163,7 +165,7 @@ class TestWriteWithFilename:
         assert_eq(df2, df.iloc[1:3], check_index=False)
 
     @pytest.mark.parametrize("file_ext", ["jsonl", "parquet"])
-    def test_singlefile_partition(self, tmp_path, file_ext):
+    def test_singlefile_single_partition(self, tmp_path, file_ext):
         df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file2", "file2", "file2"]})
         single_partition_write_with_filename(
             df=df, output_file_dir=tmp_path, output_type=file_ext
@@ -175,10 +177,33 @@ class TestWriteWithFilename:
         )
         assert_eq(got, df)
 
-    def test_multifile_partition_error(self, tmp_path):
+    def test_multifile_single_partition_error(self, tmp_path):
         df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
 
         with pytest.raises(ValueError, match="Found more than*"):
             single_partition_write_with_filename(
                 df=df, output_file_dir=tmp_path, output_type="parquet"
             )
+
+    # Test multiple partitions where we need to append to existing files
+    @pytest.mark.parametrize("file_ext, read_f", [("jsonl", DocumentDataset.read_json)])
+    def test_multifile_multi_partition(self, tmp_path, file_ext, read_f):
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "filename": ["file1.jsonl", "file2.jsonl", "file2.jsonl"]}
+        )
+        ddf = dd.concat([df] * 3)
+        write_to_disk(
+            df=ddf,
+            output_file_dir=tmp_path / file_ext,
+            write_to_filename=True,
+            output_type=file_ext,
+        )
+
+        got_df = read_f(
+            str(tmp_path / file_ext),
+            files_per_partition=2,
+            backend="pandas",
+            add_filename=True,
+        ).df
+
+        assert_eq(got_df, ddf, check_index=False)
