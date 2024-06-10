@@ -415,7 +415,7 @@ class ArgumentHelper:
             " to be duplicate",
         )
 
-    def add_args_create_dask_cluster(self):
+    def add_args_create_k8s_dask_cluster(self):
         self.parser.add_argument(
             "-n",
             "--name",

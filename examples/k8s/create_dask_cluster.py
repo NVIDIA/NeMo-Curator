@@ -83,7 +83,7 @@ if __name__ == "__main__":
         return name_to_path
 
     parser = argparse.ArgumentParser()
-    ArgumentHelper(parser).add_args_create_dask_cluster()
+    ArgumentHelper(parser).add_args_create_k8s_dask_cluster()
 
     args = parser.parse_args()
 
