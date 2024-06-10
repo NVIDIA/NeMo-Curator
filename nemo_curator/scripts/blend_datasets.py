@@ -83,9 +83,9 @@ Optionally, the user can choose to shuffle this dataset as well.
     )
     argumentHelper.add_output_file_type()
     argumentHelper.add_seed()
+    argumentHelper.add_shuffle(help="Shuffles the dataset after blending")
     argumentHelper.add_target_samples()
     argumentHelper.add_weights()
-    argumentHelper.add_shuffle(help="Shuffles the dataset after blending")
 
     return argumentHelper.add_distributed_args()
 
