@@ -131,7 +131,7 @@ def translate_tokens(df, model):
             generated_tokens,
             src=False,
         )
-    generated_tokens = ip.postprocess_batch(generated_tokens, lang="hin_Deva")
+        generated_tokens = ip.postprocess_batch(generated_tokens, lang="hin_Deva")
     df["translation"] = cudf.Series(generated_tokens)
     return df
 
@@ -170,7 +170,7 @@ def main():
         files_per_partition=1,
         add_filename=True,
     )
-    ddf = ddf.map_partitions(preprocess_df, meta=ddf._meta)
+    ddf = ddf.map_partitions(preprocess_df, meta=ddf._meta.copy())
     columns = ddf.columns.tolist()
     model = ModelForSeq2SeqModel(translation_config)
     pipe = op.Sequential(
