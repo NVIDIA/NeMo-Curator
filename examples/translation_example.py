@@ -12,11 +12,22 @@ from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
 
 # TODO: Import for IndicTransTokenizer
-# Check if we need to add this as a dependency
-from IndicTransTokenizer import IndicProcessor
+# Check if we want to add this as an dependency
+try:
+    from IndicTransTokenizer import IndicProcessor
+except ImportError:
+    raise ImportError(
+        "IndicTransTokenizer not found. Please install it using the following command: \n"
+        + "pip install git+https://github.com/VarunGumma/IndicTransTokenizer.git"
+    )
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, AutoTokenizer
 
-from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
+from nemo_curator.utils.distributed_utils import (
+    get_client,
+    load_object_on_worker,
+    read_data,
+    write_to_disk,
+)
 from nemo_curator.utils.script_utils import (
     parse_client_args,
     parse_distributed_classifier_args,
@@ -102,30 +113,25 @@ class ModelForSeq2SeqModel(HFModel):
 
 
 def preprocess_df(df):
-    ip = IndicProcessor(inference=True)
+    ip = load_object_on_worker("IndicProcessor", IndicProcessor, {"inference": True})
     sentences = df["text"].to_arrow().to_pylist()
     sentences = ip.preprocess_batch(
         sentences, src_lang="eng_Latn", tgt_lang="hin_Deva", show_progress_bar=False
     )
-    df["translation"] = cudf.Series(sentences)
+    df["text"] = cudf.Series(sentences)
     return df
 
 
 def translate_tokens(df, model):
+    ip = load_object_on_worker("IndicProcessor", IndicProcessor, {"inference": True})
     tokenizer = model.load_tokenizer()
     generated_tokens = df["translation"].to_arrow().to_pylist()
-
     with tokenizer.as_target_tokenizer():
         generated_tokens = tokenizer.batch_decode(
             generated_tokens,
             src=False,
         )
-    # TODO: Below is causing hang
-    # It causes hang even when run in a separate script
-    # ip = IndicProcessor(inference=True)
-    # print("Starting postprocess_batch")
-    # generated_tokens = ip.postprocess_batch(generated_tokens, lang="hin_Deva")
-    # print("Completed postprocess_batch")
+    generated_tokens = ip.postprocess_batch(generated_tokens, lang="hin_Deva")
     df["translation"] = cudf.Series(generated_tokens)
     return df
 
@@ -164,7 +170,7 @@ def main():
         files_per_partition=1,
         add_filename=True,
     )
-    ddf = ddf.map_partitions(preprocess_df)
+    ddf = ddf.map_partitions(preprocess_df, meta=ddf._meta)
     columns = ddf.columns.tolist()
     model = ModelForSeq2SeqModel(translation_config)
     pipe = op.Sequential(
