@@ -69,18 +69,19 @@ with FastText.
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_local_data_dir()
-    argumentHelper.add_input_json_field()
-    argumentHelper.add_label()
-    argumentHelper.add_log_dir(default="./log/prepare_filter_data")
-    argumentHelper.add_output_train_file(
+    argumentHelper.add_args_prepare_fasttext_training_data()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_local_data_dir()
+    argumentHelper.add_arg_log_dir(default="./log/prepare_filter_data")
+    argumentHelper.add_arg_output_train_file(
         help="The output file containing prepared samples to train a "
         "skip-gram classifier with FastText"
     )
-    argumentHelper.add_seed(help="The random seed to use for sampling from the dataset")
+    argumentHelper.add_arg_seed(
+        help="The random seed to use for sampling from the dataset"
+    )
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

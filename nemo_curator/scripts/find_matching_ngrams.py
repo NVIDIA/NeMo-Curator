@@ -62,15 +62,12 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_input_task_ngrams()
-    argumentHelper.add_input_text_field()
-    argumentHelper.add_max_ngram_size()
-    argumentHelper.add_min_ngram_size()
-    argumentHelper.add_output_matched_ngram_data()
+    argumentHelper.add_args_find_matching_ngrams()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_input_text_field()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

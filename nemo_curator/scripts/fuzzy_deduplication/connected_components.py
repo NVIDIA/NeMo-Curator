@@ -55,12 +55,10 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_jaccard_pairs_path()
-    argumentHelper.add_jaccard_threshold()
-    argumentHelper.add_cache_dir()
-    argumentHelper.add_output_dir()
+    argumentHelper.add_args_connected_components()
+    argumentHelper.add_arg_output_dir()
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

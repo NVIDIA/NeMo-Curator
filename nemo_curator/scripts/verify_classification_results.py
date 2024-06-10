@@ -34,10 +34,10 @@ def parse_args():
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_verify_classification_args()
-    argumentHelper.add_input_meta()
+    argumentHelper.add_args_verify_classification()
+    argumentHelper.add_arg_input_meta()
 
-    return parser.parse_args()
+    return argumentHelper.parser.parse_args()
 
 
 def verify_same_counts(got_counts, expected_counts):

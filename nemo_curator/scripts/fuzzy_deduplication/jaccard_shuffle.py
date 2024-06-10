@@ -84,15 +84,12 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_bucket_mapping_ddf_blocksize()
-    argumentHelper.add_bucket_parts_per_worker()
-    argumentHelper.add_input_bucket_mapping_dir()
-    argumentHelper.add_input_meta()
-    argumentHelper.add_output_dir()
-    argumentHelper.add_parts_per_worker()
-    argumentHelper.add_text_ddf_blocksize()
+    argumentHelper.add_args_jaccard_shuffle()
+    argumentHelper.add_arg_input_meta()
+    argumentHelper.add_arg_output_dir()
+    argumentHelper.add_arg_text_ddf_blocksize()
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

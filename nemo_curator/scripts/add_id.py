@@ -71,23 +71,21 @@ these ids must be added prior to performing fuzzy/exact deduplication
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_id_field_name()
-    argumentHelper.add_id_prefix()
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_output_data_dir(
+    argumentHelper.add_args_add_id()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_output_data_dir(
         help="The output directory to where the jsonl files with ids will "
         "be written. If not specified, the ids will be written in-place"
     )
-    argumentHelper.add_output_file_type()
-    argumentHelper.add_seed()
-    argumentHelper.add_starting_index()
-    argumentHelper.add_shufle(
+    argumentHelper.add_arg_output_file_type()
+    argumentHelper.add_arg_seed()
+    argumentHelper.add_arg_shuffle(
         help="Shuffle the order of files before assigning IDs."
         "Useful for creating a copy dataset with different IDs"
     )
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

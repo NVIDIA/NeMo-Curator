@@ -48,13 +48,10 @@ The size of the input files must be larger than the specified
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_output_file_size()
-    argumentHelper.add_output_resharded_dir()
-    argumentHelper.add_prefix()
-    argumentHelper.add_start_index()
+    argumentHelper.add_args_make_data_shards()
+    argumentHelper.add_arg_input_data_dir()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

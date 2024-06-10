@@ -36,7 +36,7 @@ Pulls urls pointing to the latest Wikipedia dumps
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    ArgumentHelper(parser).add_wikipedia_args()
+    ArgumentHelper(parser).add_args_wikipedia()
 
     return parser
 

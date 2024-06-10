@@ -179,22 +179,15 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_batch_size()
-    argumentHelper.add_filter_config_file()
-    argumentHelper.add_filter_only()
-    argumentHelper.add_id_field()
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_input_local_data_dir()
-    argumentHelper.add_log_dir()
-    argumentHelper.add_log_frequency()
-    argumentHelper.add_log_scores()
-    argumentHelper.add_output_document_score_dir()
-    argumentHelper.add_output_file_type()
-    argumentHelper.add_output_removed_document_dir()
-    argumentHelper.add_output_retained_document_dir()
+    argumentHelper.add_args_filter_documents()
+    argumentHelper.add_arg_batch_size()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_input_local_data_dir()
+    argumentHelper.add_arg_log_dir(default="./log/filter_docs")
+    argumentHelper.add_arg_output_file_type()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

@@ -65,20 +65,17 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_input_metadata_field()
-    argumentHelper.add_output_data_dir(
+    argumentHelper.add_args_separate_by_metadata()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_output_data_dir(
         help="The output directory to where the metadata-separated files "
         "will be written. Each file will be written to its respective "
         "metadata directory that is a sub-directory of this directory"
     )
-    argumentHelper.add_output_file_type()
-    argumentHelper.add_output_metadata_distribution()
-    argumentHelper.add_remove_input_dir()
-    argumentHelper.add_remove_metadata_field()
+    argumentHelper.add_arg_output_file_type()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

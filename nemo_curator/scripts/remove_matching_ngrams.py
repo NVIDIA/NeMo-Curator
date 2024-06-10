@@ -97,18 +97,14 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_batch_size()
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_input_matched_ngrams()
-    argumentHelper.add_input_text_field()
-    argumentHelper.add_match_threshold()
-    argumentHelper.add_max_document_splits()
-    argumentHelper.add_output_file_type()
-    argumentHelper.add_output_removed_doc_dir()
-    argumentHelper.add_output_task_deduped_dir()
+    argumentHelper.add_args_remove_matching_ngrams()
+    argumentHelper.add_arg_batch_size()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_input_text_field()
+    argumentHelper.add_arg_output_file_type()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

@@ -105,17 +105,11 @@ such that it simply returns the pre-downloaded file
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_builder_config_file()
-    argumentHelper.add_download_only()
-    argumentHelper.add_input_data_dir(help="Path to input data directory.")
-    argumentHelper.add_input_meta()
-    argumentHelper.add_input_url_file()
-    argumentHelper.add_keep_downloaded_files()
-    argumentHelper.add_output_download_dir()
-    argumentHelper.add_output_json_dir()
-    argumentHelper.add_overwrite_existing_json()
+    argumentHelper.add_args_download_and_extract()
+    argumentHelper.add_arg_input_data_dir(help="Path to input data directory.")
+    argumentHelper.add_arg_input_meta()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

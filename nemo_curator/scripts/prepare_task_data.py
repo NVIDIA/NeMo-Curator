@@ -58,9 +58,10 @@ def attach_args(
     )
 ):
     argumentHelper = ArgumentHelper(parser)
-    argumentHelper.add_prepare_task_data_args()
 
-    return argumentHelper.add_distributed_args()
+    argumentHelper.add_args_prepare_task_data()
+
+    return argumentHelper.parser
 
 
 def console_script():

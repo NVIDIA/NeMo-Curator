@@ -90,15 +90,16 @@ def attach_args(parser=None):
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 
     argumentHelper = ArgumentHelper(parser)
-    argumentHelper.add_hash_method()
-    argumentHelper.add_output_dir(
+
+    argumentHelper.add_args_find_exact_duplicates()
+    argumentHelper.add_arg_output_dir(
         help="Output directory where duplicate docs will be written. "
         "Each file is a pickle file that contains a dictionary of numpy arrays. "
         "The keys are the document ids and the values are the duplicate docs",
         required=True,
     )
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

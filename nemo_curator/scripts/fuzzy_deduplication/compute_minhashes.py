@@ -115,16 +115,14 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_char_ngram()
-    argumentHelper.add_minhash_length()
-    argumentHelper.add_hash_bytes()
-    argumentHelper.add_seed(
+    argumentHelper.add_args_compute_minhashes()
+    argumentHelper.add_arg_minhash_length()
+    argumentHelper.add_arg_seed(
         help="Random seed used for intializing the hash "
         "functions used to compute the MinHashes"
     )
-    argumentHelper.add_output_minhash_dir()
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

@@ -62,16 +62,16 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_device()
-    argumentHelper.add_enable_spilling()
-    argumentHelper.add_nvlink_only()
-    argumentHelper.add_protocol()
-    argumentHelper.add_rmm_pool_size()
-    argumentHelper.add_scheduler_address()
-    argumentHelper.add_scheduler_file()
-    argumentHelper.add_set_torch_to_use_rmm()
+    argumentHelper.add_arg_device()
+    argumentHelper.add_arg_enable_spilling()
+    argumentHelper.add_arg_nvlink_only()
+    argumentHelper.add_arg_protocol()
+    argumentHelper.add_arg_rmm_pool_size()
+    argumentHelper.add_arg_scheduler_address()
+    argumentHelper.add_arg_scheduler_file()
+    argumentHelper.add_arg_set_torch_to_use_rmm()
 
-    return parser
+    return argumentHelper.parser
 
 
 if __name__ == "__main__":

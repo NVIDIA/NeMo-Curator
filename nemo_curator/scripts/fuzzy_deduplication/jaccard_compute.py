@@ -61,11 +61,10 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_shuffled_docs_path()
-    argumentHelper.add_output_dir()
-    argumentHelper.add_ngram_size()
+    argumentHelper.add_args_jaccard_compute()
+    argumentHelper.add_arg_output_dir()
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

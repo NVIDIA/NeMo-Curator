@@ -87,13 +87,10 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_buckets_per_shuffle()
-    argumentHelper.add_minhash_field()
-    argumentHelper.add_minhash_length()
-    argumentHelper.add_num_bands()
-    argumentHelper.add_output_bucket_dir()
+    argumentHelper.add_args_minhash_lsh()
+    argumentHelper.add_arg_minhash_length()
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

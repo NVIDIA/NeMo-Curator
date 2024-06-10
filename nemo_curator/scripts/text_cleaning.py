@@ -73,14 +73,14 @@ the 'language' field within each JSON object.
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_batch_size()
-    argumentHelper.add_input_data_dir()
-    argumentHelper.add_input_text_field()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_output_clean_dir()
-    argumentHelper.add_output_file_type()
+    argumentHelper.add_args_text_cleaning()
+    argumentHelper.add_arg_batch_size()
+    argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_arg_input_text_field()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_output_file_type()
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():

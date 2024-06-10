@@ -43,7 +43,7 @@ download the WARC files.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    ArgumentHelper(parser).add_common_crawl_args()
+    ArgumentHelper(parser).add_args_common_crawl()
 
     return parser
 

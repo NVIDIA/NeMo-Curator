@@ -92,31 +92,25 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_anonymize_action()
-    argumentHelper.add_batch_size(
+    argumentHelper.add_args_find_pii_and_deidentify()
+    argumentHelper.add_arg_batch_size(
         default=2000, help="The batch size for processing multiple texts together."
     )
-    argumentHelper.add_chars_to_mask()
-    argumentHelper.add_hash_type()
-    argumentHelper.add_input_data_dir(help="Directory containing the input files.")
-    argumentHelper.add_input_file_type(
+    argumentHelper.add_arg_input_data_dir(help="Directory containing the input files.")
+    argumentHelper.add_arg_input_file_type(
         choices=["jsonl", "csv", "text"],
         help="The input file type (only jsonl is currently supported)",
     )
-    argumentHelper.add_language(help="Language of input documents")
-    argumentHelper.add_masking_char()
-    argumentHelper.add_new_value()
-    argumentHelper.add_output_data_dir(
+    argumentHelper.add_arg_language(help="Language of input documents")
+    argumentHelper.add_arg_output_data_dir(
         help="The output directory to where redacted documents will be written."
     )
-    argumentHelper.add_output_file_type(
+    argumentHelper.add_arg_output_file_type(
         choices=["jsonl", "csv", "text"],
         help="The output file type (only jsonl is currently supported)",
     )
-    argumentHelper.add_supported_entities()
-    argumentHelper.add_text_field()
 
-    return parser
+    return argumentHelper.parser
 
 
 def console_script():

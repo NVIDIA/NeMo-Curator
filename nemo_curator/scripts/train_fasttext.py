@@ -120,7 +120,7 @@ out to disk as a FastText model.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    ArgumentHelper(parser).add_train_fasttext_args()
+    ArgumentHelper(parser).add_args_train_fasttext()
 
     return parser
 

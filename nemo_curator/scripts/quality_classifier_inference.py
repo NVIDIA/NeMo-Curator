@@ -45,7 +45,7 @@ def get_labels(num_labels):
 
 def main():
     parser = ArgumentHelper.parse_distributed_classifier_args()
-    ArgumentHelper(parser).add_num_labels()
+    ArgumentHelper(parser).add_args_quality_classifier_inference()
     args = parser.parse_args()
     labels = get_labels(args.num_labels)
     print(f"Arguments parsed = {args}", flush=True)

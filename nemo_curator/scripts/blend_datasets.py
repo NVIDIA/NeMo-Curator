@@ -73,21 +73,19 @@ Optionally, the user can choose to shuffle this dataset as well.
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_input_data_dirs()
-    argumentHelper.add_input_file_type()
-    argumentHelper.add_output_data_dir(
+    argumentHelper.add_args_blend_datasets()
+    argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_output_data_dir(
         help="The output directory to where the blended dataset is"
         "retained during filtering will be written. If this argument "
         "is not specified, then the document scores from the "
         "filter(s) will be written to the document meta data in place"
     )
-    argumentHelper.add_output_file_type()
-    argumentHelper.add_seed()
-    argumentHelper.add_shuffle(help="Shuffles the dataset after blending")
-    argumentHelper.add_target_samples()
-    argumentHelper.add_weights()
+    argumentHelper.add_arg_output_file_type()
+    argumentHelper.add_arg_seed()
+    argumentHelper.add_arg_shuffle(help="Shuffles the dataset after blending")
 
-    return argumentHelper.add_distributed_args()
+    return argumentHelper.parser
 
 
 def console_script():
