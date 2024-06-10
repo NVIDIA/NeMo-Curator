@@ -88,9 +88,9 @@ def attach_args(parser=None):
     argumentHelper.add_bucket_parts_per_worker()
     argumentHelper.add_input_bucket_mapping_dir()
     argumentHelper.add_input_meta()
-    argumentHelper.add_text_ddf_blocksize()
     argumentHelper.add_output_dir()
     argumentHelper.add_parts_per_worker()
+    argumentHelper.add_text_ddf_blocksize()
 
     return parser
 

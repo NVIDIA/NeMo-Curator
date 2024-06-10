@@ -80,11 +80,11 @@ def attach_args(parser=None):
     argumentHelper = ArgumentHelper(parser)
 
     argumentHelper.add_input_bucket_dir()
+    argumentHelper.add_input_bucket_field()
     argumentHelper.add_input_meta()
     argumentHelper.add_output_dir()
     argumentHelper.add_shuffle_type()
     argumentHelper.add_text_ddf_blocksize()
-    argumentHelper.add_input_bucket_field()
 
     return parser
 
