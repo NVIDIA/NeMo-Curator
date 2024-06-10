@@ -189,10 +189,10 @@ def attach_args(
     argumentHelper.add_log_dir()
     argumentHelper.add_log_frequency()
     argumentHelper.add_log_scores()
-    argumentHelper.add_output_file_type()
-    argumentHelper.add_output_retained_document_dir()
-    argumentHelper.add_output_removed_document_dir()
     argumentHelper.add_output_document_score_dir()
+    argumentHelper.add_output_file_type()
+    argumentHelper.add_output_removed_document_dir()
+    argumentHelper.add_output_retained_document_dir()
 
     return argumentHelper.add_distributed_args()
 
