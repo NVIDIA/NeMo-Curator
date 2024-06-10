@@ -1061,6 +1061,54 @@ class ArgumentHelper:
         Adds default set of arguments that are needed for Dask cluster setup
         """
         self.parser.add_argument(
+            "--device",
+            type=str,
+            default="cpu",
+            help="Device to run the script on. Either 'cpu' or 'gpu'.",
+        )
+        self.parser.add_argument(
+            "--files-per-partition",
+            type=int,
+            default=2,
+            help="Number of jsonl files to combine into single partition",
+        )
+        self.parser.add_argument(
+            "--n-workers",
+            type=int,
+            default=os.cpu_count(),
+            help="The number of workers to run in total on the Dask CPU cluster",
+        )
+        self.parser.add_argument(
+            "--num-files",
+            type=int,
+            default=None,
+            help="Upper limit on the number of json files to process",
+        )
+        self.parser.add_argument(
+            "--nvlink-only",
+            action="store_true",
+            help="Start a local cluster with only NVLink enabled."
+            "Only applicable when protocol=ucx and no scheduler file/address is specified",
+        )
+        self.parser.add_argument(
+            "--protocol",
+            type=str,
+            default="tcp",
+            help="Protcol to use for dask cluster"
+            "Note: This only applies to the localCUDACluster. If providing an user created "
+            "cluster refer to"
+            "https://docs.rapids.ai/api/dask-cuda/stable/api.html#cmdoption-dask-cuda-protocol",  # noqa: E501
+        )
+        self.parser.add_argument(
+            "--rmm-pool-size",
+            type=str,
+            default=None,
+            help="Initial pool size to use for the RMM Pool Memory allocator"
+            "Note: This only applies to the LocalCUDACluster. If providing an user created "
+            "cluster refer to"
+            "https://docs.rapids.ai/api/dask-cuda/stable/api.html#cmdoption-dask-cuda-rmm-pool-size",  # noqa: E501
+        )
+        self.parser.add_argument(
             "--scheduler-address",
             type=str,
             default=None,
@@ -1075,58 +1123,10 @@ class ArgumentHelper:
             " a single node Cluster will be started.",
         )
         self.parser.add_argument(
-            "--n-workers",
-            type=int,
-            default=os.cpu_count(),
-            help="The number of workers to run in total on the Dask CPU cluster",
-        )
-        self.parser.add_argument(
             "--threads-per-worker",
             type=int,
             default=1,
             help="The number of threads ot launch per worker on the Dask CPU cluster. Usually best set at 1 due to the GIL.",
-        )
-        self.parser.add_argument(
-            "--rmm-pool-size",
-            type=str,
-            default=None,
-            help="Initial pool size to use for the RMM Pool Memory allocator"
-            "Note: This only applies to the LocalCUDACluster. If providing an user created "
-            "cluster refer to"
-            "https://docs.rapids.ai/api/dask-cuda/stable/api.html#cmdoption-dask-cuda-rmm-pool-size",  # noqa: E501
-        )
-        self.parser.add_argument(
-            "--protocol",
-            type=str,
-            default="tcp",
-            help="Protcol to use for dask cluster"
-            "Note: This only applies to the localCUDACluster. If providing an user created "
-            "cluster refer to"
-            "https://docs.rapids.ai/api/dask-cuda/stable/api.html#cmdoption-dask-cuda-protocol",  # noqa: E501
-        )
-        self.parser.add_argument(
-            "--nvlink-only",
-            action="store_true",
-            help="Start a local cluster with only NVLink enabled."
-            "Only applicable when protocol=ucx and no scheduler file/address is specified",
-        )
-        self.parser.add_argument(
-            "--files-per-partition",
-            type=int,
-            default=2,
-            help="Number of jsonl files to combine into single partition",
-        )
-        self.parser.add_argument(
-            "--num-files",
-            type=int,
-            default=None,
-            help="Upper limit on the number of json files to process",
-        )
-        self.parser.add_argument(
-            "--device",
-            type=str,
-            default="cpu",
-            help="Device to run the script on. Either 'cpu' or 'gpu'.",
         )
 
         return self.parser

@@ -100,7 +100,7 @@ def attach_args(
     argumentHelper.add_arg_scheduler_file()
     argumentHelper.add_arg_set_torch_to_use_rmm()
 
-    return parser
+    return argumentHelper.parser
 
 
 if __name__ == "__main__":
