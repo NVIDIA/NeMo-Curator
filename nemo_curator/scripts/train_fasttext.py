@@ -22,6 +22,7 @@ from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
 from nemo_curator.utils.file_utils import get_all_files_paths_under
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
@@ -119,87 +120,8 @@ out to disk as a FastText model.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    parser.add_argument(
-        "--fasttext-files-dir",
-        type=str,
-        default=None,
-        required=True,
-        help="The input directory containing the file(s) "
-        "containing the prepared FastText samples",
-    )
-    parser.add_argument(
-        "--high-quality-label",
-        type=str,
-        default="__label__hq",
-        help="The label assigned to the high quality samples "
-        "when preparing the data",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=1992,
-        help="The seed used for randomly shuffling the documents",
-    )
-    parser.add_argument(
-        "--output-train-file",
-        type=str,
-        default="./fasttext_samples.train",
-        help="The concatenated, shuffled samples used "
-        "to train the skip-gram classifier",
-    )
-    parser.add_argument(
-        "--output-validation-file",
-        type=str,
-        default="./fasttext_samples.valid",
-        help="The concatenated, shuffled samples used to "
-        "for computing validation metrics",
-    )
-    parser.add_argument(
-        "--validation-split",
-        type=float,
-        default=0.9,
-        help="The training validation split",
-    )
-    parser.add_argument(
-        "--output-model",
-        type=str,
-        default=None,
-        required=True,
-        help="The output trained skip-gram classifier written " "as a FastText model",
-    )
-    parser.add_argument(
-        "--wordNgrams",
-        type=int,
-        default=2,
-        help="The size of the word n-gram used to train the classifier "
-        "(default is bigram)",
-    )
-    parser.add_argument(
-        "--learning-rate",
-        type=float,
-        default=0.1,
-        help="The learning rate used to train the classifier",
-    )
-    parser.add_argument(
-        "--num-epochs",
-        type=int,
-        default=5,
-        help="Number of epochs used to train the classifier",
-    )
-    parser.add_argument(
-        "--word-vector-dim",
-        type=int,
-        default=100,
-        help="Size of word vectors to be computed by the model",
-    )
-    parser.add_argument(
-        "--output-predictions",
-        type=str,
-        default=None,
-        help="The output predictions on the validation data. "
-        "If a file is not specified, the predictions are not "
-        "written to file",
-    )
+    ArgumentHelper(parser).add_train_fasttext_args()
+
     return parser
 
 

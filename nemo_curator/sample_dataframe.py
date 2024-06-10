@@ -21,7 +21,7 @@ from nemo_curator.distributed_data_classification.arg_utils import (
 )
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-from nemo_curator.utils.script_utils import parse_client_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def sample_dataframe(df, num_samples):
@@ -50,15 +50,10 @@ if __name__ == "__main__":
 
     parser = add_cluster_args(parser)
     parser = add_input_output_args(parser)
-    parser.add_argument(
-        "--num_samples",
-        type=int,
-        help="The number of rows to sample",
-        required=True,
-    )
+    ArgumentHelper(parser).add_num_samples()
     args = parser.parse_args()
     print(f"Arguments parsed = {args}", flush=True)
-    client = get_client(**parse_client_args(args), cluster_type="gpu")
+    client = get_client(**ArgumentHelper.parse_client_args(args), cluster_type="gpu")
 
     print("Starting sampling workflow", flush=True)
     st = time.time()

@@ -21,15 +21,11 @@ from nemo_curator.utils.file_utils import (
     expand_outdir_and_mkdir,
     get_all_files_paths_under,
 )
-from nemo_curator.utils.script_utils import (
-    add_distributed_args,
-    attach_bool_arg,
-    parse_client_args,
-)
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     out_dir = expand_outdir_and_mkdir(args.output_data_dir)
 
@@ -75,67 +71,23 @@ Optionally, the user can choose to shuffle this dataset as well.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    parser.add_argument(
-        "--input-data-dirs",
-        type=str,
-        default=None,
-        help="Comma-separated list of directories consisting of dataset "
-        "files that are accessible to all nodes.",
-    )
-    parser.add_argument(
-        "--weights",
-        type=str,
-        default=None,
-        help="Comma-separated list of floating-point weights corresponding "
-        "to each dataset passed in --input-data-dirs",
-    )
-    parser.add_argument(
-        "--output-data-dir",
-        type=str,
-        default=None,
+    argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.add_input_data_dirs()
+    argumentHelper.add_input_file_type()
+    argumentHelper.add_output_data_dir(
         help="The output directory to where the blended dataset is"
         "retained during filtering will be written. If this argument "
         "is not specified, then the document scores from the "
-        "filter(s) will be written to the document meta data in place",
+        "filter(s) will be written to the document meta data in place"
     )
-    parser.add_argument(
-        "--target-samples",
-        type=int,
-        default=10000,
-        help="The number of samples to be included in the output dataset."
-        " There may be more samples in order to accurately reflect the "
-        "weight balance, but there will never be less",
-    )
-    attach_bool_arg(
-        parser,
-        "shuffle",
-        default=False,
-        help_str="Shuffles the dataset after blending",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="If specified, the random seed used for shuffling.",
-    )
-    parser.add_argument(
-        "--input-file-type",
-        type=str,
-        default="jsonl",
-        help="File type of the dataset to be read in. Supported file formats"
-        " include 'jsonl' (default), 'pickle', or 'parquet'.",
-    )
-    parser.add_argument(
-        "--output-file-type",
-        type=str,
-        default="jsonl",
-        help="File type the dataset will be written to. Supported file formats"
-        " include 'jsonl' (default), 'pickle', or 'parquet'.",
-    )
+    argumentHelper.add_output_file_type()
+    argumentHelper.add_seed()
+    argumentHelper.add_target_samples()
+    argumentHelper.add_weights()
+    argumentHelper.add_shuffle(help="Shuffles the dataset after blending")
 
-    parser = add_distributed_args(parser)
-
-    return parser
+    return argumentHelper.add_distributed_args()
 
 
 def console_script():

@@ -16,11 +16,11 @@ import argparse
 
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import reshard_jsonl
-from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     reshard_jsonl(
         args.input_data_dir,
@@ -46,43 +46,15 @@ The size of the input files must be larger than the specified
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    parser.add_argument(
-        "--input-data-dir",
-        type=str,
-        default=None,
-        required=True,
-        help="Input directory consisting of .jsonl file(s)",
-    )
-    parser.add_argument(
-        "--output-resharded-dir",
-        type=str,
-        default=None,
-        required=True,
-        help="Output directory to where the sharded " ".jsonl files will be written",
-    )
-    parser.add_argument(
-        "--output-file-size",
-        type=str,
-        default="100M",
-        help="Approximate size of output files. Must specify with a string and "
-        "with the unit K, M or G for kilo, mega or gigabytes",
-    )
-    parser.add_argument(
-        "--start-index",
-        type=int,
-        default=0,
-        help="Starting index for naming the output files",
-    )
-    parser.add_argument(
-        "--prefix",
-        type=str,
-        default="",
-        help="Prefix to use to prepend to output file number",
-    )
+    argumentHelper = ArgumentHelper(parser)
 
-    parser = add_distributed_args(parser)
+    argumentHelper.add_input_data_dir()
+    argumentHelper.add_output_file_size()
+    argumentHelper.add_output_resharded_dir()
+    argumentHelper.add_prefix()
+    argumentHelper.add_start_index()
 
-    return parser
+    return argumentHelper.add_distributed_args()
 
 
 def console_script():

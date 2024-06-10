@@ -20,11 +20,11 @@ import yaml
 import nemo_curator
 from nemo_curator.tasks.downstream_task import import_task
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
     # Read in config file
     with open(args.task_config_file, "r") as config_file:
         task_params = yaml.load(config_file, Loader=yaml.FullLoader)
@@ -57,28 +57,10 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    parser.add_argument(
-        "--task-config-file",
-        type=str,
-        default=None,
-        required=True,
-        help="YAML configuration file that contains task information. "
-        "YAML files for already implemented tasks can be found in the config "
-        "directory that is located in the root directory of this repository.",
-    )
-    parser.add_argument(
-        "--output-task-ngrams",
-        type=str,
-        default="./task_ngrams.pkl",
-        help="N-grams computed from input task data. N-grams are stored "
-        "as keys to a dictionary and the values of the dictionary "
-        "are the frequencies of which the n-grams occurr within a "
-        "training dataset (they are initialized to zero within this program)",
-    )
+    argumentHelper = ArgumentHelper(parser)
+    argumentHelper.add_prepare_task_data_args()
 
-    parser = add_distributed_args(parser)
-
-    return parser
+    return argumentHelper.add_distributed_args()
 
 
 def console_script():

@@ -20,11 +20,9 @@ from pathlib import Path
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modules.modify import Modify
-
-# from nemo_curator.pii.algorithm import DEFAULT_LANGUAGE
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_batched_files
-from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
@@ -92,122 +90,42 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
+    argumentHelper = ArgumentHelper(parser)
 
-    parser.add_argument(
-        "--language",
-        type=str,
-        default="en",
-        required=False,
-        help="Language of input documents",
+    argumentHelper.add_anonymize_action()
+    argumentHelper.add_batch_size(
+        default=2000, help="The batch size for processing multiple texts together."
     )
-
-    parser.add_argument(
-        "--supported-entities",
-        type=str,
-        default=None,
-        required=False,
-        help="Comma separated list of PII entity types. None implies all supported types",
-    )
-
-    parser.add_argument(
-        "--anonymize-action",
-        type=str,
-        default="replace",
-        required=False,
-        help="Anonymization action. Choose from among: redact, hash, mask and replace",
-    )
-
-    parser.add_argument(
-        "--hash-type",
-        type=str,
-        default=None,
-        required=False,
-        help="The hash type. Choose from among: sha256, sha512 or md5",
-    )
-
-    parser.add_argument(
-        "--chars-to-mask",
-        type=int,
-        default=100,
-        required=False,
-        help="The number of characters to mask. Only applicable if anonymize action is mask",
-    )
-
-    parser.add_argument(
-        "--masking-char",
-        type=str,
-        default="*",
-        required=False,
-        help="The masking character. Only applicable if anonymize action is mask",
-    )
-
-    parser.add_argument(
-        "--new-value",
-        type=str,
-        default=None,
-        required=False,
-        help="The new value to replace with. Only applicable if anonymize action is replace",
-    )
-
-    parser.add_argument(
-        "--input-data-dir",
-        type=str,
-        default=None,
-        required=True,
-        help="Directory containing the input files",
-    )
-
-    parser.add_argument(
-        "--input-file-type",
-        type=str,
-        default="jsonl",
-        required=True,
+    argumentHelper.add_chars_to_mask()
+    argumentHelper.add_hash_type()
+    argumentHelper.add_input_data_dir(help="Directory containing the input files.")
+    argumentHelper.add_input_file_type(
         choices=["jsonl", "csv", "text"],
         help="The input file type (only jsonl is currently supported)",
     )
-
-    parser.add_argument(
-        "--output-file-type",
-        type=str,
-        default="jsonl",
-        required=True,
+    argumentHelper.add_language(help="Language of input documents")
+    argumentHelper.add_masking_char()
+    argumentHelper.add_new_value()
+    argumentHelper.add_output_data_dir(
+        help="The output directory to where redacted documents will be written."
+    )
+    argumentHelper.add_output_file_type(
         choices=["jsonl", "csv", "text"],
         help="The output file type (only jsonl is currently supported)",
     )
-
-    parser.add_argument(
-        "--text-field",
-        type=str,
-        default="text",
-        help="The input field within each JSONL or CSV object on which the PII redactor will "
-        "operate. By default, the redactor will operate on the 'text' "
-        "field but other fields can be specified such as 'url' or 'id'.",
-    )
-
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=2000,
-        help="The batch size for processing multiple texts together.",
-    )
-
-    parser.add_argument(
-        "--output-data-dir",
-        type=str,
-        default=None,
-        required=True,
-        help="The output directory to where redacted documents will be written.",
-    )
+    argumentHelper.add_supported_entities()
+    argumentHelper.add_text_field()
 
     return parser
 
 
 def console_script():
-    arguments = add_distributed_args(attach_args()).parse_args()
-    client = get_client(**parse_client_args(arguments))
-    if not arguments.n_workers:
-        arguments.n_workers = len(client.scheduler_info()["workers"])
-    main(arguments)
+    parser = attach_args()
+    args = ArgumentHelper(parser).add_distributed_args().parse_args()
+    client = get_client(**ArgumentHelper.parse_client_args(args))
+    if not args.n_workers:
+        args.n_workers = len(client.scheduler_info()["workers"])
+    main(args)
 
 
 if __name__ == "__main__":

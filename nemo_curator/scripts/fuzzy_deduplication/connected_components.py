@@ -17,7 +17,7 @@ import time
 
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import parse_client_args, parse_gpu_dedup_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
@@ -34,7 +34,7 @@ def main(args):
     args.set_torch_to_use_rmm = False
     args.enable_spilling = True
 
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     components_stage = ConnectedComponents(
         cache_dir=args.cache_dir,
@@ -49,32 +49,17 @@ def main(args):
 
 
 def attach_args(parser=None):
-    description = """Computes connected component"""
     if not parser:
-        parser = parse_gpu_dedup_args(description=description)
+        description = """Computes connected component"""
+        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 
-    parser.add_argument(
-        "--jaccard-pairs-path",
-        type=str,
-        help="The directory containing the jaccard results",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        help="The output directory to write results to",
-    )
-    parser.add_argument(
-        "--cache-dir",
-        type=str,
-        help="The cache directory to write intermediate results to",
-    )
-    parser.add_argument(
-        "--jaccard-threshold",
-        type=int,
-        default=0.8,
-        help="Jaccard threshold below which we don't consider documents"
-        " to be duplicate",
-    )
+    argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.add_jaccard_pairs_path()
+    argumentHelper.add_jaccard_threshold()
+    argumentHelper.add_cache_dir()
+    argumentHelper.add_output_dir()
+
     return parser
 
 

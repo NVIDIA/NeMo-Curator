@@ -20,7 +20,7 @@ from nemo_curator.modifiers import FastTextLabelModifier
 from nemo_curator.modules import Modify
 from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def sample_rows(df, n, seed):
@@ -30,7 +30,7 @@ def sample_rows(df, n, seed):
 
 
 def main(args):
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
     # Get local path
     files = list(get_all_files_paths_under(args.input_data_dir))
     raw_data = read_data(files, file_type="jsonl", backend="pandas")
@@ -67,70 +67,20 @@ with FastText.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    parser.add_argument(
-        "--input-data-dir",
-        type=str,
-        default=None,
-        help="Input directory consisting of .jsonl files that are accessible "
-        "to all nodes. Use this for a distributed file system",
-    )
-    parser.add_argument(
-        "--input-local-data-dir",
-        type=str,
-        default=None,
-        help="Input directory consisting of .jsonl files. "
-        "Use this argument when a distributed file system is not available.",
-    )
-    parser.add_argument(
-        "--input-json-field",
-        type=str,
-        default="text",
-        help="The input field within each JSON object on which the filter will "
-        "operate. By default, the filter will operate on the 'text' "
-        "field but other fields can be specified such as 'url' or 'id'.",
-    )
-    parser.add_argument(
-        "--output-num-samples",
-        type=int,
-        default=None,
-        required=True,
-        help="The number of documents to randomly sample from the dataset and"
-        " use as training and validation samples to train the"
-        " skip-gram classifier",
-    )
-    parser.add_argument(
-        "--output-train-file",
-        type=str,
-        default=None,
+    argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.add_input_data_dir()
+    argumentHelper.add_input_local_data_dir()
+    argumentHelper.add_input_json_field()
+    argumentHelper.add_label()
+    argumentHelper.add_log_dir(default="./log/prepare_filter_data")
+    argumentHelper.add_output_train_file(
         help="The output file containing prepared samples to train a "
-        "skip-gram classifier with FastText",
+        "skip-gram classifier with FastText"
     )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="The random seed to use for sampling from the dataset",
-    )
-    parser.add_argument(
-        "--label",
-        type=str,
-        default=None,
-        required=True,
-        help="The label to be used at the beginning of each sample "
-        "in the output file. For example '__label__hq' could be "
-        "used for the high-quality (positive) samples",
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default="./log/prepare_filter_data",
-        help="The output log directory where node and local"
-        " ranks will write their respective log files",
-    )
+    argumentHelper.add_seed(help="The random seed to use for sampling from the dataset")
 
-    parser = add_distributed_args(parser)
-
-    return parser
+    return argumentHelper.add_distributed_args()
 
 
 def console_script():
