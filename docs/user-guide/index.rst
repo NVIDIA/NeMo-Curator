@@ -1,4 +1,4 @@
-.. include:: DataCuration.rsts
+.. include:: datacuration.rsts
 
 :ref:`Downloading and Extracting Text <data-curator-download>`
    Downloading a massive public dataset is usually the first step in data curation, and it can be cumbersome due to the dataset’s massive size and hosting method. This section describes how to download and extract large corpora efficiently.
@@ -35,13 +35,13 @@
    :titlesonly:
 
 
-   Download.rst
-   DocumentDataset.rst
-   CPUvsGPU.rst
-   QualityFiltering.rst
-   LanguageIdentificationUnicodeFormatting.rst
-   GpuDeduplication.rst
-   TaskDecontamination.rst
-   PersonalIdentifiableInformationIdentificationAndRemoval.rst
-   DistributedDataClassification.rst
-   KubernetesCurator.rst
+   download.rst
+   documentcataset.rst
+   cpuvsgpu.rst
+   qualityfiltering.rst
+   languageidentificationunicodeformatting.rst
+   gpudeduplication.rst
+   taskdecontamination.rst
+   piiandremoval.rst
+   distributeddataclassification.rst
+   kubernetescurator.rst
