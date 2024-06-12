@@ -16,11 +16,17 @@ import dask
 
 # Disable query planning before any tests are loaded
 # https://github.com/NVIDIA/NeMo-Curator/issues/73
-if dask.config.get("dataframe.query-planning") is True:
+QUERY_PLANNING = dask.config.get("dataframe.query-planning")
+if QUERY_PLANNING is True or QUERY_PLANNING is None:
     raise NotImplementedError(
-        "NeMo Curator does not support query planning yet. "
-        "Please disable query planning before importing "
-        "`nemo_curator`, `dask.dataframe` or `dask_cudf`."
+        """
+        NeMo Curator does not support query planning yet.
+        Please disable query planning before importing
+        `dask.dataframe` or `dask_cudf`. This can be done via:
+        `export DASK_DATAFRAME__QUERY_PLANNING=False`, or
+        importing `dask.dataframe/dask_cudf` after importing
+        `nemo_curator`.
+        """
     )
 else:
     dask.config.set({"dataframe.query-planning": False})
