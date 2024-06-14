@@ -27,18 +27,23 @@
 :ref:`NeMo Curator on Kubernetes <data-curator-kubernetes>`
    Demonstration of how to run the NeMo Curator on a Dask Cluster deployed on top of Kubernetes
 
+`Tutorials <https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials>`__
+   To get started, you can explore the NeMo Curator GitHub repository and follow the available tutorials and notebooks. These resources cover various aspects of data curation, including training from scratch and Parameter-Efficient Fine-Tuning (PEFT).
+
+
 .. toctree::
    :maxdepth: 4
    :titlesonly:
 
 
-   Download.rst
-   DocumentDataset.rst
-   CPUvsGPU.rst
-   QualityFiltering.rst
-   LanguageIdentificationUnicodeFormatting.rst
-   GpuDeduplication.rst
-   TaskDecontamination.rst
-   PersonalIdentifiableInformationIdentificationAndRemoval.rst
-   DistributedDataClassification.rst
-   KubernetesCurator.rst
+   download.rst
+   documentdataset.rst
+   cpuvsgpu.rst
+   qualityfiltering.rst
+   languageidentificationunicodeformatting.rst
+   gpudeduplication.rst
+   taskdecontamination.rst
+   personalidentifiableinformationidentificationandremoval.rst
+   distributeddataclassification.rst
+   kubernetescurator.rst
+
