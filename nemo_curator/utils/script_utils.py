@@ -253,6 +253,7 @@ class ArgumentHelper:
 
     def add_arg_shuffle(self, help: str):
         ArgumentHelper.__attach_bool_arg(
+            self.parser,
             "shuffle",
             help=help,
         )
