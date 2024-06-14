@@ -648,7 +648,7 @@ class ArgumentHelper:
             "be written every 10000 documents in a file",
         )
         ArgumentHelper.__attach_bool_arg(
-            self.__parser,
+            self.parser,
             "log-scores",
             default=False,
             help="Specifying this flag will cause the computed scores to be "
