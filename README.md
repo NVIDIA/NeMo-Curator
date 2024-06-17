@@ -31,7 +31,7 @@ NeMo Curator provides a collection of scalable data-mining modules. Some of the 
 - Both exact and fuzzy deduplication are accelerated using cuDF and Dask
 - For fuzzy deduplication, our implementation follows the method described in [Microsoft Turing NLG 530B](https://arxiv.org/abs/2201.11990)
 
-[Multilingual downstream-task decontamination](docs/user-guide/TaskDecontamination.rst)
+[Multilingual downstream-task decontamination](docs/user-guide/taskdecontamination.rst)
 
 - Our implementation follows the approach of [OpenAI GPT3](https://arxiv.org/pdf/2005.14165.pdf) and [Microsoft Turing NLG 530B](https://arxiv.org/abs/2201.11990)
 
