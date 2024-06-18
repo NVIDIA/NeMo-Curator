@@ -190,9 +190,8 @@ def extract_text(
     else:
         raise ValueError(
             f"""
-                         Invalid text extraction algorithm: {algorithm}.
-                         Expected 'justext' or 'resiliparse'.
-                         """
+                Invalid text extraction algorithm: {algorithm}. Expected 'justext' or 'resiliparse'.
+            """
         )
 
 
