@@ -25,35 +25,6 @@ from nemo_curator.utils.script_utils import parse_client_args
 def main(args):
     global_st = time.time()
 
-    labels = [
-        "Adult",
-        "Arts_and_Entertainment",
-        "Autos_and_Vehicles",
-        "Beauty_and_Fitness",
-        "Books_and_Literature",
-        "Business_and_Industrial",
-        "Computers_and_Electronics",
-        "Finance",
-        "Food_and_Drink",
-        "Games",
-        "Health",
-        "Hobbies_and_Leisure",
-        "Home_and_Garden",
-        "Internet_and_Telecom",
-        "Jobs_and_Education",
-        "Law_and_Government",
-        "News",
-        "Online_Communities",
-        "People_and_Society",
-        "Pets_and_Animals",
-        "Real_Estate",
-        "Science",
-        "Sensitive_Subjects",
-        "Shopping",
-        "Sports",
-        "Travel_and_Transportation",
-    ]
-
     model_path = "/path/to/pytorch_model_file.pth"
 
     # Input can be a string or list
@@ -68,7 +39,6 @@ def main(args):
 
     domain_classifier = DomainClassifier(
         model_path=model_path,
-        labels=labels,
         filter_by=["Games", "Sports"],
     )
     result_dataset = domain_classifier(dataset=input_dataset)
