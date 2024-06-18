@@ -39,16 +39,6 @@ Let's see how ``DomainClassifier`` works in a small excerpt taken from ``example
 
 .. code-block:: python
 
-    labels = [
-        "Adult",
-        "Arts_and_Entertainment",
-        "Autos_and_Vehicles",
-        ...,
-        "Shopping",
-        "Sports",
-        "Travel_and_Transportation",
-    ]
-
     model_path = "pytorch_model_file.pth"
 
     files = get_all_files_paths_under("books_dataset/")
@@ -56,7 +46,6 @@ Let's see how ``DomainClassifier`` works in a small excerpt taken from ``example
 
     domain_classifier = DomainClassifier(
         model_path=model_path,
-        labels=labels,
         filter_by=["Games", "Sports"],
     )
     result_dataset = domain_classifier(dataset=input_dataset)
