@@ -55,10 +55,26 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_connected_components()
     argumentHelper.add_arg_output_dir()
+    parser.add_argument(
+        "--cache-dir",
+        type=str,
+        help="The cache directory to write intermediate results to",
+    )
+    parser.add_argument(
+        "--jaccard-pairs-path",
+        type=str,
+        help="The directory containing the jaccard results",
+    )
+    parser.add_argument(
+        "--jaccard-threshold",
+        type=int,
+        default=0.8,
+        help="Jaccard threshold below which we don't consider documents"
+        " to be duplicate",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

@@ -62,12 +62,39 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_find_matching_ngrams()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_input_text_field()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--input-task-ngrams",
+        type=str,
+        default=None,
+        help="",
+    )
+    parser.add_argument(
+        "--max-ngram-size",
+        type=int,
+        default=13,
+        help="The maximum n-gram size to consider within the dataset",
+    )
+    parser.add_argument(
+        "--min-ngram-size",
+        type=int,
+        default=8,
+        help="The minimum n-gram size to consider within the datset",
+    )
+    parser.add_argument(
+        "--output-matched-ngram-data",
+        type=str,
+        default=None,
+        help="Output dictionary that contains the output matched n-grams "
+        "and the frequency of their matches, min-ngram size, max-ngram "
+        "size and the frequencies of n-gram sizes. All of these data will be "
+        "used by remove_matching_grams for which this program is a prequisite",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

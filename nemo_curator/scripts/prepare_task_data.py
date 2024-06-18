@@ -57,11 +57,27 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    argumentHelper = ArgumentHelper(parser)
+    ArgumentHelper(parser).add_distributed_args()
+    parser.add_argument(
+        "--output-task-ngrams",
+        type=str,
+        default="./task_ngrams.pkl",
+        help="N-grams computed from input task data. N-grams are stored "
+        "as keys to a dictionary and the values of the dictionary "
+        "are the frequencies of which the n-grams occurr within a "
+        "training dataset (they are initialized to zero within this program)",
+    )
+    parser.add_argument(
+        "--task-config-file",
+        type=str,
+        default=None,
+        required=True,
+        help="YAML configuration file that contains task information. "
+        "YAML files for already implemented tasks can be found in the config "
+        "directory that is located in the root directory of this repository.",
+    )
 
-    argumentHelper.add_args_prepare_task_data()
-
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

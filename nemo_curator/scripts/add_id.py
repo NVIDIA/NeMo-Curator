@@ -71,7 +71,6 @@ these ids must be added prior to performing fuzzy/exact deduplication
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_add_id()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_output_data_dir(
@@ -84,8 +83,34 @@ these ids must be added prior to performing fuzzy/exact deduplication
         help="Shuffle the order of files before assigning IDs."
         "Useful for creating a copy dataset with different IDs"
     )
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--id-field-name",
+        type=str,
+        default="adlr_id",
+        help="The name of the field that will contain the id value. "
+        "Default is 'adlr_id'",
+    )
+    parser.add_argument(
+        "--id-prefix",
+        type=str,
+        default="doc_id",
+        help="The prefix to the id number that will be assigned to the "
+        "document. When performing deduplication jointly with different"
+        "datasets, it is helpful to provide a prefix that denotes that a "
+        "document belongs to a particular dataset (e.g., wiki for documents"
+        "that come from the wikipedia dataset)",
+    )
+    parser.add_argument(
+        "--starting-index",
+        type=int,
+        default=None,
+        help="If supplied, determines the starting index from which to start "
+        "indexing the documents. By default, it is unspecified, and uses an id"
+        " scheme that is fast to calculate and is not guaranteed to be ordered.",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

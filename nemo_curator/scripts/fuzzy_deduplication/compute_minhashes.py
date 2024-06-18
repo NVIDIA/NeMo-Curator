@@ -115,14 +115,36 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_compute_minhashes()
     argumentHelper.add_arg_minhash_length()
     argumentHelper.add_arg_seed(
         help="Random seed used for intializing the hash "
         "functions used to compute the MinHashes"
     )
+    parser.add_argument(
+        "--char-ngram",
+        type=int,
+        default=5,
+        help="The number of consecutive characters to include in a sliding "
+        "window when creating the document shingles for computing "
+        "minhash signatures.",
+    )
+    parser.add_argument(
+        "--hash-bytes",
+        type=int,
+        default=4,
+        help="Number of bytes per computed minhash "
+        "(default is an unsigned 32-bit integer)",
+    )
+    parser.add_argument(
+        "--output-minhash-dir",
+        type=str,
+        required=True,
+        help="Output directory where minhashes will be written. "
+        "Each file is a parquet file that contains two series, the document ids, "
+        "and a series of lists, each list denoting the minhash signature for that document id.",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

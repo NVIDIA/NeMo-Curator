@@ -83,10 +83,52 @@ if __name__ == "__main__":
         return name_to_path
 
     parser = argparse.ArgumentParser()
-    ArgumentHelper(parser).add_args_create_k8s_dask_cluster()
-
-    args = parser.parse_args()
+    parser.add_argument(
+        "-n",
+        "--name",
+        type=str,
+        default="rapids-dask",
+        help="The name of the DaskCluster which you would be able to inspect via `kubectl describe daskcluster <name>`.",
+    )
+    parser.add_argument(
+        "-w", "--n_workers", type=int, default=2, help="Number of workers"
+    )
+    parser.add_argument(
+        "-g",
+        "--n_gpus_per_worker",
+        type=int,
+        default=None,
+        help="Number of GPUs per worker. If not specified, the Dask Cluster defaults to a CPU cluster.",
+    )
+    parser.add_argument(
+        "-c",
+        "--n_cpus_per_worker",
+        type=int,
+        default=None,
+        help="Number of CPUs per worker. Provide this flag if you want to limit your CPU resources and K8s will throttle the workers to make sure this limit is satisfied.",
+    )
+    parser.add_argument(
+        "-i",
+        "--image",
+        type=str,
+        default="nvcr.io/nvidia/nemo:24.03.framework",
+        help="The image used for the Dask Cluster scheduler and workers.",
+    )
+    parser.add_argument(
+        "-s",
+        "--image_pull_secret",
+        type=str,
+        default=None,
+        help="If --image is from a private registry, specify the appropriate pull secret you created to allow these to be pulled.",
+    )
+    parser.add_argument(
+        "-p",
+        "--pvcs",
+        type=parse_pvcs,
+        default="",
+        help="Comma sep PVC specificiation of $pvc_name_1:$mount_path_1,$pvc_name_2:$mount_path_2. Example: foo:/foo,bar:/bar mounts pvcs named foo and bar to /foo and /bar respectively.",
+    )
 
     create_cluster(
-        **vars(args),
+        **vars(parser.parse_args()),
     )

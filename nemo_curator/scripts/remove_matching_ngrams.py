@@ -97,14 +97,56 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_remove_matching_ngrams()
     argumentHelper.add_arg_batch_size()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_input_text_field()
     argumentHelper.add_arg_output_file_type()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--input-matched-ngrams",
+        type=str,
+        default=None,
+        required=True,
+        help="Input dictionary (.pkl file), that contains matched "
+        "n-gram data from the find_matching_ngrams code",
+    )
+    parser.add_argument(
+        "--match-threshold",
+        type=int,
+        default=10,
+        help="A threshold that determines if a matched n-gram will be "
+        "considered for removal in remove_matching_ngrams. N-grams that "
+        "exceed this number of matches in the training dataset will not be "
+        "considered during the removal stage",
+    )
+    parser.add_argument(
+        "--max-document-splits",
+        type=int,
+        default=10,
+        help="A threshold used to determine if a document should be removed "
+        "from the corpus if it is split more than "
+        "--max-document-splits number of times",
+    )
+    parser.add_argument(
+        "--output-removed-doc-dir",
+        type=str,
+        default=None,
+        help="Output directory to where removed documents will be written. "
+        "Documents will be removed from the corpus if they are split more "
+        "than --max-document-splits number of times, or if the user specifies "
+        "that they be removed via the flag, --remove-split-docs",
+    )
+    parser.add_argument(
+        "--output-task-deduped-dir",
+        type=str,
+        default=None,
+        required=True,
+        help="Output directory to where task-deduplicated (split) "
+        "documents will be written",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

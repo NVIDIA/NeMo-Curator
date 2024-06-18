@@ -79,12 +79,28 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_map_buckets()
     argumentHelper.add_arg_input_meta()
     argumentHelper.add_arg_output_dir()
     argumentHelper.add_arg_text_ddf_blocksize()
+    parser.add_argument(
+        "--input-bucket-dir",
+        type=str,
+        help="The directory containing bucket information files",
+    )
+    parser.add_argument(
+        "--input-bucket-field",
+        type=str,
+        default="_bucket_id",
+        help="Name of the column containing minhashes",
+    )
+    parser.add_argument(
+        "--shuffle-type",
+        type=str,
+        default="tasks",
+        help="Type of shuffle to use before writing to parquet",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def jaccard_get_output_map_workflow(

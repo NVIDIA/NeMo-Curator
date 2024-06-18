@@ -59,12 +59,20 @@ def attach_args(parser=None):
         description = """Computes jaccard similarity"""
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 
-    argumentHelper = ArgumentHelper(parser)
+    ArgumentHelper(parser).add_arg_output_dir()
+    parser.add_argument(
+        "--ngram-size",
+        type=int,
+        default=5,
+        help="Size of ngram to use during jaccard similarity",
+    )
+    parser.add_argument(
+        "--shuffled-docs-path",
+        type=str,
+        help="The directory containing the shuffled documents",
+    )
 
-    argumentHelper.add_args_jaccard_compute()
-    argumentHelper.add_arg_output_dir()
-
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

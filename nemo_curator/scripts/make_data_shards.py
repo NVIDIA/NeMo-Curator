@@ -48,10 +48,36 @@ The size of the input files must be larger than the specified
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_make_data_shards()
     argumentHelper.add_arg_input_data_dir()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--output-file-size",
+        type=str,
+        default="100M",
+        help="Approximate size of output files. Must specify with a string and "
+        "with the unit K, M or G for kilo, mega or gigabytes",
+    )
+    parser.add_argument(
+        "--output-resharded-dir",
+        type=str,
+        default=None,
+        required=True,
+        help="Output directory to where the sharded " ".jsonl files will be written",
+    )
+    parser.add_argument(
+        "--prefix",
+        type=str,
+        default="",
+        help="Prefix to use to prepend to output file number",
+    )
+    parser.add_argument(
+        "--start-index",
+        type=int,
+        default=0,
+        help="Starting index for naming the output files",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

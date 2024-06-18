@@ -36,7 +36,22 @@ Pulls urls pointing to the latest Wikipedia dumps
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    ArgumentHelper(parser).add_args_wikipedia()
+    ArgumentHelper(parser).add_arg_language(
+        help="Desired language of the Wikipedia dump"
+    )
+    parser.add_argument(
+        "--output-url-file",
+        type=str,
+        default="wikipedia_urls_latest.txt",
+        help="The output file to which the urls containing "
+        "the latest dump data will be written",
+    )
+    parser.add_argument(
+        "--wikidumps-index-baseurl",
+        type=str,
+        default="https://dumps.wikimedia.org",
+        help="The base url for all Wikipedia dumps",
+    )
 
     return parser
 

@@ -69,7 +69,6 @@ with FastText.
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_prepare_fasttext_training_data()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_local_data_dir()
     argumentHelper.add_arg_log_dir(default="./log/prepare_filter_data")
@@ -80,8 +79,26 @@ with FastText.
     argumentHelper.add_arg_seed(
         help="The random seed to use for sampling from the dataset"
     )
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--input-json-field",
+        type=str,
+        default="text",
+        help="The input field within each JSON object on which the filter will "
+        "operate. By default, the filter will operate on the 'text' "
+        "field but other fields can be specified such as 'url' or 'id'.",
+    )
+    parser.add_argument(
+        "--label",
+        type=str,
+        default=None,
+        required=True,
+        help="The label to be used at the beginning of each sample "
+        "in the output file. For example '__label__hq' could be "
+        "used for the high-quality (positive) samples",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

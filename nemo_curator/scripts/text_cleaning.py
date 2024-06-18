@@ -73,14 +73,20 @@ the 'language' field within each JSON object.
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_text_cleaning()
     argumentHelper.add_arg_batch_size()
     argumentHelper.add_arg_input_data_dir()
-    argumentHelper.add_arg_input_text_field()
     argumentHelper.add_arg_input_file_type()
+    argumentHelper.add_arg_input_text_field()
     argumentHelper.add_arg_output_file_type()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--output-clean-dir",
+        type=str,
+        required=True,
+        help="The output directory to where the cleaned " "jsonl files will be written",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

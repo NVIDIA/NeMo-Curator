@@ -92,7 +92,6 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_find_pii_and_deidentify()
     argumentHelper.add_arg_batch_size(
         default=2000, help="The batch size for processing multiple texts together."
     )
@@ -109,8 +108,52 @@ def attach_args(
         choices=["jsonl", "csv", "text"],
         help="The output file type (only jsonl is currently supported)",
     )
+    parser.add_argument(
+        "--anonymize-action",
+        type=str,
+        default="replace",
+        help="Anonymization action. Choose from among: redact, hash, mask and replace",
+    )
+    parser.add_argument(
+        "--chars-to-mask",
+        type=int,
+        default=100,
+        help="The number of characters to mask. Only applicable if anonymize action is mask",
+    )
+    parser.add_argument(
+        "--hash-type",
+        type=str,
+        default=None,
+        help="The hash type. Choose from among: sha256, sha512 or md5",
+    )
+    parser.add_argument(
+        "--masking-char",
+        type=str,
+        default="*",
+        help="The masking character. Only applicable if anonymize action is mask",
+    )
+    parser.add_argument(
+        "--new-value",
+        type=str,
+        default=None,
+        help="The new value to replace with. Only applicable if anonymize action is replace",
+    )
+    parser.add_argument(
+        "--supported-entities",
+        type=str,
+        default=None,
+        help="Comma separated list of PII entity types. None implies all supported types",
+    )
+    parser.add_argument(
+        "--text-field",
+        type=str,
+        default="text",
+        help="The input field within each JSONL or CSV object on which the PII redactor will "
+        "operate. By default, the redactor will operate on the 'text' "
+        "field but other fields can be specified such as 'url' or 'id'.",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

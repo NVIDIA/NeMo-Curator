@@ -65,7 +65,6 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_separate_by_metadata()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_output_data_dir(
@@ -74,8 +73,37 @@ def attach_args(
         "metadata directory that is a sub-directory of this directory"
     )
     argumentHelper.add_arg_output_file_type()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--input-metadata-field",
+        type=str,
+        default="language",
+        help="The name of the field within each datapoint object of the input "
+        "file that the dataset should be separated by.",
+    )
+    parser.add_argument(
+        "--output-metadata-distribution",
+        type=str,
+        help="Output json file containing the frequency of documents "
+        "that occur for a particular metadata.",
+    )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "remove-input-dir",
+        default=False,
+        help="Specify '--remove-input-dir' to remove the original "
+        "input directory. This is false by default.",
+    )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "remove-metadata-field",
+        default=False,
+        help="Option of whether to remove the metadata field "
+        "after filtering. Useful only in the case in which one metadata "
+        "is desired to be separated from the others",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

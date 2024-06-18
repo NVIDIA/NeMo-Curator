@@ -32,12 +32,34 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description="Run verification")
 
-    argumentHelper = ArgumentHelper(parser)
+    ArgumentHelper(parser).add_arg_input_meta()
+    parser.add_argument(
+        "--expected_pred_column",
+        type=str,
+        default="pred",
+        help="The prediction column name for the expected_result file",
+    )
 
-    argumentHelper.add_args_verify_classification()
-    argumentHelper.add_arg_input_meta()
+    parser.add_argument(
+        "--expected_results_file_path",
+        type=str,
+        required=True,
+        help="The path of the expected_result file",
+    )
+    parser.add_argument(
+        "--results_file_path",
+        type=str,
+        required=True,
+        help="The path of the input files",
+    )
+    parser.add_argument(
+        "--results_pred_column",
+        type=str,
+        default="pred",
+        help="The prediction column name for the input files",
+    )
 
-    return argumentHelper.parser.parse_args()
+    return parser.parse_args()
 
 
 def verify_same_counts(got_counts, expected_counts):

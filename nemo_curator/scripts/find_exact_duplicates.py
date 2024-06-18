@@ -91,15 +91,20 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_find_exact_duplicates()
     argumentHelper.add_arg_output_dir(
         help="Output directory where duplicate docs will be written. "
         "Each file is a pickle file that contains a dictionary of numpy arrays. "
         "The keys are the document ids and the values are the duplicate docs",
         required=True,
     )
+    parser.add_argument(
+        "--hash-method",
+        type=str,
+        default="md5",
+        help="Hash Method to use for exact dedup",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

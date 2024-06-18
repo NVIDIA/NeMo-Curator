@@ -84,12 +84,34 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_jaccard_shuffle()
     argumentHelper.add_arg_input_meta()
     argumentHelper.add_arg_output_dir()
     argumentHelper.add_arg_text_ddf_blocksize()
+    parser.add_argument(
+        "--bucket-mapping-ddf-blocksize",
+        type=int,
+        default=256,
+        help="The block size for for anchor_docs_with_bk ddf in mb",
+    )
+    parser.add_argument(
+        "--bucket-parts-per-worker",
+        default=8,
+        type=int,
+        help="The number of bucket parts to process per worker per batch",
+    )
+    parser.add_argument(
+        "--input-bucket-mapping-dir",
+        type=str,
+        help="The directory containing anchor docs with bk files",
+    )
+    parser.add_argument(
+        "--parts-per-worker",
+        default=1,
+        type=int,
+        help="The number of parts to process per worker per batch",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

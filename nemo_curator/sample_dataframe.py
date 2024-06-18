@@ -50,7 +50,13 @@ if __name__ == "__main__":
 
     parser = add_cluster_args(parser)
     parser = add_input_output_args(parser)
-    ArgumentHelper(parser).add_args_sample_dataframe()
+    parser.add_argument(
+        "--num_samples",
+        type=int,
+        help="The number of rows to sample",
+        required=True,
+    )
+
     args = parser.parse_args()
     print(f"Arguments parsed = {args}", flush=True)
     client = get_client(**ArgumentHelper.parse_client_args(args), cluster_type="gpu")

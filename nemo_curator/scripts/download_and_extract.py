@@ -105,11 +105,58 @@ such that it simply returns the pre-downloaded file
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_download_and_extract()
     argumentHelper.add_arg_input_data_dir(help="Path to input data directory.")
     argumentHelper.add_arg_input_meta()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--builder-config-file",
+        type=str,
+        required=True,
+        help="YAML file that contains paths to implementations of a downloader, "
+        "iterator and extractor that will be used in this program "
+        "to build the documents that make up the output dataset",
+    )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "download-only",
+        help="Specify this flag if you desire to only download the data"
+        "files and not extract text from the downloaded files",
+    )
+    parser.add_argument(
+        "--input-url-file",
+        type=str,
+        default=None,
+        help="Input directory consisting of .jsonl files that are accessible "
+        "to all nodes. Use this for a distributed file system",
+    )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "keep-downloaded-files",
+        help="If this flag is set to true, the downloaded data files "
+        "will be kept on disk and not removed after extraction",
+    )
+    parser.add_argument(
+        "--output-download-dir",
+        type=str,
+        default=None,
+        help="The directory to where data files will be written "
+        "in 'download-only' mode. Specify this argument only when "
+        "the '--download-only flag is specified'.",
+    )
+    parser.add_argument(
+        "--output-json-dir",
+        type=str,
+        default=None,
+        help="Output directory to store the extracted text in jsonl files",
+    )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "overwrite-existing-json",
+        help="If this flag is specified, then the json data will be "
+        "overwritten if downloading from the the same file.",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():

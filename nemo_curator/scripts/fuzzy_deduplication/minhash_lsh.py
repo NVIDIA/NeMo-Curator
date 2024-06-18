@@ -87,10 +87,34 @@ def attach_args(parser=None):
 
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_args_minhash_lsh()
     argumentHelper.add_arg_minhash_length()
+    parser.add_argument(
+        "--buckets-per-shuffle",
+        type=int,
+        required=True,
+        help="Number of buckets to shuffle per batch",
+    )
+    parser.add_argument(
+        "--input-minhash-field",
+        type=str,
+        default="_minhash_signature",
+        help="Name of the column containing minhashes",
+    )
+    parser.add_argument(
+        "--num-bands",
+        type=int,
+        default=20,
+        help="The number of minhashes to compute for each document.",
+    )
+    parser.add_argument(
+        "--output-bucket-dir",
+        type=str,
+        required=True,
+        help="Output directory where minhashes will be written. "
+        "Each file parquet file consiting of document and bucket IDs",
+    )
 
-    return argumentHelper.parser
+    return parser
 
 
 def console_script():
