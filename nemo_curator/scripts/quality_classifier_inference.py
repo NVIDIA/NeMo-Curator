@@ -43,28 +43,10 @@ def add_quality_model_specific_args(parser):
     return parser
 
 
-def get_labels(num_labels):
-    """
-    This function returns a list of quality labels, depending on how many labels the user expects.
-
-    Args:
-        num_labels: An integer representing the number of possible classification labels.
-    Returns:
-        A list of label names.
-
-    """
-    if num_labels == 3:
-        labels = ["High", "Medium", "Low"]
-    elif num_labels == 2:
-        labels = ["Medium_High", "Low"]
-    return labels
-
-
 def main():
     parser = parse_distributed_classifier_args()
     parser = add_quality_model_specific_args(parser)
     args = parser.parse_args()
-    labels = get_labels(args.num_labels)
     print(f"Arguments parsed = {args}", flush=True)
     max_chars = 6000
 
@@ -90,11 +72,10 @@ def main():
 
     classifier = QualityClassifier(
         model_path=args.model_path,
+        num_labels=args.num_labels,
         max_chars=max_chars,
-        labels=labels,
         batch_size=args.batch_size,
         autocast=args.autocast,
-        out_dim=len(labels),
     )
 
     for file_batch_id, i in enumerate(range(0, len(input_files), files_per_run)):
