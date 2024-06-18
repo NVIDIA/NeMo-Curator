@@ -149,6 +149,9 @@ class DistributedDataClassifier(ABC):
 
         raise TypeError("filter_by must be a string or list type")
 
+    def get_labels(self):
+        return self.labels
+
 
 def _run_classifier_helper(
     df: "dask_cudf.DataFrame",
@@ -271,34 +274,59 @@ class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
         model_path,
-        labels,
         filter_by=None,
         batch_size=256,
-        out_dim=None,
         pred_column="domain_pred",
         prob_column=None,
         max_chars=2000,
         device_type="cuda",
         autocast=True,
     ):
-        if out_dim is None:
-            out_dim = len(labels)
+        self.labels = [
+            "Adult",
+            "Arts_and_Entertainment",
+            "Autos_and_Vehicles",
+            "Beauty_and_Fitness",
+            "Books_and_Literature",
+            "Business_and_Industrial",
+            "Computers_and_Electronics",
+            "Finance",
+            "Food_and_Drink",
+            "Games",
+            "Health",
+            "Hobbies_and_Leisure",
+            "Home_and_Garden",
+            "Internet_and_Telecom",
+            "Jobs_and_Education",
+            "Law_and_Government",
+            "News",
+            "Online_Communities",
+            "People_and_Society",
+            "Pets_and_Animals",
+            "Real_Estate",
+            "Science",
+            "Sensitive_Subjects",
+            "Shopping",
+            "Sports",
+            "Travel_and_Transportation",
+        ]
+        self.out_dim = len(self.labels)
 
         self.prob_column = prob_column
 
         model = DomainModel(
             config=DomainModelConfig,
-            out_dim=out_dim,
+            out_dim=self.out_dim,
             model_path=model_path,
             autocast=autocast,
         )
 
         super().__init__(
             model=model,
-            labels=labels,
+            labels=self.labels,
             filter_by=filter_by,
             batch_size=batch_size,
-            out_dim=out_dim,
+            out_dim=self.out_dim,
             pred_column=pred_column,
             max_chars=max_chars,
             device_type=device_type,
@@ -324,37 +352,39 @@ class QualityClassifier(DistributedDataClassifier):
     def __init__(
         self,
         model_path,
-        labels,
+        num_labels=3,
         filter_by=None,
         batch_size=256,
-        out_dim=None,
         pred_column="quality_pred",
         prob_column="quality_prob",
         max_chars=6000,
         device_type="cuda",
         autocast=True,
     ):
-        if len(labels) == 2:
-            out_dim = 1  # Binary classification
+        if num_labels == 3:
+            self.labels = ["High", "Medium", "Low"]
+            self.out_dim = num_labels  # Multiclass classification
+        elif num_labels == 2:
+            self.labels = ["Medium_High", "Low"]
+            self.out_dim = 1  # Binary classification
         else:
-            if out_dim is None:
-                out_dim = len(labels)  # Multiclass classification
+            raise ValueError("num_labels must be 2 or 3")
 
         self.prob_column = prob_column
 
         model = QualityModel(
             config=QualityModelConfig,
-            out_dim=out_dim,
+            out_dim=self.out_dim,
             model_path=model_path,
             autocast=autocast,
         )
 
         super().__init__(
             model=model,
-            labels=labels,
+            labels=self.labels,
             filter_by=filter_by,
             batch_size=batch_size,
-            out_dim=out_dim,
+            out_dim=self.out_dim,
             pred_column=pred_column,
             max_chars=max_chars,
             device_type=device_type,
