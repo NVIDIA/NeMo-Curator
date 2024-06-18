@@ -141,32 +141,32 @@ def extract_text(
         if length_low is not None:
             warnings.warn(
                 "jusText-specific parameter 'length_low' is set but will be ignored when using Resiliparse.",
-                UserWarning
+                UserWarning,
             )
         if length_high is not None:
             warnings.warn(
                 "jusText-specific parameter 'length_high' is set but will be ignored when using Resiliparse.",
-                UserWarning
+                UserWarning,
             )
         if stopwords_low is not None:
             warnings.warn(
                 "jusText-specific parameter 'stopwords_low' is set but will be ignored when using Resiliparse.",
-                UserWarning
+                UserWarning,
             )
         if max_link_density is not None:
             warnings.warn(
                 "jusText-specific parameter 'max_link_density' is set but will be ignored when using Resiliparse.",
-                UserWarning
+                UserWarning,
             )
         if max_heading_distance is not None:
             warnings.warn(
                 "jusText-specific parameter 'max_heading_distance' is set but will be ignored when using Resiliparse.",
-                UserWarning
+                UserWarning,
             )
         if no_headings is not None:
             warnings.warn(
                 "jusText-specific parameter 'no_headings' is set but will be ignored when using Resiliparse.",
-                UserWarning
+                UserWarning,
             )
 
         text = extract_plain_text(html, main_content=True, alt_texts=False)
@@ -188,10 +188,12 @@ def extract_text(
             return None
         return result
     else:
-        raise ValueError(f"""
+        raise ValueError(
+            f"""
                          Invalid text extraction algorithm: {algorithm}.
                          Expected 'justext' or 'resiliparse'.
-                         """)
+                         """
+        )
 
 
 def get_stop_list_dict(languages=[]):
