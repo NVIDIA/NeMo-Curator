@@ -19,8 +19,10 @@ from tqdm import tqdm
 import argparse
 from typing import List, Tuple, Union
 from utils import get_logger
-import cudf
+import dask_cudf, cudf
 from glob import glob
+import pdb
+
 
 def assign_and_sort_clusters(
     data: np.ndarray,
@@ -65,15 +67,13 @@ def assign_and_sort_clusters(
     logger.info("Ranking...")
     kmeans_centroids_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
     kmeans_centroids = np.load(kmeans_centroids_file_loc)
+    nearest_cent_file_loc = pathlib.Path(save_folder, "embs_by_nearest_center")
 
-    nearest_cent_file_loc = pathlib.Path(save_folder, "added_nearest_center.parquet")
-    dist_df = pd.read_parquet(nearest_cent_file_loc, columns=[id_col, 'nearest_cent', 'dist_to_cent'])
-    
     start_time = time.time()
 
     sorted_clusters = rank_within_cluster(
         data,
-        dist_df,
+        nearest_cent_file_loc,
         kmeans_centroids,
         sim_metric,
         keep_hard,
@@ -89,7 +89,7 @@ def assign_and_sort_clusters(
 
 def rank_within_cluster(
     data: np.ndarray,
-    dist_df: pd.DataFrame,
+    nearest_cent_file_loc: str,
     centroids: np.ndarray,
     sim_metric: str = "cosine",
     keep_hard: bool = True,
@@ -140,9 +140,13 @@ def rank_within_cluster(
             print(f"Cluster {cluster_c} exits, skipping....")
             continue
 
-        cluster_df = dist_df.loc[dist_df["nearest_cent"] == cluster_c]
+        cluster_c_path = os.path.join(nearest_cent_file_loc,f'nearest_cent={cluster_c:0.1f}')
+        cluster_df = cudf.read_parquet(cluster_c_path, columns=[id_col, 'nearest_cent', 'dist_to_cent'])
+        #cluster_items = cluster_df.index.to_arrow().tolist()  ## -- ids of examples in cluster c
+        cluster_df = cluster_df.to_pandas()
 
-        cluster_items = list(cluster_df.index)  ## -- ids of examples in cluster c
+        #cluster_items = list(cluster_df.index)  ## -- ids of examples in cluster c
+        cluster_items = list(cluster_df[id_col])
         if sim_metric == "cosine":
             if spherical:
                 cluster_dists_to_cent = list(1 - cluster_df["dist_to_cent"])
@@ -169,6 +173,7 @@ def rank_within_cluster(
             cluster_sorted
         )  # -- Descending dists. list of of list of tuples (example, dist). The ith list of tuples corresponds to cluster i
         sorted_cluster_file_path = f"{sorted_clusters_file_loc}/cluster_{cluster_c}.npy"
+
         np.save(sorted_cluster_file_path, cluster_sorted)
     return sorted_clusters_list
 
@@ -179,16 +184,16 @@ if __name__ == "__main__":
     config_file = "./configs_cf.yml"
     with open(config_file, "r") as y_file:
         params = yaml.load(y_file, Loader=yaml.FullLoader)
-  
-    
+
+
     save_loc = f'{params["root"]}/{params["clustering"]["save_loc"]}'
     os.makedirs(save_loc, exist_ok=True)
-    
+
     with open(pathlib.Path(save_loc, "sort_cluster_params.txt"), "w") as f:
         pprint.pprint(params, f)
 
     cluster_ids = list(range(params['clustering']['num_clusters']))
-    
+
     logger = get_logger(
             file_name=f"{save_loc}/sort-cluster-logs.log",
             level=logging.INFO,
@@ -196,7 +201,7 @@ if __name__ == "__main__":
         )
 
     emb_pqt_loc = f'{params["root"]}/{params["embeddings"]["emb_parquet_path"]}'
-    df = pd.read_parquet(emb_pqt_loc)   
+    df = pd.read_parquet(emb_pqt_loc)
     data = df['embeddings']
     id_col = params['id_col']['name']
     id_list = df[id_col]

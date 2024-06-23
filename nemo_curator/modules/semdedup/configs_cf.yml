@@ -1,8 +1,8 @@
 root: '/raid/fayw/semdedup'
-sample: 5
+sample: 10
 id_col:
    name: 'id' #'adlr_id'
-   type:  int' #'str'
+   type:  'int' #'str'
 
 
 # Embeddings
@@ -10,17 +10,17 @@ embeddings:
   input_column: 'text'
   datapath: 'datasets/c4/realnewslike/modified/'
   #datapath: 'datasets/prospector-lm/cleaned_exact_dedup_all_cc'
-  emb_parquet_path: "emb_sentmpnet_c4_crossfit_5" #"emb_fbopt125_cc_crossfit_5_v2" #
-  model_name: 'facebook/opt-125m' #'sentence-transformers/all-mpnet-base-v2' # '/raid/fayw/semdedup/models/facebook-opt-125m/' 'sentence-transformers/all-mpnet-base-v2'
+  emb_parquet_path: "emb_fbopt125_c4_crossfit_10" #"emb_sentmpnet_c4_crossfit_5" # #
+  model_name: 'facebook/opt-125m' #'sentence-transformers/all-mpnet-base-v2' #  '/raid/fayw/semdedup/models/facebook-opt-125m/'
 
   emb_size: 768
-  batch_size: 16
-  num_workers: 4
+  batch_size: 32
+  num_workers: 8
   pool_size: '10GB'
 
 clustering:
-  save_loc: "results_fbopt125_cc_crossfit_5"
-  num_clusters: 1000 # -- number of clusters
+  save_loc: "results_fbopt125_c4_crossfit_10" #"results_fbopt125_cc_crossfit_5"
+  num_clusters: 12 # -- number of clusters
   seed: 1234
   niter: 1000
   Kmeans_with_cos_dist: True
