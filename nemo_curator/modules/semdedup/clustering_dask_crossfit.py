@@ -49,11 +49,10 @@ def compute_centroids(client, params):
     cupy_darr = ddf.map_partitions(get_embedding_ar, meta=cp.ndarray([1, emb_size]))
     cupy_darr.compute_chunk_sizes()
     kmeans = KMeans(n_clusters=ncentroids, init_max_iter=niter, oversampling_factor=10)
-    #kmeans.fit(cupy_darr)
+
     dist_to_cents = kmeans.fit_transform(cupy_darr)
     dist_to_cents = dist_to_cents.min(axis=1)
 
-    #nearest_cents = kmeans.labels_
     nearest_cents = kmeans.predict(cupy_darr)
     ddf["nearest_cent"]=nearest_cents
     centroids = kmeans.cluster_centers_
@@ -102,7 +101,8 @@ if __name__ == "__main__":
         client = Client(cluster)
         centroids, ddf = compute_centroids(client, params)
 
-        ddf.to_parquet(f"{save_folder}/added_nearest_center.parquet", index=False)
+        #ddf.to_parquet(f"{save_folder}/added_nearest_center.parquet", index=False)
+        ddf.to_parquet(f"{save_folder}/embs_by_nearest_center/",  index=False, partition_on='nearest_cent')
         kmeans_centroids_file = pathlib.Path(save_folder, "kmeans_centroids.npy")
         np.save(kmeans_centroids_file, centroids)
 

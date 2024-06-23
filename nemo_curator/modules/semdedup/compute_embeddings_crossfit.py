@@ -153,10 +153,9 @@ def main():
     @dataclass
     class Config:
         model: str = args_emb['model_name']
-        if 'max_position_embeddings' in dir(AutoConfig.from_pretrained(model)):
+        max_len_to_use = AutoTokenizer.from_pretrained('facebook/opt-125m').model_max_length
+        if max_len_to_use > 1e5:
             max_len_to_use = AutoConfig.from_pretrained(model).max_position_embeddings
-        elif 'model_max_length'  in dir(AutoTokenizer.from_pretrained(model)):
-            max_len_to_use = AutoTokenizer.from_pretrained(model).model_max_length
         max_seq_length: int = max_len_to_use
 
     cluster = LocalCUDACluster(
