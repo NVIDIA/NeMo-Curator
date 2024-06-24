@@ -43,14 +43,11 @@ class TranslationConfig:
 
 
 class CustomModel(nn.Module):
-    def __init__(self, pretrained_model_name_or_path: str, autocast: bool = False):
+    ddef __init__(self, config: TranslationConfig, pretrained_model_name_or_path: str, autocast: bool = False):
         super().__init__()
+        self.config = config
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name_or_path,
-            trust_remote_code=True,
-        )
-        self.config = AutoConfig.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            pretrained_model_name_or_path=config.pretrained_model_name_or_path,
             trust_remote_code=True,
         )
         self.autocast = autocast
@@ -77,12 +74,17 @@ class CustomModel(nn.Module):
 
 class ModelForSeq2SeqModel(HFModel):
     def __init__(self, config):
-        self.config = config
-        super().__init__(config.pretrained_model_name_or_path)
+        self.trans_config = config
+        self.config = AutoConfig.from_pretrained(
+            pretrained_model_name_or_path=self.trans_config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+        )
+        super().__init__(self.trans_config.pretrained_model_name_or_path)
+
 
     def load_model(self, device="cuda"):
         model = CustomModel(
-            self.config.pretrained_model_name_or_path, self.config.autocast
+            self.trans_config, self.trans_config.pretrained_model_name_or_path, self.trans_config.autocast
         )
         model = model.to(device)
         model.eval()
@@ -97,17 +99,17 @@ class ModelForSeq2SeqModel(HFModel):
     @lru_cache(maxsize=1)
     def load_tokenizer(self):
         return AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
+            pretrained_model_name_or_path=self.trans_config.pretrained_model_name_or_path,
             trust_remote_code=True,
         )
 
     def max_seq_length(self) -> int:
-        return self.config.max_length
+        return self.config.max_source_positions
 
     @lru_cache(maxsize=1)
     def load_cfg(self):
         return AutoConfig.from_pretrained(
-            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
+            pretrained_model_name_or_path=self.trans_config.pretrained_model_name_or_path,
             trust_remote_code=True,
         )
 
@@ -200,3 +202,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
