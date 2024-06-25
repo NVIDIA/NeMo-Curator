@@ -75,10 +75,7 @@ Optionally, the user can choose to shuffle this dataset as well.
 
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_output_data_dir(
-        help="The output directory to where the blended dataset is"
-        "retained during filtering will be written. If this argument "
-        "is not specified, then the document scores from the "
-        "filter(s) will be written to the document meta data in place"
+        help="The output directory to where the blended dataset will be written."
     )
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_arg_seed()
