@@ -69,8 +69,6 @@ with FastText.
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_arg_input_data_dir()
-    argumentHelper.add_arg_input_local_data_dir()
     argumentHelper.add_arg_log_dir(default="./log/prepare_filter_data")
     argumentHelper.add_arg_output_train_file(
         help="The output file containing prepared samples to train a "
