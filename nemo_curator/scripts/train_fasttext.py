@@ -160,7 +160,7 @@ out to disk as a FastText model.
         type=str,
         default=None,
         required=True,
-        help="The output trained skip-gram classifier written " "as a FastText model",
+        help="The output trained skip-gram classifier written as a FastText model",
     )
     parser.add_argument(
         "--output-predictions",
