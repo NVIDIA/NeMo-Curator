@@ -83,7 +83,7 @@ the 'language' field within each JSON object.
         "--output-clean-dir",
         type=str,
         required=True,
-        help="The output directory to where the cleaned " "jsonl files will be written",
+        help="The output directory to where the cleaned jsonl files will be written",
     )
 
     return parser
