@@ -62,7 +62,7 @@ The size of the input files must be larger than the specified
         type=str,
         default=None,
         required=True,
-        help="Output directory to where the sharded " ".jsonl files will be written",
+        help="Output directory to where the sharded .jsonl files will be written",
     )
     parser.add_argument(
         "--prefix",

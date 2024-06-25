@@ -75,7 +75,7 @@ these ids must be added prior to performing fuzzy/exact deduplication
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_output_data_dir(
         help="The output directory to where the jsonl files with ids will "
-        "be written. If not specified, the ids will be written in-place"
+        "be written."
     )
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_arg_seed()
