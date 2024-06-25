@@ -96,18 +96,12 @@ def attach_args(
         default=2000, help="The batch size for processing multiple texts together."
     )
     argumentHelper.add_arg_input_data_dir(help="Directory containing the input files.")
-    argumentHelper.add_arg_input_file_type(
-        choices=["jsonl", "csv", "text"],
-        help="The input file type (only jsonl is currently supported)",
-    )
+    argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_language(help="Language of input documents")
     argumentHelper.add_arg_output_data_dir(
         help="The output directory to where redacted documents will be written."
     )
-    argumentHelper.add_arg_output_file_type(
-        choices=["jsonl", "csv", "text"],
-        help="The output file type (only jsonl is currently supported)",
-    )
+    argumentHelper.add_arg_output_file_type()
     parser.add_argument(
         "--anonymize-action",
         type=str,
