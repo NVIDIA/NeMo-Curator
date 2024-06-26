@@ -1,6 +1,7 @@
 from typing import Iterable, List, Optional, Union
 
 from openai import AsyncOpenAI, OpenAI
+from openai._types import NOT_GIVEN, NotGiven
 
 from .model_client import AsyncLLMClient, LLMClient
 
@@ -18,11 +19,11 @@ class OpenAIClient(LLMClient):
         *,
         messages: Iterable,
         model: str,
-        max_tokens: Optional[int] = None,
-        n: Optional[int] = 1,
-        stop: Union[Optional[str], List[str]] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None
+        max_tokens: Union[Optional[int], NotGiven] = NOT_GIVEN,
+        n: Union[Optional[int], NotGiven] = NOT_GIVEN,
+        stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
+        temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
+        top_p: Union[Optional[float], NotGiven] = NOT_GIVEN
     ) -> List[str]:
         response = self.client.chat.completions.create(
             messages=messages,
@@ -50,11 +51,11 @@ class AsyncOpenAIClient(AsyncLLMClient):
         *,
         messages: Iterable,
         model: str,
-        max_tokens: Optional[int] = None,
-        n: Optional[int] = 1,
-        stop: Union[Optional[str], List[str]] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None
+        max_tokens: Union[Optional[int], NotGiven] = NOT_GIVEN,
+        n: Union[Optional[int], NotGiven] = NOT_GIVEN,
+        stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
+        temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
+        top_p: Union[Optional[float], NotGiven] = NOT_GIVEN
     ) -> List[str]:
         response = await self.client.chat.completions.create(
             messages=messages,
