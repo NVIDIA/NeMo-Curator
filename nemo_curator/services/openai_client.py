@@ -46,6 +46,7 @@ class AsyncOpenAIClient(AsyncLLMClient):
         model: str,
         max_tokens: Optional[int] = None,
         stop: Union[Optional[str], List[str]] = None,
+        temperature: Optional[float] = None,
         top_p: Optional[float] = None
     ) -> str:
         return self.client.chat.completions.create(
@@ -53,5 +54,6 @@ class AsyncOpenAIClient(AsyncLLMClient):
             model=model,
             max_tokens=max_tokens,
             stop=stop,
+            temperature=temperature,
             top_p=top_p,
         )
