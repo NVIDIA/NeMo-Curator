@@ -76,7 +76,11 @@ setup(
             "cugraph-cu12>=24.2",
             "dask-cuda>=24.2",
             "spacy[cuda12x]>=3.6.0, <4.0.0",
-        ]
+        ],
+        "synth": [
+            "openai",
+            "nemo_toolkit[infer]>=1.23.0",
+        ],
     },
     entry_points={
         "console_scripts": [
