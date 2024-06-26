@@ -1,7 +1,8 @@
 from typing import Iterable, List, Optional, Union
 
-from model_client import AsyncLLMClient, LLMClient
 from openai import AsyncOpenAI, OpenAI
+
+from .model_client import AsyncLLMClient, LLMClient
 
 
 class OpenAIClient(LLMClient):
