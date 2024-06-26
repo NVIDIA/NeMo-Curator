@@ -19,16 +19,22 @@ class OpenAIClient(LLMClient):
         messages: Iterable,
         model: str,
         max_tokens: Optional[int] = None,
+        n: Optional[int] = 1,
         stop: Union[Optional[str], List[str]] = None,
+        temperature: Optional[float] = None,
         top_p: Optional[float] = None
-    ) -> str:
-        return self.client.chat.completions.create(
+    ) -> List[str]:
+        response = self.client.chat.completions.create(
             messages=messages,
             model=model,
             max_tokens=max_tokens,
+            n=n,
             stop=stop,
+            temperature=temperature,
             top_p=top_p,
         )
+
+        return [choice.message.content for choice in response.choices]
 
 
 class AsyncOpenAIClient(AsyncLLMClient):
@@ -45,15 +51,19 @@ class AsyncOpenAIClient(AsyncLLMClient):
         messages: Iterable,
         model: str,
         max_tokens: Optional[int] = None,
+        n: Optional[int] = 1,
         stop: Union[Optional[str], List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None
-    ) -> str:
-        return self.client.chat.completions.create(
+    ) -> List[str]:
+        response = await self.client.chat.completions.create(
             messages=messages,
             model=model,
             max_tokens=max_tokens,
+            n=n,
             stop=stop,
             temperature=temperature,
             top_p=top_p,
         )
+
+        return [choice.message.content for choice in response.choices]
