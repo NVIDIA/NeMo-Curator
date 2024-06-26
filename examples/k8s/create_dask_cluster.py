@@ -2,8 +2,6 @@ import argparse
 
 from dask_kubernetes.operator.kubecluster import KubeCluster, make_cluster_spec
 
-from nemo_curator.utils.script_utils import ArgumentHelper
-
 
 def create_cluster(
     name: str,
@@ -129,6 +127,8 @@ if __name__ == "__main__":
         help="Comma sep PVC specificiation of $pvc_name_1:$mount_path_1,$pvc_name_2:$mount_path_2. Example: foo:/foo,bar:/bar mounts pvcs named foo and bar to /foo and /bar respectively.",
     )
 
+    args = parser.parse_args()
+
     create_cluster(
-        **vars(parser.parse_args()),
+        **vars(args),
     )
