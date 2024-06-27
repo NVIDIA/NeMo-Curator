@@ -1,4 +1,4 @@
-root: '/ads_ds3/data/SemDeDup_BenchMark'
+root: '/raid/vjawa/semdedup_debug'
 sample: 12 # todo name to num_samples
 id_col:
    name: 'adlr_id' # 'id' #'adlr_id'
@@ -14,7 +14,7 @@ embeddings:
   batch_size: 512
 
 clustering:
-  save_loc: "results_fbopt_nc_11_crossfit" #"results_fbopt125_cc_crossfit_5"
+  save_loc: "vjawa_results_fbopt_nc_11_crossfit" #"results_fbopt125_cc_crossfit_5"
   #save_loc: "results_crossfit_fb_c4_10a"
   num_clusters: 1000 # -- number of clusters
   seed: 1234

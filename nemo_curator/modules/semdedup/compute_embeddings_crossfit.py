@@ -14,20 +14,19 @@
 
 import os
 import time
-from argparse import ArgumentParser
 from dataclasses import dataclass
 
 import torch
 import torch.nn as nn
-import yaml
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
-from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
+from nemo_curator.modules.semdedup.utils import parse_arguments
+from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import get_remaining_files
-from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def mean_pooling(model_output, attention_mask):
@@ -66,19 +65,6 @@ class CustomModel(nn.Module):
         self.config = config
         self.model = AutoModel.from_pretrained(config.path_or_name, config=self.config)
 
-    # def _init_weights(self, module):
-    #     if isinstance(module, nn.Linear):
-    #         module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-    #         if module.bias is not None:
-    #             module.bias.data.zero_()
-    #     elif isinstance(module, nn.Embedding):
-    #         module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-    #         if module.padding_idx is not None:
-    #             module.weight.data[module.padding_idx].zero_()
-    #     elif isinstance(module, nn.LayerNorm):
-    #         module.bias.data.zero_()
-    #         module.weight.data.fill_(1.0)
-
     def feature(self, input_ids, attention_mask):
         with torch.autocast(device_type=input_ids.device.type):
             embeddings = self.model(input_ids=input_ids, attention_mask=attention_mask)
@@ -107,35 +93,6 @@ class CrossFitModel(HFModel):
 
     def max_seq_length(self):
         return self.config.max_seq_length
-
-
-def merge_args_with_config(args, config):
-    for key, value in config.items():
-        if not getattr(args, key, None):
-            print(f"Setting {key} to {value}")
-            setattr(args, key, value)
-    return args
-
-
-def parse_arguments():
-    parser = ArgumentParser(description="PyTorch Model Predictions using Crossfit")
-
-    parser = add_distributed_args(parser)
-    # Set low default RMM pool size for classifier
-    # to allow pytorch to grow its memory usage
-    # by default
-    parser.set_defaults(rmm_pool_size="512MB")
-    parser.set_defaults(device="gpu")
-    parser.set_defaults(set_torch_to_use_rmm=False)
-    parser.add_argument(
-        "--config_file", help="YAML with configs", default="configs_cf.yml"
-    )
-    args = parser.parse_args()
-    config_file = args.config_file
-    with open(config_file, "r") as y_file:
-        config_args = yaml.load(y_file, Loader=yaml.FullLoader)
-
-    return merge_args_with_config(args, config_args)
 
 
 def main():
