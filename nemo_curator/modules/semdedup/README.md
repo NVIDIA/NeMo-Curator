@@ -1,14 +1,5 @@
 # SemDeDup Pipeline
 
-## Setup
-Package installations:
-```
-conda create -n rapids-24.04 -c rapidsai -c conda-forge -c nvidia  rapids=24.04 python=3.10 cuda-version=12.0 pytorch
-pip install transformers
-pip install torch torchvision
-pip install submitit
-pip install jupyter
-```
 
 ## Pipeline
 
