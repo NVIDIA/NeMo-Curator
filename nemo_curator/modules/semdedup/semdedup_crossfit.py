@@ -1,31 +1,15 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import logging
 import os
 import pathlib
 import pickle
 import random
 from datetime import datetime
-from glob import glob
-from typing import List, Tuple
 
 import cudf
+import dask
 import numpy as np
 import pandas as pd
 import torch
-import yaml
 from tqdm import tqdm
 from utils import get_logger
 
@@ -53,7 +37,9 @@ def _semdedup(cluster_reps, device):
     return M, M1
 
 
-def get_cluster_reps(cluster_id, emb_by_clust_loc, id_col, sorted_ids):
+def get_cluster_reps(
+    cluster_id: int, emb_by_clust_loc: str, id_col: str, sorted_ids: str
+):
     cluster_i_path = os.path.join(emb_by_clust_loc, f"nearest_cent={cluster_id}")
     cluster_reps = cudf.read_parquet(
         cluster_i_path, columns=["embeddings", id_col]
@@ -70,6 +56,81 @@ def get_cluster_reps(cluster_id, emb_by_clust_loc, id_col, sorted_ids):
         cluster_reps["embeddings"].list.leaves.values.reshape(len(cluster_reps), -1)
     )  # , device="cuda")
     return cluster_reps
+
+
+def process_cluster(
+    cluster_id, emb_by_clust_loc, id_col, id_col_type, eps_list, save_loc
+):
+    df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.pkl")
+    if os.path.exists(df_file_loc):
+        logging.info(f"{df_file_loc} exists. Continue")
+        return
+
+    ## -- load cluster i representations
+    sorted_clusters_path = f"{save_loc}/sorted"
+    sorted_file = os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
+    if not os.path.exists(sorted_file):
+        logging.info(f"{sorted_file} does not exist. Continue")
+        return
+
+    cluster_i = np.load(sorted_file)
+
+    # 1) store cluster size
+    cluster_size = cluster_i.shape[0]
+    logging.info(f"{cluster_id}: cluster_size: {cluster_size}")
+
+    if cluster_size == 1:
+        points_to_remove_df = pd.DataFrame()
+        points_to_remove_df["indices"] = [0]
+        for eps in eps_list:
+            ## We need to remove a point from the dataset when its pairwise similarity to other point is > 1-ebs
+            points_to_remove_df[f"eps={eps}"] = [False]
+        if save_loc != "":
+            ## --save df
+            with open(df_file_loc, "wb") as file:
+                pickle.dump(points_to_remove_df, file)
+        return
+
+    ## -- By default, we keep hard examples from groups
+    clutser_items_indices = list(range(cluster_size))
+
+    ## -- OR: shuffle cluster to keep random example from each group
+    which_to_keep = args.semdedup["which_to_keep"].lower()
+    if which_to_keep == "random":
+        random.shuffle(clutser_items_indices)
+        cluster_i = cluster_i[clutser_items_indices]
+    ## -- OR: reverse cluster to keep easy examples
+    elif which_to_keep == "easy":
+        clutser_items_indices = clutser_items_indices[::-1]
+        cluster_i = cluster_i[clutser_items_indices]
+
+    # can be adlr_id (nemo-curator data) or id (c4 data)
+    text_ids = cluster_i[:, 0].astype(id_col_type)
+
+    cluster_reps = get_cluster_reps(cluster_id, emb_by_clust_loc, id_col, text_ids)
+    M, M1 = _semdedup(cluster_reps, "cuda")
+    assert cluster_reps.shape[0] == len(text_ids)
+
+    idx = [i for i in range(len(M1))]
+    M1_id = [text_ids[m] for m in M1]
+
+    points_to_remove_df = pd.DataFrame()
+    points_to_remove_df["indices"] = clutser_items_indices
+    points_to_remove_df["id"] = text_ids
+    points_to_remove_df["max_id"] = M1_id
+    points_to_remove_df["cosine_sim_score"] = M.numpy().tolist()
+
+    for eps in eps_list:
+        ## -- 5) We need to remove a point from the dataset when its pairwise similarity to other point is > 1-ebs
+        eps_points_to_remove = M > 1 - eps
+        points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
+
+    if save_loc != "":
+        ## --save df
+        os.makedirs(os.path.dirname(df_file_loc), exist_ok=True)
+        with open(df_file_loc, "wb") as file:
+            pickle.dump(points_to_remove_df, file)
+    return
 
 
 def semdedup(args):
@@ -90,81 +151,18 @@ def semdedup(args):
     save_loc = f'{root}/{args.clustering["save_loc"]}'
     emb_by_clust_loc = pathlib.Path(save_loc, "embs_by_nearest_center")
 
-    # TODO: Use dask-cuda for this
+    tasks = []
     for cluster_id in tqdm(range(end_cluster)):
-        df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.pkl")
+        tasks.append(
+            dask.delayed(process_cluster)(
+                cluster_id, emb_by_clust_loc, id_col, id_col_type, eps_list, save_loc
+            )
+        )
 
-        if os.path.exists(df_file_loc):
-            logger.info(f"{df_file_loc} exists. Continue")
-            continue
-
-        ## -- load cluster i representations
-        sorted_clusters_path = f"{save_loc}/sorted"
-        sorted_file = os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
-        if not os.path.exists(sorted_file):
-            logger.info(f"{sorted_file} does not exist. Continue")
-            continue
-
-        cluster_i = np.load(sorted_file)
-
-        # 1) store cluster size
-        cluster_size = cluster_i.shape[0]
-        logger.info(f"{cluster_id}: cluster_size: {cluster_size}")
-
-        if cluster_size == 1:
-            points_to_remove_df = pd.DataFrame()
-            points_to_remove_df["indices"] = [0]
-            for eps in eps_list:
-                ## We need to remove a point from the dataset when its pairwise similarity to other point is > 1-ebs
-                points_to_remove_df[f"eps={eps}"] = [False]
-            if save_loc != "":
-                ## --save df
-                with open(df_file_loc, "wb") as file:
-                    pickle.dump(points_to_remove_df, file)
-            continue
-
-        ## -- By default, we keep hard examples from groups
-        clutser_items_indices = list(range(cluster_size))
-
-        ## -- OR: shuffle cluster to keep random example from each group
-        which_to_keep = args.semdedup["which_to_keep"].lower()
-        if which_to_keep == "random":
-            random.shuffle(clutser_items_indices)
-            cluster_i = cluster_i[clutser_items_indices]
-        ## -- OR: reverse cluster to keep easy examples
-        elif which_to_keep == "easy":
-            clutser_items_indices = clutser_items_indices[::-1]
-            cluster_i = cluster_i[clutser_items_indices]
-
-        # can be adlr_id (nemo-curator data) or id (c4 data)
-        text_ids = cluster_i[:, 0].astype(id_col_type)
-
-        cluster_reps = get_cluster_reps(cluster_id, emb_by_clust_loc, id_col, text_ids)
-        M, M1 = _semdedup(cluster_reps, "cuda")
-        assert cluster_reps.shape[0] == len(text_ids)
-
-        idx = [i for i in range(len(M1))]
-        M1_id = [text_ids[m] for m in M1]
-
-        points_to_remove_df = pd.DataFrame()
-        points_to_remove_df["indices"] = clutser_items_indices
-        points_to_remove_df["id"] = text_ids
-        points_to_remove_df["max_id"] = M1_id
-        points_to_remove_df["cosine_sim_score"] = M.numpy().tolist()
-
-        for eps in eps_list:
-            ## -- 5) We need to remove a point from the dataset when its pairwise similarity to other point is > 1-ebs
-            eps_points_to_remove = M > 1 - eps
-            points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
-
-        if save_loc != "":
-            ## --save df
-            os.makedirs(os.path.dirname(df_file_loc), exist_ok=True)
-            with open(df_file_loc, "wb") as file:
-                pickle.dump(points_to_remove_df, file)
+    dask.compute(*tasks)
 
     dt2 = datetime.now()
-    logger.info(f"semdedup: start {dt2}, elapse: {(dt2 - dt1).total_seconds()/60} min")
+    logger.info(f"semdedup: end {dt2}, elapse: {(dt2 - dt1).total_seconds()/60} min")
 
     return
 
@@ -172,7 +170,7 @@ def semdedup(args):
 if __name__ == "__main__":
 
     args = parse_arguments()
-    # client = get_client(**parse_client_args(args))
+    client = get_client(**parse_client_args(args))
 
     save_loc = os.path.join(args.root, args.clustering["save_loc"])
 
