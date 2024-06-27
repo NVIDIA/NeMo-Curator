@@ -26,7 +26,7 @@
 
 4) Clustering
     ```sh
-    python clustering_dask_crossfit.py
+    python clustering.py
     ```
     **Input:** Output from step (3)
     **Output:** Under `results/centroids` directory, including:
