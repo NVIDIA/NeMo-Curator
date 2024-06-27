@@ -1,9 +1,9 @@
-# +
 import json
 import re
 
 import dask.dataframe as dd
 import pandas as pd
+from modifiers import QuotationUnifier
 
 from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
@@ -26,10 +26,6 @@ from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.script_utils import add_distributed_args
-
-from .modifiers import QuotationUnifier
-
-# -
 
 
 def clean_and_unify(dataset: DocumentDataset) -> DocumentDataset:
@@ -315,7 +311,7 @@ def FilterFilesBasedOnLines_txt(dataset: DocumentDataset) -> DocumentDataset:
     dataset_df = dataset.df
     #     print(len(dataset_df.index))
     dataset_df = dataset_df.loc[
-        ~((dataset_df["file_type"] == "text") & (dataset_df["lines"] < 10))
+        ~((dataset_df["file_type"] == "text") & (dataset_df["line_count"] < 10))
     ]
     #     print(len(dataset_df.index))
     return DocumentDataset(dataset_df)
@@ -330,7 +326,7 @@ def FilterFilesBasedOnLines_code(dataset: DocumentDataset) -> DocumentDataset:
     dataset_df = dataset_df.loc[
         ~(
             (dataset_df["file_type"] == "code")
-            & ((dataset_df["lines"] < 10) | (dataset_df["lines"] > 20000))
+            & ((dataset_df["line_count"] < 10) | (dataset_df["line_count"] > 20000))
         )
     ]
     #     print(len(dataset_df.index))
