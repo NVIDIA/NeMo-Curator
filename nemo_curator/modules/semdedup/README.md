@@ -46,7 +46,7 @@
     python semdedup.py
     ```
     **Input:** Output from step (5)
-    **Output:** Under `results/centroids/dataframes`, `cluster_x.pkl` where x ranges from 0 to `num_clusters - 1`
+    **Output:** Under `results/centroids/dataframes`, `cluster_x.parquet` where x ranges from 0 to `num_clusters - 1`
 
 7) Extract deduplicated data
     ```sh

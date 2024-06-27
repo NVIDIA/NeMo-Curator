@@ -61,7 +61,7 @@ def get_cluster_reps(
 def process_cluster(
     cluster_id, emb_by_clust_loc, id_col, id_col_type, eps_list, save_loc
 ):
-    df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.pkl")
+    df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.parquet")
     if os.path.exists(df_file_loc):
         logging.info(f"{df_file_loc} exists. Continue")
         return
@@ -88,7 +88,7 @@ def process_cluster(
         if save_loc != "":
             ## --save df
             with open(df_file_loc, "wb") as file:
-                pickle.dump(points_to_remove_df, file)
+                points_to_remove_df.to_parquet(df_file_loc)
         return
 
     ## -- By default, we keep hard examples from groups
