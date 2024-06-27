@@ -59,6 +59,9 @@ class SlurmJobConfig:
         if add_device:
             env_vars["SCRIPT_COMMAND"] += f" --device={env_vars['DEVICE']}"
 
+        # Surround the command in quotes so the variable gets set properly
+        env_vars["SCRIPT_COMMAND"] = f"\"{env_vars['SCRIPT_COMMAND']}\""
+
         return sdk.Script(path=self.container_entrypoint, env=env_vars)
 
     def _build_env_vars(self) -> Dict[str, str]:

@@ -19,17 +19,18 @@ from nemo_curator.nemo_sdk import SlurmJobConfig
 
 
 @sdk.factory
-def nemo_curator_slurm_executor():
+def nemo_curator_slurm_executor() -> SlurmExecutor:
     """
     Configure the following function with the details of your SLURM cluster
     """
     return SlurmExecutor(
         job_name_prefix="nemo-curator",
+        account="my-account",
         nodes=2,
         exclusive=True,
         time="04:00:00",
         container_image="nvcr.io/nvidia/nemo:dev",
-        container_mounts="/path/on/machine:/path/in/container",
+        container_mounts=["/path/on/machine:/path/in/container"],
     )
 
 
@@ -44,8 +45,7 @@ if __name__ == "__main__":
         script_command=curator_command,
     )
 
-    with sdk.Experiment(
-        "example_nemo_curator_exp", executor="nemo_curator_slurm_executor"
-    ) as exp:
+    executor = sdk.resolve(SlurmExecutor, "nemo_curator_slurm_executor")
+    with sdk.Experiment("example_nemo_curator_exp", executor=executor) as exp:
         exp.add(curator_job.to_script(), tail_logs=True)
         exp.run(detach=False)
