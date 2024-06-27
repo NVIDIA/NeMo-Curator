@@ -33,6 +33,7 @@ from nemo_curator.utils.script_utils import (
     parse_distributed_classifier_args,
 )
 
+MAX_OUT_LEN = 256
 
 @dataclass
 class TranslationConfig:
@@ -43,7 +44,7 @@ class TranslationConfig:
 
 
 class CustomModel(nn.Module):
-    ddef __init__(self, config: TranslationConfig, pretrained_model_name_or_path: str, autocast: bool = False):
+    def __init__(self, config: TranslationConfig, pretrained_model_name_or_path: str, autocast: bool = False):
         super().__init__()
         self.config = config
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
@@ -149,6 +150,14 @@ def parse_arguments():
     )
     return parser.parse_args()
 
+def post_output(output):
+    import torch.nn.functional as F
+    padded_tensor = output
+    if output.size(1) <  MAX_OUT_LEN:
+        pad_size = MAX_OUT_LEN - output.size(1)
+        padded_tensor  = F.pad(output, (0, pad_size), "constant", 1)
+        print(f"padded size : {padded_tensor.shape}")
+    return padded_tensor
 
 def main():
     args = parse_arguments()
@@ -162,6 +171,8 @@ def main():
         num_beams=5,
         autocast=args.autocast,
     )
+    global MAX_OUT_LEN
+    MAX_OUT_LEN = translation_config.max_length
     input_files = [
         os.path.join(args.input_data_dir, x) for x in os.listdir(args.input_data_dir)
     ]
@@ -182,6 +193,7 @@ def main():
             sorted_data_loader=True,
             batch_size=args.batch_size,
             pred_output_col="translation",
+            post=post_output,
         ),
         keep_cols=columns,
     )
