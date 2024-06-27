@@ -24,7 +24,7 @@ from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator.modules.semdedup.utils import parse_arguments
-from nemo_curator.utils.distributed_utils import get_client, read_data
+from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
 from nemo_curator.utils.script_utils import parse_client_args
 
@@ -45,6 +45,7 @@ def mean_pooling(model_output, attention_mask):
 @dataclass
 class EmbeddingConfig:
     path_or_name: str
+    max_mem_gb: int
     max_seq_length: int = None
 
     def __post_init__(self):
@@ -80,7 +81,7 @@ class CustomModel(nn.Module):
 class CrossFitModel(HFModel):
     def __init__(self, config: EmbeddingConfig):
         self.config = config
-        super().__init__(self.config.path_or_name, max_mem_gb=28)
+        super().__init__(self.config.path_or_name, max_mem_gb=self.config.max_mem_gb)
 
     def load_model(self, device="cuda"):
         model = CustomModel(self.config)
@@ -128,7 +129,9 @@ def main():
         file_type="jsonl",
         add_filename=True,
     )
-    embeddings_config = EmbeddingConfig(path_or_name=args_emb["path_or_name"])
+    embeddings_config = EmbeddingConfig(
+        path_or_name=args_emb["path_or_name"], max_mem_gb=args_emb["max_mem_gb"]
+    )
     model = CrossFitModel(embeddings_config)
     pipe = op.Sequential(
         op.Tokenizer(

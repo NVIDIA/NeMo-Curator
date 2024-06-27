@@ -25,7 +25,7 @@ def parse_arguments():
     # Set low default RMM pool size for classifier
     # to allow pytorch to grow its memory usage
     # by default
-    parser.set_defaults(rmm_pool_size="512MB")
+    parser.set_defaults(rmm_pool_size="4GB")
     parser.set_defaults(device="gpu")
     parser.set_defaults(set_torch_to_use_rmm=False)
     parser.add_argument(

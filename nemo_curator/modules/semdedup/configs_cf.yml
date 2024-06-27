@@ -1,5 +1,5 @@
 root: '/raid/vjawa/semdedup_debug'
-sample: 12 # todo name to num_samples
+sample: -1 # todo name to num_samples
 id_col:
    name: 'adlr_id' # 'id' #'adlr_id'
    type: 'str' # 'int' #'str'
@@ -11,7 +11,8 @@ embeddings:
   output_data_dir: '/raid/vjawa/prospector-lm/embeddings_crossfit_fb_c4_10'
   path_or_name: 'facebook/opt-125m'
   emb_size: 768
-  batch_size: 512
+  batch_size: 128
+  max_mem_gb: 25
 
 clustering:
   save_loc: "vjawa_results_fbopt_nc_11_crossfit" #"results_fbopt125_cc_crossfit_5"
