@@ -104,17 +104,18 @@ def main():
     st = time.time()
 
     input_data_dir = args_emb["input_data_dir"]
-    output_data_dir = args_emb["output_data_dir"]
+    output_file_dir = os.path.join(args.root, args.embeddings["save_loc"])
+    os.makedirs(output_file_dir, exist_ok=True)
+    len_written_files = len(os.listdir(output_file_dir))
+    input_files = get_remaining_files(input_data_dir, output_file_dir, "jsonl")
 
-    os.makedirs(output_data_dir, exist_ok=True)
-
-    len_written_files = len(os.listdir(output_data_dir))
-    input_files = get_remaining_files(input_data_dir, output_data_dir, "jsonl")
-
-    if sample > 0 and len(input_files) > sample:
-        left_to_sample = 0
+    if sample > 0:
+        if len_written_files > sample:
+            left_to_sample = 0
+        else:
+            left_to_sample = sample - len_written_files
     else:
-        left_to_sample = len(input_files) - len_written_files
+        left_to_sample = len(input_files)
 
     if left_to_sample == 0:
         print("No files to process")
@@ -152,7 +153,7 @@ def main():
     ddf = pipe(ddf)
     write_to_disk(
         ddf,
-        output_data_dir,
+        output_file_dir,
         write_to_filename=True,
         output_type="parquet",
     )

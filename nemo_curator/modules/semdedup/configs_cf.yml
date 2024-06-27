@@ -1,5 +1,5 @@
 root: '/raid/vjawa/semdedup_debug'
-sample: -1 # todo name to num_samples
+sample: 1024 # todo name to num_samples
 id_col:
    name: 'adlr_id' # 'id' #'adlr_id'
    type: 'str' # 'int' #'str'
@@ -8,8 +8,8 @@ id_col:
 embeddings:
   input_column: 'text'
   input_data_dir: '/datasets/prospector-lm/cleaned_exact_dedup_all_cc'
-  output_data_dir: '/raid/vjawa/prospector-lm/embeddings_crossfit_fb_c4_10'
-  path_or_name: 'facebook/opt-125m'
+  save_loc: 'embeddings_crossfit_st_all_MiniLM_L6_v2'
+  path_or_name: 'sentence-transformers/all-MiniLM-L6-v2'
   emb_size: 768
   batch_size: 128
   max_mem_gb: 25

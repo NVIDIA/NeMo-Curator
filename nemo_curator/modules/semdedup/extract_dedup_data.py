@@ -62,10 +62,10 @@ def extract_pruned_data(
             f"semdedup_pruning_tables_path: {semdedup_pruning_tables_path}, cluster_id: {cluster_id}"
         )
 
-        with open(
-            f"{semdedup_pruning_tables_path}/cluster_{cluster_id}.pkl", "rb"
-        ) as file:
-            semdedup_pruning_tables = pickle.load(file)
+        cluster_df_fname = os.path.join(
+            semdedup_pruning_tables_path, f"cluster_{cluster_id}.parquet"
+        )
+        semdedup_pruning_tables = pickle.load(cluster_df_fname)
 
         if semdedup_pruning_tables.shape[0] == 1:
             logger.info(

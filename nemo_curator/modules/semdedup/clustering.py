@@ -51,7 +51,7 @@ def compute_centroids(args, logger):
 
     ## -- Load clustering parameters
     root_dir = args.root
-    emb_pqt_loc = args.embeddings["output_data_dir"]
+    emb_pqt_loc = os.path.join(args.root, args.embeddings["save_loc"])
     emb_size = args.embeddings["emb_size"]
     niter = args.clustering["niter"]
     ncentroids = args.clustering["num_clusters"]
@@ -125,6 +125,7 @@ if __name__ == "__main__":
         pprint.pprint(args, fout)
 
     kmeans_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
+    print(kmeans_file_loc)
     if not os.path.exists(kmeans_file_loc):
         # Kmeans can only be done with L2 using cuML.
         assert args.clustering["Kmeans_with_cos_dist"] == False

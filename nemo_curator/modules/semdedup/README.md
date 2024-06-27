@@ -22,7 +22,7 @@
     python compute_embeddings.py
     ```
     **Input:** `/datasets/prospector-lm/cleaned_exact_dedup_all_cc/*.jsonl` and output from step (2)
-    **Output:** Embedding memmap files in the embedding directory, including `text` and `adlr`
+    **Output:** Embedding  parquet files in the embedding directory, including `text` and `adlr`
 
 4) Clustering
     ```sh
