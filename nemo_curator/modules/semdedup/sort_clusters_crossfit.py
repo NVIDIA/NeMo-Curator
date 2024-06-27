@@ -1,27 +1,23 @@
-import numpy as np
-import pathlib
-import yaml
-import pprint
-import logging
-import os
-
-import time
-import numpy as np
-import logging
-from tqdm import tqdm
-import pandas as pd
-import math
-from typing import List
-import random
-import torch
-import pprint
-from tqdm import tqdm
 import argparse
-from typing import List, Tuple, Union
-from utils import get_logger
-import dask_cudf, cudf
-from glob import glob
+import logging
+import math
+import os
+import pathlib
 import pdb
+import pprint
+import random
+import time
+from glob import glob
+from typing import List, Tuple, Union
+
+import cudf
+import dask_cudf
+import numpy as np
+import pandas as pd
+import torch
+import yaml
+from tqdm import tqdm
+from utils import get_logger
 
 
 def assign_and_sort_clusters(
@@ -133,19 +129,23 @@ def rank_within_cluster(
     ], "sim_metric should be one of ['cosine', 'l2']"
     os.makedirs(sorted_clusters_file_loc, exist_ok=True)
 
-    print ('====>', sorted_clusters_file_loc)
+    print("====>", sorted_clusters_file_loc)
     sorted_clusters_list = []
     for cluster_c in tqdm(cluster_ids):
         if os.path.exists(f"{sorted_clusters_file_loc}/cluster_{cluster_c}.npy"):
             print(f"Cluster {cluster_c} exits, skipping....")
             continue
 
-        cluster_c_path = os.path.join(nearest_cent_file_loc,f'nearest_cent={cluster_c:0.1f}')
-        cluster_df = cudf.read_parquet(cluster_c_path, columns=[id_col, 'nearest_cent', 'dist_to_cent'])
-        #cluster_items = cluster_df.index.to_arrow().tolist()  ## -- ids of examples in cluster c
+        cluster_c_path = os.path.join(
+            nearest_cent_file_loc, f"nearest_cent={cluster_c:0.1f}"
+        )
+        cluster_df = cudf.read_parquet(
+            cluster_c_path, columns=[id_col, "nearest_cent", "dist_to_cent"]
+        )
+        # cluster_items = cluster_df.index.to_arrow().tolist()  ## -- ids of examples in cluster c
         cluster_df = cluster_df.to_pandas()
 
-        #cluster_items = list(cluster_df.index)  ## -- ids of examples in cluster c
+        # cluster_items = list(cluster_df.index)  ## -- ids of examples in cluster c
         cluster_items = list(cluster_df[id_col])
         if sim_metric == "cosine":
             if spherical:
@@ -178,13 +178,10 @@ def rank_within_cluster(
     return sorted_clusters_list
 
 
-
-
 if __name__ == "__main__":
     config_file = "./configs_cf.yml"
     with open(config_file, "r") as y_file:
         params = yaml.load(y_file, Loader=yaml.FullLoader)
-
 
     save_loc = f'{params["root"]}/{params["clustering"]["save_loc"]}'
     os.makedirs(save_loc, exist_ok=True)
@@ -192,18 +189,18 @@ if __name__ == "__main__":
     with open(pathlib.Path(save_loc, "sort_cluster_params.txt"), "w") as f:
         pprint.pprint(params, f)
 
-    cluster_ids = list(range(params['clustering']['num_clusters']))
+    cluster_ids = list(range(params["clustering"]["num_clusters"]))
 
     logger = get_logger(
-            file_name=f"{save_loc}/sort-cluster-logs.log",
-            level=logging.INFO,
-            stdout=True,
-        )
+        file_name=f"{save_loc}/sort-cluster-logs.log",
+        level=logging.INFO,
+        stdout=True,
+    )
 
     emb_pqt_loc = f'{params["root"]}/{params["embeddings"]["emb_parquet_path"]}'
     df = pd.read_parquet(emb_pqt_loc)
-    data = df['embeddings']
-    id_col = params['id_col']['name']
+    data = df["embeddings"]
+    id_col = params["id_col"]["name"]
     id_list = df[id_col]
 
     assign_and_sort_clusters(
@@ -214,7 +211,7 @@ if __name__ == "__main__":
         keep_hard=params["semdedup"]["keep_hard"],
         kmeans_with_cos_dist=params["clustering"]["Kmeans_with_cos_dist"],
         save_folder=save_loc,
-        sorted_clusters_file_loc=f'{save_loc}/sorted',
-        cluster_ids=range(0, params['clustering']["num_clusters"]),
+        sorted_clusters_file_loc=f"{save_loc}/sorted",
+        cluster_ids=range(0, params["clustering"]["num_clusters"]),
         logger=logger,
     )

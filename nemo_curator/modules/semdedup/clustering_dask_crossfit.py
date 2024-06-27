@@ -4,31 +4,32 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
-import time
-import numpy as np
+import argparse
 import logging
 import os
-import argparse
-import yaml
-import pprint
 import pathlib
-from typing import Union, Optional
-from utils import get_logger
-import pandas as pd
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
-from cuml.dask.cluster import KMeans
+import pprint
+import time
 from datetime import datetime
-import dask.array as da
-import dask_cudf
-import dask
-import dask.dataframe as dd
+from typing import Optional, Union
+
 import cupy as cp
+import dask
+import dask.array as da
+import dask.dataframe as dd
+import dask_cudf
+import numpy as np
+import pandas as pd
+import torch
+import yaml
+from cuml.dask.cluster import KMeans
+from dask.distributed import Client
+from dask_cuda import LocalCUDACluster
+from utils import get_logger
 
 
 def get_embedding_ar(df):
-    return df['embeddings'].list.leaves.values.reshape(len(df),-1)
+    return df["embeddings"].list.leaves.values.reshape(len(df), -1)
 
 
 def compute_centroids(client, params):
@@ -41,8 +42,10 @@ def compute_centroids(client, params):
     save_folder = f'{params["root"]}/{params["clustering"]["save_loc"]}'
     os.makedirs(save_folder, exist_ok=True)
 
-    ddf = dask_cudf.read_parquet(emb_pqt_loc, columns=["embeddings", params["id_col"]["name"]])
-    num_workers = len(client.scheduler_info()['workers'])
+    ddf = dask_cudf.read_parquet(
+        emb_pqt_loc, columns=["embeddings", params["id_col"]["name"]]
+    )
+    num_workers = len(client.scheduler_info()["workers"])
     # Persist ddf to save IO costs
     # Probably should enable spilling
     ddf = ddf.repartition(npartitions=num_workers).persist()
@@ -54,7 +57,7 @@ def compute_centroids(client, params):
     dist_to_cents = dist_to_cents.min(axis=1)
 
     nearest_cents = kmeans.predict(cupy_darr)
-    ddf["nearest_cent"]=nearest_cents
+    ddf["nearest_cent"] = nearest_cents
     centroids = kmeans.cluster_centers_
     ddf["dist_to_cent"] = dist_to_cents
 
@@ -79,7 +82,7 @@ if __name__ == "__main__":
         params = yaml.load(y_file, Loader=yaml.FullLoader)
 
     save_folder = f'{params["root"]}/{params["clustering"]["save_loc"]}'
-    os.makedirs(save_folder, exist_ok = True)
+    os.makedirs(save_folder, exist_ok=True)
 
     # Initialize logger
     log_file = os.path.join(save_folder, "compute_centroids.log")
@@ -95,18 +98,22 @@ if __name__ == "__main__":
     kmeans_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
     if not os.path.exists(kmeans_file_loc):
         dt1 = datetime.now()
-        print ('Start time:', dt1)
+        print("Start time:", dt1)
 
         cluster = LocalCUDACluster()
         client = Client(cluster)
         centroids, ddf = compute_centroids(client, params)
 
-        #ddf.to_parquet(f"{save_folder}/added_nearest_center.parquet", index=False)
-        ddf.to_parquet(f"{save_folder}/embs_by_nearest_center/",  index=False, partition_on='nearest_cent')
+        # ddf.to_parquet(f"{save_folder}/added_nearest_center.parquet", index=False)
+        ddf.to_parquet(
+            f"{save_folder}/embs_by_nearest_center/",
+            index=False,
+            partition_on="nearest_cent",
+        )
         kmeans_centroids_file = pathlib.Path(save_folder, "kmeans_centroids.npy")
         np.save(kmeans_centroids_file, centroids)
 
         dt2 = datetime.now()
         elapse = dt2 - dt1
-        print ('End time:', dt2)
-        print ('elapse:', elapse)
+        print("End time:", dt2)
+        print("elapse:", elapse)

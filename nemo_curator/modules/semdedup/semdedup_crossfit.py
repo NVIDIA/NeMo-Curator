@@ -4,30 +4,29 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import argparse
+import logging
 import math
 import os
+import pathlib
+import pdb
+import pickle
+import random
+from datetime import datetime
+from glob import glob
+from typing import List, Tuple
+
+import cudf
+import cupy as cp
+import dask_cudf
 import numpy as np
 import pandas as pd
 import torch
-from tqdm import tqdm
-import pickle
-import random
-import math
-from utils import get_logger
 import yaml
-import logging
-import pathlib
-import argparse
-from typing import List, Tuple
-import cudf
-from glob import glob
-from dask.distributed import LocalCluster
-from dask.distributed import Client
-from datetime import datetime
+from dask.distributed import Client, LocalCluster
 from dask_cuda import LocalCUDACluster
-import dask_cudf
-import cupy as cp
-import pdb
+from tqdm import tqdm
+from utils import get_logger
 
 
 def _semdedup(cluster_reps, device):
@@ -45,14 +44,19 @@ def _semdedup(cluster_reps, device):
     # torch.max returns values and indices. Indices is argmax
     M = torch.max(triu_sim_mat, dim=0)[0].cpu()
     M1 = torch.max(triu_sim_mat, dim=0)[1].cpu().numpy().tolist()
-    #M1 = torch.argmax(triu_sim_mat, dim=0).cpu().numpy().tolist()
+    # M1 = torch.argmax(triu_sim_mat, dim=0).cpu().numpy().tolist()
     return M, M1
 
 
 def get_cluster_reps(cluster_id, emb_by_clust_loc, id_col):
-    cluster_i_path = os.path.join(emb_by_clust_loc, f'nearest_cent={cluster_id:0.1f}')
-    cluster_reps = cudf.read_parquet(cluster_i_path, columns=["embeddings", id_col]).sort_values(by=[id_col])
-    cluster_reps = torch.tensor(cluster_reps['embeddings'].list.leaves.values.reshape(len(cluster_reps),-1), device="cuda")
+    cluster_i_path = os.path.join(emb_by_clust_loc, f"nearest_cent={cluster_id:0.1f}")
+    cluster_reps = cudf.read_parquet(
+        cluster_i_path, columns=["embeddings", id_col]
+    ).sort_values(by=[id_col])
+    cluster_reps = torch.tensor(
+        cluster_reps["embeddings"].list.leaves.values.reshape(len(cluster_reps), -1),
+        device="cuda",
+    )
     return cluster_reps
 
 
@@ -69,13 +73,11 @@ def semdedup(client, params):
     id_col = params["id_col"]["name"]
     id_col_type = params["id_col"]["type"]
     save_loc = f'{root}/{params["clustering"]["save_loc"]}'
-    result_dir = f'{save_loc}/dataframes'
+    result_dir = f"{save_loc}/dataframes"
     emb_by_clust_loc = pathlib.Path(save_loc, "embs_by_nearest_center")
 
     for cluster_id in tqdm(range(end_cluster)):
-        df_file_loc = os.path.join(
-            save_loc, f"dataframes/cluster_{cluster_id}.pkl"
-        )
+        df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.pkl")
 
         if os.path.exists(df_file_loc):
             logger.info(f"{df_file_loc} exists. Continue")
@@ -84,9 +86,7 @@ def semdedup(client, params):
         ## -- load cluster i representations
         sorted_clusters_path = f"{save_loc}/sorted"
         cluster_i = np.load(
-            os.path.join(
-                sorted_clusters_path, f"cluster_{cluster_id}.npy"
-            )
+            os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
         )
         # 1) store cluster size
         cluster_size = cluster_i.shape[0]
@@ -127,7 +127,7 @@ def semdedup(client, params):
 
         cluster_reps = get_cluster_reps(cluster_id, emb_by_clust_loc, id_col)
         M, M1 = _semdedup(cluster_reps, params["use_gpu"])
-        assert(cluster_reps.shape[0]==len(cluster_ids))
+        assert cluster_reps.shape[0] == len(cluster_ids)
 
         idx = [i for i in range(len(M1))]
         M1_id = [cluster_ids[m] for m in M1]
@@ -149,7 +149,7 @@ def semdedup(client, params):
 
         if save_loc != "":
             ## --save df
-            os.makedirs(os.path.dirname(df_file_loc), exist_ok = True)
+            os.makedirs(os.path.dirname(df_file_loc), exist_ok=True)
             with open(df_file_loc, "wb") as file:
                 pickle.dump(points_to_remove_df, file)
 
@@ -166,41 +166,28 @@ if __name__ == "__main__":
 
     save_loc = f"{params['root']}/{params['clustering']['save_loc']}"
     os.makedirs(save_loc, exist_ok=True)
-    os.makedirs(f'{save_loc}/dataframes', exist_ok=True)
+    os.makedirs(f"{save_loc}/dataframes", exist_ok=True)
 
     logger = get_logger(
-            file_name=f"{save_loc}/semdedup-logs.log",
-            level=logging.INFO,
-            stdout=True,
-        )
+        file_name=f"{save_loc}/semdedup-logs.log",
+        level=logging.INFO,
+        stdout=True,
+    )
 
-    params['eps_list'] = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
+    params["eps_list"] = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
     use_gpu = torch.cuda.is_available()
 
-    params['use_gpu'] = "cuda" if use_gpu else "cpu"
+    params["use_gpu"] = "cuda" if use_gpu else "cpu"
 
     logger.info(params)
     dt1 = datetime.now()
-    logger.info(f'Start: {dt1}')
+    logger.info(f"Start: {dt1}")
 
     cluster = LocalCUDACluster() if use_gpu else LocalCluster()
     client = Client(cluster)
     semdedup(client, params)
 
     dt2 = datetime.now()
-    logger.info(f'End: {dt2}')
-    elapse = (dt2 - dt1).total_seconds()/60
-    logger.info(f'elapse: {elapse}')
-
-
-
-
-
-
-
-
-
-
-
-
-
+    logger.info(f"End: {dt2}")
+    elapse = (dt2 - dt1).total_seconds() / 60
+    logger.info(f"elapse: {elapse}")
