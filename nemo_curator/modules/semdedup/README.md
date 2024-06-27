@@ -40,14 +40,15 @@ pip install jupyter
 
 4) Clustering
     ```
-    python clustering_cuml.py
+    python clustering_dask_crossfit.py
     ```
     in: out from (3)
 
     out: under ```results/centroids dir```, including
-        ```dist_to_cent.npy```,
         ```kmeans_centroids.npy```,
-        ```nearest_cent.npy```
+        ```embs_by_nearest_center dir```
+        Where ```embs_by_nearest_center``` contains ```nearest_cent={x}``` where x from 0 to num_clusters - 1
+        and ```embs_by_nearest_center/nearest_cent={x}``` contains parquet files which contain the data points in the cluster
 
 5) Sort the clusters
     ```
