@@ -15,7 +15,9 @@
 from dataclasses import dataclass
 from typing import Dict
 
-import nemo_sdk as sdk
+from nemo_curator.utils.import_utils import safe_import
+
+sdk = safe_import("nemo_sdk")
 
 
 @dataclass
@@ -33,9 +35,7 @@ class SlurmJobConfig:
     rmm_worker_pool_size: str = "72GiB"
     libcudf_cufile_policy: str = "OFF"
 
-    def to_script(
-        self, add_scheduler_file: bool = True, add_device: bool = True
-    ) -> sdk.Script:
+    def to_script(self, add_scheduler_file: bool = True, add_device: bool = True):
         """
         Converts to a script object executable by NeMo SDK
         Args:
