@@ -60,7 +60,8 @@ setup(
         "presidio-anonymizer==2.2.351",
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
-        "crossfit @ git+https://github.com/rapidsai/crossfit.git@1ee3de4",
+        "Cython",
+        "crossfit @ git+https://github.com/rapidsai/crossfit.git@0.0.2",
         # justext installation breaks without lxml[html_clean]
         # due to this: https://github.com/miso-belica/jusText/issues/47
         "lxml[html_clean]",
