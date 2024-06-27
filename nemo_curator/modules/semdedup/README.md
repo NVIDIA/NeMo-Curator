@@ -1,6 +1,4 @@
-
 # SemDeDup Pipeline
-
 
 ## Setup
 Package installations:
@@ -11,8 +9,6 @@ pip install torch torchvision
 pip install submitit
 pip install jupyter
 ```
-
-
 
 ## Pipeline
 
@@ -30,7 +26,7 @@ pip install jupyter
     ```
 
     in: ```/datasets/prospector-lm/cleaned_exact_dedup_all_cc/*.jsonl```
-    
+
     out: ```id_mapping.csv``` and ```adlr_ids``` in {root}/datasets/prospector-lm
 
 
@@ -46,7 +42,7 @@ pip install jupyter
     ```
     python clustering_cuml.py
     ```
-    in: out from (3) 
+    in: out from (3)
 
     out: under ```results/centroids dir```, including
         ```dist_to_cent.npy```,
@@ -59,7 +55,7 @@ pip install jupyter
     ```
     in: out from (4)
 
-    out: 
+    out:
         under ```results/centroids/sorted```, ```cluster_x.npy``` where x from 0 to num_clusters - 1
 
 6) Run semdedup
@@ -68,12 +64,12 @@ pip install jupyter
     ```
     in: out from (5)
 
-    out: 
+    out:
     under ```results/centroids/dataframes```,
     ```cluster_x.pkl``` where x from 0 to num_clusters - 1
 
 7) Extract dedup data
-    ``` 
+    ```
     python extract_dedup_data.py
     ```
     in: out from (6)
@@ -81,4 +77,3 @@ pip install jupyter
     out: ```results/centroids/results.csv```
 
 8) in ```pynb/eda_dups.ipynb```
-
