@@ -107,7 +107,9 @@ def main():
     output_file_dir = os.path.join(args.root, args.embeddings["save_loc"])
     os.makedirs(output_file_dir, exist_ok=True)
     len_written_files = len(os.listdir(output_file_dir))
-    input_files = get_remaining_files(input_data_dir, output_file_dir, "jsonl")
+    input_files = get_remaining_files(input_data_dir, output_file_dir, "json")
+    # Gaurd against non-json files present in the input directory
+    input_files = [f for f in input_files if f.endswith(".json")]
 
     if sample > 0:
         if len_written_files > sample:
