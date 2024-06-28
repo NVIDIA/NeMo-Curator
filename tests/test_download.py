@@ -80,20 +80,28 @@ class TestDownload:
 
     def test_no_urls(self):
         with pytest.raises(ValueError):
+            output_format = {
+                "text": str,
+            }
             download_and_extract(
                 [],
                 [],
                 CommonCrawlWARCDownloader(download_dir="."),
                 CommonCrawlWARCIterator(),
                 CommonCrawlWARCExtractor(),
+                output_format,
             )
 
     def test_url_path_mismatch(self):
         with pytest.raises(ValueError):
+            output_format = {
+                "text": str,
+            }
             download_and_extract(
                 ["one", "two", "three"],
                 ["one"],
                 CommonCrawlWARCDownloader(download_dir="."),
                 CommonCrawlWARCIterator(),
                 CommonCrawlWARCExtractor(),
+                output_format,
             )
