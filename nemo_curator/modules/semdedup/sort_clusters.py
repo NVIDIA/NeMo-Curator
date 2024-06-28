@@ -31,31 +31,30 @@ from utils import get_logger
 
 def assign_and_sort_clusters(
     id_col: str,
+    save_folder: str,
+    sorted_clusters_file_loc: str,
     sim_metric: str = "cosine",
     keep_hard: bool = True,
     kmeans_with_cos_dist: bool = True,
-    save_folder: str = "",
-    sorted_clusters_file_loc: str = "",
     cluster_ids=range(5000),
     logger: logging.Logger = None,
 ):
     """
-    Assigns data points to clusters and sorts each cluster items based on distance to its centroid.
+    Assigns data points to clusters and sorts each cluster's items based on their distance to the cluster centroid.
 
     Args:
-        data (np.memmap): A memory-mapped array containing the data points.
+        id_col (str): The column name representing the unique identifier for each data point.
         sim_metric (str): The similarity metric to use for clustering. Defaults to "cosine".
-        keep_hard (bool): When True, we sort cluster items in descending order by the similarity to cluster centroid. Defaults to True.
+        keep_hard (bool): When True, sorts cluster items in descending order by similarity to the cluster centroid. Defaults to True.
         kmeans_with_cos_dist (bool): Whether to use cosine distance for K-means clustering. Defaults to True.
-        save_folder (str): The location of the K-means centroids file. Defaults to "".
-        sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to "".
-        logger (logging.Logger): A logger object to log messages. Defaults to None.
+        save_folder (str): The location of the K-means centroids file. Defaults to an empty string.
+        sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to an empty string.
         cluster_ids (list): The range of cluster IDs to sort. Defaults to range(5000).
+        logger (logging.Logger): A logger object to log messages. Defaults to None.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the sorted clusters.
+        None
     """
-
     # Step 3: Sort each class/cluster
     logger.info("Ranking...")
     kmeans_centroids_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
@@ -64,14 +63,14 @@ def assign_and_sort_clusters(
 
     start_time = time.time()
     rank_within_cluster(
-        id_col,
-        nearest_cent_file_loc,
-        kmeans_centroids,
-        sim_metric,
-        keep_hard,
-        kmeans_with_cos_dist,
-        cluster_ids,
-        sorted_clusters_file_loc,
+        id_col=id_col,
+        nearest_cent_file_loc=nearest_cent_file_loc,
+        centroids=kmeans_centroids,
+        sim_metric=sim_metric,
+        keep_hard=keep_hard,
+        kmeans_with_cos_dist=kmeans_with_cos_dist,
+        cluster_ids=cluster_ids,
+        sorted_clusters_file_loc=sorted_clusters_file_loc,
     )
     logger.info(f"Time for ranking: {(time.time() - start_time) / 60:.2f} mins")
     logger.info("DONE!")
@@ -88,33 +87,20 @@ def rank_within_cluster(
     sorted_clusters_file_loc: str = "",
 ):
     """
-    Sorts each cluster items by the distance to the cluster centroid.
-    Cluster is represented as list of tuples. Each tuple has 4 values:
-        example_path: unique path to the example/image/text doc, for imagenet it could be something like "n04235860_14959.JPEG",
-        example_id_in_dataset: int between 0 and cluster_size-1
-        dist_to_cent: cosine distance to cluster centroid
-        cluster_id: cluster number (from 0 to number of clusters)
+    Sorts each cluster's items by their distance to the cluster centroid.
 
-    Arguments:
-    data -- the data for which the clusters were created (np.ndarray or np.memmap)
-    dist_df -- DataFrame with the distances between the data points and the centroids, nearest centroid for each example, and path to each example.
-    centroids -- np.ndarray with the centroids for each cluster.
-    sim_metric -- the similarity metric used to compute distances, should be one of ["cosine"]
-    keep_hard -- a boolean when True, we sort cluster items in descending order by the similarity to cluster centroid. Defaults to True.
-    spherical -- a boolean True means spherical was used for computing centroids (used for cosine similarity).
-    cluster_ids -- a list of cluster ids to process. Each slurm job will process part of the clusters.
-    sorted_clusters_file_loc -- the location to save the sorted clusters.
+    Args:
+        id_col (str): The column name representing the unique identifier for each data point.
+        nearest_cent_file_loc (str): The location of the nearest center files.
+        centroids (np.ndarray): The centroids for each cluster.
+        sim_metric (str): The similarity metric used to compute distances. Should be one of ["cosine"]. Defaults to "cosine".
+        keep_hard (bool): When True, sorts cluster items in descending order by similarity to the cluster centroid. Defaults to True.
+        kmeans_with_cos_dist (bool): Whether to use cosine distance for K-means clustering. Defaults to False.
+        cluster_ids (List[int]): The list of cluster IDs to process. Defaults to range(50000).
+        sorted_clusters_file_loc (str): The location to save the sorted clusters.
 
     Returns:
-    A list of cluster representations, where each representation is a list of tuples with 4 values.
-    -- exampel for a cluster (the list bellow is sorted by dist_to_cent in descending order)
-        [
-          [example_name, example_id_in_dataset, dist_to_cent, cluster_label],
-          [example_name, example_id_in_dataset, dist_to_cent, cluster_label],
-                                        .
-                                        .
-                                        .
-                                                                    ]
+        None
     """
 
     assert sim_metric in [
@@ -174,7 +160,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config_file",
         type=str,
-        default="./configs_cf.yml",
+        default="./config.yaml",
         help=".yaml config file path",
     )
     args = parser.parse_args()

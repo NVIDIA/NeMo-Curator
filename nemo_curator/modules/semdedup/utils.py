@@ -29,7 +29,7 @@ def parse_arguments():
     parser.set_defaults(device="gpu")
     parser.set_defaults(set_torch_to_use_rmm=False)
     parser.add_argument(
-        "--config_file", help="YAML with configs", default="configs_cf.yml"
+        "--config_file", help="YAML with configs", default="config.yaml"
     )
     args = parser.parse_args()
     config_file = args.config_file

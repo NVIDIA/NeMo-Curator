@@ -122,9 +122,9 @@ def main():
     if left_to_sample == 0:
         print("No files to process")
         return
-    else:
-        input_files = input_files[:left_to_sample]
-        print(f"Processing {left_to_sample} files")
+
+    input_files = input_files[:left_to_sample]
+    print(f"Processing {left_to_sample} files")
 
     client = get_client(**parse_client_args(args))
     ddf = read_data(

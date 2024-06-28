@@ -61,7 +61,7 @@ def compute_centroids(args, logger):
     os.makedirs(save_folder, exist_ok=True)
 
     ddf = dask_cudf.read_parquet(
-        emb_pqt_loc, columns=["embeddings", args.id_col["name"]]
+        emb_pqt_loc, columns=["embeddings", args.id_col["name"]], split_row_groups=False
     )
     # Persist ddf to save IO costs in host memory, should be able to do this via
     # spilling to (TODO)
@@ -96,6 +96,8 @@ def compute_centroids(args, logger):
 
     centroids = kmeans.cluster_centers_
     logger.info("Centroids computed")
+
+    ddf = ddf.reset_index(drop=True)
     return centroids, ddf
 
 
@@ -105,10 +107,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config_file",
         type=str,
-        default="./configs_cf.yml",
+        default="./config.yaml",
         help=".yaml config file path",
     )
     args = parse_arguments()
+
+    # Kmeans can only be done with L2 using cuML.
+    assert args.clustering["Kmeans_with_cos_dist"] == False
+
     # TODO: Cleanup below
     save_folder = f'{args.root}/{args.clustering["save_loc"]}'
     os.makedirs(save_folder, exist_ok=True)
@@ -120,31 +126,21 @@ if __name__ == "__main__":
         level=logging.INFO,
         stdout=True,
     )
-
     with open(pathlib.Path(save_folder, "clustering_params.txt"), "w") as fout:
         pprint.pprint(args, fout)
 
     kmeans_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
-    print(kmeans_file_loc)
-    if not os.path.exists(kmeans_file_loc):
-        # Kmeans can only be done with L2 using cuML.
-        assert args.clustering["Kmeans_with_cos_dist"] == False
-
-        dt1 = datetime.now()
-        print("Start time:", dt1)
-
-        centroids, ddf = compute_centroids(args, logger)
-
-        # ddf.to_parquet(f"{save_folder}/added_nearest_center.parquet", index=False)
-        ddf.to_parquet(
-            f"{save_folder}/embs_by_nearest_center/",
-            index=False,
-            partition_on="nearest_cent",
-        )
-        kmeans_centroids_file = pathlib.Path(save_folder, "kmeans_centroids.npy")
-        np.save(kmeans_centroids_file, centroids)
-
-        dt2 = datetime.now()
-        elapse = dt2 - dt1
-        print("End time:", dt2)
-        print("elapse:", elapse)
+    dt1 = datetime.now()
+    print("Start time:", dt1)
+    centroids, ddf = compute_centroids(args, logger)
+    ddf.to_parquet(
+        f"{save_folder}/embs_by_nearest_center/",
+        index=False,
+        partition_on="nearest_cent",
+    )
+    kmeans_centroids_file = pathlib.Path(save_folder, "kmeans_centroids.npy")
+    np.save(kmeans_centroids_file, centroids)
+    dt2 = datetime.now()
+    elapse = dt2 - dt1
+    print("End time:", dt2)
+    print("elapse:", elapse)

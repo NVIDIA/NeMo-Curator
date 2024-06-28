@@ -1,7 +1,7 @@
 root: '/raid/vjawa/semdedup_debug'
-sample: -1 # todo name to num_samples
+sample: 16 # todo name to num_samples
 id_col:
-   name: 'adlr_id' # 'id' #'adlr_id'
+   name: 'id' # 'id' #'adlr_id'
    type: 'str' # 'int' #'str'
 
 # Embeddings
@@ -15,7 +15,7 @@ embeddings:
   max_mem_gb: 25
 
 clustering:
-  save_loc: "vjawa_results_fbopt_nc_11_crossfit" #"results_fbopt125_cc_crossfit_5"
+  save_loc: "vjawa_results_st_all_MiniLM_L6_v2"
   #save_loc: "results_crossfit_fb_c4_10a"
   num_clusters: 1000 # -- number of clusters
   seed: 1234

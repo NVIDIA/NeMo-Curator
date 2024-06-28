@@ -61,6 +61,9 @@ def get_cluster_reps(
 def process_cluster(
     cluster_id, emb_by_clust_loc, id_col, id_col_type, eps_list, save_loc
 ):
+    assert save_loc is not None
+    assert save_loc != ""
+
     df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.parquet")
     if os.path.exists(df_file_loc):
         logging.info(f"{df_file_loc} exists. Continue")
@@ -85,10 +88,7 @@ def process_cluster(
         for eps in eps_list:
             ## We need to remove a point from the dataset when its pairwise similarity to other point is > 1-ebs
             points_to_remove_df[f"eps={eps}"] = [False]
-        if save_loc != "":
-            ## --save df
-            with open(df_file_loc, "wb") as file:
-                points_to_remove_df.to_parquet(df_file_loc)
+        points_to_remove_df.to_parquet(df_file_loc)
         return
 
     ## -- By default, we keep hard examples from groups
@@ -125,11 +125,7 @@ def process_cluster(
         eps_points_to_remove = M > 1 - eps
         points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
 
-    if save_loc != "":
-        ## --save df
-        os.makedirs(os.path.dirname(df_file_loc), exist_ok=True)
-        with open(df_file_loc, "wb") as file:
-            pickle.dump(points_to_remove_df, file)
+    points_to_remove_df.to_parquet(df_file_loc)
     return
 
 
@@ -139,7 +135,7 @@ def semdedup(args):
 
     end_cluster = args.clustering["num_clusters"]
     root = args.root
-    emb_pqt_loc = os.path.join(root, args.embeddings["output_data_dir"])
+    emb_pqt_loc = os.path.join(root, args.embeddings["save_loc"])
 
     eps_list1 = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
     eps_list2 = [0.1 + x * 0.005 for x in range(34)]

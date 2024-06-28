@@ -14,7 +14,6 @@
 
 import logging
 import os
-import pickle
 from datetime import datetime
 
 import numpy as np
@@ -65,7 +64,7 @@ def extract_pruned_data(
         cluster_df_fname = os.path.join(
             semdedup_pruning_tables_path, f"cluster_{cluster_id}.parquet"
         )
-        semdedup_pruning_tables = pickle.load(cluster_df_fname)
+        semdedup_pruning_tables = pd.read_parquet(cluster_df_fname)
 
         if semdedup_pruning_tables.shape[0] == 1:
             logger.info(
@@ -98,7 +97,7 @@ def extract_pruned_data(
 
 
 if __name__ == "__main__":
-    config_file = "./configs_cf.yml"
+    config_file = "./config.yaml"
     with open(config_file, "r") as y_file:
         params = yaml.load(y_file, Loader=yaml.FullLoader)
 

@@ -2,23 +2,17 @@
 
 ## Pipeline
 
-0) Modify `configs.yaml`
+1) Modify `config.yaml`
 
-1) Add IDs to the dataset
-    ```sh
-    python create_idmap.py
-    ```
-    **Input:**  `config.embeddings.input_data_dir`
-    **Output:** `id_mapping.csv` and `adlr_ids` in `config.embeddings.input_data_dir`
 
-3) Compute embeddings:
+2) Compute embeddings:
     ```sh
     python compute_embeddings.py
     ```
     **Input:** `config.embeddings.input_data_dir/*.jsonl` and output from step (2)
     **Output:** Embedding  parquet files in the embedding directory, including `text` and `adlr`
 
-4) Clustering
+3) Clustering
     ```sh
     python clustering.py
     ```
@@ -28,21 +22,23 @@
         - `embs_by_nearest_center` directory, containing `nearest_cent={x}` where x ranges from 0 to `num_clusters - 1`
         - Parquet files within `embs_by_nearest_center/nearest_cent={x}` containing the data points in each cluster
 
-5) Sort the clusters
+4) Sort the clusters
     ```sh
     python sort_clusters.py
     ```
     **Input:** Output from step (4)
     **Output:** Under `config.root/centroids/sorted`, `cluster_x.npy` where x ranges from 0 to `num_clusters - 1`
 
-6) Run SemDeDup
+5) Run SemDeDup
+    This helps in deduplicating the data points within each cluster using semantic similarity
+    and generates a deduplicated dataset
     ```sh
     python semdedup.py
     ```
     **Input:** Output from step (5)
     **Output:** Under `config.root/centroids/dataframes`, `cluster_x.parquet` where x ranges from 0 to `num_clusters - 1`
 
-7) Extract deduplicated data
+6) Extract deduplicated data
     ```sh
     python extract_dedup_data.py
     ```
