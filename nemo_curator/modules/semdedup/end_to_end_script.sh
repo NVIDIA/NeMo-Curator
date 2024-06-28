@@ -1,6 +1,7 @@
 #!/bin/bash
 # SemDeDup Pipeline
 
+echo "Running SemDeDup pipeline..."
 
 # Config file path
 CONFIG_FILE="config.yaml"
@@ -27,7 +28,7 @@ python clustering.py
 echo "Running sort_clusters.py..."
 python sort_clusters.py
 
-# Step 4: Run SemDeDup
+# Step 4: Run SemDeDup to find duplicates with in the same cluster
 echo "Running semdedup.py..."
 python semdedup.py
 

@@ -1,5 +1,5 @@
 root: '/raid/vjawa/semdedup_debug'
-sample: 16 # todo name to num_samples
+sample: -1 # todo name to num_samples
 id_col:
    name: 'id' # 'id' #'adlr_id'
    type: 'str' # 'int' #'str'
