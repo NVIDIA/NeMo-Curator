@@ -188,4 +188,5 @@ if __name__ == "__main__":
     elapse = (dt2 - dt1).total_seconds() / 60
     logger.info(f"elapse: {elapse}")
 
+    client.cancel(client.futures, force=True)
     client.close()

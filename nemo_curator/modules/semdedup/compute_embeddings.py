@@ -162,6 +162,9 @@ def main():
 
     print(f"Time taken: {time.time() - st}")
 
+    client.cancel(client.futures, force=True)
+    client.close()
+
 
 if __name__ == "__main__":
     main()

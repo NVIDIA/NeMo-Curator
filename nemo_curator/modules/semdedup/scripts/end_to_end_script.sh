@@ -17,7 +17,7 @@ echo "Save Location for sem-dedup: $ROOT/$SAVE_LOC"
 # echo "Deleting existing root directory: $ROOT"
 #rm -rf "$ROOT"
 #mkdir -p "$ROOT"
-rm -rf "$ROOT/$SAVE_LOC"
+# rm -rf "$ROOT/$SAVE_LOC"
 
 # Step 1: Compute embeddings
 echo "Running compute_embeddings.py..."
@@ -39,5 +39,6 @@ python semdedup.py
 # Step 5: Extract deduplicated data
 echo "Running extract_dedup_data.py..."
 python extract_dedup_data.py
-echo "---------------------------------"
+echo "--------------------------------------------"
 echo "Pipeline execution completed successfully."
+echo "--------------------------------------------"

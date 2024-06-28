@@ -93,7 +93,7 @@ def extract_pruned_data(
 
 
 if __name__ == "__main__":
-    config_file = "./config.yaml"
+    config_file = "configs/config.yaml"
     with open(config_file, "r") as y_file:
         params = yaml.load(y_file, Loader=yaml.FullLoader)
 
