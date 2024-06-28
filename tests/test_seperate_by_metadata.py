@@ -12,8 +12,8 @@ from nemo_curator.utils.file_utils import separate_by_metadata
 
 @pytest.fixture
 def tmp_path_w_data(tmp_path):
-    def _write_data(num_files):
-        out_path = tmp_path / "jsonl"
+    def _write_data(num_files, file_ext):
+        out_path = tmp_path / file_ext
         df = pd.DataFrame(
             {
                 "id": [1, 2, 300, 4, -1],
@@ -24,7 +24,7 @@ def tmp_path_w_data(tmp_path):
         dfs = []
         for i in range(num_files):
             partition = df.copy()
-            partition["filename"] = f"f{i}.jsonl"
+            partition["filename"] = f"f{i}.{file_ext}"
             dfs.append(partition)
 
         df = dd.concat(dfs)
@@ -32,7 +32,7 @@ def tmp_path_w_data(tmp_path):
             df=df,
             output_file_dir=str(out_path),
             write_to_filename=True,
-            output_type="jsonl",
+            output_type=file_ext,
         )
         return out_path
 
@@ -45,10 +45,19 @@ def tmp_path_w_data(tmp_path):
 class TestMetadataSep:
 
     @pytest.mark.parametrize("files_per_partition", [1, 3])
-    def test_metadatasep(self, tmp_path_w_data, files_per_partition, backend):
-        data_dir = tmp_path_w_data(5)
+    @pytest.mark.parametrize(
+        "file_ext, read_f",
+        [
+            ("jsonl", DocumentDataset.read_json),
+            ("parquet", DocumentDataset.read_parquet),
+        ],
+    )
+    def test_metadatasep(
+        self, tmp_path_w_data, files_per_partition, backend, file_ext, read_f
+    ):
+        data_dir = tmp_path_w_data(num_files=5, file_ext=file_ext)
         output_dir = data_dir / "metadata_sep"
-        df = DocumentDataset.read_json(
+        df = read_f(
             str(data_dir),
             backend=backend,
             files_per_partition=files_per_partition,
@@ -58,7 +67,7 @@ class TestMetadataSep:
             df=df,
             output_dir=str(output_dir),
             metadata_field="metadata",
-            output_type="jsonl",
+            output_type=file_ext,
         ).compute()
 
         found_metadata = set(os.listdir(output_dir))
@@ -67,7 +76,7 @@ class TestMetadataSep:
 
         dfs = []
         for metadata in expected_metadata:
-            meta_df = DocumentDataset.read_json(
+            meta_df = read_f(
                 str(output_dir / metadata),
                 backend=backend,
                 files_per_partition=1,
