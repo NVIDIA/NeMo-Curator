@@ -30,7 +30,7 @@ from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args
 
 
-def assign_and_sort_clusters(
+def _assign_and_sort_clusters(
     id_col: str,
     save_folder: str,
     sorted_clusters_file_loc: str,
@@ -165,6 +165,37 @@ def rank_within_cluster(
         np.save(sorted_cluster_file_path, cluster_sorted)
 
 
+def assign_and_sort_clusters(args: "Namespace", logger: "logging.Logger") -> None:
+    """
+    Assigns data points to clusters and sorts each cluster's items based on their distance to the cluster centroid.
+
+    Args:
+        args (argparse.Namespace): The arguments to use for clustering.
+        logger (logging.Logger): A logger object to log messages.
+
+    Returns:
+        None
+    """
+    id_col = args.id_col["name"]
+    sim_metric = args.semdedup["sim_metric"]
+    keep_hard = args.semdedup["which_to_keep"] == "hard"
+    kmeans_with_cos_dist = args.clustering["Kmeans_with_cos_dist"]
+    save_folder = os.path.join(args.root, args.clustering["save_loc"])
+    sorted_clusters_file_loc = f"{save_folder}/sorted"
+    cluster_ids = range(0, args.clustering["num_clusters"])
+
+    _assign_and_sort_clusters(
+        id_col=id_col,
+        sim_metric=sim_metric,
+        keep_hard=keep_hard,
+        kmeans_with_cos_dist=kmeans_with_cos_dist,
+        save_folder=save_folder,
+        sorted_clusters_file_loc=sorted_clusters_file_loc,
+        cluster_ids=cluster_ids,
+        logger=logger,
+    )
+
+
 if __name__ == "__main__":
     args = parse_arguments()
     # Initialize dask client
@@ -175,7 +206,6 @@ if __name__ == "__main__":
     with open(pathlib.Path(save_loc, "sort_cluster_params.txt"), "w") as f:
         pprint.pprint(args, f)
 
-    cluster_ids = list(range(args.clustering["num_clusters"]))
     logger = get_logger(
         file_name=f"{save_loc}/sort-cluster.log",
         level=logging.INFO,
@@ -184,24 +214,7 @@ if __name__ == "__main__":
 
     dt1 = datetime.now()
     logger.info(f"Start: {dt1}")
-
-    kmeans_with_cos_dist = args.clustering["Kmeans_with_cos_dist"]
-    assert kmeans_with_cos_dist is False
-    which_to_keep = args.semdedup["which_to_keep"]
-    keep_hard = which_to_keep == "hard"
-
-    id_col = args.id_col["name"]
-    assign_and_sort_clusters(
-        id_col=id_col,
-        sim_metric=args.semdedup["sim_metric"],
-        keep_hard=keep_hard,
-        kmeans_with_cos_dist=kmeans_with_cos_dist,
-        save_folder=save_loc,
-        sorted_clusters_file_loc=f"{save_loc}/sorted",
-        cluster_ids=range(0, args.clustering["num_clusters"]),
-        logger=logger,
-    )
-
+    assign_and_sort_clusters(args, logger)
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")
     elapse = (dt2 - dt1).total_seconds() / 60

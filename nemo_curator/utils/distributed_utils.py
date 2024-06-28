@@ -216,7 +216,7 @@ def read_single_partition(
             " file formats.."
         )
 
-    if filetype == "jsonl":
+    if filetype in ["jsonl", "json"]:
         read_kwargs = {"lines": True}
         if backend == "cudf":
             read_f = cudf.read_json
@@ -315,7 +315,7 @@ def read_data(
         if backend == "cudf":
             df = df.to_backend("cudf")
 
-    elif file_type in ["jsonl", "parquet"]:
+    elif file_type in ["json", "jsonl", "parquet"]:
         print(f"Reading {len(input_files)} files", flush=True)
         input_files = sorted(input_files)
         if files_per_partition > 1:

@@ -7,6 +7,7 @@ id_col:
 # Embeddings
 embeddings:
   input_column: 'text'
+  input_file_type: 'json'
   input_data_dir: '/datasets/semdedup/c4/realnewslike/modified'
   save_loc: 'embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2'
   path_or_name: 'sentence-transformers/all-MiniLM-L6-v2'

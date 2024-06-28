@@ -1,20 +1,7 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import logging
 import os
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -25,16 +12,29 @@ from nemo_curator.modules.semdedup.utils import get_logger
 
 
 def extract_pruned_data(
-    id_col,
-    id_type,
-    sorted_clusters_path,
-    semdedup_pruning_tables_path,
-    eps,
-    num_clusters,
-    output_csv_path,
-):
+    id_col: str,
+    id_type: str,
+    sorted_clusters_path: str,
+    semdedup_pruning_tables_path: str,
+    eps: float,
+    num_clusters: int,
+    output_csv_path: str,
+) -> Tuple[int, int, int]:
+    """
+    Extracts pruned data from sorted clusters and saves it to a CSV file.
 
-    ## -- duplicates we want to keep/remove.
+    Args:
+        id_col (str): The name of the ID column.
+        id_type (str): The data type of the ID column.
+        sorted_clusters_path (str): Path to the sorted clusters directory.
+        semdedup_pruning_tables_path (str): Path to the pruning tables directory.
+        eps (float): Epsilon value for pruning.
+        num_clusters (int): Number of clusters.
+        output_csv_path (str): Path to save the output CSV file.
+
+    Returns:
+        Tuple[int, int, int]: Number of kept records, removed records, and total records.
+    """
     dedup_clusters = []
     total = 0
 
@@ -70,9 +70,6 @@ def extract_pruned_data(
             )
             continue
 
-        ## -- See which examples to keep in this cluster.
-        ## -- semdedup_pruning_tables contain True values for the examples to be removed.
-
         items_to_keep = semdedup_pruning_tables[
             semdedup_pruning_tables[f"eps={eps}"] == False
         ]["id"].tolist()
@@ -80,7 +77,6 @@ def extract_pruned_data(
         if "indices" in semdedup_pruning_tables.columns:
             cluster_i = cluster_i[semdedup_pruning_tables["indices"]]
 
-        ## -- retrieve only the examples we want and add to the list.
         dedup_cluster = df_cluster_i[df_cluster_i[id_col].isin(items_to_keep)]
         dedup_clusters.append(dedup_cluster)
 
@@ -92,20 +88,14 @@ def extract_pruned_data(
     return result.shape[0], num_removed, total
 
 
-if __name__ == "__main__":
-    config_file = "configs/config.yaml"
-    with open(config_file, "r") as y_file:
-        params = yaml.load(y_file, Loader=yaml.FullLoader)
+def extract_dedup_data(params: Dict[str, Any], logger: logging.Logger) -> None:
+    """
+    Extracts deduplicated data based on provided parameters and logs the process.
 
-    root = params["root"]
-    save_loc = params["clustering"]["save_loc"]
-
-    logger = get_logger(
-        file_name=f"{root}/{save_loc}/extract_dedup_data.log",
-        level=logging.INFO,
-        stdout=True,
-    )
-
+    Args:
+        params (Dict[str, Any]): Parameters from the configuration file.
+        logger (logging.Logger): Logger for logging the process.
+    """
     if params["extract_dedup"]["use_eps_from_yml"]:
         eps = params["extract_dedup"]["eps"]
         eps_list = [float(x) for x in eps.split(" ")]
@@ -118,9 +108,6 @@ if __name__ == "__main__":
     total_list = []
     id_col = params["id_col"]["name"]
     id_type = params["id_col"]["type"]
-
-    dt1 = datetime.now()
-    logger.info(f"Start: {dt1}")
 
     for eps in eps_list:
         output_csv_path = f"{root}/{save_loc}/results_eps_{eps}.csv"
@@ -140,16 +127,34 @@ if __name__ == "__main__":
         removed_list.append(removed)
         total_list.append(total)
 
-    dict = {
+    result_dict = {
         "eps": eps_list,
         "kept": kept_list,
         "removed": removed_list,
         "total": total_list,
     }
-    df = pd.DataFrame(dict)
+    df = pd.DataFrame(result_dict)
     summary_file = f"{root}/{save_loc}/summary.csv"
     df.to_csv(summary_file, index=False)
 
+
+if __name__ == "__main__":
+    config_file = "configs/config.yaml"
+    with open(config_file, "r") as y_file:
+        params = yaml.load(y_file, Loader=yaml.FullLoader)
+
+    root = params["root"]
+    save_loc = params["clustering"]["save_loc"]
+
+    logger = get_logger(
+        file_name=f"{root}/{save_loc}/extract_dedup_data.log",
+        level=logging.INFO,
+        stdout=True,
+    )
+
+    dt1 = datetime.now()
+    logger.info(f"Start: {dt1}")
+    extract_dedup_data(params, logger)
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")
     elapse = (dt2 - dt1).total_seconds() / 60

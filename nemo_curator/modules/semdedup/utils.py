@@ -15,7 +15,7 @@
 import logging
 import os
 import random
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 
 import numpy as np
 import pandas as pd
@@ -34,7 +34,7 @@ def merge_args_with_config(args, config):
     return args
 
 
-def parse_arguments():
+def parse_arguments() -> Namespace:
     parser = ArgumentParser(description="SemDedup Arguments")
     parser = add_distributed_args(parser)
     # Set low default RMM pool size for classifier
