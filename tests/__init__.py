@@ -18,7 +18,7 @@ import dask
 
 # Disable query planning if possible
 # https://github.com/NVIDIA/NeMo-Curator/issues/73
-if dask.config.get("dataframe.query-planning") is True or "dask-expr" in sys.modules:
+if dask.config.get("dataframe.query-planning") is True or "dask_expr" in sys.modules:
     raise NotImplementedError(
         """
         NeMo Curator does not support query planning yet.
