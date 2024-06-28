@@ -425,15 +425,6 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         filenames = df.filename.unique()
         filenames = list(filenames.values_host) if is_cudf_type(df) else list(filenames)
         num_files = len(filenames)
-        if num_files > 1 and output_type != "jsonl":
-            raise ValueError(
-                f"""
-                Found more than one filename({num_files}) in source partition which is not
-                supported for filetypes other than jsonl.
-                Consider using `files_per_partition=1` during read to ensure a single filename
-                source per partition of data.
-                """
-            )
         for filename in filenames:
             out_df = df[df.filename == filename] if num_files > 1 else df
             filename = Path(filename).stem
@@ -446,7 +437,6 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
                         orient="records",
                         lines=True,
                         force_ascii=False,
-                        mode="a",
                     )
                 else:
                     # See open issue here: https://github.com/rapidsai/cudf/issues/15211
@@ -458,7 +448,6 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
                         orient="records",
                         lines=True,
                         force_ascii=False,
-                        mode="a",
                     )
             elif output_type == "parquet":
                 output_file_path = output_file_path + ".parquet"
