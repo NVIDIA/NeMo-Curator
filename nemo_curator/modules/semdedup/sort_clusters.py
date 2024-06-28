@@ -24,9 +24,8 @@ import cudf
 import dask.bag as db
 import numpy as np
 import torch
-from utils import get_logger
 
-from nemo_curator.modules.semdedup.utils import parse_arguments
+from nemo_curator.modules.semdedup.utils import get_logger, parse_arguments
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args
 
@@ -134,7 +133,7 @@ def rank_within_cluster(
         cluster_df = cudf.read_parquet(
             cluster_c_path, columns=[id_col, "dist_to_cent", "embeddings"]
         )
-        embeds = torch.Tensor(
+        embeds = torch.as_tensor(
             cluster_df["embeddings"].list.leaves.values.reshape(
                 cluster_df.shape[0], -1
             ),
@@ -145,7 +144,7 @@ def rank_within_cluster(
         assert kmeans_with_cos_dist is False
 
         if sim_metric == "cosine":
-            cluster_c_centroid = torch.Tensor(centroids[cluster_c], device="cuda")
+            cluster_c_centroid = torch.as_tensor(centroids[cluster_c], device="cuda")
             sim_to_cent = torch.nn.CosineSimilarity(dim=1)(embeds, cluster_c_centroid)
             sim_to_cent = sim_to_cent.cpu().numpy()
             cluster_dists_to_cent = (1 - sim_to_cent).tolist()
@@ -207,3 +206,6 @@ if __name__ == "__main__":
     logger.info(f"End: {dt2}")
     elapse = (dt2 - dt1).total_seconds() / 60
     logger.info(f"elapse: {elapse}")
+
+    client.cancel(client.futures, force=True)
+    client.close()

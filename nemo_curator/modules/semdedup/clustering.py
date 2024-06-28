@@ -25,9 +25,8 @@ import dask_cudf
 import numpy as np
 from cuml.dask.cluster import KMeans
 from dask.distributed import wait
-from utils import get_logger
 
-from nemo_curator.modules.semdedup.utils import parse_arguments
+from nemo_curator.modules.semdedup.utils import get_logger, parse_arguments
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args
 
@@ -136,9 +135,13 @@ if __name__ == "__main__":
         index=False,
         partition_on="nearest_cent",
     )
+    del ddf
     kmeans_centroids_file = pathlib.Path(save_folder, "kmeans_centroids.npy")
     np.save(kmeans_centroids_file, centroids)
     dt2 = datetime.now()
     elapse = dt2 - dt1
     print("End time:", dt2)
     print("elapse:", elapse)
+
+    client.cancel(client.futures, force=True)
+    client.close()

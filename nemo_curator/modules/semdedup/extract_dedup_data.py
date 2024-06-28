@@ -20,7 +20,6 @@ import numpy as np
 import pandas as pd
 import yaml
 from tqdm import tqdm
-from utils import get_logger
 
 
 def extract_pruned_data(

@@ -5,6 +5,8 @@ from argparse import ArgumentParser
 
 import numpy as np
 import pandas as pd
+
+# Import torch after other things
 import torch
 import yaml
 
