@@ -2,8 +2,9 @@
 
 This pipeline is used to cluster and deduplicate data points based on their embeddings.
 Please edit `config.yaml` to configure the pipeline and run it using the following commands.
+
 ```sh
-bash end_to_end_script.sh
+bash scripts/end_to_end_script.sh
 ```
 
 ## Pipeline Explanation
