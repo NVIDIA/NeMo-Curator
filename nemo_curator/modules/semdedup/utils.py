@@ -16,7 +16,6 @@ from nemo_curator.utils.script_utils import add_distributed_args
 def merge_args_with_config(args, config):
     for key, value in config.items():
         if not getattr(args, key, None):
-            print(f"Setting {key} to {value}")
             setattr(args, key, value)
     return args
 

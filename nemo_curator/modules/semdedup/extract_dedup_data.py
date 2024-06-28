@@ -21,6 +21,8 @@ import pandas as pd
 import yaml
 from tqdm import tqdm
 
+from nemo_curator.modules.semdedup.utils import get_logger
+
 
 def extract_pruned_data(
     id_col,
@@ -55,11 +57,6 @@ def extract_pruned_data(
         df_cluster_i.dist = df_cluster_i.dist.astype("float32")
         df_cluster_i.cluster = df_cluster_i.cluster.astype("int32")
         total += df_cluster_i.shape[0]
-
-        logger.info(
-            f"semdedup_pruning_tables_path: {semdedup_pruning_tables_path}, cluster_id: {cluster_id}"
-        )
-
         cluster_df_fname = os.path.join(
             semdedup_pruning_tables_path, f"cluster_{cluster_id}.parquet"
         )
