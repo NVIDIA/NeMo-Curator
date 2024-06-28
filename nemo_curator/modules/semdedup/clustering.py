@@ -18,6 +18,7 @@ import os
 import pathlib
 import pprint
 from datetime import datetime
+from typing import Tuple
 
 import cupy as cp
 import dask_cudf
@@ -31,11 +32,11 @@ from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args
 
 
-def get_embedding_ar(df: "cudf.DataFrame"):
+def get_embedding_ar(df: "cudf.DataFrame") -> cp.ndarray:
     return df["embeddings"].list.leaves.values.reshape(len(df), -1)
 
 
-def add_dist_to_cents(df: "cudf.DataFrame", centriods: cp.ndarray):
+def add_dist_to_cents(df: "cudf.DataFrame", centriods: cp.ndarray) -> "cudf.DataFrame":
     embed_array = get_embedding_ar(df)
     centroids_ar = centriods[df["nearest_cent"].values]
     dist_to_cents = cp.sqrt(np.sum((embed_array - centroids_ar) ** 2, axis=1))
@@ -44,11 +45,9 @@ def add_dist_to_cents(df: "cudf.DataFrame", centriods: cp.ndarray):
 
 
 # TODO: Add type hints
-def compute_centroids(args, logger):
-
-    # Initialize dask client
-    client = get_client(**parse_client_args(args))
-
+def compute_centroids(
+    args: argparse.Namespace, logger: logging.Logger, client: "dask.distributed.Client"
+) -> Tuple[cp.ndarray, "dask_cudf.DataFrame"]:
     ## -- Load clustering parameters
     root_dir = args.root
     emb_pqt_loc = os.path.join(args.root, args.embeddings["save_loc"])
@@ -61,8 +60,11 @@ def compute_centroids(args, logger):
     os.makedirs(save_folder, exist_ok=True)
 
     ddf = dask_cudf.read_parquet(
-        emb_pqt_loc, columns=["embeddings", args.id_col["name"]], split_row_groups=False
+        emb_pqt_loc,
+        columns=["embeddings", args.id_col["name"]],
+        split_row_groups=False,
     )
+    logger.info(f"Total number of partitions in input_ddf: {ddf.npartitions}")
     # Persist ddf to save IO costs in host memory, should be able to do this via
     # spilling to (TODO)
     ddf = ddf.to_backend("pandas").persist()
@@ -103,13 +105,6 @@ def compute_centroids(args, logger):
 
 if __name__ == "__main__":
     # Configure command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config_file",
-        type=str,
-        default="./config.yaml",
-        help=".yaml config file path",
-    )
     args = parse_arguments()
 
     # Kmeans can only be done with L2 using cuML.
@@ -130,9 +125,12 @@ if __name__ == "__main__":
         pprint.pprint(args, fout)
 
     kmeans_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
+
+    # Initialize dask client
+    client = get_client(**parse_client_args(args))
     dt1 = datetime.now()
     print("Start time:", dt1)
-    centroids, ddf = compute_centroids(args, logger)
+    centroids, ddf = compute_centroids(args, logger, client)
     ddf.to_parquet(
         f"{save_folder}/embs_by_nearest_center/",
         index=False,
