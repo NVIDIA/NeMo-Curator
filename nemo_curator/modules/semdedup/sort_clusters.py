@@ -135,14 +135,19 @@ def rank_within_cluster(
             cluster_c_path, columns=[id_col, "dist_to_cent", "embeddings"]
         )
         embeds = torch.Tensor(
-            cluster_df["embeddings"].list.leaves.values.reshape(cluster_df.shape[0], -1)
+            cluster_df["embeddings"].list.leaves.values.reshape(
+                cluster_df.shape[0], -1
+            ),
+            device="cuda",
         )
         cluster_df = cluster_df.to_pandas()
 
         assert kmeans_with_cos_dist is False
+
         if sim_metric == "cosine":
-            cluster_c_centroid = torch.Tensor(centroids[cluster_c])
+            cluster_c_centroid = torch.Tensor(centroids[cluster_c], device="cuda")
             sim_to_cent = torch.nn.CosineSimilarity(dim=1)(embeds, cluster_c_centroid)
+            sim_to_cent = sim_to_cent.cpu().numpy()
             cluster_dists_to_cent = (1 - sim_to_cent).tolist()
         elif sim_metric == "l2":
             # Used when Kmeans_with_cos_dist is True
