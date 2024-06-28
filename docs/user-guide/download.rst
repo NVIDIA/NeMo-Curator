@@ -43,7 +43,7 @@ By "extraction", we typically mean the process of converting a data format from 
     common_crawl = download_common_crawl("/extracted/output/folder", "2020-50", "2021-04", output_type="jsonl")
 
   * ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
-  * ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://commoncrawl.org/overview>`_.
+  * ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://data.commoncrawl.org/>`_.
   * ``"2021-04"`` is the last common crawl snapshot that will be included in the download.
   * ``output_type="jsonl"`` is the file format that will be used for storing the data on disk. Currently ``"jsonl"`` and ``"parquet"`` are supported.
 

@@ -317,7 +317,7 @@ def download_common_crawl(
     if len(common_crawl_urls) == 0:
         raise ValueError(
             f"No Common Crawl download urls found between {start_snapshot} and {end_snapshot}. "
-            "Ensure that a valid Common Crawl snapshot (https://commoncrawl.org/overview) is "
+            "Ensure that a valid Common Crawl snapshot (https://data.commoncrawl.org/) is "
             "within the range provided."
         )
 
