@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from nemo_curator.download.commoncrawl import get_common_crawl_urls
+from nemo_curator.download import download_and_extract
+from nemo_curator.download.commoncrawl import (
+    CommonCrawlWARCDownloader,
+    CommonCrawlWARCExtractor,
+    CommonCrawlWARCIterator,
+    get_common_crawl_urls,
+)
 
 
 class TestDownload:
@@ -71,3 +77,23 @@ class TestDownload:
             == "https://data.commoncrawl.org/crawl-data/CC-MAIN-2021-04/segments/1610704847953.98/warc/CC-MAIN-20210128134124-20210128164124-00799.warc.gz"
         )
         assert len(urls) == 143840
+
+    def test_no_urls(self):
+        with pytest.raises(ValueError):
+            download_and_extract(
+                [],
+                [],
+                CommonCrawlWARCDownloader(download_dir="."),
+                CommonCrawlWARCIterator(),
+                CommonCrawlWARCExtractor(),
+            )
+
+    def test_url_path_mismatch(self):
+        with pytest.raises(ValueError):
+            download_and_extract(
+                ["one", "two", "three"],
+                ["one"],
+                CommonCrawlWARCDownloader(download_dir="."),
+                CommonCrawlWARCIterator(),
+                CommonCrawlWARCExtractor(),
+            )
