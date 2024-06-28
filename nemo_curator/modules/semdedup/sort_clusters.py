@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import logging
 import os
 import pathlib
@@ -22,11 +21,14 @@ from datetime import datetime
 from typing import List
 
 import cudf
+import dask.bag as db
 import numpy as np
 import torch
-import yaml
-from tqdm import tqdm
 from utils import get_logger
+
+from nemo_curator.modules.semdedup.utils import parse_arguments
+from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.script_utils import parse_client_args
 
 
 def assign_and_sort_clusters(
@@ -62,16 +64,21 @@ def assign_and_sort_clusters(
     nearest_cent_file_loc = pathlib.Path(save_folder, "embs_by_nearest_center")
 
     start_time = time.time()
-    rank_within_cluster(
-        id_col=id_col,
-        nearest_cent_file_loc=nearest_cent_file_loc,
-        centroids=kmeans_centroids,
-        sim_metric=sim_metric,
-        keep_hard=keep_hard,
-        kmeans_with_cos_dist=kmeans_with_cos_dist,
-        cluster_ids=cluster_ids,
-        sorted_clusters_file_loc=sorted_clusters_file_loc,
-    )
+
+    cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
+    cluster_ids_bag.map(
+        lambda cluster_c: rank_within_cluster(
+            id_col=id_col,
+            nearest_cent_file_loc=nearest_cent_file_loc,
+            centroids=kmeans_centroids,
+            sim_metric=sim_metric,
+            keep_hard=keep_hard,
+            kmeans_with_cos_dist=kmeans_with_cos_dist,
+            cluster_ids=[cluster_c],
+            sorted_clusters_file_loc=sorted_clusters_file_loc,
+        )
+    ).compute()
+
     logger.info(f"Time for ranking: {(time.time() - start_time) / 60:.2f} mins")
     logger.info("DONE!")
 
@@ -110,9 +117,8 @@ def rank_within_cluster(
 
     missing_files = 0
     logger.info(f"sorted_clusters_file_loc: {sorted_clusters_file_loc}")
-    # TODO: Can be parallelized
-    # Using dask-cudf
-    for cluster_c in tqdm(cluster_ids):
+
+    for cluster_c in cluster_ids:
         if os.path.exists(f"{sorted_clusters_file_loc}/cluster_{cluster_c}.npy"):
             logger.info(f"Cluster {cluster_c} exits, skipping....")
             continue
@@ -156,23 +162,16 @@ def rank_within_cluster(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config_file",
-        type=str,
-        default="./config.yaml",
-        help=".yaml config file path",
-    )
-    args = parser.parse_args()
-    with open(args.config_file, "r") as y_file:
-        params = yaml.load(y_file, Loader=yaml.FullLoader)
+    args = parse_arguments()
+    # Initialize dask client
+    client = get_client(**parse_client_args(args))
 
-    save_loc = f'{params["root"]}/{params["clustering"]["save_loc"]}'
+    save_loc = os.path.join(args.root, args.clustering["save_loc"])
     os.makedirs(save_loc, exist_ok=True)
     with open(pathlib.Path(save_loc, "sort_cluster_params.txt"), "w") as f:
-        pprint.pprint(params, f)
+        pprint.pprint(args, f)
 
-    cluster_ids = list(range(params["clustering"]["num_clusters"]))
+    cluster_ids = list(range(args.clustering["num_clusters"]))
     logger = get_logger(
         file_name=f"{save_loc}/sort-cluster.log",
         level=logging.INFO,
@@ -182,20 +181,20 @@ if __name__ == "__main__":
     dt1 = datetime.now()
     logger.info(f"Start: {dt1}")
 
-    kmeans_with_cos_dist = params["clustering"]["Kmeans_with_cos_dist"]
+    kmeans_with_cos_dist = args.clustering["Kmeans_with_cos_dist"]
     assert kmeans_with_cos_dist is False
-    which_to_keep = params["semdedup"]["which_to_keep"]
+    which_to_keep = args.semdedup["which_to_keep"]
     keep_hard = which_to_keep == "hard"
 
-    id_col = params["id_col"]["name"]
+    id_col = args.id_col["name"]
     assign_and_sort_clusters(
         id_col=id_col,
-        sim_metric=params["semdedup"]["sim_metric"],
+        sim_metric=args.semdedup["sim_metric"],
         keep_hard=keep_hard,
         kmeans_with_cos_dist=kmeans_with_cos_dist,
         save_folder=save_loc,
         sorted_clusters_file_loc=f"{save_loc}/sorted",
-        cluster_ids=range(0, params["clustering"]["num_clusters"]),
+        cluster_ids=range(0, args.clustering["num_clusters"]),
         logger=logger,
     )
 
