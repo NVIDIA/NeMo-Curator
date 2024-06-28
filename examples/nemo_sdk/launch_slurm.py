@@ -34,7 +34,7 @@ def nemo_curator_slurm_executor() -> SlurmExecutor:
     )
 
 
-if __name__ == "__main__":
+def main():
     # Path to NeMo-Curator/examples/slurm/container_entrypoint.sh on the SLURM cluster
     container_entrypoint = "/cluster/path/slurm/container_entrypoint.sh"
     # The NeMo Curator command to run
@@ -49,3 +49,7 @@ if __name__ == "__main__":
     with sdk.Experiment("example_nemo_curator_exp", executor=executor) as exp:
         exp.add(curator_job.to_script(), tail_logs=True)
         exp.run(detach=False)
+
+
+if __name__ == "__main__":
+    main()

@@ -73,9 +73,6 @@ export LIBCUDF_CUFILE_POLICY=OFF
 # End easy customization
 # =================================================================
 
-mkdir -p $LOGDIR
-mkdir -p $PROFILESDIR
-
 # Start the container
 srun \
     --container-mounts=${MOUNTS} \
