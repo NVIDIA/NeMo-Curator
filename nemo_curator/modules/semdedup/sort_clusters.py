@@ -25,8 +25,8 @@ import dask.bag as db
 import numpy as np
 import torch
 
+from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.semdedup.utils import get_logger
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
@@ -213,9 +213,11 @@ if __name__ == "__main__":
     with open(pathlib.Path(save_loc, "sort_cluster_params.txt"), "w") as f:
         pprint.pprint(args, f)
 
-    logger = get_logger(
-        file_name=f"{save_loc}/sort-cluster.log",
-        level=logging.INFO,
+    logger = create_logger(
+        rank=0,
+        name="logger-sort-cluster",
+        log_file=f"{save_loc}/sort-cluster.log",
+        log_level=logging.INFO,
         stdout=True,
     )
 

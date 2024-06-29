@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from crossfit.backend.torch.hf.model import HFModel
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
@@ -161,6 +163,14 @@ def main():
     args = parser.parse_args()
     client = get_client(**parse_client_args(args))
 
+    logger = create_logger(
+        rank=0,
+        name="logger-sort-cluster",
+        log_file=os.path.join(semdedup_config.cache_dir, "compute_embeddings.log"),
+        log_level=logging.INFO,
+        stdout=True,
+    )
+
     output_data_dir = os.path.join(
         semdedup_config.cache_dir, semdedup_config.embeddings["save_loc"]
     )
@@ -171,10 +181,9 @@ def main():
         output_data_dir=output_data_dir,
         num_samples=semdedup_config.num_samples,
     )
-    print(f"Processing {len(input_files)} files", flush=True)
-
+    logger.info(f"Processing {len(input_files)} files")
     if len(input_files) == 0:
-        print("No files to process", flush=True)
+        logger.info("No files to process")
         return
 
     ddf = read_data(
@@ -189,7 +198,7 @@ def main():
         write_to_filename=True,
         output_type="parquet",
     )
-    print(f"Time taken: {time.time() - st}")
+    logger.info(f"Time taken: {time.time() - st}")
     client.cancel(client.futures, force=True)
     client.close()
 

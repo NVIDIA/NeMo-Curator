@@ -17,12 +17,14 @@ import ast
 import os
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Union
 
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
@@ -578,3 +580,29 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
         return performance_report(os.path.join(path, report_name))
     else:
         return nullcontext()
+
+
+def seed_everything(seed: int = 42):
+    """
+    Function to set seed for random number generators for reproducibility.
+
+    Args:
+        seed: The seed value to use for random number generators. Default is 42.
+
+    Returns:
+        None
+    """
+    ## Imporing torch to help with context issues
+    import torch
+
+    # Set seed values for various random number generators
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    # Ensure deterministic behavior for CUDA algorithms
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

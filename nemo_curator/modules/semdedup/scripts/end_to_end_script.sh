@@ -16,8 +16,8 @@ CLUSTERING_LOC=$(awk '/^clustering:/,/save_loc:/{ if ($1 == "save_loc:") print $
 echo "Cache Directory: $CACHE_DIR"
 echo "Save Location for sem-dedup: $CACHE_DIR/$CLUSTERING_LOC"
 
-# Optionally delete the root path
-# echo "Deleting existing root directory: $ROOT"
+# Optionally delete the CACHE_DIR path
+# echo "Deleting existing CACHE_DIR directory: $CACHE_DIR"
 # rm -rf "$CACHE_DIR"
 # rm -rf "$CLUSTERING_LOC"
 mkdir -p "$CACHE_DIR"
@@ -42,6 +42,7 @@ python semdedup.py
 # Step 5: Extract deduplicated data
 echo "Running extract_dedup_data.py..."
 python extract_dedup_data.py
+
 echo "--------------------------------------------"
 echo "Pipeline execution completed successfully."
 echo "--------------------------------------------"

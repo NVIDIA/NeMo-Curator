@@ -26,8 +26,8 @@ import numpy as np
 import pandas as pd
 import torch
 
+from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.semdedup.utils import get_logger
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
@@ -189,9 +189,11 @@ if __name__ == "__main__":
     )
     os.makedirs(save_loc, exist_ok=True)
 
-    logger = get_logger(
-        file_name=f"{save_loc}/semdedup.log",
-        level=logging.INFO,
+    logger = create_logger(
+        rank=0,
+        log_file=f"{save_loc}/semdedup.log",
+        log_level=logging.INFO,
+        name="logger-semdedup",
         stdout=True,
     )
     logger.info(args)

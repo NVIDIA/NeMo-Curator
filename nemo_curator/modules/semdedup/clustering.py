@@ -25,8 +25,8 @@ import numpy as np
 from cuml.dask.cluster import KMeans
 from dask.distributed import wait
 
+from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.semdedup.utils import get_logger
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
 from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
@@ -121,9 +121,12 @@ if __name__ == "__main__":
 
     # Initialize logger
     log_file = os.path.join(save_folder, "compute_centroids.log")
-    logger = get_logger(
-        file_name=log_file,
-        level=logging.INFO,
+
+    logger = create_logger(
+        rank=0,
+        log_file=log_file,
+        log_level=logging.INFO,
+        name="logger-compute-centroids",
         stdout=True,
     )
 

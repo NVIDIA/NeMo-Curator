@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.semdedup.utils import get_logger
 
 
 def extract_pruned_data(
@@ -145,9 +145,11 @@ if __name__ == "__main__":
     root = semdedup_config.cache_dir
     save_loc = semdedup_config.clustering["save_loc"]
 
-    logger = get_logger(
-        file_name=f"{root}/{save_loc}/extract_dedup_data.log",
-        level=logging.INFO,
+    logger = create_logger(
+        rank=0,
+        log_file=f"{root}/{save_loc}/extract_dedup_data.log",
+        name="logger-extract-dedup-data",
+        log_level=logging.INFO,
         stdout=True,
     )
 
