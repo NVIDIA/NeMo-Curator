@@ -1,13 +1,13 @@
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import yaml
 from tqdm import tqdm
 
+from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semdedup.utils import get_logger
 
 
@@ -88,16 +88,17 @@ def extract_pruned_data(
     return result.shape[0], num_removed, total
 
 
-def extract_dedup_data(params: Dict[str, Any], logger: logging.Logger) -> None:
+def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) -> None:
     """
     Extracts deduplicated data based on provided parameters and logs the process.
 
     Args:
-        params (Dict[str, Any]): Parameters from the configuration file.
+        semdedup_config: Configuration object for SemDedup.
         logger (logging.Logger): Logger for logging the process.
     """
-    if params["extract_dedup"]["use_eps_from_yml"]:
-        eps = params["extract_dedup"]["eps"]
+
+    if semdedup_config.extract_dedup["use_eps_from_yml"]:
+        eps = semdedup_config.extract_dedup["eps"]
         eps_list = [float(x) for x in eps.split(" ")]
     else:
         eps_list1 = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
@@ -106,8 +107,8 @@ def extract_dedup_data(params: Dict[str, Any], logger: logging.Logger) -> None:
     kept_list = []
     removed_list = []
     total_list = []
-    id_col = params["id_col"]["name"]
-    id_type = params["id_col"]["type"]
+    id_col = semdedup_config.id_col["name"]
+    id_type = semdedup_config.id_col["type"]
 
     for eps in eps_list:
         output_csv_path = f"{root}/{save_loc}/results_eps_{eps}.csv"
@@ -120,7 +121,7 @@ def extract_dedup_data(params: Dict[str, Any], logger: logging.Logger) -> None:
             sorted_clusters_path=sorted_clusters_path,
             semdedup_pruning_tables_path=semdedup_pruning_tables_path,
             eps=eps,
-            num_clusters=params["clustering"]["num_clusters"],
+            num_clusters=semdedup_config.clustering["num_clusters"],
             output_csv_path=output_csv_path,
         )
         kept_list.append(kept)
@@ -140,11 +141,9 @@ def extract_dedup_data(params: Dict[str, Any], logger: logging.Logger) -> None:
 
 if __name__ == "__main__":
     config_file = "configs/config.yaml"
-    with open(config_file, "r") as y_file:
-        params = yaml.load(y_file, Loader=yaml.FullLoader)
-
-    root = params["root"]
-    save_loc = params["clustering"]["save_loc"]
+    semdedup_config = SemDedupConfig.from_yaml(config_file)
+    root = semdedup_config.cache_dir
+    save_loc = semdedup_config.clustering["save_loc"]
 
     logger = get_logger(
         file_name=f"{root}/{save_loc}/extract_dedup_data.log",
@@ -154,7 +153,7 @@ if __name__ == "__main__":
 
     dt1 = datetime.now()
     logger.info(f"Start: {dt1}")
-    extract_dedup_data(params, logger)
+    extract_dedup_data(semdedup_config=semdedup_config, logger=logger)
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")
     elapse = (dt2 - dt1).total_seconds() / 60

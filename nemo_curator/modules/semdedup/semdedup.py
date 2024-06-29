@@ -26,9 +26,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-from nemo_curator.modules.semdedup.utils import get_logger, parse_arguments
+from nemo_curator.modules.config import SemDedupConfig
+from nemo_curator.modules.semdedup.utils import get_logger
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
 
 def _semdedup(
@@ -82,6 +83,7 @@ def process_cluster(
     assert save_loc is not None
     assert save_loc != ""
 
+    os.makedirs(os.path.join(save_loc, "dataframes"), exist_ok=True)
     df_file_loc = os.path.join(save_loc, f"dataframes/cluster_{cluster_id}.parquet")
     if os.path.exists(df_file_loc):
         logging.info(f"{df_file_loc} exists. Continue")
@@ -108,7 +110,7 @@ def process_cluster(
 
     clutser_items_indices = list(range(cluster_size))
 
-    which_to_keep = args.semdedup["which_to_keep"].lower()
+    which_to_keep = semdedup_config.semdedup["which_to_keep"].lower()
     if which_to_keep == "random":
         random.shuffle(clutser_items_indices)
         cluster_i = cluster_i[clutser_items_indices]
@@ -141,22 +143,22 @@ def process_cluster(
 
 
 # TODO: Rename below function
-def semdedup(args, logger) -> None:
+def semdedup(semdedup_config: SemDedupConfig, logger: "logging.Logger") -> None:
     dt1 = datetime.now()
     logger.info(f"semdedup: start {dt1}")
 
-    end_cluster = args.clustering["num_clusters"]
-    root = args.root
-    emb_pqt_loc = os.path.join(root, args.embeddings["save_loc"])
+    end_cluster = semdedup_config.clustering["num_clusters"]
+    root = semdedup_config.cache_dir
+    emb_pqt_loc = os.path.join(root, semdedup_config.embeddings["save_loc"])
 
     eps_list1 = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
     eps_list2 = [0.1 + x * 0.005 for x in range(34)]
     eps_list = eps_list1 + eps_list2
     logger.info(f"emb_pqt_loc: {emb_pqt_loc}")
 
-    id_col = args.id_col["name"]
-    id_col_type = args.id_col["type"]
-    save_loc = f'{root}/{args.clustering["save_loc"]}'
+    id_col = semdedup_config.id_col["name"]
+    id_col_type = semdedup_config.id_col["type"]
+    save_loc = os.path.join(root, semdedup_config.clustering["save_loc"])
     emb_by_clust_loc = pathlib.Path(save_loc, "embs_by_nearest_center")
 
     tasks = db.from_sequence(list(range(end_cluster)), npartitions=end_cluster).map(
@@ -177,14 +179,15 @@ def semdedup(args, logger) -> None:
 
 
 if __name__ == "__main__":
-
-    args = parse_arguments()
+    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    parser = parse_semdedup_args(add_input_args=False)
+    args = parser.parse_args()
     client = get_client(**parse_client_args(args))
 
-    save_loc = os.path.join(args.root, args.clustering["save_loc"])
-
+    save_loc = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+    )
     os.makedirs(save_loc, exist_ok=True)
-    os.makedirs(os.path.join(save_loc, "dataframes"), exist_ok=True)
 
     logger = get_logger(
         file_name=f"{save_loc}/semdedup.log",
@@ -196,7 +199,7 @@ if __name__ == "__main__":
     logger.info(f"Start: {dt1}")
 
     # TODO: Rename below function
-    semdedup(args, logger)
+    semdedup(semdedup_config, logger)
 
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")

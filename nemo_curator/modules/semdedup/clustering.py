@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import logging
 import os
 import pathlib
@@ -26,9 +25,10 @@ import numpy as np
 from cuml.dask.cluster import KMeans
 from dask.distributed import wait
 
-from nemo_curator.modules.semdedup.utils import get_logger, parse_arguments
+from nemo_curator.modules.config import SemDedupConfig
+from nemo_curator.modules.semdedup.utils import get_logger
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
-from nemo_curator.utils.script_utils import parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
 
 def get_embedding_ar(df: "cudf.DataFrame") -> cp.ndarray:
@@ -44,29 +44,30 @@ def add_dist_to_cents(df: "cudf.DataFrame", centriods: cp.ndarray) -> "cudf.Data
 
 
 def compute_centroids(
-    args: argparse.Namespace, logger: logging.Logger, client: "dask.distributed.Client"
+    semdedup_config: SemDedupConfig,
+    logger: logging.Logger,
+    client: "dask.distributed.Client",
 ) -> Tuple[cp.ndarray, "dask_cudf.DataFrame"]:
 
     # Kmeans can only be done with L2 using cuML.
-    assert args.clustering["Kmeans_with_cos_dist"] == False
+    assert semdedup_config.clustering["Kmeans_with_cos_dist"] == False
 
     ## -- Load clustering parameters
-    root_dir = args.root
-    emb_pqt_loc = os.path.join(args.root, args.embeddings["save_loc"])
-    emb_size = args.embeddings["emb_size"]
-    niter = args.clustering["niter"]
-    ncentroids = args.clustering["num_clusters"]
+    cache_dir = semdedup_config.cache_dir
+    emb_pqt_loc = os.path.join(cache_dir, semdedup_config.embeddings["save_loc"])
+    niter = semdedup_config.clustering["niter"]
+    ncentroids = semdedup_config.clustering["num_clusters"]
     num_workers = get_num_workers(client)
 
-    save_folder = os.path.join(root_dir, args.clustering["save_loc"])
+    save_folder = os.path.join(cache_dir, semdedup_config.clustering["save_loc"])
     os.makedirs(save_folder, exist_ok=True)
 
     with open(pathlib.Path(save_folder, "clustering_params.txt"), "w") as fout:
-        pprint.pprint(args, fout)
+        pprint.pprint(semdedup_config, fout)
 
     ddf = dask_cudf.read_parquet(
         emb_pqt_loc,
-        columns=["embeddings", args.id_col["name"]],
+        columns=["embeddings", semdedup_config.id_col["name"]],
         split_row_groups=False,
     )
     logger.info(f"Total number of partitions in input_ddf: {ddf.npartitions}")
@@ -79,8 +80,7 @@ def compute_centroids(
     # Switch back to GPU
     ddf = ddf.to_backend("cudf")
 
-    cupy_darr = ddf.map_partitions(get_embedding_ar, meta=cp.ndarray([1, emb_size]))
-
+    cupy_darr = ddf.map_partitions(get_embedding_ar, meta=cp.ndarray([1, 1]))
     cupy_darr.compute_chunk_sizes()
 
     kmeans = KMeans(n_clusters=ncentroids, max_iter=niter, oversampling_factor=10)
@@ -88,36 +88,35 @@ def compute_centroids(
     kmeans.fit(cupy_darr)
     logger.info("KMeans fit complete")
 
-    logger.info("Computing nearest centroids using kmeans.predict")
+    logger.info(
+        "Computing nearest centroids + distance to centers using kmeans.predict"
+    )
     nearest_cents = kmeans.predict(cupy_darr)
     ddf["nearest_cent"] = nearest_cents.astype(np.int32)
     logger.info("Nearest centroids computed")
 
-    logger.info("Computing distances to centroids using add_dist_to_cents")
     meta_df = ddf._meta.copy()
     meta_df["dist_to_cent"] = cp.zeros(1)
     ddf = ddf.map_partitions(
         add_dist_to_cents, centriods=kmeans.cluster_centers_, meta=meta_df
     )
-    logger.info("Distances to centroids computed")
-
     centroids = kmeans.cluster_centers_
-    logger.info("Centroids computed")
-
     ddf = ddf.reset_index(drop=True)
-
-    logger.info("Saving centroids complete")
     kmeans_centroids_file = pathlib.Path(save_folder, "kmeans_centroids.npy")
     np.save(kmeans_centroids_file, centroids)
+    logger.info("Saving centroids complete")
     return ddf
 
 
 if __name__ == "__main__":
     # Configure command line arguments
-    args = parse_arguments()
+    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    parser = parse_semdedup_args(add_input_args=False)
+    args = parser.parse_args()
 
-    # TODO: Cleanup below
-    save_folder = f'{args.root}/{args.clustering["save_loc"]}'
+    save_folder = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+    )
     os.makedirs(save_folder, exist_ok=True)
 
     # Initialize logger
@@ -131,7 +130,7 @@ if __name__ == "__main__":
     client = get_client(**parse_client_args(args))
     dt1 = datetime.now()
     print("Start time:", dt1)
-    ddf = compute_centroids(args, logger, client)
+    ddf = compute_centroids(semdedup_config, logger, client)
     ddf.to_parquet(
         f"{save_folder}/embs_by_nearest_center/",
         index=False,

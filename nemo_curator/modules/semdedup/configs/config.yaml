@@ -1,17 +1,13 @@
-root: '/raid/vjawa/semdedup_debug'
-sample: -1 # todo name to num_samples
+cache_dir: '/raid/vjawa/semdedup_debug'
+num_samples: -1
 id_col:
    name: 'id' # 'id' #'adlr_id'
    type: 'str' # 'int' #'str'
 
 # Embeddings
 embeddings:
-  input_column: 'text'
-  input_file_type: 'json'
-  input_data_dir: '/datasets/semdedup/c4/realnewslike/modified'
   save_loc: 'embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2'
   path_or_name: 'sentence-transformers/all-MiniLM-L6-v2'
-  emb_size: 768
   batch_size: 128
   max_mem_gb: 25
 

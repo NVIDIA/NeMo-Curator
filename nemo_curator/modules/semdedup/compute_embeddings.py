@@ -24,10 +24,10 @@ from crossfit.backend.torch.hf.model import HFModel
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
-from nemo_curator.modules.semdedup.utils import parse_arguments
+from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_remaining_files
-from nemo_curator.utils.script_utils import parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
 
 def mean_pooling(model_output, attention_mask):
@@ -98,23 +98,20 @@ class CrossFitModel(HFModel):
 
 
 def create_embeddings(
-    ddf: "dask_cudf.DataFrame", args: "argparse.Namespace"
+    ddf: "dask_cudf.DataFrame",
+    semdedup_config: SemDedupConfig,
+    input_column: str = "text",
 ) -> "dask_cudf.DataFrame":
     """
     Create embeddings for a given dask_cudf DataFrame using the specified configuration.
 
     Args:
         ddf (dask_cudf.DataFrame): The input DataFrame containing the data to be processed.
-        args_emb (Dict[str, any]): A dictionary containing the configuration for creating embeddings.
-            - "path_or_name" (str): The path or name of the embedding model.
-            - "max_mem_gb" (int): The maximum memory in GB to be used by the embedding model.
-            - "input_column" (str): The name of the column in `ddf` to be used as input for the embeddings.
-            - "batch_size" (int): The batch size to be used for prediction.
-
+        semdedup_config (Dict[str, any]): The configuration for the semantic deduplication module.
     Returns:
         dask_cudf.DataFrame: The DataFrame with the generated embeddings.
     """
-    args_emb = args.embeddings
+    args_emb = semdedup_config.embeddings
     embeddings_config = EmbeddingConfig(
         path_or_name=args_emb["path_or_name"], max_mem_gb=args_emb["max_mem_gb"]
     )
@@ -122,7 +119,7 @@ def create_embeddings(
     pipe = op.Sequential(
         op.Tokenizer(
             model,
-            cols=[args_emb["input_column"]],
+            cols=[input_column],
             tokenizer_type="sentencepiece",
             max_length=EmbeddingConfig.max_seq_length,
         ),
@@ -138,57 +135,61 @@ def create_embeddings(
     return ddf
 
 
-def get_input_files(args: "argparse.Namespace") -> List[str]:
-    input_data_dir = args.embeddings["input_data_dir"]
-    sample = args.sample
-    output_file_dir = os.path.join(args.root, args.embeddings["save_loc"])
-    os.makedirs(output_file_dir, exist_ok=True)
-    len_written_files = len(os.listdir(output_file_dir))
-    input_files = get_remaining_files(
-        input_data_dir, output_file_dir, args.embeddings["input_file_type"]
-    )
+def get_input_files(
+    input_data_dir: str, input_file_type: str, output_data_dir: str, num_samples: int
+) -> List[str]:
+    os.makedirs(output_data_dir, exist_ok=True)
+    len_written_files = len(os.listdir(output_data_dir))
+    input_files = get_remaining_files(input_data_dir, output_data_dir, input_file_type)
     # Gaurd against non-json files present in the input directory
-    input_files = [
-        f for f in input_files if f.endswith(args.embeddings["input_file_type"])
-    ]
-
-    if sample > 0:
-        if len_written_files > sample:
+    input_files = [f for f in input_files if f.endswith(input_file_type)]
+    if num_samples > 0:
+        if len_written_files > num_samples:
             left_to_sample = 0
         else:
-            left_to_sample = sample - len_written_files
+            left_to_sample = num_samples - len_written_files
     else:
         left_to_sample = len(input_files)
-
-    if left_to_sample == 0:
-        print("No files to process")
-        return
 
     input_files = input_files[:left_to_sample]
     return input_files
 
 
 def main():
-    args = parse_arguments()
-    st = time.time()
+    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    parser = parse_semdedup_args()
+    args = parser.parse_args()
     client = get_client(**parse_client_args(args))
-    input_files = get_input_files(args)
+
+    output_data_dir = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.embeddings["save_loc"]
+    )
+    st = time.time()
+    input_files = get_input_files(
+        input_data_dir=args.input_data_dir,
+        input_file_type=args.input_file_type,
+        output_data_dir=output_data_dir,
+        num_samples=semdedup_config.num_samples,
+    )
     print(f"Processing {len(input_files)} files", flush=True)
-    output_file_dir = os.path.join(args.root, args.embeddings["save_loc"])
+
+    if len(input_files) == 0:
+        print("No files to process", flush=True)
+        return
+
     ddf = read_data(
         input_files=input_files,
-        file_type=args.embeddings["input_file_type"],
+        file_type=args.input_file_type,
         add_filename=True,
     )
-    ddf = create_embeddings(ddf, args)
+    ddf = create_embeddings(ddf, semdedup_config, args.input_text_field)
     write_to_disk(
         ddf,
-        output_file_dir,
+        output_data_dir,
         write_to_filename=True,
         output_type="parquet",
     )
     print(f"Time taken: {time.time() - st}")
-
     client.cancel(client.futures, force=True)
     client.close()
 

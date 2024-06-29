@@ -22,7 +22,6 @@ import pandas as pd
 
 # Import torch after other things
 import torch
-import yaml
 
 from nemo_curator.utils.script_utils import add_distributed_args
 
@@ -37,21 +36,39 @@ def merge_args_with_config(args, config):
 def parse_arguments() -> Namespace:
     parser = ArgumentParser(description="SemDedup Arguments")
     parser = add_distributed_args(parser)
+    parser.add_argument(
+        "--input-data-dir",
+        type=str,
+        default=None,
+        required=False,
+        help="Input directories consisting of .jsonl files that are accessible "
+        "to all nodes. This path must be accessible by all machines in the cluster",
+    )
+    parser.add_argument(
+        "--input-json-text-field",
+        type=str,
+        default="text",
+        help="The name of the field within each json object of the jsonl "
+        "file that contains the text from which minhashes will be computed. ",
+    )
+    parser.add_argument(
+        "--input-json-id-field",
+        type=str,
+        default="adlr_id",
+        help="The name of the field within each json object of the jsonl "
+        "file that assigns a unqiue ID to each document. "
+        "Can be created by running the script "
+        "'./prospector/add_id.py' which adds the field 'adlr_id' "
+        "to the documents in a distributed fashion",
+    )
     # Set low default RMM pool size for classifier
     # to allow pytorch to grow its memory usage
     # by default
-    parser.set_defaults(rmm_pool_size="4GB")
+    parser.set_defaults(rmm_pool_size="1GB")
     parser.set_defaults(device="gpu")
     parser.set_defaults(set_torch_to_use_rmm=False)
-    parser.add_argument(
-        "--config_file", help="YAML with configs", default="configs/config.yaml"
-    )
     args = parser.parse_args()
-    config_file = args.config_file
-    with open(config_file, "r") as y_file:
-        config_args = yaml.load(y_file, Loader=yaml.FullLoader)
-
-    return merge_args_with_config(args, config_args)
+    return args
 
 
 def seed_everything(seed: int = 42):

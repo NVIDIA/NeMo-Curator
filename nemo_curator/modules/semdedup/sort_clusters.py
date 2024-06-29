@@ -25,9 +25,10 @@ import dask.bag as db
 import numpy as np
 import torch
 
-from nemo_curator.modules.semdedup.utils import get_logger, parse_arguments
+from nemo_curator.modules.config import SemDedupConfig
+from nemo_curator.modules.semdedup.utils import get_logger
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import parse_client_args
+from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
 
 
 def _assign_and_sort_clusters(
@@ -165,7 +166,9 @@ def rank_within_cluster(
         np.save(sorted_cluster_file_path, cluster_sorted)
 
 
-def assign_and_sort_clusters(args: "Namespace", logger: "logging.Logger") -> None:
+def assign_and_sort_clusters(
+    semdedup_config: SemDedupConfig, logger: "logging.Logger"
+) -> None:
     """
     Assigns data points to clusters and sorts each cluster's items based on their distance to the cluster centroid.
 
@@ -176,13 +179,15 @@ def assign_and_sort_clusters(args: "Namespace", logger: "logging.Logger") -> Non
     Returns:
         None
     """
-    id_col = args.id_col["name"]
-    sim_metric = args.semdedup["sim_metric"]
-    keep_hard = args.semdedup["which_to_keep"] == "hard"
-    kmeans_with_cos_dist = args.clustering["Kmeans_with_cos_dist"]
-    save_folder = os.path.join(args.root, args.clustering["save_loc"])
-    sorted_clusters_file_loc = f"{save_folder}/sorted"
-    cluster_ids = range(0, args.clustering["num_clusters"])
+    id_col = semdedup_config.id_col["name"]
+    sim_metric = semdedup_config.semdedup["sim_metric"]
+    keep_hard = semdedup_config.semdedup["which_to_keep"] == "hard"
+    kmeans_with_cos_dist = semdedup_config.clustering["Kmeans_with_cos_dist"]
+    save_folder = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+    )
+    sorted_clusters_file_loc = os.path.join(save_folder, "sorted")
+    cluster_ids = range(0, semdedup_config.clustering["num_clusters"])
 
     _assign_and_sort_clusters(
         id_col=id_col,
@@ -197,11 +202,13 @@ def assign_and_sort_clusters(args: "Namespace", logger: "logging.Logger") -> Non
 
 
 if __name__ == "__main__":
-    args = parse_arguments()
-    # Initialize dask client
+    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    parser = parse_semdedup_args(add_input_args=False)
+    args = parser.parse_args()
     client = get_client(**parse_client_args(args))
-
-    save_loc = os.path.join(args.root, args.clustering["save_loc"])
+    save_loc = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+    )
     os.makedirs(save_loc, exist_ok=True)
     with open(pathlib.Path(save_loc, "sort_cluster_params.txt"), "w") as f:
         pprint.pprint(args, f)
@@ -214,7 +221,7 @@ if __name__ == "__main__":
 
     dt1 = datetime.now()
     logger.info(f"Start: {dt1}")
-    assign_and_sort_clusters(args, logger)
+    assign_and_sort_clusters(semdedup_config, logger)
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")
     elapse = (dt2 - dt1).total_seconds() / 60
