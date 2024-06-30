@@ -1,4 +1,13 @@
-from .prompts import DEFAULT_META_TOPICS_PROMPT_TEMPLATE
-from .ultrachat import UltraChatGenerator
+from .nemotron import NemotronGenerator
+from .prompts import (
+    DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
+)
 
-__all__ = ["UltraChatGenerator", "DEFAULT_META_TOPICS_PROMPT_TEMPLATE"]
+__all__ = [
+    "NemotronGenerator",
+    "DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE",
+    "DEFAULT_SUBTOPICS_PROMPT_TEMPLATE",
+    "DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE",
+]
