@@ -20,6 +20,7 @@ from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
     DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
     DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
     DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
 )
@@ -123,46 +124,42 @@ class NemotronGenerator:
 
     def generate_subtopics(
         self,
-        macro_topics: List[str],
+        macro_topic: str,
         n_subtopics: Union[int, str],
         model: str,
         prompt_template: str = DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ):
+    ) -> List[str]:
         """
         Prompts an LLM to generate a list of subtopics relating to a macro topic
         Args:
-            macro_topics: A list of macro topics to generate subtopics for.
+            macro_topic: The macro topic to generate subtopics for.
             n_subtopics: The number of subtopics to generate per macro topic
             model: The name model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_subtopics: Will be populated with the n_subtopics passed in this function
-                - macro_topic: Will be populated with an element of the macro_topics list passed in this function
+                - macro_topic: Will be populated with the macro_topic passed in this function
             prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
                 None are needed for the default template.
             model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
         Returns:
-            A list of responses from the LLM for each macro topic. The outer list will have the same length
-            as macro_topics, while the inner list is only greater than length 1 if n > 1 is set in model_kwargs.
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        subtopics = []
-        for macro_topic in macro_topics:
-            prompt = prompt_template.format(
-                n_subtopics=n_subtopics, macro_topic=macro_topic, **prompt_kwargs
-            )
-            messages = [{"role": "user", "content": prompt}]
-            subtopics_response = self.client.query_model(
-                messages=messages, model=model, **model_kwargs
-            )
-            subtopics.append(subtopics_response)
+        prompt = prompt_template.format(
+            n_subtopics=n_subtopics, macro_topic=macro_topic, **prompt_kwargs
+        )
+        messages = [{"role": "user", "content": prompt}]
+        subtopics_response = self.client.query_model(
+            messages=messages, model=model, **model_kwargs
+        )
 
-        return subtopics
+        return subtopics_response
 
-    def generate_open_qa_from_topics(
+    def generate_open_qa_from_topic(
         self,
-        topics: List[str],
+        topic: str,
         n_openlines: Union[str, int],
         model: str,
         prompt_template: str = DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
@@ -170,34 +167,65 @@ class NemotronGenerator:
         model_kwargs: dict = {},
     ):
         """
-        Prompts an LLM to generate a list of open Q&A questions based on topics
+        Prompts an LLM to generate a list of open Q&A questions based on a topic
         Args:
-            topics: A list of topics to generate questions for.
+            topic: The topic to generate questions for.
             n_openlines: The number of questions to generate per topic.
             model: The name model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_openlines: Will be populated with the n_subtopics passed in this function
-                - topic: Will be populated with an element of the topics list passed in this function
+                - topic: Will be populated with the topic passed in this function
             prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
                 None are needed for the default template.
             model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
         Returns:
-            A list of responses from the LLM for each topic. The outer list will have the same length
-            as topics, while the inner list is only greater than length 1 if n > 1 is set in model_kwargs.
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        openlines = []
-        for topic in topics:
-            prompt = prompt_template.format(
-                n_openlines=n_openlines, topic=topic, **prompt_kwargs
-            )
-            messages = [{"role": "user", "content": prompt}]
-            openline_response = self.client.query_model(
-                messages=messages, model=model, **model_kwargs
-            )
-            openlines.append(openline_response)
+        prompt = prompt_template.format(
+            n_openlines=n_openlines, topic=topic, **prompt_kwargs
+        )
+        messages = [{"role": "user", "content": prompt}]
+        openline_response = self.client.query_model(
+            messages=messages, model=model, **model_kwargs
+        )
 
-        return openlines
+        return openline_response
+
+    def revise_open_qa(
+        self,
+        openline: str,
+        n_revisions: Union[str, int],
+        model: str,
+        prompt_template: str = DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to revise an open Q&A question a given number of times
+        Args:
+            openline: An openline to revise
+            n_revisions: The number of revisions to generate for the question.
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - openline: Will be populated with the openline passed in this function
+                - n_revisions: Will be populated with the n_revisions passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt = prompt_template.format(
+            openline=openline, n_revisions=n_revisions, **prompt_kwargs
+        )
+        messages = [{"role": "user", "content": prompt}]
+        revisions = self.client.query_model(
+            messages=messages, model=model, **model_kwargs
+        )
+
+        return revisions
 
     def generate_creative_openlines(self):
         pass
