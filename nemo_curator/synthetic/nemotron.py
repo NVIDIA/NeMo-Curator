@@ -37,6 +37,14 @@ class NemotronGenerator:
     def __init__(self, llm_client: LLMClient) -> None:
         self.client = llm_client
 
+    def _prompt(
+        self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict
+    ) -> List[str]:
+        prompt = prompt_template.format(**prompt_kwargs)
+        messages = [{"role": "user", "content": prompt}]
+
+        return self.client.query_model(messages=messages, model=model, **model_kwargs)
+
     def convert_response_to_yaml_list(
         self,
         llm_response: str,
@@ -59,11 +67,14 @@ class NemotronGenerator:
         Returns:
             A parsed list of elements from the original LLM response
         """
-        prompt = prompt_template.format(llm_response=llm_response, **prompt_kwargs)
-        messages = [{"role": "user", "content": prompt}]
-        yaml_response = self.client.query_model(
-            messages=messages, model=model, **model_kwargs
+        prompt_kwargs["llm_response"] = llm_response
+        yaml_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
         )
+
         try:
             parsed_response = yaml.safe_load(yaml_response[0])
         except yaml.error.YAMLError as _:
@@ -114,10 +125,12 @@ class NemotronGenerator:
         Returns:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        prompt = prompt_template.format(n_macro_topics=n_macro_topics, **prompt_kwargs)
-        messages = [{"role": "user", "content": prompt}]
-        macro_topics = self.client.query_model(
-            messages=messages, model=model, **model_kwargs
+        prompt_kwargs["n_macro_topics"] = n_macro_topics
+        macro_topics = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
         )
 
         return macro_topics
@@ -147,12 +160,13 @@ class NemotronGenerator:
         Returns:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        prompt = prompt_template.format(
-            n_subtopics=n_subtopics, macro_topic=macro_topic, **prompt_kwargs
-        )
-        messages = [{"role": "user", "content": prompt}]
-        subtopics_response = self.client.query_model(
-            messages=messages, model=model, **model_kwargs
+        prompt_kwargs["n_subtopics"] = n_subtopics
+        prompt_kwargs["macro_topic"] = macro_topic
+        subtopics_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
         )
 
         return subtopics_response
@@ -182,12 +196,13 @@ class NemotronGenerator:
         Returns:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        prompt = prompt_template.format(
-            n_openlines=n_openlines, topic=topic, **prompt_kwargs
-        )
-        messages = [{"role": "user", "content": prompt}]
-        openline_response = self.client.query_model(
-            messages=messages, model=model, **model_kwargs
+        prompt_kwargs["topic"] = topic
+        prompt_kwargs["n_openlines"] = n_openlines
+        openline_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
         )
 
         return openline_response
@@ -217,12 +232,13 @@ class NemotronGenerator:
         Returns:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        prompt = prompt_template.format(
-            openline=openline, n_revisions=n_revisions, **prompt_kwargs
-        )
-        messages = [{"role": "user", "content": prompt}]
-        revisions = self.client.query_model(
-            messages=messages, model=model, **model_kwargs
+        prompt_kwargs["openline"] = openline
+        prompt_kwargs["n_revisions"] = n_revisions
+        revisions = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
         )
 
         return revisions
