@@ -18,6 +18,7 @@ import yaml
 from nemo_curator.services.model_client import AsyncLLMClient, LLMClient
 from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
+    DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
     DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
@@ -181,7 +182,7 @@ class NemotronGenerator:
         prompt_template: str = DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ):
+    ) -> List[str]:
         """
         Prompts an LLM to generate a list of open Q&A questions based on a topic
         Args:
@@ -320,6 +321,42 @@ class NemotronGenerator:
         )
 
         return revisions
+
+    def generate_closed_qa_instructions(
+        self,
+        document: str,
+        n_openlines: Union[str, int],
+        model: str,
+        prompt_template: str = DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of closed Q&A questions based on a reference document
+        Args:
+            document: The document to use when generating questions
+            n_openlines: The number of questions to generate per document.
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - document: Will be populated with the document passed in this function
+                - n_openlines: Will be populated with the n_openlines passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["document"] = document
+        prompt_kwargs["n_openlines"] = n_openlines
+        openline_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return openline_response
 
     def generate_data_assistance_openlines(self):
         pass
