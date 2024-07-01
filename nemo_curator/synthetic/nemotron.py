@@ -1,8 +1,22 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import List, Optional, Union
 
 import yaml
 
 from nemo_curator.services.model_client import AsyncLLMClient, LLMClient
+from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
     DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
@@ -49,7 +63,19 @@ class NemotronGenerator:
         yaml_response = self.client.query_model(
             messages=messages, model=model, **model_kwargs
         )
-        parsed_response = yaml.safe_load(yaml_response[0])
+        try:
+            parsed_response = yaml.safe_load(yaml_response[0])
+        except yaml.scanner.ScannerError:
+            raise YamlConversionError(
+                f"Error parsing yaml response: {yaml_response[0]}"
+            )
+
+        # Ensure there are no additional hallucinations introduced
+        hallucination_free = all(elem in llm_response for elem in parsed_response)
+        if not hallucination_free:
+            raise YamlConversionError(
+                f"Conversion introduced hallucinations. Original response:\n{llm_response}\nConverted response:\n{parsed_response}"
+            )
 
         return parsed_response
 
