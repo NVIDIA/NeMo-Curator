@@ -24,10 +24,6 @@ NeMo Curator currently does not provide out-of-the-box support for web-crawling 
 It provides utilities for downloading and extracting data from the preexisting online sources given above.
 Users can easily implement these functions themselves and automatically scale them with the framework described below if they would like.
 
-NeMo Curator currently does not provide out-of-the-box support for web-crawling or web-scraping.
-It provides utilities for downloading and extracting data from the preexisting online sources given above.
-Users can easily implement these functions themselves and automatically scale them with the framework described below if they would like.
-
 -----------------------------------------
 Usage
 -----------------------------------------
