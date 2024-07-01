@@ -20,7 +20,13 @@ from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
     DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
     DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_MATH_CLASSIFICATION_PROMPT_TEMPLATE,
+    DEFAULT_MATH_MACRO_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_MATH_SUBTOPICS_PROMPT_TEMPLATE,
     DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_PYTHON_CLASSIFICATION_PROMPT_TEMPLATE,
+    DEFAULT_PYTHON_MACRO_TOPICS_PROMPT_TEMPLATE,
+    DEFAULT_PYTHON_SUBTOPICS_PROMPT_TEMPLATE,
     DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
     DEFAULT_REVISE_WRITING_TASK_PROMPT_TEMPLATE,
     DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
@@ -357,6 +363,210 @@ class NemotronGenerator:
         )
 
         return openline_response
+
+    def generate_math_macro_topics(
+        self,
+        n_macro_topics: Union[int, str],
+        school_level: str,
+        model: str,
+        prompt_template: str = DEFAULT_MATH_MACRO_TOPICS_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of macro topics about math
+        Args:
+            n_macro_topics: The number of macro topics to generate. Can be an integer like 5 or a string like "five".
+            school_level: The school level the math questions should be targeted at.
+            model: The name model that should be used to generate the macro topics.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_macro_topics: Will be populated with the n_macro_topics passed in this function
+                - school_level: Will be populated with the school_level passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["n_macro_topics"] = n_macro_topics
+        prompt_kwargs["school_level"] = school_level
+        macro_topics = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return macro_topics
+
+    def generate_math_subtopics(
+        self,
+        macro_topic: str,
+        n_subtopics: Union[int, str],
+        model: str,
+        prompt_template: str = DEFAULT_MATH_SUBTOPICS_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of subtopics relating to a math macro topic
+        Args:
+            macro_topic: The macro topic to generate subtopics for.
+            n_subtopics: The number of subtopics to generate per macro topic
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_subtopics: Will be populated with the n_subtopics passed in this function
+                - macro_topic: Will be populated with the macro_topic passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["n_subtopics"] = n_subtopics
+        prompt_kwargs["macro_topic"] = macro_topic
+        subtopics_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return subtopics_response
+
+    def classify_math_entity(
+        self,
+        entity: str,
+        model: str,
+        prompt_template: str = DEFAULT_MATH_CLASSIFICATION_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs={},
+    ) -> List[str]:
+        """
+        Prompts an LLM to classify if an entity is related to math
+        Args:
+            entity: The entity to classify
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - entity: Will be populated with the entity passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["entity"] = entity
+        classification_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return classification_response
+
+    def generate_python_macro_topics(
+        self,
+        n_macro_topics: Union[int, str],
+        model: str,
+        prompt_template: str = DEFAULT_PYTHON_MACRO_TOPICS_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of macro topics about the Python programming language
+        Args:
+            n_macro_topics: The number of macro topics to generate. Can be an integer like 5 or a string like "five".
+            model: The name model that should be used to generate the macro topics.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_macro_topics: Will be populated with the n_macro_topics passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["n_macro_topics"] = n_macro_topics
+        macro_topics = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return macro_topics
+
+    def generate_python_subtopics(
+        self,
+        macro_topic: str,
+        n_subtopics: Union[int, str],
+        model: str,
+        prompt_template: str = DEFAULT_PYTHON_SUBTOPICS_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of subtopics relating to a Python macro topic
+        Args:
+            macro_topic: The macro topic to generate subtopics for.
+            n_subtopics: The number of subtopics to generate per macro topic
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_subtopics: Will be populated with the n_subtopics passed in this function
+                - macro_topic: Will be populated with the macro_topic passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["n_subtopics"] = n_subtopics
+        prompt_kwargs["macro_topic"] = macro_topic
+        subtopics_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return subtopics_response
+
+    def classify_python_entity(
+        self,
+        entity: str,
+        model: str,
+        prompt_template: str = DEFAULT_PYTHON_CLASSIFICATION_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs={},
+    ) -> List[str]:
+        """
+        Prompts an LLM to classify if an entity is related to Python
+        Args:
+            entity: The entity to classify
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - entity: Will be populated with the entity passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["entity"] = entity
+        classification_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return classification_response
 
     def generate_data_assistance_openlines(self):
         pass

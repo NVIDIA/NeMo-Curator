@@ -26,3 +26,17 @@ DEFAULT_WRITING_TASK_PROMPT_TEMPLATE = 'Can you generate {n_openlines} tasks, ea
 DEFAULT_REVISE_WRITING_TASK_PROMPT_TEMPLATE = "TASK: {openline}\n\nCan you revise the task above to include more detailed requirements? These requirements can be any of the follows:\n1. Require to elaborate on a specific topic or discuss a certain point.\n2. Require to include some examples, data points, or references.\n3. Require to follow specific formats or styles, e.g., no more than 300 words, including specific words, etc.\n4. Any other reasonable requests to make the task more detailed.\n\nThe revised task should contain two, three, or four sentences. You should generate {n_revisions} revised tasks in a list. Make the tasks as diverse as possible."
 
 DEFAULT_CLOSED_QA_PROMPT_TEMPLATE = "TEXT: {document}\n\nGiven the text above, can you come up with {n_openlines} questions or tasks? They can be any of the follows:\n1. Asking certain information in the text;\n2. Summarizing, repharsing or explaining the text;\n3. Writing something similar to the text;\n4. Any other reasonable requests related to the text.\n\nMake the questions or tasks as diverse as possible."
+
+DEFAULT_MATH_MACRO_TOPICS_PROMPT_TEMPLATE = "Can you generate {n_macro_topics} comprehensive topics that encompass the mathematics knowledge taughted in {school_level}? Your answer should be a list of topics. Make the topics as diverse as possible."
+
+DEFAULT_MATH_SUBTOPICS_PROMPT_TEMPLATE = 'List {n_subtopics} mathemathics topics that encompass various aspects of "{macro_topic}". Your answer should be a list of topics. Make the topics as diverse as possible.'
+
+DEFAULT_MATH_CLASSIFICATION_PROMPT_TEMPLATE = 'Does the concept "{entity}" belong to one of the following categories?\n- Math concepts taught at elementary school, middle school, high school, and univiersity.\n- Important mathematics axioms, theorems, algorithms, equations, or inequalities.\n- Representative math problems, functions, and applications.\n\nYour answer should start with "Yes" or "No".'
+
+DEFAULT_PYTHON_MACRO_TOPICS_PROMPT_TEMPLATE = (
+    "List {n_macro_topics} important concepts in the python language."
+)
+
+DEFAULT_PYTHON_SUBTOPICS_PROMPT_TEMPLATE = 'List {n_subtopics} important concepts related to "{macro_topic}" in the python language.'
+
+DEFAULT_PYTHON_CLASSIFICATION_PROMPT_TEMPLATE = 'Does the concept "{entity}" belong to one of the following categories?\n- Programming concepts like loops, functions, and data structures in python.\n- Important functions, objects, or libraries in python.\n- Mathematical concepts like linear algebra which can be implemented in python.\n- Basic algorithms or problems in computer science likes Greedy Search and Dynamics programming which can be addressed in python.\n\nYour answer should start with "Yes" or "No".'
