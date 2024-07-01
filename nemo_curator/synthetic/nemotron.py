@@ -49,7 +49,7 @@ class NemotronGenerator:
         yaml_response = self.client.query_model(
             messages=messages, model=model, **model_kwargs
         )
-        parsed_response = yaml.safe_load(yaml_response)
+        parsed_response = yaml.safe_load(yaml_response[0])
 
         return parsed_response
 
