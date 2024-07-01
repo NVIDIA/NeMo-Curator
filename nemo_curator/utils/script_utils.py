@@ -265,6 +265,38 @@ def parse_distributed_classifier_args(
     return parser
 
 
+def parse_semdedup_args(add_input_args=False) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="SemDedup Arguments")
+    parser = add_distributed_args(parser)
+    if add_input_args:
+        parser.add_argument(
+            "--input-data-dir",
+            type=str,
+            default=None,
+            required=False,
+            help="The path of the input files",
+        )
+        parser.add_argument(
+            "--input-file-type",
+            type=str,
+            help="The type of the input files",
+            required=True,
+        )
+        parser.add_argument(
+            "--input-text-field",
+            type=str,
+            default="text",
+            help="The name of the field within each object",
+        )
+    # Set low default RMM pool size for classifier
+    # to allow pytorch to grow its memory usage
+    # by default
+    parser.set_defaults(rmm_pool_size="1GB")
+    parser.set_defaults(device="gpu")
+    parser.set_defaults(set_torch_to_use_rmm=False)
+    return parser
+
+
 def chunk_list(lst, nchnks):
     nitem = len(lst)
     splits = splitnum(nitem, nchnks)

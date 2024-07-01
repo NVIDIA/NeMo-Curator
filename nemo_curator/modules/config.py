@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 import yaml
 
@@ -98,3 +99,54 @@ class FuzzyDuplicatesConfig(BaseConfig):
             raise ValueError("Jaccard Threshold must be between [0,1]")
         if self.buckets_per_shuffle <= 0:
             raise ValueError("Buckets per shuffle must be greater than 0")
+
+
+@dataclass
+class SemDedupConfig(BaseConfig):
+    """
+    Configuration for Semantic Deduplication.
+    """
+
+    cache_dir: str
+    num_samples: int = -1
+    id_col: Dict[str, str] = field(
+        default_factory=lambda: {"name": "id", "type": "str"}
+    )
+
+    # Embeddings
+    embeddings: Dict[str, any] = field(
+        default_factory=lambda: {
+            "input_column": "text",
+            "input_file_type": "json",
+            "save_loc": "embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2",
+            "path_or_name": "sentence-transformers/all-MiniLM-L6-v2",
+            "emb_size": 768,
+            "batch_size": 128,
+            "max_mem_gb": 25,
+        }
+    )
+
+    # Clustering config
+    clustering: Dict[str, any] = field(
+        default_factory=lambda: {
+            "save_loc": "results_st_all_MiniLM_L6_v2",
+            "num_clusters": 1000,
+            "seed": 1234,
+            "niter": 100,
+            "Kmeans_with_cos_dist": False,
+        }
+    )
+
+    # Semdedup config
+    semdedup: Dict[str, any] = field(
+        default_factory=lambda: {
+            "which_to_keep": "hard",
+            "largest_cluster_size_to_process": 100000,
+            "sim_metric": "cosine",
+        }
+    )
+
+    # Extract dedup config
+    extract_dedup: Dict[str, any] = field(
+        default_factory=lambda: {"use_eps_from_yml": True, "eps": [0.01, 0.001]}
+    )
