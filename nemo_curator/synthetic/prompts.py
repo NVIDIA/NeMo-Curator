@@ -51,7 +51,7 @@ PYTHON_PROBLEM_INTERMEDIATE_PROMPT_TEMPLATE = 'Generate {n_openlines} {language}
 
 PYTHON_PROBLEM_ADVANCED_PROMPT_TEMPLATE = 'Generate {n_openlines} {language} coding problems related to "{topic}". These problems should be suitable for advanced programmers with solid knowledge and experiences of "{topic}". Your answer should be a list of problems. Make them as diverse as possible.'
 
-DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a user and an assistant.\n<|The Start of Assistant's Conversation with User|>\n{converstaion_history}\n<|The End of Assistant's Conversation with User|>\n\nGiven the conversation above, generate a followup request or question in the tone of User. Directly give me the question without extraneous words."
+DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a user and an assistant.\n<|The Start of Assistant's Conversation with User|>\n{conversation_history}\n<|The End of Assistant's Conversation with User|>\n\nGiven the conversation above, generate a followup request or question in the tone of User. Directly give me the question without extraneous words."
 
 DIALOGUE_COMPLEX_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a user and an assistant.\n<|The Start of Assistant's Conversation with User|>\n{conversation_history}\n<|The End of Assistant's Conversation with User|>\n\nGiven the conversation above, generate a followup request or question in the tone of User. Make sure the question is complex and diverse enough and suitable as a followup question. Directly give me the question without extraneous words."
 
