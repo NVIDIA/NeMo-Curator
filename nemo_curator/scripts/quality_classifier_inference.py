@@ -89,7 +89,7 @@ def main():
         add_filename = True
 
     classifier = QualityClassifier(
-        model_path=args.model_path,
+        model_path=args.pretrained_model_name_or_path,
         max_chars=max_chars,
         labels=labels,
         batch_size=args.batch_size,

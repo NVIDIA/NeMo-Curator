@@ -86,7 +86,7 @@ def main():
         add_filename = True
 
     domain_classifier = DomainClassifier(
-        model_path=args.model_path,
+        model_path=args.pretrained_model_name_or_path,
         labels=labels,
         max_chars=max_chars,
         batch_size=args.batch_size,
