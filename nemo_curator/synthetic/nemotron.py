@@ -606,7 +606,7 @@ class NemotronGenerator:
 
         return classification_response
 
-    def generate_coding_problem(
+    def generate_python_problem(
         self,
         topic: str,
         n_openlines: Union[str, int],
