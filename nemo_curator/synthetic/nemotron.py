@@ -32,6 +32,8 @@ from nemo_curator.synthetic.prompts import (
     DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
     DEFAULT_WRITING_TASK_PROMPT_TEMPLATE,
     DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+    MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE,
+    PYTHON_PROBLEM_BEGINNER_PROMPT_TEMPLATE,
 )
 
 
@@ -468,6 +470,42 @@ class NemotronGenerator:
 
         return classification_response
 
+    def generate_math_problem(
+        self,
+        topic: str,
+        n_openlines: Union[str, int],
+        model: str,
+        prompt_template: str = MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of math problems based on a topic
+        Args:
+            topic: The topic to generate problems for.
+            n_openlines: The number of problems to generate per topic.
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_openlines: Will be populated with the n_subtopics passed in this function
+                - topic: Will be populated with the topic passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["topic"] = topic
+        prompt_kwargs["n_openlines"] = n_openlines
+        openline_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return openline_response
+
     def generate_python_macro_topics(
         self,
         n_macro_topics: Union[int, str],
@@ -567,6 +605,46 @@ class NemotronGenerator:
         )
 
         return classification_response
+
+    def generate_coding_problem(
+        self,
+        topic: str,
+        n_openlines: Union[str, int],
+        model: str,
+        language="Python",
+        prompt_template: str = PYTHON_PROBLEM_BEGINNER_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of coding problems based on a topic
+        Args:
+            topic: The topic to generate problems for.
+            n_openlines: The number of problems to generate per topic.
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            language: The programming language to target when generating these questions.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_openlines: Will be populated with the n_subtopics passed in this function
+                - topic: Will be populated with the topic passed in this function
+                - language: Will be populated with the language passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["topic"] = topic
+        prompt_kwargs["n_openlines"] = n_openlines
+        prompt_kwargs["language"] = language
+        openline_response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return openline_response
 
     def generate_data_assistance_openlines(self):
         pass
