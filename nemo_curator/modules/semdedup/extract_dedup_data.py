@@ -3,12 +3,92 @@ import os
 from datetime import datetime
 from typing import Tuple
 
+import dask.dataframe as dd
 import numpy as np
+import numpy.lib.format
 import pandas as pd
-from tqdm import tqdm
+from dask.distributed import progress
 
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
+from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
+
+
+def get_num_records(file_path):
+    if not os.path.exists(file_path):
+        return 0
+    with open(file_path, "rb") as f:
+        # Read the header of the npy file
+        version = np.lib.format.read_magic(f)
+        shape, _, _ = np.lib.format._read_array_header(f, version)
+    return shape[0]
+
+
+def _get_empty_results_df(id_col, id_type):
+    meta_df = pd.DataFrame(
+        {
+            id_col: np.empty(0, dtype="int64"),
+            "dist": np.empty(0, dtype="float32"),
+            "cluster": np.empty(0, dtype="int32"),
+        }
+    )
+    meta_df[id_col] = meta_df[id_col].astype(id_type)
+    return meta_df
+
+
+def process_single_cluster(
+    cluster_id: int,
+    id_col: str,
+    id_type: str,
+    sorted_clusters_path: str,
+    semdedup_pruning_tables_path: str,
+    eps: float,
+) -> Tuple[pd.DataFrame, int, int, int]:
+    """
+    Processes data for a single cluster, applying pruning based on specified epsilon.
+
+    Args:
+        cluster_id (int): The specific cluster ID to process.
+        id_col (str): The name of the ID column.
+        id_type (str): The data type of the ID column.
+        sorted_clusters_path (str): Path to the sorted clusters directory.
+        semdedup_pruning_tables_path (str): Path to the pruning tables directory.
+        eps (float): Epsilon value for pruning.
+
+    Returns:
+        Tuple[pd.DataFrame, int, int, int]: A DataFrame of the pruned cluster data,
+        number of kept records, number of removed records, and total records.
+    """
+    sorted_fname = os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
+    if not os.path.exists(sorted_fname):
+        return _get_empty_results_df(id_col, id_type)
+
+    cluster_data = np.load(sorted_fname)
+    df_cluster = pd.DataFrame(
+        {
+            id_col: cluster_data[:, 0],
+            "dist": cluster_data[:, 1],
+            "cluster": cluster_data[:, 2],
+        }
+    )
+
+    df_cluster[id_col] = df_cluster[id_col].astype(id_type)
+    df_cluster["dist"] = df_cluster["dist"].astype("float32")
+    df_cluster["cluster"] = df_cluster["cluster"].astype("int32")
+
+    cluster_df_fname = os.path.join(
+        semdedup_pruning_tables_path, f"cluster_{cluster_id}.parquet"
+    )
+    pruning_table = pd.read_parquet(cluster_df_fname)
+
+    if pruning_table.shape[0] == 1:
+        return df_cluster
+
+    items_to_keep = pruning_table[pruning_table[f"eps={eps}"] == False]["id"].tolist()
+    pruned_cluster = df_cluster[df_cluster[id_col].isin(items_to_keep)]
+
+    return pruned_cluster
 
 
 def extract_pruned_data(
@@ -18,7 +98,7 @@ def extract_pruned_data(
     semdedup_pruning_tables_path: str,
     eps: float,
     num_clusters: int,
-    output_csv_path: str,
+    output_parquet_path: str,
 ) -> Tuple[int, int, int]:
     """
     Extracts pruned data from sorted clusters and saves it to a CSV file.
@@ -35,57 +115,32 @@ def extract_pruned_data(
     Returns:
         Tuple[int, int, int]: Number of kept records, removed records, and total records.
     """
-    dedup_clusters = []
-    total = 0
 
-    for cluster_id in tqdm(range(num_clusters)):
+    results_df = dd.from_map(
+        process_single_cluster,
+        range(num_clusters),
+        id_col=id_col,
+        id_type=id_type,
+        sorted_clusters_path=sorted_clusters_path,
+        semdedup_pruning_tables_path=semdedup_pruning_tables_path,
+        eps=eps,
+    )
+    results_df = results_df.persist()
+    progress(results_df)
 
-        sorted_fname = os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
-        if not os.path.exists(sorted_fname):
-            logger.info(f"{sorted_fname} not exist. Continue.")
-            continue
-        cluster_i = np.load(sorted_fname)
+    results_df.to_parquet(output_parquet_path)
 
-        df_cluster_i = pd.DataFrame(
-            {
-                id_col: cluster_i[:, 0],
-                "dist": cluster_i[:, 1],
-                "cluster": cluster_i[:, 2],
-            }
-        )
-        df_cluster_i[id_col] = df_cluster_i[id_col].astype(id_type)
-        df_cluster_i.dist = df_cluster_i.dist.astype("float32")
-        df_cluster_i.cluster = df_cluster_i.cluster.astype("int32")
-        total += df_cluster_i.shape[0]
-        cluster_df_fname = os.path.join(
-            semdedup_pruning_tables_path, f"cluster_{cluster_id}.parquet"
-        )
-        semdedup_pruning_tables = pd.read_parquet(cluster_df_fname)
+    total_kept = len(results_df)
 
-        if semdedup_pruning_tables.shape[0] == 1:
-            logger.info(
-                f"""cluster_id: {cluster_id},
-                    semdedup_pruning_tables.shape: {semdedup_pruning_tables.shape},
-                    df_cluster_i.shape: {df_cluster_i.shape}"""
-            )
-            continue
+    np_files = [
+        os.path.join(sorted_clusters_path, f"cluster_{i}.npy")
+        for i in range(num_clusters)
+    ]
+    total_records = sum(get_num_records(file_path) for file_path in np_files)
 
-        items_to_keep = semdedup_pruning_tables[
-            semdedup_pruning_tables[f"eps={eps}"] == False
-        ]["id"].tolist()
-
-        if "indices" in semdedup_pruning_tables.columns:
-            cluster_i = cluster_i[semdedup_pruning_tables["indices"]]
-
-        dedup_cluster = df_cluster_i[df_cluster_i[id_col].isin(items_to_keep)]
-        dedup_clusters.append(dedup_cluster)
-
-    result = pd.concat(dedup_clusters)
-    result.to_csv(output_csv_path, index=False)
-    num_removed = total - result.shape[0]
-
-    logger.info(f"DONE saving {result.shape[0]} out of {total}. Removed: {num_removed}")
-    return result.shape[0], num_removed, total
+    # Aggregate results
+    total_removed = total_records - total_kept
+    return total_kept, total_removed, total_records
 
 
 def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) -> None:
@@ -96,6 +151,9 @@ def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) 
         semdedup_config: Configuration object for SemDedup.
         logger (logging.Logger): Logger for logging the process.
     """
+
+    root = semdedup_config.cache_dir
+    save_loc = semdedup_config.clustering["save_loc"]
 
     if semdedup_config.extract_dedup["use_eps_from_yml"]:
         eps = semdedup_config.extract_dedup["eps"]
@@ -111,7 +169,7 @@ def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) 
     id_type = semdedup_config.id_col["type"]
 
     for eps in eps_list:
-        output_csv_path = f"{root}/{save_loc}/results_eps_{eps}.csv"
+        output_parquet_path = f"{root}/{save_loc}/results_eps_{eps}.parquet"
         sorted_clusters_path = f"{root}/{save_loc}/sorted"
         semdedup_pruning_tables_path = f"{root}/{save_loc}/dataframes"
         os.makedirs(semdedup_pruning_tables_path, exist_ok=True)
@@ -122,7 +180,10 @@ def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) 
             semdedup_pruning_tables_path=semdedup_pruning_tables_path,
             eps=eps,
             num_clusters=semdedup_config.clustering["num_clusters"],
-            output_csv_path=output_csv_path,
+            output_parquet_path=output_parquet_path,
+        )
+        logger.info(
+            f"DONE saving {kept} out of {total}. Removed: {removed}. Epsilon: {eps:.4f}"
         )
         kept_list.append(kept)
         removed_list.append(removed)
@@ -139,15 +200,17 @@ def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) 
     df.to_csv(summary_file, index=False)
 
 
-if __name__ == "__main__":
-    config_file = "configs/config.yaml"
-    semdedup_config = SemDedupConfig.from_yaml(config_file)
+def main():
+    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    parser = parse_semdedup_args(add_input_args=False)
+    args = parser.parse_args()
+    client = get_client(**parse_client_args(args))
+
     root = semdedup_config.cache_dir
     save_loc = semdedup_config.clustering["save_loc"]
-
     logger = create_logger(
         rank=0,
-        log_file=f"{root}/{save_loc}/extract_dedup_data.log",
+        log_file=os.path.join(root, save_loc, "extract_dedup_data.log"),
         name="logger-extract-dedup-data",
         log_level=logging.INFO,
         stdout=True,
@@ -160,3 +223,11 @@ if __name__ == "__main__":
     logger.info(f"End: {dt2}")
     elapse = (dt2 - dt1).total_seconds() / 60
     logger.info(f"elapse: {elapse}")
+
+    client.cancel(client.futures, force=True)
+    client.close()
+    return
+
+
+if __name__ == "__main__":
+    main()
