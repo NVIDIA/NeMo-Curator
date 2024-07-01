@@ -32,6 +32,7 @@ from nemo_curator.synthetic.prompts import (
     DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
     DEFAULT_WRITING_TASK_PROMPT_TEMPLATE,
     DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+    DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE,
     MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE,
     PYTHON_PROBLEM_BEGINNER_PROMPT_TEMPLATE,
 )
@@ -68,7 +69,7 @@ class NemotronGenerator:
         Converts a response of an LLM to a list of strings by querying an LLM
         Args:
             llm_response: The original unformatted response of the LLM
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have a {llm_response}
                 parameter that will be populated with the llm_response value passed in this function.
@@ -126,7 +127,7 @@ class NemotronGenerator:
         Args:
             n_macro_topics: The number of macro topics to generate. Can be an integer like 5 or a string like "five".
                 It is used where it is referenced in prompt_template
-            model: The name model that should be used to generate the macro topics.
+            model: The name of the model that should be used to generate the macro topics.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have a {ntopics}
                 parameter that will be populated with the ntopics value passed in this function.
@@ -160,7 +161,7 @@ class NemotronGenerator:
         Args:
             macro_topic: The macro topic to generate subtopics for.
             n_subtopics: The number of subtopics to generate per macro topic
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_subtopics: Will be populated with the n_subtopics passed in this function
@@ -196,7 +197,7 @@ class NemotronGenerator:
         Args:
             topic: The topic to generate questions for.
             n_openlines: The number of questions to generate per topic.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_openlines: Will be populated with the n_subtopics passed in this function
@@ -232,7 +233,7 @@ class NemotronGenerator:
         Args:
             openline: An openline to revise
             n_revisions: The number of revisions to generate for the question.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - openline: Will be populated with the openline passed in this function
@@ -270,7 +271,7 @@ class NemotronGenerator:
             topic: The topic to generate writing tasks for.
             text_material_type: The type of the document the question should ask to generate (e.g., "Email", "Poem")
             n_openlines: The number of tasks to generate per topic and text material pair.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - topic: Will be populated with the topic passed in this function
@@ -308,7 +309,7 @@ class NemotronGenerator:
         Args:
             openline: An openline to revise
             n_revisions: The number of revisions to generate for the task.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - openline: Will be populated with the openline passed in this function
@@ -344,7 +345,7 @@ class NemotronGenerator:
         Args:
             document: The document to use when generating questions
             n_openlines: The number of questions to generate per document.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - document: Will be populated with the document passed in this function
@@ -380,7 +381,7 @@ class NemotronGenerator:
         Args:
             n_macro_topics: The number of macro topics to generate. Can be an integer like 5 or a string like "five".
             school_level: The school level the math questions should be targeted at.
-            model: The name model that should be used to generate the macro topics.
+            model: The name of the model that should be used to generate the macro topics.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_macro_topics: Will be populated with the n_macro_topics passed in this function
@@ -416,7 +417,7 @@ class NemotronGenerator:
         Args:
             macro_topic: The macro topic to generate subtopics for.
             n_subtopics: The number of subtopics to generate per macro topic
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_subtopics: Will be populated with the n_subtopics passed in this function
@@ -450,7 +451,7 @@ class NemotronGenerator:
         Prompts an LLM to classify if an entity is related to math
         Args:
             entity: The entity to classify
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - entity: Will be populated with the entity passed in this function
@@ -484,11 +485,14 @@ class NemotronGenerator:
         Args:
             topic: The topic to generate problems for.
             n_openlines: The number of problems to generate per topic.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_openlines: Will be populated with the n_subtopics passed in this function
                 - topic: Will be populated with the topic passed in this function
+                Some example templates found in nemo_curator.synthetic include:
+                - MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE
+                - MATH_PROBLEM_BEGINNER_PROMPT_TEMPLATE
             prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
                 None are needed for the default template.
             model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
@@ -518,7 +522,7 @@ class NemotronGenerator:
         Prompts an LLM to generate a list of macro topics about the Python programming language
         Args:
             n_macro_topics: The number of macro topics to generate. Can be an integer like 5 or a string like "five".
-            model: The name model that should be used to generate the macro topics.
+            model: The name of the model that should be used to generate the macro topics.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_macro_topics: Will be populated with the n_macro_topics passed in this function
@@ -552,7 +556,7 @@ class NemotronGenerator:
         Args:
             macro_topic: The macro topic to generate subtopics for.
             n_subtopics: The number of subtopics to generate per macro topic
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_subtopics: Will be populated with the n_subtopics passed in this function
@@ -586,7 +590,7 @@ class NemotronGenerator:
         Prompts an LLM to classify if an entity is related to Python
         Args:
             entity: The entity to classify
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - entity: Will be populated with the entity passed in this function
@@ -621,13 +625,17 @@ class NemotronGenerator:
         Args:
             topic: The topic to generate problems for.
             n_openlines: The number of problems to generate per topic.
-            model: The name model that should be used to generate the response.
+            model: The name of the model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             language: The programming language to target when generating these questions.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_openlines: Will be populated with the n_subtopics passed in this function
                 - topic: Will be populated with the topic passed in this function
                 - language: Will be populated with the language passed in this function
+                Some example templates found in nemo_curator.synthetic include:
+                - PYTHON_PROBLEM_BEGINNER_PROMPT_TEMPLATE
+                - PYTHON_PROBLEM_INTERMEDIATE_PROMPT_TEMPLATE
+                - PYTHON_PROBLEM_ADVANCED_PROMPT_TEMPLATE
             prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
                 None are needed for the default template.
             model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
@@ -648,3 +656,92 @@ class NemotronGenerator:
 
     def generate_data_assistance_openlines(self):
         pass
+
+    def generate_dialogue(
+        self,
+        openline: str,
+        user_model: str,
+        assistant_model: str,
+        n_user_turns: int = 3,
+        prompt_template: str = DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        user_model_kwargs: dict = {},
+        assistant_model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a dialogue based on a given openline.
+        The LLM will alternate impersonating the user and the assistant.
+        Args:
+            openline: The openline that will comprise the first user turn.
+            user_model: The model that will be impersonating the user.
+                Must be available in the LLMClient passed in the constructor.
+            assistant_model: The model that will be impersonating the assistant
+                Must be available in the LLMClient passed in the constructor.
+            n_user_turns: The number of user turns to go through. The openline counts as 1 user turn.
+                Therefore, if there are 3 user turns, 2 will be generated by the LLM impersonating the user.
+            prompt_template: A format string of the prompt to use when impersonating the user.
+                It must have the following parameters:
+                - converstation_history: Will be populated with a formatted history of the dialogue up to that point.
+                Some example templates found in nemo_curator.synthetic include:
+                - DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE
+                - DIALOGUE_COMPLEX_USER_TURN_PROMPT_TEMPLATE
+                - DIALOGUE_CONCISE_USER_TURN_PROMPT_TEMPLATE
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            user_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the user.
+            assistant_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the assistant.
+        Returns:
+            A conversation between a User and Assistant
+        """
+        conversation_history = [{"role": "user", "content": openline}]
+        first_assistant_response = self.client.query_model(
+            messages=conversation_history,
+            model=assistant_model,
+            **assistant_model_kwargs,
+        )[0]
+        conversation_history.append(
+            {"role": "assistant", "content": first_assistant_response}
+        )
+        for _ in range(n_user_turns - 1):
+            user_response = self._impersonate_user(
+                conversation_history=conversation_history,
+                model=user_model,
+                prompt_template=prompt_template,
+                prompt_kwargs=prompt_kwargs,
+                model_kwargs=user_model_kwargs,
+            )
+            conversation_history.append({"role": "user", "content": user_response})
+            assistant_response = self.client.query_model(
+                messages=conversation_history,
+                model=assistant_model,
+                **assistant_model_kwargs,
+            )[0]
+            conversation_history.append(
+                {"role": "assistant", "content": assistant_response}
+            )
+
+        return conversation_history
+
+    def _impersonate_user(
+        self,
+        conversation_history: List[dict],
+        model: str,
+        prompt_template: str,
+        prompt_kwargs: dict,
+        model_kwargs: dict,
+    ) -> str:
+        # Convert the conversation history to a string
+        history_str = ""
+        for turn in conversation_history:
+            history_str += f"{turn['role'].capitalize()}: {turn['content']}"
+        prompt_kwargs["conversation_history"] = history_str
+        response = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return response[0]
