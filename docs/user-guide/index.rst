@@ -46,7 +46,3 @@
    personalidentifiableinformationidentificationandremoval.rst
    distributeddataclassification.rst
    kubernetescurator.rst
-<<<<<<< HEAD
-=======
-
->>>>>>> 38b0ac1 (Applying SEO Best Pratices (#104))
