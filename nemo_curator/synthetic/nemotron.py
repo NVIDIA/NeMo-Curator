@@ -82,7 +82,7 @@ class NemotronGenerator:
                 )
             if elem not in llm_response:
                 raise YamlConversionError(
-                    f"Conversion introduced hallucinations. Original response:\n{llm_response}\nConverted response:\n{parsed_response}"
+                    f"Conversion introduced hallucinations. Original response:\n{llm_response}\nConverted response:\n{parsed_response}\nHallucination:\n{elem}"
                 )
 
         return parsed_response
@@ -192,10 +192,10 @@ class NemotronGenerator:
                 n_openlines=n_openlines, topic=topic, **prompt_kwargs
             )
             messages = [{"role": "user", "content": prompt}]
-            subtopics_response = self.client.query_model(
+            openline_response = self.client.query_model(
                 messages=messages, model=model, **model_kwargs
             )
-            openlines.append(subtopics_response)
+            openlines.append(openline_response)
 
         return openlines
 
