@@ -1,10 +1,13 @@
 from typing import List, Optional, Union
 
+import yaml
+
 from nemo_curator.services.model_client import AsyncLLMClient, LLMClient
 from nemo_curator.synthetic.prompts import (
     DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
+    DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
 )
 
 
@@ -18,6 +21,37 @@ class NemotronGenerator:
 
     def __init__(self, llm_client: LLMClient) -> None:
         self.client = llm_client
+
+    def convert_response_to_yaml_list(
+        self,
+        llm_response: str,
+        model: str,
+        prompt_template: str = DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Converts a response of an LLM to a list of strings by querying an LLM
+        Args:
+            llm_response: The original unformatted response of the LLM
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have a {llm_response}
+                parameter that will be populated with the llm_response value passed in this function.
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A parsed list of elements from the original LLM response
+        """
+        prompt = prompt_template.format(llm_response=llm_response, **prompt_kwargs)
+        messages = [{"role": "user", "content": prompt}]
+        yaml_response = self.client.query_model(
+            messages=messages, model=model, **model_kwargs
+        )
+        parsed_response = yaml.safe_load(yaml_response)
+
+        return parsed_response
 
     def generate_world_question_openlines(self):
         pass
@@ -67,7 +101,7 @@ class NemotronGenerator:
         Args:
             macro_topics: A list of macro topics to generate subtopics for.
             n_subtopics: The number of subtopics to generate per macro topic
-            model: The name model that should be used to generate the macro topics.
+            model: The name model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_subtopics: Will be populated with the n_subtopics passed in this function
@@ -106,7 +140,7 @@ class NemotronGenerator:
         Args:
             topics: A list of topics to generate questions for.
             n_openlines: The number of questions to generate per topic.
-            model: The name model that should be used to generate the macro topics.
+            model: The name model that should be used to generate the response.
                 Must be available in the LLMClient passed in the constructor.
             prompt_template: A format string of the prompt to use. It must have the following parameters:
                 - n_openlines: Will be populated with the n_subtopics passed in this function
