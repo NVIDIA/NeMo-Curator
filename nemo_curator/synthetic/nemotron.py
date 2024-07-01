@@ -243,8 +243,81 @@ class NemotronGenerator:
 
         return revisions
 
-    def generate_creative_openlines(self):
-        pass
+    def generate_writing_tasks(
+        self,
+        topic: str,
+        text_material_type: str,
+        n_openlines: Union[str, int],
+        model: str,
+        prompt_template: str = DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to generate a list of writing tasks based on a topic and document type
+        Args:
+            topic: The topic to generate writing tasks for.
+            text_material_type: The type of the document the question should ask to generate (e.g., "Email", "Poem")
+            n_openlines: The number of tasks to generate per topic and text material pair.
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - topic: Will be populated with the topic passed in this function
+                - text_material_type: Will be populated with the text_material_type passed in this function
+                - n_openlines: Will be populated with the n_openlines passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["topic"] = topic
+        prompt_kwargs["text_material_type"] = text_material_type
+        prompt_kwargs["n_openlines"] = n_openlines
+        writing_tasks = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return writing_tasks
+
+    def revise_writing_tasks(
+        self,
+        openline: str,
+        n_revisions: Union[str, int],
+        model: str,
+        prompt_template: str = DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> List[str]:
+        """
+        Prompts an LLM to revise a writing task a given number of times
+        Args:
+            openline: An openline to revise
+            n_revisions: The number of revisions to generate for the task.
+            model: The name model that should be used to generate the response.
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - openline: Will be populated with the openline passed in this function
+                - n_revisions: Will be populated with the n_revisions passed in this function
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
+        Returns:
+            A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
+        prompt_kwargs["openline"] = openline
+        prompt_kwargs["n_revisions"] = n_revisions
+        revisions = self._prompt(
+            model=model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=model_kwargs,
+        )
+
+        return revisions
 
     def generate_data_assistance_openlines(self):
         pass
