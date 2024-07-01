@@ -21,7 +21,9 @@ from nemo_curator.synthetic.prompts import (
     DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
     DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
+    DEFAULT_REVISE_WRITING_TASK_PROMPT_TEMPLATE,
     DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
+    DEFAULT_WRITING_TASK_PROMPT_TEMPLATE,
     DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
 )
 
@@ -249,7 +251,7 @@ class NemotronGenerator:
         text_material_type: str,
         n_openlines: Union[str, int],
         model: str,
-        prompt_template: str = DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
+        prompt_template: str = DEFAULT_WRITING_TASK_PROMPT_TEMPLATE,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
     ) -> List[str]:
@@ -288,7 +290,7 @@ class NemotronGenerator:
         openline: str,
         n_revisions: Union[str, int],
         model: str,
-        prompt_template: str = DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
+        prompt_template: str = DEFAULT_REVISE_WRITING_TASK_PROMPT_TEMPLATE,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
     ) -> List[str]:
