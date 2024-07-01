@@ -65,7 +65,7 @@ class NemotronGenerator:
         )
         try:
             parsed_response = yaml.safe_load(yaml_response[0])
-        except yaml.scanner.ScannerError:
+        except yaml.scanner.ScannerError as _:
             raise YamlConversionError(
                 f"Error parsing yaml response: {yaml_response[0]}"
             )
