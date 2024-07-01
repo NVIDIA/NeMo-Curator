@@ -667,7 +667,7 @@ class NemotronGenerator:
         prompt_kwargs: dict = {},
         user_model_kwargs: dict = {},
         assistant_model_kwargs: dict = {},
-    ) -> List[str]:
+    ) -> List[dict]:
         """
         Prompts an LLM to generate a dialogue based on a given openline.
         The LLM will alternate impersonating the user and the assistant.
@@ -721,6 +721,62 @@ class NemotronGenerator:
             conversation_history.append(
                 {"role": "assistant", "content": assistant_response}
             )
+
+        return conversation_history
+
+    def generate_two_turn_prompt(
+        self,
+        openline: str,
+        user_model: str,
+        assistant_model: str,
+        prompt_template: str = DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE,
+        prompt_kwargs: dict = {},
+        user_model_kwargs: dict = {},
+        assistant_model_kwargs: dict = {},
+    ) -> List[dict]:
+        """
+        Prompts an LLM to generate a response as an assistant, then as the user based on a given openline.
+        The conversation will look like "User -> Assistant -> User"
+        Args:
+            openline: The openline that will comprise the first user turn.
+            user_model: The model that will be impersonating the user.
+                Must be available in the LLMClient passed in the constructor.
+            assistant_model: The model that will be impersonating the assistant
+                Must be available in the LLMClient passed in the constructor.
+            prompt_template: A format string of the prompt to use when impersonating the user.
+                It must have the following parameters:
+                - converstation_history: Will be populated with a formatted history of the dialogue up to that point.
+                Some example templates found in nemo_curator.synthetic include:
+                - DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE
+                - DIALOGUE_COMPLEX_USER_TURN_PROMPT_TEMPLATE
+                - DIALOGUE_CONCISE_USER_TURN_PROMPT_TEMPLATE
+            prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
+                None are needed for the default template.
+            user_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the user.
+            assistant_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the assistant.
+        Returns:
+            A conversation between a User and Assistant
+        """
+        conversation_history = [{"role": "user", "content": openline}]
+        first_assistant_response = self.client.query_model(
+            messages=conversation_history,
+            model=assistant_model,
+            **assistant_model_kwargs,
+        )[0]
+        conversation_history.append(
+            {"role": "assistant", "content": first_assistant_response}
+        )
+
+        user_response = self._impersonate_user(
+            conversation_history=conversation_history,
+            model=user_model,
+            prompt_template=prompt_template,
+            prompt_kwargs=prompt_kwargs,
+            model_kwargs=user_model_kwargs,
+        )
+        conversation_history.append({"role": "user", "content": user_response})
 
         return conversation_history
 
