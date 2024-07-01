@@ -75,12 +75,15 @@ class NemotronGenerator:
                 f"Error: Parsed response was not a list: {parsed_response}"
             )
 
-        # Ensure there are no additional hallucinations introduced
-        hallucination_free = all(elem in llm_response for elem in parsed_response)
-        if not hallucination_free:
-            raise YamlConversionError(
-                f"Conversion introduced hallucinations. Original response:\n{llm_response}\nConverted response:\n{parsed_response}"
-            )
+        for elem in parsed_response:
+            if not isinstance(elem, str):
+                raise YamlConversionError(
+                    f"Error: Parsed response contains non-string elements in list: {parsed_response}"
+                )
+            if elem not in llm_response:
+                raise YamlConversionError(
+                    f"Conversion introduced hallucinations. Original response:\n{llm_response}\nConverted response:\n{parsed_response}"
+                )
 
         return parsed_response
 
