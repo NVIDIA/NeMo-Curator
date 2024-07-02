@@ -1,3 +1,4 @@
+from .async_nemotron import AsyncNemotronGenerator
 from .error import YamlConversionError
 from .nemotron import NemotronGenerator
 from .prompts import (
@@ -27,6 +28,7 @@ from .prompts import (
 
 __all__ = [
     "NemotronGenerator",
+    "AsyncNemotronGenerator",
     "DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE",
     "DEFAULT_SUBTOPICS_PROMPT_TEMPLATE",
     "DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE",

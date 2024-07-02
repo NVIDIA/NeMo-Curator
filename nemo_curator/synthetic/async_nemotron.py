@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple, Union
+import asyncio
+from typing import List, Optional, Tuple, Union
 
 import yaml
 
-from nemo_curator.services.model_client import LLMClient
+from nemo_curator.services.model_client import AsyncLLMClient
 from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
     DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
@@ -38,7 +39,7 @@ from nemo_curator.synthetic.prompts import (
 )
 
 
-class NemotronGenerator:
+class AsyncNemotronGenerator:
     """
     Provides a collection of methods for generating synthetic data
     described in the Nemotron-4 340B Technical Report
@@ -46,18 +47,20 @@ class NemotronGenerator:
     UltraChat paper (https://arxiv.org/abs/2305.14233)
     """
 
-    def __init__(self, llm_client: LLMClient) -> None:
+    def __init__(self, llm_client: AsyncLLMClient) -> None:
         self.client = llm_client
 
-    def _prompt(
+    async def _prompt(
         self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict
     ) -> List[str]:
         prompt = prompt_template.format(**prompt_kwargs)
         messages = [{"role": "user", "content": prompt}]
 
-        return self.client.query_model(messages=messages, model=model, **model_kwargs)
+        return await self.client.query_model(
+            messages=messages, model=model, **model_kwargs
+        )
 
-    def convert_response_to_yaml_list(
+    async def convert_response_to_yaml_list(
         self,
         llm_response: str,
         model: str,
@@ -80,7 +83,7 @@ class NemotronGenerator:
             A parsed list of elements from the original LLM response
         """
         prompt_kwargs["llm_response"] = llm_response
-        yaml_response = self._prompt(
+        yaml_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -111,7 +114,7 @@ class NemotronGenerator:
 
         return parsed_response
 
-    def generate_macro_topics(
+    async def generate_macro_topics(
         self,
         n_macro_topics: Union[int, str],
         model: str,
@@ -134,7 +137,7 @@ class NemotronGenerator:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
         prompt_kwargs["n_macro_topics"] = n_macro_topics
-        macro_topics = self._prompt(
+        macro_topics = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -143,7 +146,7 @@ class NemotronGenerator:
 
         return macro_topics
 
-    def generate_subtopics(
+    async def generate_subtopics(
         self,
         macro_topic: str,
         n_subtopics: Union[int, str],
@@ -170,7 +173,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["n_subtopics"] = n_subtopics
         prompt_kwargs["macro_topic"] = macro_topic
-        subtopics_response = self._prompt(
+        subtopics_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -179,7 +182,7 @@ class NemotronGenerator:
 
         return subtopics_response
 
-    def generate_open_qa_from_topic(
+    async def generate_open_qa_from_topic(
         self,
         topic: str,
         n_openlines: Union[str, int],
@@ -206,7 +209,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["topic"] = topic
         prompt_kwargs["n_openlines"] = n_openlines
-        openline_response = self._prompt(
+        openline_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -215,7 +218,7 @@ class NemotronGenerator:
 
         return openline_response
 
-    def revise_open_qa(
+    async def revise_open_qa(
         self,
         openline: str,
         n_revisions: Union[str, int],
@@ -242,7 +245,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["openline"] = openline
         prompt_kwargs["n_revisions"] = n_revisions
-        revisions = self._prompt(
+        revisions = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -251,7 +254,7 @@ class NemotronGenerator:
 
         return revisions
 
-    def generate_writing_tasks(
+    async def generate_writing_tasks(
         self,
         topic: str,
         text_material_type: str,
@@ -282,7 +285,7 @@ class NemotronGenerator:
         prompt_kwargs["topic"] = topic
         prompt_kwargs["text_material_type"] = text_material_type
         prompt_kwargs["n_openlines"] = n_openlines
-        writing_tasks = self._prompt(
+        writing_tasks = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -291,7 +294,7 @@ class NemotronGenerator:
 
         return writing_tasks
 
-    def revise_writing_tasks(
+    async def revise_writing_tasks(
         self,
         openline: str,
         n_revisions: Union[str, int],
@@ -318,7 +321,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["openline"] = openline
         prompt_kwargs["n_revisions"] = n_revisions
-        revisions = self._prompt(
+        revisions = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -327,7 +330,7 @@ class NemotronGenerator:
 
         return revisions
 
-    def generate_closed_qa_instructions(
+    async def generate_closed_qa_instructions(
         self,
         document: str,
         n_openlines: Union[str, int],
@@ -354,7 +357,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["document"] = document
         prompt_kwargs["n_openlines"] = n_openlines
-        openline_response = self._prompt(
+        openline_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -363,7 +366,7 @@ class NemotronGenerator:
 
         return openline_response
 
-    def generate_math_macro_topics(
+    async def generate_math_macro_topics(
         self,
         n_macro_topics: Union[int, str],
         school_level: str,
@@ -390,7 +393,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["n_macro_topics"] = n_macro_topics
         prompt_kwargs["school_level"] = school_level
-        macro_topics = self._prompt(
+        macro_topics = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -399,7 +402,7 @@ class NemotronGenerator:
 
         return macro_topics
 
-    def generate_math_subtopics(
+    async def generate_math_subtopics(
         self,
         macro_topic: str,
         n_subtopics: Union[int, str],
@@ -426,7 +429,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["n_subtopics"] = n_subtopics
         prompt_kwargs["macro_topic"] = macro_topic
-        subtopics_response = self._prompt(
+        subtopics_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -435,7 +438,7 @@ class NemotronGenerator:
 
         return subtopics_response
 
-    def classify_math_entity(
+    async def classify_math_entity(
         self,
         entity: str,
         model: str,
@@ -458,7 +461,7 @@ class NemotronGenerator:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
         prompt_kwargs["entity"] = entity
-        classification_response = self._prompt(
+        classification_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -467,7 +470,7 @@ class NemotronGenerator:
 
         return classification_response
 
-    def generate_math_problem(
+    async def generate_math_problem(
         self,
         topic: str,
         n_openlines: Union[str, int],
@@ -497,7 +500,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["topic"] = topic
         prompt_kwargs["n_openlines"] = n_openlines
-        openline_response = self._prompt(
+        openline_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -506,7 +509,7 @@ class NemotronGenerator:
 
         return openline_response
 
-    def generate_python_macro_topics(
+    async def generate_python_macro_topics(
         self,
         n_macro_topics: Union[int, str],
         model: str,
@@ -529,7 +532,7 @@ class NemotronGenerator:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
         prompt_kwargs["n_macro_topics"] = n_macro_topics
-        macro_topics = self._prompt(
+        macro_topics = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -538,7 +541,7 @@ class NemotronGenerator:
 
         return macro_topics
 
-    def generate_python_subtopics(
+    async def generate_python_subtopics(
         self,
         macro_topic: str,
         n_subtopics: Union[int, str],
@@ -565,7 +568,7 @@ class NemotronGenerator:
         """
         prompt_kwargs["n_subtopics"] = n_subtopics
         prompt_kwargs["macro_topic"] = macro_topic
-        subtopics_response = self._prompt(
+        subtopics_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -574,7 +577,7 @@ class NemotronGenerator:
 
         return subtopics_response
 
-    def classify_python_entity(
+    async def classify_python_entity(
         self,
         entity: str,
         model: str,
@@ -597,7 +600,7 @@ class NemotronGenerator:
             A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
         prompt_kwargs["entity"] = entity
-        classification_response = self._prompt(
+        classification_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -606,7 +609,7 @@ class NemotronGenerator:
 
         return classification_response
 
-    def generate_python_problem(
+    async def generate_python_problem(
         self,
         topic: str,
         n_openlines: Union[str, int],
@@ -641,7 +644,7 @@ class NemotronGenerator:
         prompt_kwargs["topic"] = topic
         prompt_kwargs["n_openlines"] = n_openlines
         prompt_kwargs["language"] = language
-        openline_response = self._prompt(
+        openline_response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -650,7 +653,7 @@ class NemotronGenerator:
 
         return openline_response
 
-    def generate_dialogue(
+    async def generate_dialogue(
         self,
         openline: str,
         user_model: str,
@@ -689,7 +692,7 @@ class NemotronGenerator:
             A conversation between a User and Assistant
         """
         conversation_history = [{"role": "user", "content": openline}]
-        first_assistant_response = self.client.query_model(
+        first_assistant_response = await self.client.query_model(
             messages=conversation_history,
             model=assistant_model,
             **assistant_model_kwargs,
@@ -698,7 +701,7 @@ class NemotronGenerator:
             {"role": "assistant", "content": first_assistant_response}
         )
         for _ in range(n_user_turns - 1):
-            user_response = self._impersonate_user(
+            user_response = await self._impersonate_user(
                 conversation_history=conversation_history,
                 model=user_model,
                 prompt_template=prompt_template,
@@ -706,7 +709,7 @@ class NemotronGenerator:
                 model_kwargs=user_model_kwargs,
             )
             conversation_history.append({"role": "user", "content": user_response})
-            assistant_response = self.client.query_model(
+            assistant_response = await self.client.query_model(
                 messages=conversation_history,
                 model=assistant_model,
                 **assistant_model_kwargs,
@@ -717,7 +720,7 @@ class NemotronGenerator:
 
         return conversation_history
 
-    def generate_two_turn_prompt(
+    async def generate_two_turn_prompt(
         self,
         openline: str,
         user_model: str,
@@ -753,7 +756,7 @@ class NemotronGenerator:
             A conversation between a User and Assistant
         """
         conversation_history = [{"role": "user", "content": openline}]
-        first_assistant_response = self.client.query_model(
+        first_assistant_response = await self.client.query_model(
             messages=conversation_history,
             model=assistant_model,
             **assistant_model_kwargs,
@@ -762,7 +765,7 @@ class NemotronGenerator:
             {"role": "assistant", "content": first_assistant_response}
         )
 
-        user_response = self._impersonate_user(
+        user_response = await self._impersonate_user(
             conversation_history=conversation_history,
             model=user_model,
             prompt_template=prompt_template,
@@ -773,7 +776,7 @@ class NemotronGenerator:
 
         return conversation_history
 
-    def _impersonate_user(
+    async def _impersonate_user(
         self,
         conversation_history: List[dict],
         model: str,
@@ -786,7 +789,7 @@ class NemotronGenerator:
         for turn in conversation_history:
             history_str += f"{turn['role'].capitalize()}: {turn['content']}"
         prompt_kwargs["conversation_history"] = history_str
-        response = self._prompt(
+        response = await self._prompt(
             model=model,
             prompt_template=prompt_template,
             prompt_kwargs=prompt_kwargs,
@@ -795,7 +798,7 @@ class NemotronGenerator:
 
         return response[0]
 
-    def run_open_qa_pipeline(
+    async def run_open_qa_pipeline(
         self,
         n_macro_topics: Union[str, int],
         n_subtopics: Union[str, int],
@@ -853,13 +856,13 @@ class NemotronGenerator:
             A list of synthetically generated open Q&A prompts
         """
         # Generate the macro topics
-        responses = self.generate_macro_topics(
+        responses = await self.generate_macro_topics(
             n_macro_topics=n_macro_topics,
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=macro_topic_prompt_template,
         )
-        macro_topics = self.convert_response_to_yaml_list(
+        macro_topics = await self.convert_response_to_yaml_list(
             responses[0],
             model=model,
             prompt_template=yaml_conversion_prompt_template,
@@ -873,34 +876,20 @@ class NemotronGenerator:
 
         # Generate the subtopics
         raw_topics = [
-            self.generate_subtopics(
+            self._generate_parse_subtopic(
                 macro_topic=macro_topic,
                 n_subtopics=n_subtopics,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=subtopic_prompt_template,
-            )[0]
+                subtopic_prompt_template=subtopic_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
             for macro_topic in macro_topics
         ]
-        topic_list = []
-        for topic in raw_topics:
-            try:
-                parsed_topics = self.convert_response_to_yaml_list(
-                    topic,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_topics) != n_subtopics:
-                    raise YamlConversionError(
-                        f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
-                    )
-                topic_list.extend(parsed_topics)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_topics = await asyncio.gather(*raw_topics)
+        topic_list = [item for subtopics in raw_topics for item in subtopics]
         topic_list.extend(additional_subtopics)
 
         # Mix the macro topics with the subtopics
@@ -909,69 +898,152 @@ class NemotronGenerator:
 
         # Generate the openlines
         raw_lines = [
-            self.generate_open_qa_from_topic(
-                topic=t,
+            self._generate_parse_openline(
+                subtopic=subtopic,
                 n_openlines=n_openlines,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=open_qa_from_topics_prompt_template,
-            )[0]
-            for t in topic_list
+                open_qa_from_topics_prompt_template=open_qa_from_topics_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
+            for subtopic in topic_list
         ]
-        openlines = []
-        for line in raw_lines:
-            try:
-                parsed_line = self.convert_response_to_yaml_list(
-                    line,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_line) != n_openlines:
-                    raise YamlConversionError(
-                        f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
-                    )
-                openlines.extend(parsed_line)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_lines = await asyncio.gather(*raw_lines)
+        openlines = [item for lines in raw_lines for item in lines]
 
         # Revise the openlines
         raw_revisions = [
-            self.revise_open_qa(
-                openline=line,
+            self._revise_parse_openline(
+                openline=openline,
                 n_revisions=n_revisions,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=revise_open_qa_prompt_template,
-            )[0]
-            for line in openlines
+                revise_open_qa_prompt_template=revise_open_qa_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
+            for openline in openlines
         ]
-        revised_openlines = []
-        for line in raw_revisions:
-            try:
-                parsed_revision = self.convert_response_to_yaml_list(
-                    line,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_revision) != n_revisions:
-                    raise YamlConversionError(
-                        f"Error: Length of revisions {len(parsed_revision)} does not match desired n_revisions {n_revisions}: {parsed_revision}"
-                    )
-                revised_openlines.extend(parsed_revision)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_revisions = await asyncio.gather(*raw_revisions)
+        revised_openlines = [item for revisions in raw_revisions for item in revisions]
 
         return revised_openlines
 
-    def run_writing_pipeline(
+    async def _generate_parse_subtopic(
+        self,
+        macro_topic: str,
+        n_subtopics: Union[int, str],
+        model: str,
+        subtopic_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        subtopic = await self.generate_subtopics(
+            macro_topic=macro_topic,
+            n_subtopics=n_subtopics,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=subtopic_prompt_template,
+        )[0]
+        try:
+            parsed_topics = await self.convert_response_to_yaml_list(
+                subtopic,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_topics) != n_subtopics:
+                raise YamlConversionError(
+                    f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_topics
+
+    async def _generate_parse_openline(
+        self,
+        subtopic: str,
+        n_openlines: Union[int, str],
+        model: str,
+        open_qa_from_topics_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        openline = await self.generate_open_qa_from_topic(
+            topic=subtopic,
+            n_openlines=n_openlines,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=open_qa_from_topics_prompt_template,
+        )[0]
+        try:
+            parsed_line = await self.convert_response_to_yaml_list(
+                openline,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_line) != n_openlines:
+                raise YamlConversionError(
+                    f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_line
+
+    async def _revise_parse_openline(
+        self,
+        openline: str,
+        n_revisions: Union[int, str],
+        model: str,
+        revise_open_qa_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        revised_openline = await self.revise_open_qa(
+            openline=openline,
+            n_revisions=n_revisions,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=revise_open_qa_prompt_template,
+        )[0]
+        try:
+            parsed_revision = await self.convert_response_to_yaml_list(
+                revised_openline,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_revision) != n_revisions:
+                raise YamlConversionError(
+                    f"Error: Length of revisions {len(parsed_revision)} does not match desired n_revisions {n_revisions}: {parsed_revision}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_revision
+
+    async def run_writing_pipeline(
         self,
         topics: List[str],
         text_material_types: List[str],
@@ -1016,69 +1088,121 @@ class NemotronGenerator:
             A list of synthetically generated writing task prompts
         """
         # Generate the tasks
-        writing_tasks = []
+        raw_writing_tasks = []
         for topic in topics:
             for material in text_material_types:
-                raw_tasks = self.generate_writing_tasks(
-                    topic=topic,
-                    text_material_type=material,
-                    n_openlines=n_openlines,
-                    model=model,
-                    model_kwargs=base_model_kwargs,
-                    prompt_template=writing_task_prompt_template,
-                )[0]
-                try:
-                    parsed_tasks = self.convert_response_to_yaml_list(
-                        raw_tasks,
+                raw_writing_tasks.append(
+                    self._generate_parse_writing_task(
+                        topic=topic,
+                        material=material,
+                        n_openlines=n_openlines,
                         model=model,
-                        prompt_template=yaml_conversion_prompt_template,
-                        model_kwargs=conversion_model_kwargs,
+                        writing_task_prompt_template=writing_task_prompt_template,
+                        yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                        base_model_kwargs=base_model_kwargs,
+                        conversion_model_kwargs=conversion_model_kwargs,
+                        ignore_conversion_failure=ignore_conversion_failure,
                     )
-                    if len(parsed_tasks) != n_openlines:
-                        raise YamlConversionError(
-                            f"Error: Length of writing tasks {len(parsed_tasks)} does not match desired n_openlines {n_openlines}: {parsed_tasks}"
-                        )
-                    writing_tasks.extend(parsed_tasks)
-                except YamlConversionError as e:
-                    if ignore_conversion_failure:
-                        continue
-                    else:
-                        raise e
+                )
+        raw_writing_tasks = await asyncio.gather(*raw_writing_tasks)
+        writing_tasks = [item for tasks in raw_writing_tasks for item in tasks]
 
         # Revise the tasks
-        raw_revisions = [
-            self.revise_writing_tasks(
-                openline=line,
+        raw_revised_openlines = [
+            self._revise_parse_writing_task(
+                task=task,
                 n_revisions=n_revisions,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=revise_writing_task_prompt_template,
-            )[0]
-            for line in writing_tasks
+                revise_writing_task_prompt_template=revise_writing_task_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
+            for task in writing_tasks
         ]
-        revised_openlines = []
-        for line in raw_revisions:
-            try:
-                parsed_revision = self.convert_response_to_yaml_list(
-                    line,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_revision) != n_revisions:
-                    raise YamlConversionError(
-                        f"Error: Length of revisions {len(parsed_revision)} does not match desired n_revisions {n_revisions}: {parsed_revision}"
-                    )
-                revised_openlines.extend(parsed_revision)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_revised_openlines = await asyncio.gather(*raw_revised_openlines)
+        revised_openlines = [item for lines in raw_revised_openlines for item in lines]
 
         return revised_openlines
 
-    def run_closed_qa_pipeline(
+    async def _generate_parse_writing_task(
+        self,
+        topic: str,
+        material: str,
+        n_openlines: Union[int, str],
+        model: str,
+        writing_task_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_tasks = await self.generate_writing_tasks(
+            topic=topic,
+            text_material_type=material,
+            n_openlines=n_openlines,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=writing_task_prompt_template,
+        )[0]
+        try:
+            parsed_tasks = await self.convert_response_to_yaml_list(
+                raw_tasks,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_tasks) != n_openlines:
+                raise YamlConversionError(
+                    f"Error: Length of writing tasks {len(parsed_tasks)} does not match desired n_openlines {n_openlines}: {parsed_tasks}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_tasks
+
+    async def _revise_parse_writing_task(
+        self,
+        task: str,
+        n_revisions: Union[int, str],
+        model: str,
+        revise_writing_task_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_revision = await self.revise_writing_tasks(
+            openline=task,
+            n_revisions=n_revisions,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=revise_writing_task_prompt_template,
+        )[0]
+        try:
+            parsed_revision = await self.convert_response_to_yaml_list(
+                raw_revision,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_revision) != n_revisions:
+                raise YamlConversionError(
+                    f"Error: Length of revisions {len(parsed_revision)} does not match desired n_revisions {n_revisions}: {parsed_revision}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_revision
+
+    async def run_closed_qa_pipeline(
         self,
         documents: List[str],
         n_openlines: Union[str, int],
@@ -1113,41 +1237,64 @@ class NemotronGenerator:
             A list of pairs where the first element represents the index of the document used to generate the question in the documents list
             and the second element represents a synthetically generated closed Q&A prompt. Example: [(0, "Summarize this document"), ...]
         """
-        raw_instructions = [
-            self.generate_closed_qa_instructions(
+        raw_qa = [
+            self._generate_parse_closed_qa(
+                document_id=i,
                 document=document,
                 n_openlines=n_openlines,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=closed_qa_prompt_template,
-            )[0]
-            for document in documents
+                closed_qa_prompt_template=closed_qa_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
+            for i, document in enumerate(documents)
         ]
-        document_openline_pairs = []
-        for i, instruction in enumerate(raw_instructions):
-            try:
-                parsed_instructions = self.convert_response_to_yaml_list(
-                    instruction,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_instructions) != n_openlines:
-                    raise YamlConversionError(
-                        f"Error: Length of openlines {len(parsed_instructions)} does not match desired n_openlines {n_openlines}: {parsed_instructions}"
-                    )
-                document_openline_pairs.extend(
-                    [(i, inst) for inst in parsed_instructions]
-                )
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_qa = await asyncio.gather(*raw_qa)
+        document_openline_pairs = [item for lines in raw_qa for item in lines]
 
         return document_openline_pairs
 
-    def run_math_pipeline(
+    async def _generate_parse_closed_qa(
+        self,
+        document_id: int,
+        document: str,
+        n_openlines: Union[int, str],
+        model: str,
+        closed_qa_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_instruction = self.generate_closed_qa_instructions(
+            document=document,
+            n_openlines=n_openlines,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=closed_qa_prompt_template,
+        )[0]
+        try:
+            parsed_instructions = self.convert_response_to_yaml_list(
+                raw_instruction,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_instructions) != n_openlines:
+                raise YamlConversionError(
+                    f"Error: Length of openlines {len(parsed_instructions)} does not match desired n_openlines {n_openlines}: {parsed_instructions}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return [(document_id, inst) for inst in parsed_instructions]
+
+    async def run_math_pipeline(
         self,
         n_macro_topics: Union[str, int],
         school_level: str,
@@ -1204,14 +1351,14 @@ class NemotronGenerator:
             A list of synthetically generated math prompts
         """
         # Generate the macro topics
-        responses = self.generate_math_macro_topics(
+        responses = await self.generate_math_macro_topics(
             n_macro_topics=n_macro_topics,
             school_level=school_level,
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=macro_topic_prompt_template,
         )
-        macro_topics = self.convert_response_to_yaml_list(
+        macro_topics = await self.convert_response_to_yaml_list(
             responses[0],
             model=model,
             prompt_template=yaml_conversion_prompt_template,
@@ -1225,34 +1372,20 @@ class NemotronGenerator:
 
         # Generate the subtopics
         raw_topics = [
-            self.generate_math_subtopics(
+            self._generate_parse_math_subtopic(
                 macro_topic=macro_topic,
                 n_subtopics=n_subtopics,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=subtopic_prompt_template,
-            )[0]
+                subtopic_prompt_template=subtopic_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
             for macro_topic in macro_topics
         ]
-        topic_list = []
-        for topic in raw_topics:
-            try:
-                parsed_topics = self.convert_response_to_yaml_list(
-                    topic,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_topics) != n_subtopics:
-                    raise YamlConversionError(
-                        f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
-                    )
-                topic_list.extend(parsed_topics)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_topics = await asyncio.gather(*raw_topics)
+        topic_list = [item for subtopics in raw_topics for item in subtopics]
         topic_list.extend(additional_subtopics)
 
         # Mix the macro topics with the subtopics
@@ -1261,38 +1394,98 @@ class NemotronGenerator:
 
         # Generate the openlines
         raw_lines = [
-            self.generate_math_problem(
-                topic=t,
+            self._generate_parse_math_openline(
+                subtopic=subtopic,
                 n_openlines=n_openlines,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=math_problem_prompt_template,
-            )[0]
-            for t in topic_list
+                math_problem_prompt_template=math_problem_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
+            for subtopic in topic_list
         ]
-        openlines = []
-        for line in raw_lines:
-            try:
-                parsed_line = self.convert_response_to_yaml_list(
-                    line,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_line) != n_openlines:
-                    raise YamlConversionError(
-                        f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
-                    )
-                openlines.extend(parsed_line)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_lines = await asyncio.gather(*raw_lines)
+        openlines = [item for lines in raw_lines for item in lines]
 
         return openlines
 
-    def run_python_pipeline(
+    async def _generate_parse_math_subtopic(
+        self,
+        macro_topic: str,
+        n_subtopics: Union[int, str],
+        model: str,
+        subtopic_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_topic = await self.generate_math_subtopics(
+            macro_topic=macro_topic,
+            n_subtopics=n_subtopics,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=subtopic_prompt_template,
+        )[0]
+        try:
+            parsed_topics = self.convert_response_to_yaml_list(
+                raw_topic,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_topics) != n_subtopics:
+                raise YamlConversionError(
+                    f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_topics
+
+    async def _generate_parse_math_openline(
+        self,
+        subtopic: str,
+        n_openlines: Union[int, str],
+        model: str,
+        math_problem_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_line = self.generate_math_problem(
+            topic=subtopic,
+            n_openlines=n_openlines,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=math_problem_prompt_template,
+        )[0]
+        try:
+            parsed_line = self.convert_response_to_yaml_list(
+                raw_line,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_line) != n_openlines:
+                raise YamlConversionError(
+                    f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_line
+
+    async def run_python_pipeline(
         self,
         n_macro_topics: Union[str, int],
         n_subtopics: Union[str, int],
@@ -1348,13 +1541,13 @@ class NemotronGenerator:
             A list of synthetically generated Python prompts
         """
         # Generate the macro topics
-        responses = self.generate_python_macro_topics(
+        responses = await self.generate_python_macro_topics(
             n_macro_topics=n_macro_topics,
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=macro_topic_prompt_template,
         )
-        macro_topics = self.convert_response_to_yaml_list(
+        macro_topics = await self.convert_response_to_yaml_list(
             responses[0],
             model=model,
             prompt_template=yaml_conversion_prompt_template,
@@ -1368,34 +1561,20 @@ class NemotronGenerator:
 
         # Generate the subtopics
         raw_topics = [
-            self.generate_python_subtopics(
+            self._generate_parse_python_subtopic(
                 macro_topic=macro_topic,
                 n_subtopics=n_subtopics,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=subtopic_prompt_template,
-            )[0]
+                subtopic_prompt_template=subtopic_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
             for macro_topic in macro_topics
         ]
-        topic_list = []
-        for topic in raw_topics:
-            try:
-                parsed_topics = self.convert_response_to_yaml_list(
-                    topic,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_topics) != n_subtopics:
-                    raise YamlConversionError(
-                        f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
-                    )
-                topic_list.extend(parsed_topics)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_topics = await asyncio.gather(*raw_topics)
+        topic_list = [item for subtopics in raw_topics for item in subtopics]
         topic_list.extend(additional_subtopics)
 
         # Mix the macro topics with the subtopics
@@ -1404,33 +1583,93 @@ class NemotronGenerator:
 
         # Generate the openlines
         raw_lines = [
-            self.generate_python_problem(
-                topic=t,
+            self._generate_parse_python_openline(
+                subtopic=subtopic,
                 n_openlines=n_openlines,
                 model=model,
-                model_kwargs=base_model_kwargs,
-                prompt_template=python_problem_prompt_template,
-            )[0]
-            for t in topic_list
+                python_problem_prompt_template=python_problem_prompt_template,
+                yaml_conversion_prompt_template=yaml_conversion_prompt_template,
+                base_model_kwargs=base_model_kwargs,
+                conversion_model_kwargs=conversion_model_kwargs,
+                ignore_conversion_failure=ignore_conversion_failure,
+            )
+            for subtopic in topic_list
         ]
-        openlines = []
-        for line in raw_lines:
-            try:
-                parsed_line = self.convert_response_to_yaml_list(
-                    line,
-                    model=model,
-                    prompt_template=yaml_conversion_prompt_template,
-                    model_kwargs=conversion_model_kwargs,
-                )
-                if len(parsed_line) != n_openlines:
-                    raise YamlConversionError(
-                        f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
-                    )
-                openlines.extend(parsed_line)
-            except YamlConversionError as e:
-                if ignore_conversion_failure:
-                    continue
-                else:
-                    raise e
+        raw_lines = await asyncio.gather(*raw_lines)
+        openlines = [item for lines in raw_lines for item in lines]
 
         return openlines
+
+    async def _generate_parse_python_subtopic(
+        self,
+        macro_topic: str,
+        n_subtopics: Union[int, str],
+        model: str,
+        subtopic_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_topic = await self.generate_python_subtopics(
+            macro_topic=macro_topic,
+            n_subtopics=n_subtopics,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=subtopic_prompt_template,
+        )[0]
+        try:
+            parsed_topics = self.convert_response_to_yaml_list(
+                raw_topic,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_topics) != n_subtopics:
+                raise YamlConversionError(
+                    f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_topics
+
+    async def _generate_parse_python_openline(
+        self,
+        subtopic: str,
+        n_openlines: Union[int, str],
+        model: str,
+        math_problem_prompt_template: str,
+        yaml_conversion_prompt_template: str,
+        base_model_kwargs: dict,
+        conversion_model_kwargs: dict,
+        ignore_conversion_failure: bool,
+    ) -> List[str]:
+        raw_line = self.generate_python_problem(
+            topic=subtopic,
+            n_openlines=n_openlines,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=math_problem_prompt_template,
+        )[0]
+        try:
+            parsed_line = self.convert_response_to_yaml_list(
+                raw_line,
+                model=model,
+                prompt_template=yaml_conversion_prompt_template,
+                model_kwargs=conversion_model_kwargs,
+            )
+            if len(parsed_line) != n_openlines:
+                raise YamlConversionError(
+                    f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
+                )
+        except YamlConversionError as e:
+            if ignore_conversion_failure:
+                return []
+            else:
+                raise e
+
+        return parsed_line
