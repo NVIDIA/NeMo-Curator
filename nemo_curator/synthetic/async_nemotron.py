@@ -696,7 +696,8 @@ class AsyncNemotronGenerator:
             messages=conversation_history,
             model=assistant_model,
             **assistant_model_kwargs,
-        )[0]
+        )
+        first_assistant_response = first_assistant_response[0]
         conversation_history.append(
             {"role": "assistant", "content": first_assistant_response}
         )
@@ -713,7 +714,8 @@ class AsyncNemotronGenerator:
                 messages=conversation_history,
                 model=assistant_model,
                 **assistant_model_kwargs,
-            )[0]
+            )
+            assistant_response = assistant_response[0]
             conversation_history.append(
                 {"role": "assistant", "content": assistant_response}
             )
@@ -760,7 +762,8 @@ class AsyncNemotronGenerator:
             messages=conversation_history,
             model=assistant_model,
             **assistant_model_kwargs,
-        )[0]
+        )
+        first_assistant_response = first_assistant_response[0]
         conversation_history.append(
             {"role": "assistant", "content": first_assistant_response}
         )
