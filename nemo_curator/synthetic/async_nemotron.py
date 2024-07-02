@@ -1437,7 +1437,7 @@ class AsyncNemotronGenerator:
         )
         raw_topic = raw_topic[0]
         try:
-            parsed_topics = self.convert_response_to_yaml_list(
+            parsed_topics = await self.convert_response_to_yaml_list(
                 raw_topic,
                 model=model,
                 prompt_template=yaml_conversion_prompt_template,
