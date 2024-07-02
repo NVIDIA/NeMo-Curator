@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import yaml
 
@@ -1078,8 +1078,74 @@ class NemotronGenerator:
 
         return revised_openlines
 
-    def run_closed_qa_pipeline():
-        pass
+    def run_closed_qa_pipeline(
+        self,
+        documents: List[str],
+        n_openlines: Union[str, int],
+        model: str,
+        closed_qa_prompt_template: str = DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
+        yaml_conversion_prompt_template: str = DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+        base_model_kwargs: dict = {},
+        conversion_model_kwargs: dict = {},
+        ignore_conversion_failure: bool = False,
+    ) -> List[Tuple[int, str]]:
+        """
+        Runs a pipeline for automatically generating closed Q&A openlines for a dialogue
+        Args:
+            documents: A list of documents to generate closed Q&A questions for
+            n_openlines: The number of questions to generate per document.
+            model: The name of the model that should be used to generate all the responses.
+                Must be available in the LLMClient passed in the constructor.
+            closed_qa_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_openlines: Will be populated with the n_openlines passed in this function
+                - document: Will be populated with one element of the documents list passed in this function
+                No additional parameters may be passed to this prompt template.
+            yaml_conversion_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - llm_response: Will be populated with the raw LLM response from each stage of the pipeline
+                No additional parameters may be passed to this prompt template.
+            base_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the normal stages of the pipeline.
+            conversion_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the yaml conversion stages of the pipeline.
+            ignore_conversion_failure: Ignores yaml conversion failures when able and discards the data
+                that conversion was attempted on
+        Returns:
+            A list of pairs where the first element represents the index of the document used to generate the question in the documents list
+            and the second element represents a synthetically generated closed Q&A prompt. Example: [(0, "Summarize this document"), ...]
+        """
+        raw_instructions = [
+            self.generate_closed_qa_instructions(
+                document=document,
+                n_openlines=n_openlines,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=closed_qa_prompt_template,
+            )[0]
+            for document in documents
+        ]
+        document_openline_pairs = []
+        for i, instruction in enumerate(raw_instructions):
+            try:
+                parsed_instructions = self.convert_response_to_yaml_list(
+                    instruction,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_instructions) != n_openlines:
+                    raise YamlConversionError(
+                        f"Error: Length of openlines {len(parsed_instructions)} does not match desired n_openlines {n_openlines}: {parsed_instructions}"
+                    )
+                document_openline_pairs.extend(
+                    [(i, inst) for inst in parsed_instructions]
+                )
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+
+        return document_openline_pairs
 
     def run_math_pipeline():
         pass
