@@ -949,7 +949,8 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=subtopic_prompt_template,
-        )[0]
+        )
+        subtopic = subtopic[0]
         try:
             parsed_topics = await self.convert_response_to_yaml_list(
                 subtopic,
@@ -986,7 +987,8 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=open_qa_from_topics_prompt_template,
-        )[0]
+        )
+        openline = openline[0]
         try:
             parsed_line = await self.convert_response_to_yaml_list(
                 openline,
@@ -1023,7 +1025,8 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=revise_open_qa_prompt_template,
-        )[0]
+        )
+        revised_openline = revised_openline[0]
         try:
             parsed_revision = await self.convert_response_to_yaml_list(
                 revised_openline,
@@ -1145,7 +1148,8 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=writing_task_prompt_template,
-        )[0]
+        )
+        raw_tasks = raw_tasks[0]
         try:
             parsed_tasks = await self.convert_response_to_yaml_list(
                 raw_tasks,
@@ -1182,7 +1186,8 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=revise_writing_task_prompt_template,
-        )[0]
+        )
+        raw_revision = raw_revision[0]
         try:
             parsed_revision = await self.convert_response_to_yaml_list(
                 raw_revision,
@@ -1268,15 +1273,16 @@ class AsyncNemotronGenerator:
         conversion_model_kwargs: dict,
         ignore_conversion_failure: bool,
     ) -> List[str]:
-        raw_instruction = self.generate_closed_qa_instructions(
+        raw_instruction = await self.generate_closed_qa_instructions(
             document=document,
             n_openlines=n_openlines,
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=closed_qa_prompt_template,
-        )[0]
+        )
+        raw_instruction = raw_instruction[0]
         try:
-            parsed_instructions = self.convert_response_to_yaml_list(
+            parsed_instructions = await self.convert_response_to_yaml_list(
                 raw_instruction,
                 model=model,
                 prompt_template=yaml_conversion_prompt_template,
@@ -1428,7 +1434,8 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=subtopic_prompt_template,
-        )[0]
+        )
+        raw_topic = raw_topic[0]
         try:
             parsed_topics = self.convert_response_to_yaml_list(
                 raw_topic,
@@ -1459,15 +1466,16 @@ class AsyncNemotronGenerator:
         conversion_model_kwargs: dict,
         ignore_conversion_failure: bool,
     ) -> List[str]:
-        raw_line = self.generate_math_problem(
+        raw_line = await self.generate_math_problem(
             topic=subtopic,
             n_openlines=n_openlines,
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=math_problem_prompt_template,
-        )[0]
+        )
+        raw_line = raw_line[0]
         try:
-            parsed_line = self.convert_response_to_yaml_list(
+            parsed_line = await self.convert_response_to_yaml_list(
                 raw_line,
                 model=model,
                 prompt_template=yaml_conversion_prompt_template,
@@ -1617,9 +1625,10 @@ class AsyncNemotronGenerator:
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=subtopic_prompt_template,
-        )[0]
+        )
+        raw_topic = raw_topic[0]
         try:
-            parsed_topics = self.convert_response_to_yaml_list(
+            parsed_topics = await self.convert_response_to_yaml_list(
                 raw_topic,
                 model=model,
                 prompt_template=yaml_conversion_prompt_template,
@@ -1648,15 +1657,16 @@ class AsyncNemotronGenerator:
         conversion_model_kwargs: dict,
         ignore_conversion_failure: bool,
     ) -> List[str]:
-        raw_line = self.generate_python_problem(
+        raw_line = await self.generate_python_problem(
             topic=subtopic,
             n_openlines=n_openlines,
             model=model,
             model_kwargs=base_model_kwargs,
             prompt_template=math_problem_prompt_template,
-        )[0]
+        )
+        raw_line = raw_line[0]
         try:
-            parsed_line = self.convert_response_to_yaml_list(
+            parsed_line = await self.convert_response_to_yaml_list(
                 raw_line,
                 model=model,
                 prompt_template=yaml_conversion_prompt_template,
