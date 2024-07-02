@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import argparse
-import os
 import time
 
 from nemo_curator import QualityClassifier

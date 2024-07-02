@@ -32,25 +32,25 @@ classification helps mitigate biases and inaccuracies that may arise from poorly
 Usage
 -----------------------------------------
 
-NeMo Curator provides a base class ``DistributedDataClassifier`` that can be extended to fit your specfic model.
+NeMo Curator provides a base class ``DistributedDataClassifier`` that can be extended to fit your specific model.
 The only requirement is that the model can fit on a single GPU.
 We have also provided two subclasses that focus on domain and quality classification.
 Let's see how ``DomainClassifier`` works in a small excerpt taken from ``examples/domain_classifier_example.py``:
 
 .. code-block:: python
 
-    model_path = "pytorch_model_file.pth"
+    model = "nvidia/domain-classifier"
 
     files = get_all_files_paths_under("books_dataset/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf", add_filename=True)
 
-    domain_classifier = DomainClassifier(
-        model_path=model_path,
-        filter_by=["Games", "Sports"],
-    )
+    domain_classifier = DomainClassifier(model, filter_by=["Games", "Sports"])
     result_dataset = domain_classifier(dataset=input_dataset)
 
     result_dataset.to_json("games_and_sports/", write_to_filename=True)
+
+In the above excerpt, the domain classifier is obtained directly from [HuggingFace](https://huggingface.co/nvidia/domain-classifier).
+Alternatively, the user may download the model and set `model = "/path/to/model.pth"`.
 
 This module functions very similarly to the ``ScoreFilter`` module.
 The key differences is that it operates on the GPU instead of the CPU.
