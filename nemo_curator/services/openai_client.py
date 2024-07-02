@@ -37,6 +37,28 @@ class OpenAIClient(LLMClient):
 
         return [choice.message.content for choice in response.choices]
 
+    def query_reward_model(self, *, messages: Iterable, model: str) -> dict:
+        """
+        Prompts an LLM Reward model to score a conversation between a user and assistant
+        Args:
+            messages: The conversation to calculate a score for.
+                Should be formatted like:
+                    [{"role": "user", "content": "Write a sentence"}, {"role": "assistant", "content": "This is a sentence"}, ...]
+            model: The name of the model that should be used to calculate the reward.
+                Must be a reward model, cannot be a regular LLM.
+        Returns:
+            A mapping of score_name -> score
+        """
+        response = self.client.chat.completions.create(messages=messages, model=model)
+
+        metrics = [
+            metric.split(":")
+            for metric in response.choices[0].message[0].content.split(",")
+        ]
+        scores = {category: float(score) for category, score in metrics}
+
+        return scores
+
 
 class AsyncOpenAIClient(AsyncLLMClient):
     """
@@ -68,3 +90,27 @@ class AsyncOpenAIClient(AsyncLLMClient):
         )
 
         return [choice.message.content for choice in response.choices]
+
+    async def query_reward_model(self, *, messages: Iterable, model: str) -> dict:
+        """
+        Prompts an LLM Reward model to score a conversation between a user and assistant
+        Args:
+            messages: The conversation to calculate a score for.
+                Should be formatted like:
+                    [{"role": "user", "content": "Write a sentence"}, {"role": "assistant", "content": "This is a sentence"}, ...]
+            model: The name of the model that should be used to calculate the reward.
+                Must be a reward model, cannot be a regular LLM.
+        Returns:
+            A mapping of score_name -> score
+        """
+        response = await self.client.chat.completions.create(
+            messages=messages, model=model
+        )
+
+        metrics = [
+            metric.split(":")
+            for metric in response.choices[0].message[0].content.split(",")
+        ]
+        scores = {category: float(score) for category, score in metrics}
+
+        return scores

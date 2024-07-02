@@ -18,9 +18,20 @@ class LLMClient(ABC):
         n: Optional[int] = 1,
         stop: Union[Optional[str], List[str]] = None,
         temperature: Optional[float] = None,
-        top_p: Optional[float] = None
+        top_p: Optional[float] = None,
     ) -> List[str]:
         raise NotImplementedError("Subclass of LLMClient must implement 'query_model'")
+
+    @abstractmethod
+    def query_reward_model(
+        self,
+        *,
+        messages: Iterable,
+        model: str,
+    ) -> dict:
+        raise NotImplementedError(
+            "Subclass of LLMClient must implement 'query_reward_model'"
+        )
 
 
 class AsyncLLMClient(ABC):
@@ -39,6 +50,19 @@ class AsyncLLMClient(ABC):
         n: Optional[int] = 1,
         stop: Union[Optional[str], List[str]] = None,
         temperature: Optional[float] = None,
-        top_p: Optional[float] = None
+        top_p: Optional[float] = None,
     ) -> List[str]:
-        raise NotImplementedError("Subclass of LLMClient must implement 'query_model'")
+        raise NotImplementedError(
+            "Subclass of AsyncLLMClient must implement 'query_model'"
+        )
+
+    @abstractmethod
+    async def query_reward_model(
+        self,
+        *,
+        messages: Iterable,
+        model: str,
+    ) -> dict:
+        raise NotImplementedError(
+            "Subclass of LLMClient must implement 'query_reward_model'"
+        )

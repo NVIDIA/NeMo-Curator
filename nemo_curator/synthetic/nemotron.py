@@ -801,33 +801,3 @@ class NemotronGenerator:
         )
 
         return response[0]
-
-    def calculate_rewards(
-        self,
-        conversation_history: List[dict],
-        reward_model: str,
-        model_kwargs: dict = {},
-    ) -> dict:
-        """
-        Prompts an LLM Reward model to score a conversation between a user and assistant
-        Args:
-            conversation_history: The conversation to calculate a score for.
-                Should be formatted like:
-                    [{"role": "user", "content": "Write a sentence"}, {"role": "assistant", "content": "This is a sentence"}, ...]
-            model: The name of the model that should be used to calculate the reward.
-                Must be available in the LLMClient passed in the constructor.
-                Must be a reward model, cannot be a regular LLM.
-            model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
-        Returns:
-            A mapping of score_name -> score
-        """
-        response = self.client.query_model(
-            messages=conversation_history, model=reward_model, **model_kwargs
-        )
-        metrics = [
-            metric.split(":")
-            for metric in response.choices[0].message[0].content.split(",")
-        ]
-        scores = {category: float(score) for category, score in metrics}
-
-        return scores
