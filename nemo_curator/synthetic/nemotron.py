@@ -122,12 +122,11 @@ class NemotronGenerator:
         """
         Prompts an LLM to generate a list of macro topics about the world
         Args:
-            n_macro_topics: The number of macro topics to generate. Can be an integer like 5 or a string like "five".
-                It is used where it is referenced in prompt_template
+            n_macro_topics: The number of macro topics to generate.
             model: The name of the model that should be used to generate the macro topics.
                 Must be available in the LLMClient passed in the constructor.
-            prompt_template: A format string of the prompt to use. It must have a {ntopics}
-                parameter that will be populated with the ntopics value passed in this function.
+            prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_macro_topics: Will be populated with the n_macro_topics passed in this function
             prompt_kwargs: Any additional keyword arguments that should be passed to the prompt template.
                 None are needed for the default template.
             model_kwargs: Any additional keyword arguments that should be passed to the LLMClient.query_model call.
@@ -813,7 +812,46 @@ class NemotronGenerator:
         additional_macro_topics: List[str] = [],
         additional_subtopics: List[str] = [],
         ignore_conversion_failure: bool = False,
+        combine_topics: bool = True,
     ) -> List[str]:
+        """
+        Runs a pipeline for automatically generating Open Q&A openlines for a dialogue
+        Args:
+            n_macro_topics: The number of macro topics to generate
+            n_subtopics: The number of subtopics to generate per macro topic
+            n_openlines: The number of questions to generate per topic.
+            n_revisions: The number of revisions to generate per original question.
+            model: The name of the model that should be used to generate all the responses.
+                Must be available in the LLMClient passed in the constructor.
+            macro_topic_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_macro_topics: Will be populated with the n_macro_topics passed in this function
+                No additional parameters may be passed to this prompt template.
+            subtopic_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_subtopics: Will be populated with the n_subtopics passed in this function
+                - macro_topic: Will be populated with a generated macro topic
+                No additional parameters may be passed to this prompt template.
+            open_qa_from_topics_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_openlines: Will be populated with the n_openlines passed in this function
+                - topic: Will be populated with a generated topic
+                No additional parameters may be passed to this prompt template.
+            revise_open_qa_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_revisions: Will be populated with the n_revisions passed in this function
+                - openline: Will be populated with a generated open Q&A openline
+                No additional parameters may be passed to this prompt template.
+            yaml_conversion_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - llm_response: Will be populated with the raw LLM response from each stage of the pipeline
+                No additional parameters may be passed to this prompt template.
+            base_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the normal stages of the pipeline.
+            conversion_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the yaml conversion stages of the pipeline.
+            ignore_conversion_failure: Ignores yaml conversion failures when able and discards the data
+                that conversion was attempted on
+            combine_topics: If True, mixes the macro topics with the subtopics when generating openlines.
+                If False, only the subtopics are used.
+        Returns:
+            A list of synthetically generated open Q&A prompts
+        """
         # Generate the macro topics
         responses = self.generate_macro_topics(
             n_macro_topics=n_macro_topics,
@@ -864,6 +902,10 @@ class NemotronGenerator:
                 else:
                     raise e
         topic_list.extend(additional_subtopics)
+
+        # Mix the macro topics with the subtopics
+        if combine_topics:
+            topic_list.extend(macro_topics)
 
         # Generate the openlines
         raw_lines = [
@@ -929,8 +971,112 @@ class NemotronGenerator:
 
         return revised_openlines
 
-    def run_writing_pipeline():
-        pass
+    def run_writing_pipeline(
+        self,
+        topics: List[str],
+        text_material_types: List[str],
+        n_openlines: Union[str, int],
+        n_revisions: Union[str, int],
+        model: str,
+        writing_task_prompt_template: str = DEFAULT_WRITING_TASK_PROMPT_TEMPLATE,
+        revise_writing_task_prompt_template: str = DEFAULT_REVISE_WRITING_TASK_PROMPT_TEMPLATE,
+        yaml_conversion_prompt_template: str = DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+        base_model_kwargs: dict = {},
+        conversion_model_kwargs: dict = {},
+        ignore_conversion_failure: bool = False,
+    ) -> List[str]:
+        """
+        Runs a pipeline for automatically generating writing task openlines for a dialogue
+        Args:
+            topics: A list of topics to generate tasks for
+            text_material_types: A list of writing material types, like "Essay" or "Blog post"
+            n_openlines: The number of tasks to generate per (topic, text_material_type) pair.
+            n_revisions: The number of revisions to generate per original task.
+            model: The name of the model that should be used to generate all the responses.
+                Must be available in the LLMClient passed in the constructor.
+            writing_task_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_openlines: Will be populated with the n_openlines passed in this function
+                - topic: Will be populated with one element of the topics list passed in this function
+                - text_material_type: Will be populated with one element of the text_material_types list passed in this function
+                No additional parameters may be passed to this prompt template.
+            revise_writing_task_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_revisions: Will be populated with the n_revisions passed in this function
+                - openline: Will be populated with one of the writing tasks generated in the pipeline.
+                No additional parameters may be passed to this prompt template.
+            yaml_conversion_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - llm_response: Will be populated with the raw LLM response from each stage of the pipeline
+                No additional parameters may be passed to this prompt template.
+            base_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the normal stages of the pipeline.
+            conversion_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the yaml conversion stages of the pipeline.
+            ignore_conversion_failure: Ignores yaml conversion failures when able and discards the data
+                that conversion was attempted on
+        Returns:
+            A list of synthetically generated writing task prompts
+        """
+        # Generate the tasks
+        writing_tasks = []
+        for topic in topics:
+            for material in text_material_types:
+                raw_tasks = self.generate_writing_tasks(
+                    topic=topic,
+                    text_material_type=material,
+                    n_openlines=n_openlines,
+                    model=model,
+                    model_kwargs=base_model_kwargs,
+                    prompt_template=writing_task_prompt_template,
+                )[0]
+                try:
+                    parsed_tasks = self.convert_response_to_yaml_list(
+                        raw_tasks,
+                        model=model,
+                        prompt_template=yaml_conversion_prompt_template,
+                    )
+                    writing_tasks.extend(parsed_tasks)
+                    if len(parsed_tasks) != n_openlines:
+                        raise YamlConversionError(
+                            f"Error: Length of writing tasks {len(parsed_tasks)} does not match desired n_openlines {n_openlines}: {parsed_tasks}"
+                        )
+                    writing_tasks.extend(parsed_tasks)
+                except YamlConversionError as e:
+                    if ignore_conversion_failure:
+                        continue
+                    else:
+                        raise e
+
+        # Revise the tasks
+        raw_revisions = [
+            self.revise_writing_tasks(
+                openline=line,
+                n_revisions=n_revisions,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=revise_writing_task_prompt_template,
+            )[0]
+            for line in writing_tasks
+        ]
+        revised_openlines = []
+        for line in raw_revisions:
+            try:
+                parsed_revision = self.convert_response_to_yaml_list(
+                    line,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_revision) != n_revisions:
+                    raise YamlConversionError(
+                        f"Error: Length of revisions {len(parsed_revision)} does not match desired n_revisions {n_revisions}: {parsed_revision}"
+                    )
+                revised_openlines.extend(parsed_revision)
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+
+        return revised_openlines
 
     def run_closed_qa_pipeline():
         pass
