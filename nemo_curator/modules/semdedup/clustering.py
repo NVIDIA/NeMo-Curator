@@ -66,7 +66,9 @@ if __name__ == "__main__":
         logger=logger,
     )
 
-    clustered_embeddings = clustering_model(embedding_df)
+    clustered_embeddings = clustering_model(
+        embedding_df, id_col=semdedup_config.id_col["name"]
+    )
     clustered_embeddings.head(10)
     dt2 = datetime.now()
     elapse = dt2 - dt1

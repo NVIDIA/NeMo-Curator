@@ -35,6 +35,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import write_to_disk
+from nemo_curator.utils.semdedup_utils import _assign_and_sort_clusters
 
 
 # Embedding Creation Module
@@ -189,11 +190,17 @@ class ClusteringModel:
         max_iter,
         n_clusters,
         clustering_output_dir,
+        sim_metric="cosine",
+        which_to_keep="hard",
+        kmeans_with_cos_dist=False,
         logger: Union[logging.Logger, str] = "./",
     ):
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
+        self.sim_metric = sim_metric
+        self.keep_hard = which_to_keep == "hard"
+        self.kmeans_with_cos_dist = kmeans_with_cos_dist
         self.logger = self._setup_logger(logger)
 
         if not os.path.exists(self.clustering_output_dir):
@@ -215,12 +222,19 @@ class ClusteringModel:
         else:
             return logger
 
-    def __call__(self, embeddings_df: dask_cudf.DataFrame) -> dask_cudf.DataFrame:
+    def __call__(
+        self,
+        embeddings_df: dask_cudf.DataFrame,
+        id_col: str,
+        sort_clusters: bool = True,
+        partition_size="2gb",
+    ) -> dask_cudf.DataFrame:
 
         assert "embeddings" in embeddings_df.columns
+        embeddings_df = embeddings_df[[id_col, "embeddings"]]
 
         embeddings_df = embeddings_df.to_backend("pandas").persist()
-        embeddings_df = embeddings_df.repartition(partition_size="2GB")
+        embeddings_df = embeddings_df.repartition(partition_size=partition_size)
         embeddings_df = embeddings_df.to_backend("cudf")
 
         cupy_darr = embeddings_df.map_partitions(
@@ -238,7 +252,7 @@ class ClusteringModel:
         )
         nearest_cents = kmeans.predict(cupy_darr)
         embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
-
+        del nearest_cents
         meta_df = embeddings_df._meta.copy()
         meta_df["dist_to_cent"] = cp.zeros(1)
         embeddings_df = embeddings_df.map_partitions(
@@ -251,22 +265,45 @@ class ClusteringModel:
         )
         np.save(kmeans_centroids_file, centroids)
         self.logger.info("Saving centroids complete")
+        del kmeans, cupy_darr, centroids
 
-        output_dir = os.path.join(self.clustering_output_dir, "embs_by_nearest_center")
-        if os.path.exists(output_dir):
+        clustering_output_dir = os.path.join(
+            self.clustering_output_dir, "embs_by_nearest_center"
+        )
+        if os.path.exists(clustering_output_dir):
             self.logger.warning(
-                f"Output directory {output_dir} already exists and will be overwritten"
+                f"Output directory {clustering_output_dir} already exists and will be overwritten"
             )
-            shutil.rmtree(output_dir)
+            shutil.rmtree(clustering_output_dir)
+
         embeddings_df.to_parquet(
-            output_dir,
+            clustering_output_dir,
             index=False,
             partition_on="nearest_cent",
         )
-        self.logger.info(f"Saved embeddings by nearest center to {output_dir}")
+        self.logger.info(
+            f"Saved embeddings by nearest center to {clustering_output_dir}"
+        )
+        del embeddings_df
+
+        if sort_clusters:
+            _assign_and_sort_clusters(
+                id_col=id_col,
+                kmeans_centroids_file=kmeans_centroids_file,
+                nearest_cent_dir=clustering_output_dir,
+                output_sorted_clusters_dir=os.path.join(
+                    self.clustering_output_dir, "sorted"
+                ),
+                sim_metric=self.sim_metric,
+                keep_hard=self.keep_hard,
+                kmeans_with_cos_dist=self.kmeans_with_cos_dist,
+                cluster_ids=range(self.n_clusters),
+                logger=self.logger,
+            )
 
         fps = [
-            os.path.join(output_dir, file_name) for file_name in os.listdir(output_dir)
+            os.path.join(clustering_output_dir, file_name)
+            for file_name in os.listdir(clustering_output_dir)
         ]
         embeddings_df = dd.from_map(cudf.read_parquet, fps)
         return embeddings_df

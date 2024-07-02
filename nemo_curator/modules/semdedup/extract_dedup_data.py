@@ -5,7 +5,6 @@ from typing import Tuple
 
 import dask.dataframe as dd
 import numpy as np
-import numpy.lib.format
 import pandas as pd
 from dask.distributed import progress
 
