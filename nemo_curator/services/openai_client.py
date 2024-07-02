@@ -53,13 +53,14 @@ class OpenAIClient(LLMClient):
         """
         response = self.client.chat.completions.create(messages=messages, model=model)
 
-        try:
-            message = response.choices[0].message[0]
-        except TypeError as _:
-            raise ValueError(f"{model} is not a reward model.")
+        if response.choices[0].logprobs is None:
+            raise ValueError(
+                f"Logprobs not found. {model} is likely not a reward model."
+            )
 
-        metrics = [metric.split(":") for metric in message.content.split(",")]
-        scores = {category: float(score) for category, score in metrics}
+        scores = {
+            score.token: score.logprob for score in response.choices[0].logprobs.content
+        }
 
         return scores
 
@@ -113,12 +114,13 @@ class AsyncOpenAIClient(AsyncLLMClient):
             messages=messages, model=model
         )
 
-        try:
-            message = response.choices[0].message[0]
-        except TypeError as _:
-            raise ValueError(f"{model} is not a reward model.")
+        if response.choices[0].logprobs is None:
+            raise ValueError(
+                f"Logprobs not found. {model} is likely not a reward model."
+            )
 
-        metrics = [metric.split(":") for metric in message.content.split(",")]
-        scores = {category: float(score) for category, score in metrics}
+        scores = {
+            score.token: score.logprob for score in response.choices[0].logprobs.content
+        }
 
         return scores
