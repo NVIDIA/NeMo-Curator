@@ -1651,7 +1651,7 @@ class AsyncNemotronGenerator:
         subtopic: str,
         n_openlines: Union[int, str],
         model: str,
-        math_problem_prompt_template: str,
+        python_problem_prompt_template: str,
         yaml_conversion_prompt_template: str,
         base_model_kwargs: dict,
         conversion_model_kwargs: dict,
@@ -1662,7 +1662,7 @@ class AsyncNemotronGenerator:
             n_openlines=n_openlines,
             model=model,
             model_kwargs=base_model_kwargs,
-            prompt_template=math_problem_prompt_template,
+            prompt_template=python_problem_prompt_template,
         )
         raw_line = raw_line[0]
         try:
