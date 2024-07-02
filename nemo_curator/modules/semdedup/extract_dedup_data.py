@@ -97,7 +97,7 @@ def extract_pruned_data(
     sorted_clusters_path: str,
     semdedup_pruning_tables_path: str,
     eps: float,
-    num_clusters: int,
+    n_clusters: int,
     output_parquet_path: str,
 ) -> Tuple[int, int, int]:
     """
@@ -109,7 +109,7 @@ def extract_pruned_data(
         sorted_clusters_path (str): Path to the sorted clusters directory.
         semdedup_pruning_tables_path (str): Path to the pruning tables directory.
         eps (float): Epsilon value for pruning.
-        num_clusters (int): Number of clusters.
+        n_clusters (int): Number of clusters.
         output_csv_path (str): Path to save the output CSV file.
 
     Returns:
@@ -118,7 +118,7 @@ def extract_pruned_data(
 
     results_df = dd.from_map(
         process_single_cluster,
-        range(num_clusters),
+        range(n_clusters),
         id_col=id_col,
         id_type=id_type,
         sorted_clusters_path=sorted_clusters_path,
@@ -134,7 +134,7 @@ def extract_pruned_data(
 
     np_files = [
         os.path.join(sorted_clusters_path, f"cluster_{i}.npy")
-        for i in range(num_clusters)
+        for i in range(n_clusters)
     ]
     total_records = sum(get_num_records(file_path) for file_path in np_files)
 
@@ -179,7 +179,7 @@ def extract_dedup_data(semdedup_config: SemDedupConfig, logger: logging.Logger) 
             sorted_clusters_path=sorted_clusters_path,
             semdedup_pruning_tables_path=semdedup_pruning_tables_path,
             eps=eps,
-            num_clusters=semdedup_config.clustering["num_clusters"],
+            n_clusters=semdedup_config.clustering["n_clusters"],
             output_parquet_path=output_parquet_path,
         )
         logger.info(

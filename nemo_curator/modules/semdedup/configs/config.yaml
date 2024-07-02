@@ -1,5 +1,5 @@
 cache_dir: '/raid/vjawa/semdedup_debug'
-num_samples: -1
+num_samples: 15
 id_col:
    name: 'id' # 'id' #'adlr_id'
    type: 'str' # 'int' #'str'
@@ -7,16 +7,16 @@ id_col:
 # Embeddings
 embeddings:
   save_loc: 'embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2'
-  path_or_name: 'sentence-transformers/all-MiniLM-L6-v2'
+  model_name_or_path: 'sentence-transformers/all-MiniLM-L6-v2'
   batch_size: 128
   max_mem_gb: 25
 
 clustering:
   save_loc: "vjawa_results_st_all_MiniLM_L6_v2"
   #save_loc: "results_crossfit_fb_c4_10a"
-  num_clusters: 1000 # -- number of clusters
+  n_clusters: 1000 # -- number of clusters
   seed: 1234
-  niter: 100
+  max_iter: 100
   # Kmeans can only be done with L2 using cuML.
   Kmeans_with_cos_dist: False # Only False allowed
 

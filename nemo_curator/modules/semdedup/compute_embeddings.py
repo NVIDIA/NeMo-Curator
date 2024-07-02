@@ -15,126 +15,15 @@
 import logging
 import os
 import time
-from dataclasses import dataclass
 from typing import List
 
-import torch
-import torch.nn as nn
-from crossfit import op
-from crossfit.backend.torch.hf.model import HFModel
-from torch.nn import functional as F
-from transformers import AutoConfig, AutoModel, AutoTokenizer
-
+from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
+from nemo_curator.modules.semantic_dedup import EmbeddingCreator
+from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import get_remaining_files
 from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
-
-
-def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0]
-    input_mask_expanded = (
-        attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    )
-
-    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
-    sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
-
-    return sum_embeddings / sum_mask
-
-
-## Define the model config
-@dataclass
-class EmbeddingConfig:
-    path_or_name: str
-    max_mem_gb: int
-    max_seq_length: int = None
-
-    def __post_init__(self):
-        # Set max_seq_length based on model's capabilities
-        self.max_seq_length = AutoTokenizer.from_pretrained(
-            self.path_or_name
-        ).model_max_length
-        # Guard against excessively large max lengths
-        if self.max_seq_length > 1e5:
-            self.max_seq_length = AutoConfig.from_pretrained(
-                self.path_or_name
-            ).max_position_embeddings
-
-
-class CustomModel(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.config = config
-        self.model = AutoModel.from_pretrained(config.path_or_name, config=self.config)
-
-    def feature(self, input_ids, attention_mask):
-        with torch.autocast(device_type=input_ids.device.type):
-            embeddings = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        return embeddings
-
-    @torch.no_grad()
-    def forward(self, batch):
-        feature = self.feature(batch["input_ids"], batch["attention_mask"])
-        emb = mean_pooling(feature, batch["attention_mask"])
-        return F.normalize(emb, dim=1)
-
-
-class CrossFitModel(HFModel):
-    def __init__(self, config: EmbeddingConfig):
-        self.config = config
-        super().__init__(self.config.path_or_name, max_mem_gb=self.config.max_mem_gb)
-
-    def load_model(self, device="cuda"):
-        model = CustomModel(self.config)
-        model = model.to(device)
-        model.eval()
-        return model
-
-    def load_config(self):
-        return AutoConfig.from_pretrained(self.path_or_name)
-
-    def max_seq_length(self):
-        return self.config.max_seq_length
-
-
-def create_embeddings(
-    ddf: "dask_cudf.DataFrame",
-    semdedup_config: SemDedupConfig,
-    input_column: str = "text",
-) -> "dask_cudf.DataFrame":
-    """
-    Create embeddings for a given dask_cudf DataFrame using the specified configuration.
-
-    Args:
-        ddf (dask_cudf.DataFrame): The input DataFrame containing the data to be processed.
-        semdedup_config (Dict[str, any]): The configuration for the semantic deduplication module.
-    Returns:
-        dask_cudf.DataFrame: The DataFrame with the generated embeddings.
-    """
-    args_emb = semdedup_config.embeddings
-    embeddings_config = EmbeddingConfig(
-        path_or_name=args_emb["path_or_name"], max_mem_gb=args_emb["max_mem_gb"]
-    )
-    model = CrossFitModel(embeddings_config)
-    pipe = op.Sequential(
-        op.Tokenizer(
-            model,
-            cols=[input_column],
-            tokenizer_type="sentencepiece",
-            max_length=EmbeddingConfig.max_seq_length,
-        ),
-        op.Predictor(
-            model,
-            sorted_data_loader=True,
-            batch_size=args_emb["batch_size"],
-            pred_output_col="embeddings",
-        ),
-        keep_cols=ddf.columns.tolist(),
-    )
-    ddf = pipe(ddf)
-    return ddf
 
 
 def get_input_files(
@@ -165,7 +54,7 @@ def main():
 
     logger = create_logger(
         rank=0,
-        name="logger-sort-cluster",
+        name="logger-compute-embeddings",
         log_file=os.path.join(semdedup_config.cache_dir, "compute_embeddings.log"),
         log_level=logging.INFO,
         stdout=True,
@@ -191,13 +80,20 @@ def main():
         file_type=args.input_file_type,
         add_filename=True,
     )
-    ddf = create_embeddings(ddf, semdedup_config, args.input_text_field)
-    write_to_disk(
-        ddf,
-        output_data_dir,
-        write_to_filename=True,
-        output_type="parquet",
+    dataset = DocumentDataset(ddf)
+    embedding_creator = EmbeddingCreator(
+        model_name_or_path=semdedup_config.embeddings["model_name_or_path"],
+        max_memory=semdedup_config.embeddings["max_mem_gb"],
+        batch_size=semdedup_config.embeddings["batch_size"],
+        embedding_output_dir=os.path.join(
+            semdedup_config.cache_dir, semdedup_config.embeddings["save_loc"]
+        ),
+        logger=logger,
     )
+    embedding_dataset = embedding_creator(
+        dataset=dataset, input_column=args.input_text_field
+    )
+    print(embedding_dataset.df.head())
     logger.info(f"Time taken: {time.time() - st}")
     client.cancel(client.futures, force=True)
     client.close()

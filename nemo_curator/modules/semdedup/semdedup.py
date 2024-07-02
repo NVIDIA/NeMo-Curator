@@ -147,7 +147,7 @@ def semdedup(semdedup_config: SemDedupConfig, logger: "logging.Logger") -> None:
     dt1 = datetime.now()
     logger.info(f"semdedup: start {dt1}")
 
-    end_cluster = semdedup_config.clustering["num_clusters"]
+    end_cluster = semdedup_config.clustering["n_clusters"]
     root = semdedup_config.cache_dir
     emb_pqt_loc = os.path.join(root, semdedup_config.embeddings["save_loc"])
 

@@ -187,7 +187,7 @@ def assign_and_sort_clusters(
         semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
     )
     sorted_clusters_file_loc = os.path.join(save_folder, "sorted")
-    cluster_ids = range(0, semdedup_config.clustering["num_clusters"])
+    cluster_ids = range(0, semdedup_config.clustering["n_clusters"])
 
     _assign_and_sort_clusters(
         id_col=id_col,

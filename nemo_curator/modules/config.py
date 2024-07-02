@@ -119,7 +119,7 @@ class SemDedupConfig(BaseConfig):
             "input_column": "text",
             "input_file_type": "json",
             "save_loc": "embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2",
-            "path_or_name": "sentence-transformers/all-MiniLM-L6-v2",
+            "model_name_or_path": "sentence-transformers/all-MiniLM-L6-v2",
             "emb_size": 768,
             "batch_size": 128,
             "max_mem_gb": 25,
@@ -130,9 +130,9 @@ class SemDedupConfig(BaseConfig):
     clustering: Dict[str, any] = field(
         default_factory=lambda: {
             "save_loc": "results_st_all_MiniLM_L6_v2",
-            "num_clusters": 1000,
+            "n_clusters": 1000,
             "seed": 1234,
-            "niter": 100,
+            "max_iter": 100,
             "Kmeans_with_cos_dist": False,
         }
     )
