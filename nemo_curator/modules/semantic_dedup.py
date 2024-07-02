@@ -17,10 +17,11 @@ import logging
 import os
 import shutil
 from dataclasses import dataclass
-from typing import Union
+from typing import List, Optional, Union
 
 import cudf
 import cupy as cp
+import dask.bag as db
 import dask.dataframe as dd
 import dask_cudf
 import numpy as np
@@ -34,8 +35,13 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import write_to_disk
-from nemo_curator.utils.semdedup_utils import _assign_and_sort_clusters
+from nemo_curator.utils.semdedup_utils import (
+    _assign_and_sort_clusters,
+    extract_dedup_data,
+    get_semantic_matches_per_cluster,
+)
 
 
 # Embedding Creation Module
@@ -187,20 +193,26 @@ def add_dist_to_cents(df: "cudf.DataFrame", centroids: cp.ndarray) -> "cudf.Data
 class ClusteringModel:
     def __init__(
         self,
-        max_iter,
-        n_clusters,
-        clustering_output_dir,
-        sim_metric="cosine",
-        which_to_keep="hard",
-        kmeans_with_cos_dist=False,
+        id_col: str,
+        max_iter: int,
+        n_clusters: int,
+        clustering_output_dir: str,
+        sim_metric: str = "cosine",
+        which_to_keep: str = "hard",
+        sort_clusters: bool = True,
+        kmeans_with_cos_dist: bool = False,
+        partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
     ):
+        self.id_col = id_col
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
         self.kmeans_with_cos_dist = kmeans_with_cos_dist
+        self.partition_size = partition_size
+        self.sort_clusters = sort_clusters
         self.logger = self._setup_logger(logger)
 
         if not os.path.exists(self.clustering_output_dir):
@@ -214,27 +226,22 @@ class ClusteringModel:
         if isinstance(logger, str):
             return create_logger(
                 rank=0,
-                name="compute-clusters",
-                log_file=os.path.join(logger, "compute_clusters.log"),
+                name="SemanticClusterLevelDedup",
+                log_file=os.path.join(logger, "SemanticClusterLevelDedup.log"),
                 log_level=logging.INFO,
                 stdout=True,
             )
         else:
             return logger
 
-    def __call__(
-        self,
-        embeddings_df: dask_cudf.DataFrame,
-        id_col: str,
-        sort_clusters: bool = True,
-        partition_size="2gb",
-    ) -> dask_cudf.DataFrame:
+    def __call__(self, embeddings_dataset: DocumentDataset):
+        embeddings_df = embeddings_dataset.df
 
         assert "embeddings" in embeddings_df.columns
-        embeddings_df = embeddings_df[[id_col, "embeddings"]]
+        embeddings_df = embeddings_df[[self.id_col, "embeddings"]]
 
         embeddings_df = embeddings_df.to_backend("pandas").persist()
-        embeddings_df = embeddings_df.repartition(partition_size=partition_size)
+        embeddings_df = embeddings_df.repartition(partition_size=self.partition_size)
         embeddings_df = embeddings_df.to_backend("cudf")
 
         cupy_darr = embeddings_df.map_partitions(
@@ -286,9 +293,9 @@ class ClusteringModel:
         )
         del embeddings_df
 
-        if sort_clusters:
+        if self.sort_clusters:
             _assign_and_sort_clusters(
-                id_col=id_col,
+                id_col=self.id_col,
                 kmeans_centroids_file=kmeans_centroids_file,
                 nearest_cent_dir=clustering_output_dir,
                 output_sorted_clusters_dir=os.path.join(
@@ -306,4 +313,199 @@ class ClusteringModel:
             for file_name in os.listdir(clustering_output_dir)
         ]
         embeddings_df = dd.from_map(cudf.read_parquet, fps)
-        return embeddings_df
+        return DocumentDataset(embeddings_df)
+
+
+class SemanticClusterLevelDedup:
+    def __init__(
+        self,
+        n_clusters: int,
+        emb_by_clust_dir: str,
+        sorted_clusters_dir: str,
+        id_col: str,
+        id_col_type: str,
+        which_to_keep: str,
+        output_dir: str,
+        logger: Union[logging.Logger, str] = "./",
+    ) -> None:
+        """
+        Initialize the SemanticClusterLevelDedup class.
+
+        Args:
+            n_clusters (int): Number of clusters.
+            emb_by_clust_dir (str): Directory containing embeddings by cluster.
+            sorted_clusters_dir (str): Directory containing sorted clusters.
+            id_col (str): Column name for IDs.
+            id_col_type (str): Data type of the ID column.
+            which_to_keep (str): Strategy for which duplicate to keep.
+            output_dir (str): Directory to save output files.
+            logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
+        """
+        self.n_clusters = n_clusters
+        self.emb_by_clust_dir = emb_by_clust_dir
+        self.sorted_clusters_dir = sorted_clusters_dir
+        self.id_col = id_col
+        self.id_col_type = id_col_type
+        self.which_to_keep = which_to_keep
+        self.output_dir = output_dir
+        self.semdedup_pruning_tables_dir = os.path.join(
+            output_dir, "semdedup_pruning_tables"
+        )
+        self.computed_semantic_match_dfs = False
+        self.logger = self._setup_logger(logger)
+
+    def _setup_logger(self, logger: Union[logging.Logger, str]) -> logging.Logger:
+        """
+        Set up the logger.
+
+        Args:
+            logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
+
+        Returns:
+            logging.Logger: Configured logger.
+        """
+        if isinstance(logger, str):
+            return create_logger(
+                rank=0,
+                name="SemanticClusterLevelDedup",
+                log_file=os.path.join(logger, "SemanticClusterLevelDedup.log"),
+                log_level=logging.INFO,
+                stdout=True,
+            )
+        else:
+            return logger
+
+    def compute_semantic_match_dfs(
+        self, eps_list: Optional[List[float]] = None
+    ) -> None:
+        """
+        Compute semantic match dataframes for clusters.
+
+        Args:
+            eps_list (Optional[List[float]]): List of epsilon values for clustering.
+        """
+        if eps_list is None:
+            eps_list1 = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
+            eps_list2 = [0.1 + x * 0.005 for x in range(34)]
+            eps_list = eps_list1 + eps_list2
+
+        if os.path.exists(self.semdedup_pruning_tables_dir):
+            self.logger.info(
+                f"Removing existing directory {self.semdedup_pruning_tables_dir}"
+            )
+            shutil.rmtree(self.semdedup_pruning_tables_dir)
+        os.makedirs(self.semdedup_pruning_tables_dir, exist_ok=True)
+
+        tasks = db.from_sequence(
+            list(range(self.n_clusters)), npartitions=self.n_clusters
+        ).map(
+            lambda cluster_id: get_semantic_matches_per_cluster(
+                cluster_id=cluster_id,
+                emb_by_clust_dir=self.emb_by_clust_dir,
+                sorted_clusters_dir=self.sorted_clusters_dir,
+                id_col=self.id_col,
+                id_col_type=self.id_col_type,
+                eps_list=eps_list,
+                output_dir=self.semdedup_pruning_tables_dir,
+                which_to_keep=self.which_to_keep,
+            )
+        )
+        tasks.compute()
+        self.computed_semantic_match_dfs = True
+
+    def extract_dedup_data(self, eps: float) -> DocumentDataset:
+        """
+        Extract deduplicated data based on epsilon value.
+
+        Args:
+            eps (float): Epsilon value for clustering.
+
+        Returns:
+            DocumentDataset: Dataset containing deduplicated documents.
+        """
+        if not self.computed_semantic_match_dfs:
+            raise ValueError(
+                "Run compute_semantic_match_dfs before calling extract_dedup_data"
+            )
+
+        output_summary_file = os.path.join(self.output_dir, f"dedup_summary_{eps}.csv")
+        output_parquet_path = os.path.join(self.output_dir, f"unique_ids_{eps}.parquet")
+
+        extract_dedup_data(
+            eps=eps,
+            n_clusters=self.n_clusters,
+            id_col=self.id_col,
+            id_col_type=self.id_col_type,
+            sorted_clusters_dir=self.sorted_clusters_dir,
+            semdedup_pruning_tables_dir=self.semdedup_pruning_tables_dir,
+            output_summary_file=output_summary_file,
+            output_parquet_path=output_parquet_path,
+            logger=self.logger,
+        )
+
+        fps = [
+            os.path.join(output_parquet_path, file_name)
+            for file_name in os.listdir(output_parquet_path)
+        ]
+        deduplicated_id_df = dd.from_map(cudf.read_parquet, fps)
+        return DocumentDataset(deduplicated_id_df)
+
+
+class SemDedup:
+    def __init__(
+        self,
+        config: SemDedupConfig,
+        eps_to_extract: float = 0.01,
+        logger: Union[logging.Logger, str] = "./",
+    ) -> None:
+        """
+        Initialize the SemDedup class.
+
+        Args:
+            config (SemDedupConfig): Configuration for SemDedup.
+            eps_to_extract (float): Epsilon value to extract deduplicated data.
+            logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
+        """
+        self.config = config
+        self.logger = logger
+        self.embedding_creator = EmbeddingCreator(
+            model_name_or_path=config.model_name_or_path,
+            max_memory=config.max_memory,
+            batch_size=config.batch_size,
+            embedding_output_dir=config.embeddings["save_loc"],
+            logger=logger,
+        )
+        self.clustering_model = ClusteringModel(
+            max_iter=config.max_iter,
+            n_clusters=config.n_clusters,
+            clustering_output_dir=config.clustering["save_loc"],
+            logger=logger,
+        )
+        self.semantic_cluster_dedup = SemanticClusterLevelDedup(
+            n_clusters=config.n_clusters,
+            emb_by_clust_dir=os.path.join(
+                config.clustering["save_loc"], "embs_by_nearest_center"
+            ),
+            sorted_clusters_dir=os.path.join(config.clustering["save_loc"], "sorted"),
+            id_col=config.id_col["name"],
+            id_col_type=config.id_col["type"],
+            which_to_keep=config.semdedup.which_to_keep,
+            output_dir=config.clustering["save_loc"],
+            logger=logger,
+        )
+        self.eps_to_extract = eps_to_extract
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        """
+        Execute the SemDedup process.
+
+        Args:
+            dataset (DocumentDataset): Input dataset for deduplication.
+
+        Returns:
+            DocumentDataset: Deduplicated dataset.
+        """
+        embeddings_dataset = self.embedding_creator(dataset)
+        self.clustering_model(embeddings_dataset)
+        self.semantic_cluster_dedup.compute_semantic_match_dfs()
+        return self.semantic_cluster_dedup.extract_dedup_data(eps=self.eps_to_extract)

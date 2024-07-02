@@ -18,6 +18,7 @@ from datetime import datetime
 
 import dask_cudf
 
+from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import ClusteringModel
@@ -58,18 +59,17 @@ if __name__ == "__main__":
         semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
     )
     embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="4GB")
+    embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
+        id_col=semdedup_config.id_col["name"],
         max_iter=semdedup_config.clustering["max_iter"],
         n_clusters=semdedup_config.clustering["n_clusters"],
         clustering_output_dir=clustering_output_dir,
         logger=logger,
     )
-
-    clustered_embeddings = clustering_model(
-        embedding_df, id_col=semdedup_config.id_col["name"]
-    )
-    clustered_embeddings.head(10)
+    clustered_embeddings = clustering_model(embedding_dataset)
+    clustered_embeddings.df.head(10)
     dt2 = datetime.now()
     elapse = dt2 - dt1
     print("End time:", dt2)

@@ -30,16 +30,7 @@ python compute_embeddings.py --input-data-dir "$INPUT_DATA_DIR" --input-file-typ
 echo "Running clustering.py..."
 python clustering.py
 
-# Step 3: Sort the clusters
-echo "Running sort_clusters.py..."
-python sort_clusters.py
-
-# Step 4: Run SemDeDup
-# Helps find duplicates with in the same cluster
-echo "Running semdedup.py..."
-python semdedup.py
-
-# Step 5: Extract deduplicated data
+# Step 3: Extract Dedup Data
 echo "Running extract_dedup_data.py..."
 python extract_dedup_data.py
 
