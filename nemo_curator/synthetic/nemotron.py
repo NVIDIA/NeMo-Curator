@@ -1147,8 +1147,150 @@ class NemotronGenerator:
 
         return document_openline_pairs
 
-    def run_math_pipeline():
-        pass
+    def run_math_pipeline(
+        self,
+        n_macro_topics: Union[str, int],
+        school_level: str,
+        n_subtopics: Union[str, int],
+        n_openlines: Union[str, int],
+        model: str,
+        macro_topic_prompt_template: str = DEFAULT_MATH_MACRO_TOPICS_PROMPT_TEMPLATE,
+        subtopic_prompt_template: str = DEFAULT_MATH_SUBTOPICS_PROMPT_TEMPLATE,
+        math_problem_prompt_template: str = MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE,
+        yaml_conversion_prompt_template: str = DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+        base_model_kwargs: dict = {},
+        conversion_model_kwargs: dict = {},
+        additional_macro_topics: List[str] = [],
+        additional_subtopics: List[str] = [],
+        ignore_conversion_failure: bool = False,
+        combine_topics: bool = True,
+    ) -> List[str]:
+        """
+        Runs a pipeline for automatically generating math questions for a dialogue
+        Args:
+            n_macro_topics: The number of macro topics to generate.
+            school_level: The school level to target when generating macro topics.
+            n_subtopics: The number of subtopics to generate per macro topic.
+            n_openlines: The number of questions to generate per topic.
+            model: The name of the model that should be used to generate all the responses.
+                Must be available in the LLMClient passed in the constructor.
+            macro_topic_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_macro_topics: Will be populated with the n_macro_topics passed in this function
+                - school_level: Will be populated with the school_level passed in this function
+                No additional parameters may be passed to this prompt template.
+            subtopic_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_subtopics: Will be populated with the n_subtopics passed in this function
+                - macro_topic: Will be populated with a generated macro topic
+                No additional parameters may be passed to this prompt template.
+            math_problem_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - n_openlines: Will be populated with the n_openlines passed in this function
+                - topic: Will be populated with a generated topic
+                No additional parameters may be passed to this prompt template.
+                Some example templates found in nemo_curator.synthetic include:
+                - MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE
+                - MATH_PROBLEM_BEGINNER_PROMPT_TEMPLATE
+            yaml_conversion_prompt_template: A format string of the prompt to use. It must have the following parameters:
+                - llm_response: Will be populated with the raw LLM response from each stage of the pipeline
+                No additional parameters may be passed to this prompt template.
+            base_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the normal stages of the pipeline.
+            conversion_model_kwargs: Any additional keyword arguments that should be passed to the
+                LLMClient.query_model call for the yaml conversion stages of the pipeline.
+            ignore_conversion_failure: Ignores yaml conversion failures when able and discards the data
+                that conversion was attempted on
+            combine_topics: If True, mixes the macro topics with the subtopics when generating openlines.
+                If False, only the subtopics are used.
+        Returns:
+            A list of synthetically generated math prompts
+        """
+        # Generate the macro topics
+        responses = self.generate_math_macro_topics(
+            n_macro_topics=n_macro_topics,
+            school_level=school_level,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=macro_topic_prompt_template,
+        )
+        macro_topics = self.convert_response_to_yaml_list(
+            responses[0],
+            model=model,
+            prompt_template=yaml_conversion_prompt_template,
+            model_kwargs=conversion_model_kwargs,
+        )
+        if len(macro_topics) != n_macro_topics and not ignore_conversion_failure:
+            raise YamlConversionError(
+                f"Error: Length of macro topics {len(macro_topics)} does not match desired n_macro_topics {n_macro_topics}: {macro_topics}"
+            )
+        macro_topics.extend(additional_macro_topics)
+
+        # Generate the subtopics
+        raw_topics = [
+            self.generate_math_subtopics(
+                macro_topic=macro_topic,
+                n_subtopics=n_subtopics,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=subtopic_prompt_template,
+            )[0]
+            for macro_topic in macro_topics
+        ]
+        topic_list = []
+        for topic in raw_topics:
+            try:
+                parsed_topics = self.convert_response_to_yaml_list(
+                    topic,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_topics) != n_subtopics:
+                    raise YamlConversionError(
+                        f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
+                    )
+                topic_list.extend(parsed_topics)
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+        topic_list.extend(additional_subtopics)
+
+        # Mix the macro topics with the subtopics
+        if combine_topics:
+            topic_list.extend(macro_topics)
+
+        # Generate the openlines
+        raw_lines = [
+            self.generate_math_problem(
+                topic=t,
+                n_openlines=n_openlines,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=math_problem_prompt_template,
+            )[0]
+            for t in topic_list
+        ]
+        openlines = []
+        for line in raw_lines:
+            try:
+                parsed_line = self.convert_response_to_yaml_list(
+                    line,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_line) != n_openlines:
+                    raise YamlConversionError(
+                        f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
+                    )
+                openlines.extend(parsed_line)
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+
+        return openlines
 
     def run_python_pipeline():
         pass
