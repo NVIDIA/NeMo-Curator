@@ -111,9 +111,6 @@ class NemotronGenerator:
 
         return parsed_response
 
-    def generate_world_question_openlines(self):
-        pass
-
     def generate_macro_topics(
         self,
         n_macro_topics: Union[int, str],
@@ -654,9 +651,6 @@ class NemotronGenerator:
 
         return openline_response
 
-    def generate_data_assistance_openlines(self):
-        pass
-
     def generate_dialogue(
         self,
         openline: str,
@@ -801,3 +795,148 @@ class NemotronGenerator:
         )
 
         return response[0]
+
+    def run_open_qa_pipeline(
+        self,
+        n_macro_topics: Union[str, int],
+        n_subtopics: Union[str, int],
+        n_openlines: Union[str, int],
+        n_revisions: Union[str, int],
+        model: str,
+        macro_topic_prompt_template: str = DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE,
+        subtopic_prompt_template: str = DEFAULT_SUBTOPICS_PROMPT_TEMPLATE,
+        open_qa_from_topics_prompt_template: str = DEFAULT_OPEN_QA_FROM_TOPICS_PROMPT_TEMPLATE,
+        revise_open_qa_prompt_template: str = DEFAULT_REVISE_OPEN_QA_PROMPT_TEMPLATE,
+        yaml_conversion_prompt_template: str = DEFAULT_YAML_CONVERSION_PROMPT_TEMPLATE,
+        base_model_kwargs: dict = {},
+        conversion_model_kwargs: dict = {},
+        additional_macro_topics: List[str] = [],
+        additional_subtopics: List[str] = [],
+        ignore_conversion_failure: bool = False,
+    ) -> List[str]:
+        # Generate the macro topics
+        responses = self.generate_macro_topics(
+            n_macro_topics=n_macro_topics,
+            model=model,
+            model_kwargs=base_model_kwargs,
+            prompt_template=macro_topic_prompt_template,
+        )
+        macro_topics = self.convert_response_to_yaml_list(
+            responses[0],
+            model=model,
+            prompt_template=yaml_conversion_prompt_template,
+            model_kwargs=conversion_model_kwargs,
+        )
+        if len(macro_topics) != n_macro_topics and not ignore_conversion_failure:
+            raise YamlConversionError(
+                f"Error: Length of macro topics {len(macro_topics)} does not match desired n_macro_topics {n_macro_topics}: {macro_topics}"
+            )
+        macro_topics.extend(additional_macro_topics)
+
+        # Generate the subtopics
+        raw_topics = [
+            self.generate_subtopics(
+                macro_topic=macro_topic,
+                n_subtopics=n_subtopics,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=subtopic_prompt_template,
+            )[0]
+            for macro_topic in macro_topics
+        ]
+        topic_list = []
+        for topic in raw_topics:
+            try:
+                parsed_topics = self.convert_response_to_yaml_list(
+                    topic,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_topics) != n_subtopics:
+                    raise YamlConversionError(
+                        f"Error: Length of subtopics {len(parsed_topics)} does not match desired n_subtopics {n_subtopics}: {parsed_topics}"
+                    )
+                topic_list.extend(parsed_topics)
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+        topic_list.extend(additional_subtopics)
+
+        # Generate the openlines
+        raw_lines = [
+            self.generate_open_qa_from_topic(
+                topic=t,
+                n_openlines=n_openlines,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=open_qa_from_topics_prompt_template,
+            )[0]
+            for t in topic_list
+        ]
+        openlines = []
+        for line in raw_lines:
+            try:
+                parsed_line = self.convert_response_to_yaml_list(
+                    line,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_line) != n_openlines:
+                    raise YamlConversionError(
+                        f"Error: Length of openlines {len(parsed_line)} does not match desired n_openlines {n_openlines}: {parsed_line}"
+                    )
+                openlines.extend(parsed_line)
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+
+        # Revise the openlines
+        raw_revisions = [
+            self.revise_open_qa(
+                openline=line,
+                n_revisions=n_revisions,
+                model=model,
+                model_kwargs=base_model_kwargs,
+                prompt_template=revise_open_qa_prompt_template,
+            )[0]
+            for line in openlines
+        ]
+        revised_openlines = []
+        for line in raw_revisions:
+            try:
+                parsed_revision = self.convert_response_to_yaml_list(
+                    line,
+                    model=model,
+                    prompt_template=yaml_conversion_prompt_template,
+                    model_kwargs=conversion_model_kwargs,
+                )
+                if len(parsed_revision) != n_revisions:
+                    raise YamlConversionError(
+                        f"Error: Length of revisions {len(parsed_revision)} does not match desired n_revisions {n_revisions}: {parsed_revision}"
+                    )
+                revised_openlines.extend(parsed_revision)
+            except YamlConversionError as e:
+                if ignore_conversion_failure:
+                    continue
+                else:
+                    raise e
+
+        return revised_openlines
+
+    def run_writing_pipeline():
+        pass
+
+    def run_closed_qa_pipeline():
+        pass
+
+    def run_math_pipeline():
+        pass
+
+    def run_python_pipeline():
+        pass
