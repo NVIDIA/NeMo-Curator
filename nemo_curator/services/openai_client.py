@@ -23,7 +23,7 @@ class OpenAIClient(LLMClient):
         n: Union[Optional[int], NotGiven] = NOT_GIVEN,
         stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
-        top_p: Union[Optional[float], NotGiven] = NOT_GIVEN
+        top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
         response = self.client.chat.completions.create(
             messages=messages,
@@ -77,7 +77,7 @@ class AsyncOpenAIClient(AsyncLLMClient):
         n: Union[Optional[int], NotGiven] = NOT_GIVEN,
         stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
-        top_p: Union[Optional[float], NotGiven] = NOT_GIVEN
+        top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
         response = await self.client.chat.completions.create(
             messages=messages,
@@ -107,10 +107,12 @@ class AsyncOpenAIClient(AsyncLLMClient):
             messages=messages, model=model
         )
 
-        metrics = [
-            metric.split(":")
-            for metric in response.choices[0].message[0].content.split(",")
-        ]
+        try:
+            message = response.choices[0].message[0]
+        except TypeError as _:
+            raise ValueError(f"{model} is not a reward model.")
+
+        metrics = [metric.split(":") for metric in message.content.split(",")]
         scores = {category: float(score) for category, score in metrics}
 
         return scores
