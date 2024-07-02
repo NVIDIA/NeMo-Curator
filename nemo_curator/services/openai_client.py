@@ -51,10 +51,12 @@ class OpenAIClient(LLMClient):
         """
         response = self.client.chat.completions.create(messages=messages, model=model)
 
-        metrics = [
-            metric.split(":")
-            for metric in response.choices[0].message[0].content.split(",")
-        ]
+        try:
+            message = response.choices[0].message[0]
+        except TypeError as _:
+            raise ValueError(f"{model} is not a reward model.")
+
+        metrics = [metric.split(":") for metric in message.content.split(",")]
         scores = {category: float(score) for category, score in metrics}
 
         return scores
