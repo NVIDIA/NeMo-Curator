@@ -34,10 +34,10 @@ def _assign_and_sort_clusters(
     kmeans_centroids_file: str,
     nearest_cent_dir: str,
     output_sorted_clusters_dir: str,
+    cluster_ids=List[int],
     sim_metric: str = "cosine",
     keep_hard: bool = True,
     kmeans_with_cos_dist: bool = True,
-    cluster_ids=range(5000),
     logger: logging.Logger = None,
 ):
     """

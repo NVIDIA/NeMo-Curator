@@ -121,15 +121,39 @@ class EmbeddingCreator:
         max_memory: str,
         batch_size: int,
         embedding_output_dir: str,
+        input_column: str = "text",
         write_to_filename: bool = False,
         logger: Union[logging.Logger, str] = "./",
     ):
+        """
+        Initializes an EmbeddingCreator for generating embeddings using the specified model configurations.
+
+        Args:
+            model_name_or_path (str): The path or identifier for the model used to generate embeddings.
+            max_memory (str): Maximum memory usage for the embedding process.
+            batch_size (int): Number of samples to process in each batch.
+            embedding_output_dir (str): Directory path where embeddings will be saved.
+            input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
+            write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
+            logger (Union[logging.Logger, str]): Logger object or path to store logs, defaults to "./".
+
+        Attributes:
+            embeddings_config (EmbeddingConfig): Configuration for embeddings.
+            batch_size (int): Batch size for embedding generation.
+            logger (logging.Logger): Logger instance for the class.
+            embedding_output_dir (str): Output directory for embeddings.
+            input_column (str): Input column for data processing.
+            model (EmbeddingCrossFitModel): Model instance for embedding generation.
+            write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
+        """
+
         self.embeddings_config = EmbeddingConfig(
             model_name_or_path=model_name_or_path, max_mem_gb=max_memory
         )
         self.batch_size = batch_size
         self.logger = self._setup_logger(logger)
         self.embedding_output_dir = embedding_output_dir
+        self.input_column = input_column
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
         self.write_to_filename = write_to_filename
 
@@ -165,10 +189,8 @@ class EmbeddingCreator:
         )
         return pipe(ddf)
 
-    def __call__(
-        self, dataset: DocumentDataset, input_column="text"
-    ) -> DocumentDataset:
-        embedding_ddf = self.create_embeddings(dataset.df, input_column)
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
         write_to_disk(
             embedding_ddf,
             self.embedding_output_dir,
@@ -209,6 +231,23 @@ class ClusteringModel:
         partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
     ):
+        """
+        Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
+
+        Args:
+            id_col (str): Column name used as the identifier in the dataset.
+            max_iter (int): Maximum number of iterations for the clustering algorithm.
+            n_clusters (int): The number of clusters to form.
+            clustering_output_dir (str): Directory path where clustering results will be saved.
+            sim_metric (str): Similarity metric to use for clustering, default is "cosine".
+            which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
+            sort_clusters (bool): Whether to sort clusters, default is True.
+            kmeans_with_cos_dist (bool): Whether to use KMeans with cosine distance, default is False.
+            partition_size (str): The size of data partition to run kmeans with, default is "2gb".
+            logger (Union[logging.Logger, str]): Logger object or directory path to save logs; default is "./".
+
+        This constructor sets up the parameters required for clustering operations.
+        """
         self.id_col = id_col
         self.max_iter = max_iter
         self.n_clusters = n_clusters
@@ -478,6 +517,7 @@ class SemDedup:
             model_name_or_path=config.embedding_model_name_or_path,
             max_memory=config.embedding_max_mem_gb,
             batch_size=config.embedding_batch_size,
+            input_column=config.input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             logger=logger,
         )
