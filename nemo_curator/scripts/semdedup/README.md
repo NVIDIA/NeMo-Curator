@@ -7,13 +7,13 @@ Please edit `config.yaml` to configure the pipeline and run it using the followi
 bash scripts/end_to_end_script.sh
 ```
 
-## Pipeline Explanation
+## Pipeline Steps
 
 1) Modify `config.yaml`
 
 2) Compute embeddings:
     ```sh
-    python compute_embeddings.py
+    python compute_embeddings.py --input-data-dir "$INPUT_DATA_DIR" --input-file-type "json"
     ```
     **Input:** `config.embeddings.input_data_dir/*.jsonl` and output from step (2)
 
@@ -31,32 +31,15 @@ bash scripts/end_to_end_script.sh
         - `embs_by_nearest_center` directory, containing `nearest_cent={x}` where x ranges from 0 to `num_clusters - 1`
         - Parquet files within `embs_by_nearest_center/nearest_cent={x}` containing the data points in each cluster
 
-4) Sort the clusters
-    ```sh
-    python sort_clusters.py
-    ```
-    **Input:** Output from step (4)
 
-    **Output:** Under `config.root/centroids/sorted`,
-                `cluster_x.npy` (where x ranges from 0 to `num_clusters - 1`)
-
-5) Run SemDeDup
-    This helps in deduplicating the data points within each cluster using semantic similarity
-    and generates a deduplicated dataset
-    ```sh
-    python semdedup.py
-    ```
-    **Input:** Output from step (5)
-
-    **Output:** Under `config.root/centroids/dataframes`,
-                `cluster_x.parquet`(where x ranges from 0 to `num_clusters - 1`)
-
-6) Extract deduplicated data
+3) Extract deduplicated data
     ```sh
     python extract_dedup_data.py
     ```
-    **Input:** Output from step (6)
+    **Input:** Output from step (3)
 
     **Output:** `config.root/centroids/results.csv`
 
-<!-- 8) Analysis in `pynb/eda_dups.ipynb` -->
+## End to End Script
+
+python3 end_to_end_example.py --input-data-dir "/datasets/semdedup/c4/realnewslike/modified" --input-file-type "jsonl"
