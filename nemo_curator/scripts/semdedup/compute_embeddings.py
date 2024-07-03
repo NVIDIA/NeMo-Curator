@@ -46,11 +46,20 @@ def get_input_files(
     return input_files
 
 
+def silence_hf_warnings():
+    from transformers.utils import logging
+
+    logging.set_verbosity_error()
+
+
 def main():
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
     parser = parse_semdedup_args(add_input_args=True)
     args = parser.parse_args()
     client = get_client(**parse_client_args(args))
+
+    silence_hf_warnings()
+    client.run(silence_hf_warnings)
 
     logger = create_logger(
         rank=0,

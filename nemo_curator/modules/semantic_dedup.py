@@ -68,7 +68,7 @@ class EmbeddingPytorchModel(nn.Module):
         super().__init__()
         self.config = config
         self.model = AutoModel.from_pretrained(
-            config.model_name_or_path, config=self.config
+            config.model_name_or_path, config=self.config, force_download=False
         )
 
     def feature(self, input_ids, attention_mask):

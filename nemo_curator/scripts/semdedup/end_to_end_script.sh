@@ -4,7 +4,7 @@
 echo "Running SemDeDup pipeline..."
 echo "---------------------------------"
 # Config file path
-CONFIG_FILE="configs/config.yaml"
+CONFIG_FILE="config.yaml"
 INPUT_DATA_DIR="/datasets/semdedup/c4/realnewslike/modified"
 INPUT_FILE_TYPE="json"
 
@@ -33,6 +33,9 @@ python clustering.py
 # Step 3: Extract Dedup Data
 echo "Running extract_dedup_data.py..."
 python extract_dedup_data.py
+
+## Optional: End-to-End Example
+# python3 end_to_end_example.py --input-data-dir "/datasets/semdedup/c4/realnewslike/modified" --input-file-type "jsonl"
 
 echo "--------------------------------------------"
 echo "Pipeline execution completed successfully."
