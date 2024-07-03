@@ -13,6 +13,10 @@ echo "CONFIG_FILE: $CONFIG_FILE"
 CACHE_DIR=$(grep -P '^cache_dir:\s*' "$CONFIG_FILE" | awk '{print $2}' | tr -d "'")
 CLUSTERING_LOC=$(awk '/^clustering:/,/save_loc:/{ if ($1 == "save_loc:") print $2 }' "$CONFIG_FILE" | tr -d "'\"")
 
+# Set Transformers verbosity to error
+# This is to suppress the warnings from the Transformers library
+export TRANSFORMERS_VERBOSITY="error"
+
 echo "Cache Directory: $CACHE_DIR"
 echo "Save Location for sem-dedup: $CACHE_DIR/$CLUSTERING_LOC"
 
