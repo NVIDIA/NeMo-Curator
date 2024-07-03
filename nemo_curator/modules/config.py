@@ -120,7 +120,6 @@ class SemDedupConfig(BaseConfig):
             "input_file_type": "json",
             "save_loc": "embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2",
             "model_name_or_path": "sentence-transformers/all-MiniLM-L6-v2",
-            "emb_size": 768,
             "batch_size": 128,
             "max_mem_gb": 25,
         }

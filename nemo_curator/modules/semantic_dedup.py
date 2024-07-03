@@ -448,6 +448,7 @@ class SemanticClusterLevelDedup:
             for file_name in os.listdir(output_parquet_path)
         ]
         deduplicated_id_df = dd.from_map(cudf.read_parquet, fps)
+        deduplicated_id_df = deduplicated_id_df.reset_index(drop=True)
         return DocumentDataset(deduplicated_id_df)
 
 
@@ -468,29 +469,35 @@ class SemDedup:
         """
         self.config = config
         self.logger = logger
+        cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
-            model_name_or_path=config.model_name_or_path,
-            max_memory=config.max_memory,
-            batch_size=config.batch_size,
-            embedding_output_dir=config.embeddings["save_loc"],
+            model_name_or_path=config.embeddings["model_name_or_path"],
+            max_memory=config.embeddings["max_mem_gb"],
+            batch_size=config.embeddings["batch_size"],
+            embedding_output_dir=os.path.join(cache_dir, config.embeddings["save_loc"]),
             logger=logger,
         )
         self.clustering_model = ClusteringModel(
-            max_iter=config.max_iter,
-            n_clusters=config.n_clusters,
-            clustering_output_dir=config.clustering["save_loc"],
+            id_col=config.id_col["name"],
+            max_iter=config.clustering["max_iter"],
+            n_clusters=config.clustering["n_clusters"],
+            clustering_output_dir=os.path.join(
+                cache_dir, config.clustering["save_loc"]
+            ),
             logger=logger,
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
-            n_clusters=config.n_clusters,
+            n_clusters=config.clustering["n_clusters"],
             emb_by_clust_dir=os.path.join(
-                config.clustering["save_loc"], "embs_by_nearest_center"
+                cache_dir, config.clustering["save_loc"], "embs_by_nearest_center"
             ),
-            sorted_clusters_dir=os.path.join(config.clustering["save_loc"], "sorted"),
+            sorted_clusters_dir=os.path.join(
+                cache_dir, config.clustering["save_loc"], "sorted"
+            ),
             id_col=config.id_col["name"],
             id_col_type=config.id_col["type"],
-            which_to_keep=config.semdedup.which_to_keep,
-            output_dir=config.clustering["save_loc"],
+            which_to_keep=config.semdedup["which_to_keep"],
+            output_dir=os.path.join(cache_dir, config.clustering["save_loc"]),
             logger=logger,
         )
         self.eps_to_extract = eps_to_extract

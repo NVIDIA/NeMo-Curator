@@ -10,7 +10,7 @@ from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_ar
 
 
 def main():
-    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    semdedup_config = SemDedupConfig.from_yaml("config.yaml")
     parser = parse_semdedup_args(add_input_args=False)
     args = parser.parse_args()
 
@@ -40,14 +40,17 @@ def main():
         id_col=semdedup_config.id_col["name"],
         id_col_type=semdedup_config.id_col["type"],
         which_to_keep=semdedup_config.semdedup["which_to_keep"],
-        output_dir=semdedup_config.clustering["save_loc"],
+        output_dir=os.path.join(
+            semantic_dedup.cache_dir, semdedup_config.clustering["save_loc"]
+        ),
         logger=logger,
     )
 
     semantic_dedup.compute_semantic_match_dfs()
     for eps in semdedup_config.extract_dedup["eps"].split(" "):
         eps = float(eps)
-        semantic_dedup.extract_dedup_data(eps=eps)
+        dedup_id_dataset = semantic_dedup.extract_dedup_data(eps=eps)
+        print(dedup_id_dataset.df.head(10))
 
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")

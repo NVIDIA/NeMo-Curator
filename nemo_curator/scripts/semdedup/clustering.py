@@ -27,7 +27,7 @@ from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_ar
 
 if __name__ == "__main__":
     # Configure command line arguments
-    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    semdedup_config = SemDedupConfig.from_yaml("config.yaml")
     parser = parse_semdedup_args(add_input_args=False)
     args = parser.parse_args()
 

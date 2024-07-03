@@ -342,7 +342,7 @@ def prune_single_cluster(
         pruning_table[pruning_table[f"eps={eps}"] == False]["id"].to_arrow().to_pylist()
     )
     pruned_cluster = df_cluster[df_cluster[id_col].isin(items_to_keep)]
-
+    pruned_cluster[id_col] = pruned_cluster[id_col].astype(id_col_type)
     return pruned_cluster
 
 
@@ -380,6 +380,7 @@ def extract_pruned_data(
         semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
         eps=eps,
     )
+    results_df[id_col] = results_df[id_col].astype(id_col_type)
     results_df = results_df.persist()
     progress(results_df)
 

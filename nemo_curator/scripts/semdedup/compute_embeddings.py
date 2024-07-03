@@ -47,7 +47,7 @@ def get_input_files(
 
 
 def main():
-    semdedup_config = SemDedupConfig.from_yaml("configs/config.yaml")
+    semdedup_config = SemDedupConfig.from_yaml("config.yaml")
     parser = parse_semdedup_args(add_input_args=True)
     args = parser.parse_args()
     client = get_client(**parse_client_args(args))
