@@ -2,7 +2,7 @@
 cache_dir: "semdedup_cache"
 num_files: 16
 id_col_name: "id"
-id_col_type: "str"
+id_col_type: "int"
 input_column: "text"
 
 # Embeddings configuration

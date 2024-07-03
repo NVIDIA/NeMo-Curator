@@ -73,7 +73,7 @@ def get_remaining_files(
         input_file_path: The path of the input files.
         output_file_path: The path of the output files.
         input_file_type: The type of the input files.
-        num_files: The number of files to be processed at once.
+        num_files: The max number of files to be returned. If -1, all files are returned.
     Returns:
         A list of files that still remain to be read.
 
