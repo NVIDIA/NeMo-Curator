@@ -37,6 +37,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import write_to_disk
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
     _assign_and_sort_clusters,
     extract_dedup_data,
@@ -260,7 +261,7 @@ class ClusteringModel:
         self.logger = self._setup_logger(logger)
 
         if not os.path.exists(self.clustering_output_dir):
-            os.makedirs(self.clustering_output_dir)
+            expand_outdir_and_mkdir(self.clustering_output_dir)
         else:
             self.logger.warning(
                 f"Clustering output directory {self.clustering_output_dir} already exists and will be overwritten"
@@ -438,7 +439,7 @@ class SemanticClusterLevelDedup:
                 f"Removing existing directory {self.semdedup_pruning_tables_dir}"
             )
             shutil.rmtree(self.semdedup_pruning_tables_dir)
-        os.makedirs(self.semdedup_pruning_tables_dir, exist_ok=True)
+        expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
 
         tasks = db.from_sequence(
             list(range(self.n_clusters)), npartitions=self.n_clusters

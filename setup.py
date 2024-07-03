@@ -108,6 +108,9 @@ setup(
             "quality_classifier_inference=nemo_curator.scripts.quality_classifier_inference:console_script",
             "verify_classification_results=nemo_curator.scripts.verify_classification_results:console_script",
             "blend_datasets=nemo_curator.scripts.blend_datasets:console_script",
+            "semdedup_extract_embeddings=nemo_curator.scripts.semdedup.compute_embeddings:console_script",
+            "semdedup_clustering=nemo_curator.scripts.semdedup.clustering:console_script",
+            "semdedup_extract_dedup_ids=nemo_curator.scripts.semdedup.extract_dedup_data:console_script",
         ],
     },
 )

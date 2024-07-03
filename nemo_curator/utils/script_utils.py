@@ -117,6 +117,17 @@ class ArgumentHelper:
             help=help,
         )
 
+    def add_arg_input_file_extension(
+        self,
+        help: str = "The file extension of the input files. If not provided, the input file type will be used.",
+    ):
+        self.parser.add_argument(
+            "--input-file-extension",
+            type=str,
+            default=None,
+            help=help,
+        )
+
     def add_arg_input_local_data_dir(self):
         self.parser.add_argument(
             "--input-local-data-dir",
@@ -518,6 +529,7 @@ class ArgumentHelper:
         argumentHelper.add_distributed_args()
         if add_input_args:
             argumentHelper.add_arg_input_data_dir(required=True)
+            argumentHelper.add_arg_input_file_extension()
             argumentHelper.add_arg_input_file_type()
             argumentHelper.add_arg_input_text_field()
 

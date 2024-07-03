@@ -219,7 +219,7 @@ def read_single_partition(
         )
 
     if filetype in ["jsonl", "json"]:
-        read_kwargs = {"lines": True}
+        read_kwargs = {"lines": filetype == "jsonl"}
         if backend == "cudf":
             read_f = cudf.read_json
         else:

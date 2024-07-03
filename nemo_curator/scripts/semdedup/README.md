@@ -10,19 +10,18 @@ Please edit "semdedup_config.yaml" to configure the pipeline and run it using th
 
 2) Compute embeddings:
     ```sh
-    python compute_embeddings.py --input-data-dir "$INPUT_DATA_DIR" --input-file-type "json" --config-file "semdedup_config.yaml"
+    python compute_embeddings.py --input-data-dir "$INPUT_DATA_DIR" --input-file-type "jsonl" --input-file-extension "json" --config-file "$CONFIG_FILE"
     ```
     **Input:** `config.embeddings.input_data_dir/*.jsonl` and output from step (2)
-
-    **Output:** Embedding  parquet files in the embedding directory, including `text` and `adlr`
+    **Output:** Embedding  parquet files in the embedding directory
 
 3) Clustering
     ```sh
-    python clustering.py --config-file "semdedup_config.yaml"
+    python clustering.py --config-file "$CONFIG_FILE"
     ```
     **Input:** Output from step (3)
 
-    **Output:** Under `{config.root}/{config.clustering.save_loc}` directory, including:
+    **Output:** Under `{config.cache_dir}/{config.clustering_save_loc}` directory, including:
 
         - `kmeans_centroids.npy`
         - `embs_by_nearest_center` directory, containing `nearest_cent={x}` where x ranges from 0 to `num_clusters - 1`
@@ -31,12 +30,11 @@ Please edit "semdedup_config.yaml" to configure the pipeline and run it using th
 
 3) Extract deduplicated data
     ```sh
-    python extract_dedup_data.py --config-file "semdedup_config.yaml"
+    python extract_dedup_data.py --config-file "$CONFIG_FILE"
     ```
     **Input:** Output from step (3)
-
-    **Output:** `config.root/centroids/results.csv`
+    **Output:** `{config.cache_dir}/{config.clustering_save_loc}/unique_ids_{}.parquet`
 
 ## End to End Script
 
-python3 end_to_end_example.py --input-data-dir "/datasets/semdedup/c4/realnewslike/modified" --input-file-type "jsonl" --config-file "semdedup_config.yaml"
+python3 end_to_end_example.py --input-data-dir "$INPUT_DATA_DIR" --input-file-type "jsonl" --config-file "$CONFIG_FILE"

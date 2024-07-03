@@ -15,37 +15,20 @@
 import logging
 import os
 import time
-from typing import List
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import EmbeddingCreator
 from nemo_curator.utils.distributed_utils import get_client, read_data
-from nemo_curator.utils.file_utils import get_remaining_files
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir, get_remaining_files
 from nemo_curator.utils.script_utils import ArgumentHelper
-
-
-def get_input_files(
-    input_data_dir: str, input_file_type: str, output_data_dir: str, num_files: int
-) -> List[str]:
-    os.makedirs(output_data_dir, exist_ok=True)
-    len_written_files = len(os.listdir(output_data_dir))
-    input_files = get_remaining_files(input_data_dir, output_data_dir, input_file_type)
-    # Gaurd against non-json files present in the input directory
-    input_files = [f for f in input_files if f.endswith(input_file_type)]
-    if num_files > 0:
-        left_to_sample = max(num_files - len_written_files, 0)
-    else:
-        left_to_sample = len(input_files)
-
-    input_files = input_files[:left_to_sample]
-    return input_files
 
 
 def main(args):
     semdedup_config = SemDedupConfig.from_yaml(args.config_file)
     client = get_client(**ArgumentHelper.parse_client_args(args))
+    expand_outdir_and_mkdir(semdedup_config.cache_dir)
     logger = create_logger(
         rank=0,
         name="logger-compute-embeddings",
@@ -57,11 +40,18 @@ def main(args):
     output_data_dir = os.path.join(
         semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
+    # Some time jsonl files are stored as .json
+    # So to handle that case we can pass the input_file_extension
+    if args.input_file_extension is not None:
+        input_file_extension = args.input_file_extension
+    else:
+        input_file_extension = args.input_file_type
+    print("input_file_extension", input_file_extension)
     st = time.time()
-    input_files = get_input_files(
-        input_data_dir=args.input_data_dir,
-        input_file_type=args.input_file_type,
-        output_data_dir=output_data_dir,
+    input_files = get_remaining_files(
+        input_file_path=args.input_data_dir,
+        output_file_path=output_data_dir,
+        input_file_type=input_file_extension,
         num_files=semdedup_config.num_files,
     )
     logger.info(f"Processing {len(input_files)} files")
@@ -83,12 +73,11 @@ def main(args):
         embedding_output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
+        input_column=semdedup_config.input_column,
         logger=logger,
         write_to_filename=False,
     )
-    embedding_dataset = embedding_creator(
-        dataset=dataset, input_column=args.input_text_field
-    )
+    embedding_dataset = embedding_creator(dataset=dataset)
     print(embedding_dataset.df.head())
     logger.info(f"Time taken: {time.time() - st}")
     client.cancel(client.futures, force=True)

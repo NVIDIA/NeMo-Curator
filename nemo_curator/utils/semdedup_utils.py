@@ -28,6 +28,8 @@ import pandas as pd
 import torch
 from dask.distributed import progress
 
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+
 
 def _assign_and_sort_clusters(
     id_col: str,
@@ -64,7 +66,7 @@ def _assign_and_sort_clusters(
         )
         shutil.rmtree(output_sorted_clusters_dir)
 
-    os.makedirs(output_sorted_clusters_dir, exist_ok=True)
+    expand_outdir_and_mkdir(output_sorted_clusters_dir)
 
     kmeans_centroids = np.load(kmeans_centroids_file)
     start_time = time.time()

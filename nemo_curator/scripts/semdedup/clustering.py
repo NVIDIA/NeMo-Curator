@@ -24,6 +24,7 @@ from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import ClusteringModel
 from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
@@ -33,8 +34,7 @@ def main(args):
     save_folder = os.path.join(
         semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
-    os.makedirs(save_folder, exist_ok=True)
-
+    expand_outdir_and_mkdir(save_folder)
     # Initialize logger
     log_file = os.path.join(save_folder, "compute_centroids.log")
 
@@ -56,7 +56,9 @@ def main(args):
     clustering_output_dir = os.path.join(
         semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
-    embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="4GB")
+    # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
+    # When we fix that
+    embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="2GB")
     embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
@@ -78,7 +80,7 @@ def main(args):
 
 
 def attach_args():
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
     return parser
 
 
