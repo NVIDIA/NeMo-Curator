@@ -123,6 +123,7 @@ class EmbeddingCreator:
         batch_size: int,
         embedding_output_dir: str,
         input_column: str = "text",
+        write_embeddings_to_disk: bool = True,
         write_to_filename: bool = False,
         logger: Union[logging.Logger, str] = "./",
     ):
@@ -135,6 +136,9 @@ class EmbeddingCreator:
             batch_size (int): Number of samples to process in each batch.
             embedding_output_dir (str): Directory path where embeddings will be saved.
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
+            write_embeddings_to_disk (bool, optional): If True, saves the embeddings to disk, defaults to True.
+                                We recommend setting this to False when you have a delayed pipeline.
+                                Setting it to False can lead to more memory overhead.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
             logger (Union[logging.Logger, str]): Logger object or path to store logs, defaults to "./".
 
@@ -156,6 +160,7 @@ class EmbeddingCreator:
         self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
+        self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
 
     def _setup_logger(self, logger):
@@ -192,17 +197,20 @@ class EmbeddingCreator:
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
-        write_to_disk(
-            embedding_ddf,
-            self.embedding_output_dir,
-            write_to_filename=self.write_to_filename,
-            output_type="parquet",
-        )
-        return DocumentDataset(
-            dask_cudf.read_parquet(
-                self.embedding_output_dir, blocksize="2GB", aggregate_files=True
+        if self.write_embeddings_to_disk:
+            write_to_disk(
+                embedding_ddf,
+                self.embedding_output_dir,
+                write_to_filename=self.write_to_filename,
+                output_type="parquet",
             )
-        )
+            return DocumentDataset(
+                dask_cudf.read_parquet(
+                    self.embedding_output_dir, blocksize="2GB", aggregate_files=True
+                )
+            )
+        else:
+            return DocumentDataset(embedding_ddf)
 
 
 ### Clustering Module
