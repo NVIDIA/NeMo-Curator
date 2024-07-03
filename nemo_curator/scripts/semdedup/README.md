@@ -1,19 +1,16 @@
 # SemDeDup Pipeline
 
 This pipeline is used to cluster and deduplicate data points based on their embeddings.
-Please edit `config.yaml` to configure the pipeline and run it using the following commands.
+Please edit "semdedup_config.yaml" to configure the pipeline and run it using the following commands.
 
-```sh
-bash scripts/end_to_end_script.sh
-```
 
 ## Pipeline Steps
 
-1) Modify `config.yaml`
+1) Modify  "semdedup_config.yaml"
 
 2) Compute embeddings:
     ```sh
-    python compute_embeddings.py --input-data-dir "$INPUT_DATA_DIR" --input-file-type "json"
+    python compute_embeddings.py --input-data-dir "$INPUT_DATA_DIR" --input-file-type "json" --config-file "semdedup_config.yaml"
     ```
     **Input:** `config.embeddings.input_data_dir/*.jsonl` and output from step (2)
 
@@ -21,7 +18,7 @@ bash scripts/end_to_end_script.sh
 
 3) Clustering
     ```sh
-    python clustering.py
+    python clustering.py --config-file "semdedup_config.yaml"
     ```
     **Input:** Output from step (3)
 
@@ -34,7 +31,7 @@ bash scripts/end_to_end_script.sh
 
 3) Extract deduplicated data
     ```sh
-    python extract_dedup_data.py
+    python extract_dedup_data.py --config-file "semdedup_config.yaml"
     ```
     **Input:** Output from step (3)
 
@@ -42,4 +39,4 @@ bash scripts/end_to_end_script.sh
 
 ## End to End Script
 
-python3 end_to_end_example.py --input-data-dir "/datasets/semdedup/c4/realnewslike/modified" --input-file-type "jsonl"
+python3 end_to_end_example.py --input-data-dir "/datasets/semdedup/c4/realnewslike/modified" --input-file-type "jsonl" --config-file "semdedup_config.yaml"
