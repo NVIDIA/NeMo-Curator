@@ -587,7 +587,7 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
         return nullcontext()
 
 
-def seed_everything(seed: int = 42):
+def seed_all(seed: int = 42):
     """
     Function to set seed for random number generators for reproducibility.
 
@@ -605,9 +605,9 @@ def seed_everything(seed: int = 42):
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-    # Ensure deterministic behavior for CUDA algorithms
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        # Ensure deterministic behavior for CUDA algorithms
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False

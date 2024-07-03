@@ -498,39 +498,28 @@ class ArgumentHelper:
         return argumentHelper.parser
 
     @staticmethod
-    def parse_semdedup_args(add_input_args=False) -> argparse.ArgumentParser:
+    def parse_semdedup_args(
+        add_input_args=False,
+        description="Default argument parser for semantic deduplication",
+    ) -> argparse.ArgumentParser:
+        """
+        Adds default set of arguments that are common to multiple stages of the semantic deduplication pipeline
+        of the pipeline
+        """
         parser = argparse.ArgumentParser(
-            "Default argument parser for semantic deduplication",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            description=description,
         )
-
         argumentHelper = ArgumentHelper(parser)
         argumentHelper.add_distributed_args()
         if add_input_args:
-            argumentHelper.parser.add_argument(
-                "--input-data-dir",
-                type=str,
-                default=None,
-                required=False,
-                help="The path of the input files",
-            )
-            argumentHelper.parser.add_argument(
-                "--input-file-type",
-                type=str,
-                help="The type of the input files",
-                required=True,
-            )
-            argumentHelper.parser.add_argument(
-                "--input-text-field",
-                type=str,
-                default="text",
-                help="The name of the field within each object",
-            )
-
+            argumentHelper.add_arg_input_data_dir()
+            argumentHelper.add_arg_input_file_type()
+            argumentHelper.add_arg_input_text_field()
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
         # by default
-        parser.set_defaults(rmm_pool_size="1GB")
+        parser.set_defaults(rmm_pool_size="512MB")
         parser.set_defaults(device="gpu")
         parser.set_defaults(set_torch_to_use_rmm=False)
         return parser
