@@ -19,7 +19,7 @@ from datetime import datetime
 os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 import dask_cudf
 
-from nemo_curator.datasets import DocumentDataset, dask_cudf
+from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import ClusteringModel
