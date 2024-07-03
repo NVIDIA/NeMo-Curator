@@ -516,6 +516,13 @@ class ArgumentHelper:
             argumentHelper.add_arg_input_data_dir()
             argumentHelper.add_arg_input_file_type()
             argumentHelper.add_arg_input_text_field()
+
+        argumentHelper.parser.add_argument(
+            "--config-file",
+            type=str,
+            help="Path to the semdedup config file",
+            required=True,
+        )
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
         # by default

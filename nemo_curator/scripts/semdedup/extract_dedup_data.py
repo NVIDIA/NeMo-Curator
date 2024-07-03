@@ -9,10 +9,9 @@ from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
-def main():
-    semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
-    args = parser.parse_args()
+def main(args):
+    semdedup_config = SemDedupConfig.from_yaml(args.config_file)
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     root = semdedup_config.cache_dir
     save_loc = semdedup_config.clustering_save_loc
@@ -61,5 +60,14 @@ def main():
     return
 
 
+def attach_args():
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
+    return parser
+
+
+def console_script():
+    main(attach_args().parse_args())
+
+
 if __name__ == "__main__":
-    main()
+    main(attach_args().parse_args())

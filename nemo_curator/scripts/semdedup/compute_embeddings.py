@@ -43,14 +43,9 @@ def get_input_files(
     return input_files
 
 
-def main():
-    semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
-    args = parser.parse_args()
-    client_args = ArgumentHelper.parse_client_args(args)
-    client_args["rmm_pool_size"] = "1GB"
-    client = get_client(**client_args)
-
+def main(args):
+    semdedup_config = SemDedupConfig.from_yaml(args.config_file)
+    client = get_client(**ArgumentHelper.parse_client_args(args))
     logger = create_logger(
         rank=0,
         name="logger-compute-embeddings",
@@ -100,5 +95,14 @@ def main():
     client.close()
 
 
+def attach_args():
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
+    return parser
+
+
+def console_script():
+    main(attach_args().parse_args())
+
+
 if __name__ == "__main__":
-    main()
+    main(attach_args().parse_args())

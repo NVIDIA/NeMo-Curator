@@ -31,10 +31,8 @@ def silence_hf_warnings():
     logging.set_verbosity_error()
 
 
-def main():
-    semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
-    args = parser.parse_args()
+def main(args):
+    semdedup_config = SemDedupConfig.from_yaml(args.config_file)
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
     silence_hf_warnings()
@@ -68,5 +66,14 @@ def main():
     client.close()
 
 
+def attach_args():
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
+    return parser
+
+
+def console_script():
+    main(attach_args().parse_args())
+
+
 if __name__ == "__main__":
-    main()
+    main(attach_args().parse_args())
