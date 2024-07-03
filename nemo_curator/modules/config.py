@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import warnings
-from dataclasses import dataclass, field
-from typing import Dict
+from dataclasses import dataclass
 
 import yaml
 
@@ -105,47 +104,61 @@ class FuzzyDuplicatesConfig(BaseConfig):
 class SemDedupConfig(BaseConfig):
     """
     Configuration for Semantic Deduplication.
+
+    Attributes:
+        cache_dir (str): Directory to store cache.
+        num_files (int): Number of files. Default is -1, meaning all files.
+        id_col_name (str): Column name for ID.
+        id_col_type (str): Column type for ID.
+        input_column (str): Input column for embeddings.
+        input_file_type (str): File type for input embeddings.
+        embeddings_save_loc (str): Location to save embeddings.
+        model_name_or_path (str): Model name or path for embeddings.
+        batch_size (int): Inital Batch size for processing embeddings.
+        max_mem_gb (int): Maximum memory in GB for embeddings.
+        clustering_save_loc (str): Location to save clustering results.
+        n_clusters (int): Number of clusters.
+        seed (int): Seed for clustering.
+        max_iter (int): Maximum iterations for clustering.
+        Kmeans_with_cos_dist (bool): Use KMeans with cosine distance.
+        which_to_keep (str): Which duplicates to keep.
+        largest_cluster_size_to_process (int): Largest cluster size to process.
+        sim_metric (str): Similarity metric for deduplication.
+        eps (str): Epsilon values to calculate if semantically similar or not
     """
 
     cache_dir: str
-    num_samples: int = -1
-    id_col: Dict[str, str] = field(
-        default_factory=lambda: {"name": "id", "type": "str"}
-    )
+    num_files: int = -1
+    id_col_name: str = "id"
+    id_col_type: str = "str"
+    input_column: str = "text"
 
     # Embeddings
-    embeddings: Dict[str, any] = field(
-        default_factory=lambda: {
-            "input_column": "text",
-            "input_file_type": "json",
-            "save_loc": "embeddings_crossfit_c4_realnewslike_all_MiniLM_L6_v2",
-            "model_name_or_path": "sentence-transformers/all-MiniLM-L6-v2",
-            "batch_size": 128,
-            "max_mem_gb": 25,
-        }
-    )
+    input_file_type: str = "json"
+    embeddings_save_loc: str = "embeddings"
+    embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_batch_size: int = 128
+    embedding_max_mem_gb: int = 25
 
     # Clustering config
-    clustering: Dict[str, any] = field(
-        default_factory=lambda: {
-            "save_loc": "results_st_all_MiniLM_L6_v2",
-            "n_clusters": 1000,
-            "seed": 1234,
-            "max_iter": 100,
-            "Kmeans_with_cos_dist": False,
-        }
-    )
+    clustering_save_loc: str = "clustering_results"
+    n_clusters: int = 1000
+    seed: int = 1234
+    max_iter: int = 100
+    Kmeans_with_cos_dist: bool = False
 
     # Semdedup config
-    semdedup: Dict[str, any] = field(
-        default_factory=lambda: {
-            "which_to_keep": "hard",
-            "largest_cluster_size_to_process": 100000,
-            "sim_metric": "cosine",
-        }
-    )
+    which_to_keep: str = "hard"
+    largest_cluster_size_to_process: int = 100000
+    sim_metric: str = "cosine"
 
     # Extract dedup config
-    extract_dedup: Dict[str, any] = field(
-        default_factory=lambda: {"use_eps_from_yml": True, "eps": [0.01, 0.001]}
-    )
+    eps_thresholds: str = "0.01 0.001"
+    eps_to_extract: str = "0.01"
+
+    def __post_init__(self):
+        self.eps_thresholds = [float(x) for x in self.eps_thresholds.split()]
+        if self.cache_dir is None:
+            raise ValueError(
+                "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
+            )

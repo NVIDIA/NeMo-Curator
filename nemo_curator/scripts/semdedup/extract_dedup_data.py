@@ -15,7 +15,7 @@ def main():
     args = parser.parse_args()
 
     root = semdedup_config.cache_dir
-    save_loc = semdedup_config.clustering["save_loc"]
+    save_loc = semdedup_config.clustering_save_loc
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
     logger = create_logger(
@@ -30,26 +30,25 @@ def main():
     logger.info(f"Start: {dt1}")
     cache_dir = semdedup_config.cache_dir
     semantic_dedup = SemanticClusterLevelDedup(
-        n_clusters=semdedup_config.clustering["n_clusters"],
+        n_clusters=semdedup_config.n_clusters,
         emb_by_clust_dir=os.path.join(
-            cache_dir, semdedup_config.clustering["save_loc"], "embs_by_nearest_center"
+            cache_dir, semdedup_config.clustering_save_loc, "embs_by_nearest_center"
         ),
         sorted_clusters_dir=os.path.join(
-            cache_dir, semdedup_config.clustering["save_loc"], "sorted"
+            cache_dir, semdedup_config.clustering_save_loc, "sorted"
         ),
-        id_col=semdedup_config.id_col["name"],
-        id_col_type=semdedup_config.id_col["type"],
-        which_to_keep=semdedup_config.semdedup["which_to_keep"],
+        id_col=semdedup_config.id_col_name,
+        id_col_type=semdedup_config.id_col_type,
+        which_to_keep=semdedup_config.which_to_keep,
         output_dir=os.path.join(
-            semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+            semdedup_config.cache_dir, semdedup_config.clustering_save_loc
         ),
         logger=logger,
     )
 
     semantic_dedup.compute_semantic_match_dfs()
-    for eps in semdedup_config.extract_dedup["eps"].split(" "):
-        eps = float(eps)
-        dedup_id_dataset = semantic_dedup.extract_dedup_data(eps=eps)
+    for eps in semdedup_config.eps_thresholds:
+        dedup_id_dataset = semantic_dedup.extract_dedup_data(eps_to_extract=eps)
         print(dedup_id_dataset.df.head(10))
 
     dt2 = datetime.now()

@@ -33,7 +33,7 @@ def silence_hf_warnings():
 
 def main():
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
     args = parser.parse_args()
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
@@ -51,17 +51,16 @@ def main():
     input_files = get_all_files_paths_under(
         root=args.input_data_dir,
     )
-
-    input_files = input_files[: semdedup_config.num_samples]
+    if semdedup_config.num_files > 0:
+        input_files = input_files[: semdedup_config.num_files]
     logger.info(f"Processing {len(input_files)} files")
     ddf = read_data(
         input_files=input_files,
         file_type=args.input_file_type,
-        add_filename=True,
+        add_filename=False,
     )
     dataset = DocumentDataset(ddf)
-
-    semdup = SemDedup(semdedup_config, eps_to_extract=0.01, logger=logger)
+    semdup = SemDedup(semdedup_config, logger=logger)
     dedup_ids = semdup(dataset)
     print(dedup_ids.df.head())
     logger.info(f"Time taken: {time.time() - st}")

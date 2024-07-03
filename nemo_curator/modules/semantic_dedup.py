@@ -108,16 +108,20 @@ class EmbeddingCrossFitModel(HFModel):
         return self.config.max_seq_length
 
     def load_config(self):
-        return AutoConfig.from_pretrained(self.model_name_or_path)
+        return AutoConfig.from_pretrained(self.config.model_name_or_path)
+
+    def load_tokenizer(self):
+        return AutoTokenizer.from_pretrained(self.config.model_name_or_path)
 
 
 class EmbeddingCreator:
     def __init__(
         self,
-        model_name_or_path,
-        max_memory,
-        batch_size,
-        embedding_output_dir,
+        model_name_or_path: str,
+        max_memory: str,
+        batch_size: int,
+        embedding_output_dir: str,
+        write_to_filename: bool = False,
         logger: Union[logging.Logger, str] = "./",
     ):
         self.embeddings_config = EmbeddingConfig(
@@ -127,6 +131,7 @@ class EmbeddingCreator:
         self.logger = self._setup_logger(logger)
         self.embedding_output_dir = embedding_output_dir
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
+        self.write_to_filename = write_to_filename
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):
@@ -167,7 +172,7 @@ class EmbeddingCreator:
         write_to_disk(
             embedding_ddf,
             self.embedding_output_dir,
-            write_to_filename=True,
+            write_to_filename=self.write_to_filename,
             output_type="parquet",
         )
         return DocumentDataset(
@@ -413,12 +418,12 @@ class SemanticClusterLevelDedup:
         tasks.compute()
         self.computed_semantic_match_dfs = True
 
-    def extract_dedup_data(self, eps: float) -> DocumentDataset:
+    def extract_dedup_data(self, eps_to_extract: float) -> DocumentDataset:
         """
         Extract deduplicated data based on epsilon value.
 
         Args:
-            eps (float): Epsilon value for clustering.
+            eps_to_extract (float): Epsilon threshold for extracting deduplicated data.
 
         Returns:
             DocumentDataset: Dataset containing deduplicated documents.
@@ -428,11 +433,14 @@ class SemanticClusterLevelDedup:
                 "Run compute_semantic_match_dfs before calling extract_dedup_data"
             )
 
-        output_summary_file = os.path.join(self.output_dir, f"dedup_summary_{eps}.csv")
-        output_parquet_path = os.path.join(self.output_dir, f"unique_ids_{eps}.parquet")
-
+        output_summary_file = os.path.join(
+            self.output_dir, f"dedup_summary_{eps_to_extract}.csv"
+        )
+        output_parquet_path = os.path.join(
+            self.output_dir, f"unique_ids_{eps_to_extract}.parquet"
+        )
         extract_dedup_data(
-            eps=eps,
+            eps=eps_to_extract,
             n_clusters=self.n_clusters,
             id_col=self.id_col,
             id_col_type=self.id_col_type,
@@ -447,16 +455,13 @@ class SemanticClusterLevelDedup:
             os.path.join(output_parquet_path, file_name)
             for file_name in os.listdir(output_parquet_path)
         ]
-        deduplicated_id_df = dd.from_map(cudf.read_parquet, fps)
-        deduplicated_id_df = deduplicated_id_df.reset_index(drop=True)
-        return DocumentDataset(deduplicated_id_df)
+        return DocumentDataset.read_parquet(fps, backend="cudf")
 
 
 class SemDedup:
     def __init__(
         self,
         config: SemDedupConfig,
-        eps_to_extract: float = 0.01,
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
@@ -464,43 +469,41 @@ class SemDedup:
 
         Args:
             config (SemDedupConfig): Configuration for SemDedup.
-            eps_to_extract (float): Epsilon value to extract deduplicated data.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
         """
         self.config = config
         self.logger = logger
         cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
-            model_name_or_path=config.embeddings["model_name_or_path"],
-            max_memory=config.embeddings["max_mem_gb"],
-            batch_size=config.embeddings["batch_size"],
-            embedding_output_dir=os.path.join(cache_dir, config.embeddings["save_loc"]),
+            model_name_or_path=config.embedding_model_name_or_path,
+            max_memory=config.embedding_max_mem_gb,
+            batch_size=config.embedding_batch_size,
+            embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             logger=logger,
         )
         self.clustering_model = ClusteringModel(
-            id_col=config.id_col["name"],
-            max_iter=config.clustering["max_iter"],
-            n_clusters=config.clustering["n_clusters"],
-            clustering_output_dir=os.path.join(
-                cache_dir, config.clustering["save_loc"]
-            ),
+            id_col=config.id_col_name,
+            max_iter=config.max_iter,
+            n_clusters=config.n_clusters,
+            clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
-            n_clusters=config.clustering["n_clusters"],
+            n_clusters=config.n_clusters,
             emb_by_clust_dir=os.path.join(
-                cache_dir, config.clustering["save_loc"], "embs_by_nearest_center"
+                cache_dir, config.clustering_save_loc, "embs_by_nearest_center"
             ),
             sorted_clusters_dir=os.path.join(
-                cache_dir, config.clustering["save_loc"], "sorted"
+                cache_dir, config.clustering_save_loc, "sorted"
             ),
-            id_col=config.id_col["name"],
-            id_col_type=config.id_col["type"],
-            which_to_keep=config.semdedup["which_to_keep"],
-            output_dir=os.path.join(cache_dir, config.clustering["save_loc"]),
+            id_col=config.id_col_name,
+            id_col_type=config.id_col_type,
+            which_to_keep=config.which_to_keep,
+            output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
         )
-        self.eps_to_extract = eps_to_extract
+        self.eps_thresholds = config.eps_thresholds
+        self.eps_to_extract = config.eps_to_extract
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         """
@@ -514,5 +517,7 @@ class SemDedup:
         """
         embeddings_dataset = self.embedding_creator(dataset)
         self.clustering_model(embeddings_dataset)
-        self.semantic_cluster_dedup.compute_semantic_match_dfs()
-        return self.semantic_cluster_dedup.extract_dedup_data(eps=self.eps_to_extract)
+        self.semantic_cluster_dedup.compute_semantic_match_dfs(self.eps_thresholds)
+        return self.semantic_cluster_dedup.extract_dedup_data(
+            eps_to_extract=self.eps_to_extract
+        )

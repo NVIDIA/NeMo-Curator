@@ -27,18 +27,15 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def get_input_files(
-    input_data_dir: str, input_file_type: str, output_data_dir: str, num_samples: int
+    input_data_dir: str, input_file_type: str, output_data_dir: str, num_files: int
 ) -> List[str]:
     os.makedirs(output_data_dir, exist_ok=True)
     len_written_files = len(os.listdir(output_data_dir))
     input_files = get_remaining_files(input_data_dir, output_data_dir, input_file_type)
     # Gaurd against non-json files present in the input directory
     input_files = [f for f in input_files if f.endswith(input_file_type)]
-    if num_samples > 0:
-        if len_written_files > num_samples:
-            left_to_sample = 0
-        else:
-            left_to_sample = num_samples - len_written_files
+    if num_files > 0:
+        left_to_sample = max(num_files - len_written_files, 0)
     else:
         left_to_sample = len(input_files)
 
@@ -46,20 +43,13 @@ def get_input_files(
     return input_files
 
 
-def silence_hf_warnings():
-    from transformers.utils import logging
-
-    logging.set_verbosity_error()
-
-
 def main():
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
     parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
     args = parser.parse_args()
-    client = get_client(**ArgumentHelper.parse_client_args(args))
-
-    silence_hf_warnings()
-    client.run(silence_hf_warnings)
+    client_args = ArgumentHelper.parse_client_args(args)
+    client_args["rmm_pool_size"] = "1GB"
+    client = get_client(**client_args)
 
     logger = create_logger(
         rank=0,
@@ -70,14 +60,14 @@ def main():
     )
 
     output_data_dir = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.embeddings["save_loc"]
+        semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
     st = time.time()
     input_files = get_input_files(
         input_data_dir=args.input_data_dir,
         input_file_type=args.input_file_type,
         output_data_dir=output_data_dir,
-        num_samples=semdedup_config.num_samples,
+        num_files=semdedup_config.num_files,
     )
     logger.info(f"Processing {len(input_files)} files")
     if len(input_files) == 0:
@@ -85,19 +75,21 @@ def main():
         return
 
     ddf = read_data(
-        input_files=input_files,
-        file_type=args.input_file_type,
-        add_filename=True,
+        input_files=input_files, file_type=args.input_file_type, add_filename=False
     )
+    ddf = ddf.reset_index(drop=True)
     dataset = DocumentDataset(ddf)
+    # Can repartition here if needed
+    # ddf = ddf.repartition(partition_size="64MB")
     embedding_creator = EmbeddingCreator(
-        model_name_or_path=semdedup_config.embeddings["model_name_or_path"],
-        max_memory=semdedup_config.embeddings["max_mem_gb"],
-        batch_size=semdedup_config.embeddings["batch_size"],
+        model_name_or_path=semdedup_config.embedding_model_name_or_path,
+        max_memory=semdedup_config.embedding_max_mem_gb,
+        batch_size=semdedup_config.embedding_batch_size,
         embedding_output_dir=os.path.join(
-            semdedup_config.cache_dir, semdedup_config.embeddings["save_loc"]
+            semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
         logger=logger,
+        write_to_filename=False,
     )
     embedding_dataset = embedding_creator(
         dataset=dataset, input_column=args.input_text_field

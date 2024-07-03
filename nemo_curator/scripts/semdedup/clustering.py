@@ -26,14 +26,15 @@ from nemo_curator.modules.semantic_dedup import ClusteringModel
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
 
-if __name__ == "__main__":
+
+def main():
     # Configure command line arguments
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
     parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
     args = parser.parse_args()
 
     save_folder = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+        semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
     os.makedirs(save_folder, exist_ok=True)
 
@@ -53,19 +54,18 @@ if __name__ == "__main__":
     print("Start time:", dt1)
 
     embedding_fp = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.embeddings["save_loc"]
+        semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
-
     clustering_output_dir = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
+        semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
     embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="4GB")
     embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
-        id_col=semdedup_config.id_col["name"],
-        max_iter=semdedup_config.clustering["max_iter"],
-        n_clusters=semdedup_config.clustering["n_clusters"],
+        id_col=semdedup_config.id_col_name,
+        max_iter=semdedup_config.max_iter,
+        n_clusters=semdedup_config.n_clusters,
         clustering_output_dir=clustering_output_dir,
         logger=logger,
     )
@@ -78,3 +78,7 @@ if __name__ == "__main__":
 
     client.cancel(client.futures, force=True)
     client.close()
+
+
+if __name__ == "__main__":
+    main()
