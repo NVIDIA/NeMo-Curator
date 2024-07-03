@@ -89,6 +89,7 @@ class ArgumentHelper:
 
     def add_arg_input_data_dir(
         self,
+        required=False,
         help: str = "Input directory consisting of .jsonl files that are accessible "
         "to all nodes. Use this for a distributed file system",
     ):
@@ -96,12 +97,14 @@ class ArgumentHelper:
             "--input-data-dir",
             type=str,
             default=None,
+            required=required,
             help=help,
         )
 
     def add_arg_input_file_type(
         self,
         choices=None,
+        required=False,
         help="File type of the dataset to be read in. Supported file formats "
         "include 'jsonl' (default), 'pickle', or 'parquet'.",
     ):
@@ -109,6 +112,7 @@ class ArgumentHelper:
             "--input-file-type",
             type=str,
             default="jsonl",
+            required=required,
             choices=choices,
             help=help,
         )
@@ -513,7 +517,7 @@ class ArgumentHelper:
         argumentHelper = ArgumentHelper(parser)
         argumentHelper.add_distributed_args()
         if add_input_args:
-            argumentHelper.add_arg_input_data_dir()
+            argumentHelper.add_arg_input_data_dir(required=True)
             argumentHelper.add_arg_input_file_type()
             argumentHelper.add_arg_input_text_field()
 
