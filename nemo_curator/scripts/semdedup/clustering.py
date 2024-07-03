@@ -23,12 +23,12 @@ from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import ClusteringModel
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 if __name__ == "__main__":
     # Configure command line arguments
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = parse_semdedup_args(add_input_args=False)
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
     args = parser.parse_args()
 
     save_folder = os.path.join(
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         stdout=True,
     )
 
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
     dt1 = datetime.now()
     print("Start time:", dt1)
 

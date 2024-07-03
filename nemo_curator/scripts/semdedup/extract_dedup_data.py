@@ -6,17 +6,17 @@ from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import SemanticClusterLevelDedup
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main():
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = parse_semdedup_args(add_input_args=False)
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
     args = parser.parse_args()
 
     root = semdedup_config.cache_dir
     save_loc = semdedup_config.clustering["save_loc"]
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     logger = create_logger(
         rank=0,
@@ -41,7 +41,7 @@ def main():
         id_col_type=semdedup_config.id_col["type"],
         which_to_keep=semdedup_config.semdedup["which_to_keep"],
         output_dir=os.path.join(
-            semantic_dedup.cache_dir, semdedup_config.clustering["save_loc"]
+            semdedup_config.cache_dir, semdedup_config.clustering["save_loc"]
         ),
         logger=logger,
     )

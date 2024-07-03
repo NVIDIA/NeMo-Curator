@@ -22,7 +22,7 @@ from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import SemDedup
 from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-from nemo_curator.utils.script_utils import parse_client_args, parse_semdedup_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def silence_hf_warnings():
@@ -33,9 +33,9 @@ def silence_hf_warnings():
 
 def main():
     semdedup_config = SemDedupConfig.from_yaml("config.yaml")
-    parser = parse_semdedup_args(add_input_args=True)
+    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
     args = parser.parse_args()
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     silence_hf_warnings()
     client.run(silence_hf_warnings)
