@@ -93,7 +93,7 @@ def attach_args():
             " n_clusters for the number of clusters,"
             " seed for the seed for clustering,"
             " max_iter for the maximum iterations for clustering,"
-            " Kmeans_with_cos_dist for using KMeans with cosine distance,"
+            " kmeans_with_cos_dist for using KMeans with cosine distance,"
         ),
         add_input_args=False,
     )

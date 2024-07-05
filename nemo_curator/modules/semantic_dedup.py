@@ -118,7 +118,7 @@ class EmbeddingCrossFitModel(HFModel):
 class EmbeddingCreator:
     def __init__(
         self,
-        embeddings_model_name_or_path: str,
+        embedding_model_name_or_path: str,
         embedding_max_mem_gb: str,
         embedding_batch_size: int,
         embedding_output_dir: str,
@@ -131,7 +131,7 @@ class EmbeddingCreator:
         Initializes an EmbeddingCreator for generating embeddings using the specified model configurations.
 
         Args:
-            embeddings_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
+            embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
             embedding_max_mem_gb (str): Maximum memory usage for the embedding process.
             embedding_batch_size (int): Number of samples to process in each batch.
             embedding_output_dir (str): Directory path where embeddings will be saved.
@@ -153,7 +153,7 @@ class EmbeddingCreator:
         """
 
         self.embeddings_config = EmbeddingConfig(
-            model_name_or_path=embeddings_model_name_or_path,
+            model_name_or_path=embedding_model_name_or_path,
             max_mem_gb=embedding_max_mem_gb,
         )
         self.batch_size = embedding_batch_size
@@ -524,7 +524,7 @@ class SemDedup:
         self.logger = logger
         cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
-            model_name_or_path=config.embedding_model_name_or_path,
+            embedding_model_name_or_path=config.embedding_model_name_or_path,
             max_memory=config.embedding_max_mem_gb,
             batch_size=config.embedding_batch_size,
             input_column=config.input_column,

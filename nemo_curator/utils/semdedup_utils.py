@@ -149,7 +149,7 @@ def rank_within_cluster(
             sim_to_cent = sim_to_cent.cpu().numpy()
             cluster_dists_to_cent = (1 - sim_to_cent).tolist()
         elif sim_metric == "l2":
-            # Used when Kmeans_with_cos_dist is True
+            # Used when kmeans_with_cos_dist is True
             cluster_dists_to_cent = list(cluster_df["dist_to_cent"])
 
         cluster_label = np.full((len(cluster_df)), cluster_c).tolist()

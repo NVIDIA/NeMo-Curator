@@ -100,6 +100,10 @@ class FuzzyDuplicatesConfig(BaseConfig):
             raise ValueError("Buckets per shuffle must be greater than 0")
 
 
+from dataclasses import dataclass, field
+from typing import List
+
+
 @dataclass
 class SemDedupConfig(BaseConfig):
     """
@@ -119,11 +123,11 @@ class SemDedupConfig(BaseConfig):
         n_clusters (int): Number of clusters.
         seed (int): Seed for clustering.
         max_iter (int): Maximum iterations for clustering.
-        Kmeans_with_cos_dist (bool): Use KMeans with cosine distance.
+        kmeans_with_cos_dist (bool): Use KMeans with cosine distance.
         which_to_keep (str): Which duplicates to keep.
         largest_cluster_size_to_process (int): Largest cluster size to process.
         sim_metric (str): Similarity metric for deduplication.
-        eps_thresholds (str): Epsilon thresholds to calculate if semantically similar or not
+        eps_thresholds (List[float]): Epsilon thresholds to calculate if semantically similar or not.
         eps_to_extract (float): Epsilon value to extract deduplicated data.
     """
 
@@ -144,7 +148,7 @@ class SemDedupConfig(BaseConfig):
     n_clusters: int = 1000
     seed: int = 1234
     max_iter: int = 100
-    Kmeans_with_cos_dist: bool = False
+    kmeans_with_cos_dist: bool = False
 
     # Semdedup config
     which_to_keep: str = "hard"
@@ -152,11 +156,10 @@ class SemDedupConfig(BaseConfig):
     sim_metric: str = "cosine"
 
     # Extract dedup config
-    eps_thresholds: str = "0.01 0.001"
+    eps_thresholds: List[float] = field(default_factory=lambda: [0.01, 0.001])
     eps_to_extract: float = 0.01
 
     def __post_init__(self):
-        self.eps_thresholds = [float(x) for x in self.eps_thresholds.split()]
         if self.cache_dir is None:
             raise ValueError(
                 "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
