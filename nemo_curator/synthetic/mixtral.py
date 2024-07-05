@@ -1,6 +1,6 @@
 from typing import List
 
-from .conversation_formatter import ConversationFormatter
+from nemo_curator.services.conversation_formatter import ConversationFormatter
 
 
 class Mixtral8x7BFormatter(ConversationFormatter):

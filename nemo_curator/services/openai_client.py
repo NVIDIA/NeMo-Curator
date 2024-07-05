@@ -17,7 +17,7 @@ from typing import Iterable, List, Optional, Union
 from openai import AsyncOpenAI, OpenAI
 from openai._types import NOT_GIVEN, NotGiven
 
-from nemo_curator.synthetic.conversation_formatter import ConversationFormatter
+from nemo_curator.services.conversation_formatter import ConversationFormatter
 
 from .model_client import AsyncLLMClient, LLMClient
 

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .async_nemotron import AsyncNemotronGenerator
-from .conversation_formatter import ConversationFormatter
 from .error import YamlConversionError
 from .mixtral import Mixtral8x7BFormatter
 from .nemotron import NemotronFormatter, NemotronGenerator
@@ -45,7 +44,6 @@ __all__ = [
     "NemotronGenerator",
     "AsyncNemotronGenerator",
     "NemotronFormatter",
-    "ConversationFormatter",
     "Mixtral8x7BFormatter",
     "DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE",
     "DEFAULT_SUBTOPICS_PROMPT_TEMPLATE",
