@@ -35,6 +35,7 @@ class LLMClient(ABC):
         seed: Optional[int] = None,
         stop: Union[Optional[str], List[str]] = None,
         temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> List[str]:
         raise NotImplementedError("Subclass of LLMClient must implement 'query_model'")
@@ -70,6 +71,7 @@ class AsyncLLMClient(ABC):
         seed: Optional[int] = None,
         stop: Union[Optional[str], List[str]] = None,
         temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> List[str]:
         raise NotImplementedError(

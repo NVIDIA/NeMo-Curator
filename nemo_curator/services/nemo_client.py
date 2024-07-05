@@ -40,6 +40,7 @@ class NemoDeployClient(LLMClient):
         seed: Optional[int] = None,
         stop: Union[Optional[str], List[str]] = None,
         temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> List[str]:
 

@@ -41,11 +41,14 @@ class OpenAIClient(LLMClient):
         seed: Union[Optional[int], NotGiven] = NOT_GIVEN,
         stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
+        top_k: Optional[int] = None,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
 
         if conversation_formatter is not None:
             warnings.warn("conversation_formatter is not used in an OpenAIClient")
+        if top_k is not None:
+            warnings.warn("top_k is not used in an OpenAIClient")
 
         response = self.client.chat.completions.create(
             messages=messages,
@@ -105,11 +108,14 @@ class AsyncOpenAIClient(AsyncLLMClient):
         seed: Union[Optional[int], NotGiven] = NOT_GIVEN,
         stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
+        top_k: Optional[int] = None,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
 
         if conversation_formatter is not None:
             warnings.warn("conversation_formatter is not used in an AsyncOpenAIClient")
+        if top_k is not None:
+            warnings.warn("top_k is not used in an AsyncOpenAIClient")
 
         response = await self.client.chat.completions.create(
             messages=messages,
