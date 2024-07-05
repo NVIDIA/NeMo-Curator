@@ -59,17 +59,19 @@ class NemoDeployClient(LLMClient):
             stop_words_list=stop,
             temperature=temperature,
             top_p=top_p,
-        )[0][0]
+        )[0]
 
         return self._postprocess_response(response, stop)
 
     @staticmethod
-    def _postprocess_response(response: str, stop_words: List[str]) -> str:
-        for stop in stop_words:
-            if response.endswith(stop):
-                response = response[: -len(stop)]
-        response = response.strip()
-        return response
+    def _postprocess_response(responses: List[str], stop_words: List[str]) -> List[str]:
+        processed_responses = []
+        for response in responses:
+            for stop in stop_words:
+                if response.endswith(stop):
+                    response = response[: -len(stop)]
+            processed_responses.append(response.strip())
+        return processed_responses
 
     def query_reward_model(self, *, messages: Iterable, model: str) -> dict:
         """
