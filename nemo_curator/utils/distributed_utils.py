@@ -20,10 +20,11 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 import dask.dataframe as dd
 import pandas as pd
+import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
@@ -583,3 +584,13 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
         return performance_report(os.path.join(path, report_name))
     else:
         return nullcontext()
+
+
+def get_network_interfaces() -> List[str]:
+    """
+    Gets a list of all valid network interfaces on a machine
+
+    Returns:
+        A list of all valid network interfaces on a machine
+    """
+    return list(psutil.net_if_addrs().keys())
