@@ -14,7 +14,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Optional, Union
 
-from nemo_curator.synthetic.conversation_formatter import ConversationFormatter
+from nemo_curator.services.conversation_formatter import ConversationFormatter
 
 
 class LLMClient(ABC):
