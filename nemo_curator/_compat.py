@@ -29,6 +29,8 @@ _DASK_QUERY_PLANNING_ENABLED = None
 
 
 def query_planning_enabled():
+    global _DASK_QUERY_PLANNING_ENABLED
+
     if _DASK_QUERY_PLANNING_ENABLED is None:
         if _dask_version > parseVersion("2024.6.0"):
             import dask.dataframe as dd
