@@ -59,7 +59,7 @@ class NemoDeployClient(LLMClient):
             stop_words_list=stop,
             temperature=temperature,
             top_p=top_p,
-        )[0]
+        )[0][0]
 
         return self._postprocess_response(response, stop)
 
