@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 
 import yaml
 
@@ -98,10 +99,6 @@ class FuzzyDuplicatesConfig(BaseConfig):
             raise ValueError("Jaccard Threshold must be between [0,1]")
         if self.buckets_per_shuffle <= 0:
             raise ValueError("Buckets per shuffle must be greater than 0")
-
-
-from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass
