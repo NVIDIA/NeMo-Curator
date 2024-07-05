@@ -54,7 +54,6 @@ class NemoDeployClient(LLMClient):
 
         response = self.client.query_llm(
             prompts=[prompt],
-            model=model,
             max_output_len=max_tokens,
             random_seed=seed,
             stop_words_list=stop,
