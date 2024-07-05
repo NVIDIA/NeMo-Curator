@@ -45,7 +45,7 @@ setup(
         "awscli>=1.22.55",
         "fasttext==0.9.2",
         "pycld2==0.41",
-        "justext==3.0.0",
+        "justext==3.0.1",
         "resiliparse",
         "ftfy==6.1.1",
         "warcio==1.7.4",
@@ -62,9 +62,6 @@ setup(
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
         "crossfit @ git+https://github.com/rapidsai/crossfit.git@1ee3de4",
-        # justext installation breaks without lxml[html_clean]
-        # due to this: https://github.com/miso-belica/jusText/issues/47
-        "lxml[html_clean]",
         # Numpy 2.0 breaks with spacy https://github.com/explosion/spaCy/issues/13528
         # TODO: Remove when issue is fixed
         "numpy<2",
