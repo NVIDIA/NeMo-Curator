@@ -59,4 +59,8 @@ __all__ = [
     "AddId",
     "blend_datasets",
     "Shuffle",
+    "SemDedup" "SemDedupConfig",
+    "EmbeddingCreator",
+    "ClusteringModel",
+    "SemanticClusterLevelDedup",
 ]

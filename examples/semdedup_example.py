@@ -60,6 +60,7 @@ def main(args):
         input_files=input_files,
         file_type=args.input_file_type,
         add_filename=False,
+        backend="cudf",
     )
     dataset = DocumentDataset(ddf)
     semdup = SemDedup(semdedup_config, logger=logger)
