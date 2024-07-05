@@ -16,6 +16,7 @@ from typing import List, Tuple, Union
 import yaml
 
 from nemo_curator.services.model_client import LLMClient
+from nemo_curator.synthetic.conversation_formatter import ConversationFormatter
 from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
     DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
@@ -1434,3 +1435,38 @@ class NemotronGenerator:
                     raise e
 
         return openlines
+
+
+class NemotronFormatter(ConversationFormatter):
+
+    BASE_PROMPT = "<extra_id_0>System\n\n<extra_id_1>User\n"
+
+    @staticmethod
+    def format_conversation(conv: List[dict]) -> str:
+        """
+        Formats a converstation between a user and assistant in the Nemotron 340B format
+        described here: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nemo/models/nemotron-4-340b-instruct
+        Args:
+            conv: A conversation between a user and assistant
+        Returns:
+            A conversation formatted as text
+        """
+        prompt = NemotronFormatter.BASE_PROMPT
+
+        for i, turn in enumerate(conv):
+            user_turn = i % 2 == 0
+
+            if user_turn:
+                if turn["role"] != "user":
+                    raise ValueError(
+                        f"Conversation turn {i} is not 'user'. All even number turns should be."
+                    )
+                prompt += turn["content"] + "\n<extra_id_1>Assistant\n"
+            else:
+                if turn["role"] != "assistant":
+                    raise ValueError(
+                        f"Conversation turn {i} is not 'assistant'. All odd number turns should be."
+                    )
+                prompt += turn["content"] + "\n<extra_id_1>User\n"
+
+        return prompt

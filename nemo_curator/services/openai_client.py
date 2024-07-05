@@ -1,7 +1,23 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import warnings
 from typing import Iterable, List, Optional, Union
 
 from openai import AsyncOpenAI, OpenAI
 from openai._types import NOT_GIVEN, NotGiven
+
+from nemo_curator.synthetic.conversation_formatter import ConversationFormatter
 
 from .model_client import AsyncLLMClient, LLMClient
 
@@ -19,6 +35,7 @@ class OpenAIClient(LLMClient):
         *,
         messages: Iterable,
         model: str,
+        conversation_formatter: Optional[ConversationFormatter] = None,
         max_tokens: Union[Optional[int], NotGiven] = NOT_GIVEN,
         n: Union[Optional[int], NotGiven] = NOT_GIVEN,
         seed: Union[Optional[int], NotGiven] = NOT_GIVEN,
@@ -26,6 +43,10 @@ class OpenAIClient(LLMClient):
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
+
+        if conversation_formatter is not None:
+            warnings.warn("conversation_formatter is not used in an OpenAIClient")
+
         response = self.client.chat.completions.create(
             messages=messages,
             model=model,
@@ -78,6 +99,7 @@ class AsyncOpenAIClient(AsyncLLMClient):
         *,
         messages: Iterable,
         model: str,
+        conversation_formatter: Optional[ConversationFormatter] = None,
         max_tokens: Union[Optional[int], NotGiven] = NOT_GIVEN,
         n: Union[Optional[int], NotGiven] = NOT_GIVEN,
         seed: Union[Optional[int], NotGiven] = NOT_GIVEN,
@@ -85,6 +107,10 @@ class AsyncOpenAIClient(AsyncLLMClient):
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
+
+        if conversation_formatter is not None:
+            warnings.warn("conversation_formatter is not used in an AsyncOpenAIClient")
+
         response = await self.client.chat.completions.create(
             messages=messages,
             model=model,
