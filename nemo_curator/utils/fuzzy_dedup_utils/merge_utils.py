@@ -13,14 +13,13 @@
 # limitations under the License.
 
 import math
+import sys
 from operator import getitem
 
 import numpy as np
 import pandas as pd
 from dask.base import tokenize
-from dask.dataframe.core import new_dd_object
 from dask.dataframe.shuffle import partitioning_index
-from dask.highlevelgraph import HighLevelGraph
 from dask.utils import M
 
 from nemo_curator._compat import DASK_SHUFFLE_CAST_DTYPE
@@ -36,6 +35,16 @@ def _split_part(part, nsplits):
 
 
 def text_bytes_aware_merge(text_df, right_df, broadcast=True, *, on):
+
+    if "dask_expr" in sys.modules:
+        raise NotImplementedError(
+            "The text_bytes_aware_merge function is not supported when "
+            "query-planning is enabled."
+        )
+
+    from dask.dataframe.core import new_dd_object
+    from dask.highlevelgraph import HighLevelGraph
+
     if not isinstance(on, list):
         on = [on]
 
