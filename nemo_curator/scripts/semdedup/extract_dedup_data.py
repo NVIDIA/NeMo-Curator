@@ -57,11 +57,26 @@ def main(args):
 
     client.cancel(client.futures, force=True)
     client.close()
-    return
 
 
 def attach_args():
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
+    parser = ArgumentHelper.parse_semdedup_args(
+        description=(
+            "Extracts deduplicated data from the clustered embeddings of a collection of documents. "
+            "This script requires that embeddings and clustering have been performed beforehand using the specified configurations. "
+            "earlier using semdedup_extract_embeddings and semdedup_cluster_embeddings."
+            "Input arguments include: "
+            "--config-file for the path to the semdedup config file. "
+            "Important configuration parameters include:"
+            "- cache_dir for the directory to store cache"
+            "which_to_keep for specifying which duplicates to keep,"
+            "largest_cluster_size_to_process for the largest cluster size to process,"
+            "sim_metric for the similarity metric for deduplication,"
+            "eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
+            "and eps_to_extract for the epsilon value to extract deduplicated data."
+        ),
+        add_input_args=False,
+    )
     return parser
 
 

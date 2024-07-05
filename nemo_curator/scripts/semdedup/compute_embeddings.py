@@ -67,9 +67,9 @@ def main(args):
     # Can repartition here if needed
     # ddf = ddf.repartition(partition_size="64MB")
     embedding_creator = EmbeddingCreator(
-        model_name_or_path=semdedup_config.embedding_model_name_or_path,
-        max_memory=semdedup_config.embedding_max_mem_gb,
-        batch_size=semdedup_config.embedding_batch_size,
+        embedding_model_name_or_path=semdedup_config.embedding_model_name_or_path,
+        embedding_max_mem_gb=semdedup_config.embedding_max_mem_gb,
+        embedding_batch_size=semdedup_config.embedding_batch_size,
         embedding_output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
@@ -85,7 +85,28 @@ def main(args):
 
 
 def attach_args():
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=True)
+    parser = ArgumentHelper.parse_semdedup_args(
+        description=(
+            "Computes the embeddings of a collection of documents using the specified model. "
+            "The model is specified in the config file using embedding_model_name_or_path (e.g. 'sentence-transformers/paraphrase-MiniLM-L6-v2'). "
+            "The embeddings are saved in the specified cache directory under the embeddings_save_loc directory. "
+            "Input arguments include: "
+            "--input_data_dir for the directory containing input data files, "
+            "--input_file_extension for specifying the file extension of input files (e.g., .jsonl), "
+            "--input_file_type for the type of input files (e.g., json, csv), "
+            "--input_text_field for the field in the input files containing the text data to be embedded. "
+            "Additional configuration can be provided via the --config-file argument. "
+            "Important configuration parameters include: "
+            " cache_dir for the directory to store cache"
+            " num_files for the number of files to process (default is -1, meaning all files),"
+            " input_column for specifying the input column for embeddings,"
+            " embeddings_save_loc for the location to save embeddings,"
+            " embedding_model_name_or_path for the model name or path for embeddings,"
+            " embedding_batch_size for the batch size for processing embeddings,"
+            " embedding_max_mem_gb for the maximum memory in GB for embeddings"
+        ),
+        add_input_args=True,
+    )
     return parser
 
 

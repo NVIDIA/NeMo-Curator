@@ -111,11 +111,10 @@ class SemDedupConfig(BaseConfig):
         id_col_name (str): Column name for ID.
         id_col_type (str): Column type for ID.
         input_column (str): Input column for embeddings.
-        input_file_type (str): File type for input embeddings.
         embeddings_save_loc (str): Location to save embeddings.
-        model_name_or_path (str): Model name or path for embeddings.
-        batch_size (int): Inital Batch size for processing embeddings.
-        max_mem_gb (int): Maximum memory in GB for embeddings.
+        embedding_model_name_or_path (str): Model name or path for embeddings.
+        embedding_batch_size (int): Inital Batch size for processing embeddings.
+        embedding_max_mem_gb (int): Maximum memory in GB for embeddings.
         clustering_save_loc (str): Location to save clustering results.
         n_clusters (int): Number of clusters.
         seed (int): Seed for clustering.
@@ -124,7 +123,8 @@ class SemDedupConfig(BaseConfig):
         which_to_keep (str): Which duplicates to keep.
         largest_cluster_size_to_process (int): Largest cluster size to process.
         sim_metric (str): Similarity metric for deduplication.
-        eps (str): Epsilon values to calculate if semantically similar or not
+        eps_thresholds (str): Epsilon thresholds to calculate if semantically similar or not
+        eps_to_extract (float): Epsilon value to extract deduplicated data.
     """
 
     cache_dir: str
@@ -134,7 +134,6 @@ class SemDedupConfig(BaseConfig):
     input_column: str = "text"
 
     # Embeddings
-    input_file_type: str = "json"
     embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
@@ -154,11 +153,16 @@ class SemDedupConfig(BaseConfig):
 
     # Extract dedup config
     eps_thresholds: str = "0.01 0.001"
-    eps_to_extract: str = "0.01"
+    eps_to_extract: float = 0.01
 
     def __post_init__(self):
         self.eps_thresholds = [float(x) for x in self.eps_thresholds.split()]
         if self.cache_dir is None:
             raise ValueError(
                 "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
+            )
+
+        if self.eps_to_extract not in self.eps_thresholds:
+            raise ValueError(
+                f"Epsilon to extract {self.eps_to_extract} must be in eps_thresholds {self.eps_thresholds}"
             )

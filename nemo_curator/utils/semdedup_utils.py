@@ -52,7 +52,7 @@ def _assign_and_sort_clusters(
         keep_hard (bool): When True, sorts cluster items in descending order by similarity to the cluster centroid. Defaults to True.
         kmeans_with_cos_dist (bool): Whether to use cosine distance for K-means clustering. Defaults to True.
         sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to an empty string.
-        cluster_ids (list): The range of cluster IDs to sort. Defaults to range(5000).
+        cluster_ids (list): The range of cluster IDs to sort.
         logger (logging.Logger): A logger object to log messages. Defaults to None.
 
     Returns:
@@ -268,7 +268,6 @@ def get_semantic_matches_per_cluster(
         points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
 
     points_to_remove_df.to_parquet(output_df_file_path)
-    return None
 
 
 def get_num_records(file_path):

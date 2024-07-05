@@ -80,7 +80,23 @@ def main(args):
 
 
 def attach_args():
-    parser = ArgumentHelper.parse_semdedup_args(add_input_args=False)
+    parser = ArgumentHelper.parse_semdedup_args(
+        description=(
+            "Performs clustering on the computed embeddings of a collection of documents. "
+            "This script requires that the embeddings have been created beforehand using: "
+            "semdedup_extract_embeddings"
+            "Input arguments include: "
+            "--config-file for the path to the semdedup config file. "
+            "Important configuration parameters include: "
+            " cache_dir for the directory to store cache,"
+            " clustering_save_loc for the location to save clustering results,"
+            " n_clusters for the number of clusters,"
+            " seed for the seed for clustering,"
+            " max_iter for the maximum iterations for clustering,"
+            " Kmeans_with_cos_dist for using KMeans with cosine distance,"
+        ),
+        add_input_args=False,
+    )
     return parser
 
 

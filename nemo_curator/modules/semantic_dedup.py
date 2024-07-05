@@ -118,9 +118,9 @@ class EmbeddingCrossFitModel(HFModel):
 class EmbeddingCreator:
     def __init__(
         self,
-        model_name_or_path: str,
-        max_memory: str,
-        batch_size: int,
+        embeddings_model_name_or_path: str,
+        embedding_max_mem_gb: str,
+        embedding_batch_size: int,
         embedding_output_dir: str,
         input_column: str = "text",
         write_embeddings_to_disk: bool = True,
@@ -131,9 +131,9 @@ class EmbeddingCreator:
         Initializes an EmbeddingCreator for generating embeddings using the specified model configurations.
 
         Args:
-            model_name_or_path (str): The path or identifier for the model used to generate embeddings.
-            max_memory (str): Maximum memory usage for the embedding process.
-            batch_size (int): Number of samples to process in each batch.
+            embeddings_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
+            embedding_max_mem_gb (str): Maximum memory usage for the embedding process.
+            embedding_batch_size (int): Number of samples to process in each batch.
             embedding_output_dir (str): Directory path where embeddings will be saved.
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
             write_embeddings_to_disk (bool, optional): If True, saves the embeddings to disk, defaults to True.
@@ -153,9 +153,10 @@ class EmbeddingCreator:
         """
 
         self.embeddings_config = EmbeddingConfig(
-            model_name_or_path=model_name_or_path, max_mem_gb=max_memory
+            model_name_or_path=embeddings_model_name_or_path,
+            max_mem_gb=embedding_max_mem_gb,
         )
-        self.batch_size = batch_size
+        self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
         self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
