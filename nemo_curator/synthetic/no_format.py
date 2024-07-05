@@ -11,18 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
 from typing import List
 
+from nemo_curator.services.conversation_formatter import ConversationFormatter
 
-class ConversationFormatter(ABC):
-    """
-    Represents a way of formatting a conversation with an LLM
-    such that it can response appropriately
-    """
 
-    @abstractmethod
+class NoFormat(ConversationFormatter):
+
     def format_conversation(self, conv: List[dict]) -> str:
-        raise NotImplementedError(
-            "format_converstaion must be implemented by subclasses"
-        )
+        if len(conv) != 1:
+            raise ValueError(
+                "There must be exactly one turn in the conversation to use NoFormat"
+            )
+
+        turn = conv[0]
+
+        if turn["role"] != "user":
+            raise ValueError(
+                "Conversation turn 0 is not 'user'. All even number turns should be."
+            )
+
+        return turn["content"]
