@@ -44,6 +44,11 @@ class NemoDeployClient(LLMClient):
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> List[str]:
+        if conversation_formatter is None:
+            raise ValueError(
+                "NemoDeployClient's query_model requires a conversation_formatter"
+            )
+
         prompt = conversation_formatter.format_conversation(messages)
         self.client.model_name = model
 
