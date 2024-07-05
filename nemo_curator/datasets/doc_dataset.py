@@ -134,7 +134,7 @@ class DocumentDataset:
     def from_pandas(
         cls,
         data,
-        npartitions: Optional[int] = None,
+        npartitions: Optional[int] = 1,
         chunksize: Optional[int] = None,
         sort: Optional[bool] = True,
         name: Optional[str] = None,
