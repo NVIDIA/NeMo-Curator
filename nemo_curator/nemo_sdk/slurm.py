@@ -22,6 +22,38 @@ sdk = safe_import("nemo_sdk")
 
 @dataclass
 class SlurmJobConfig:
+    """
+    Configuration for running a NeMo Curator script on a SLURM cluster using
+    NeMo SDK
+
+    Args:
+        job_dir: The base directory where all the files related to setting up
+            the Dask cluster for NeMo Curator will be written
+        container_entrypoint: A path to the container-entrypoint.sh script
+            on the cluster. container-entrypoint.sh is found in the repo
+            here: https://github.com/NVIDIA/NeMo-Curator/blob/main/examples/slurm/container-entrypoint.sh
+        script_command: The NeMo Curator CLI tool to run. Pass any additional arguments
+            needed directly in this string.
+        device: The type of script that will be running, and therefore the type
+            of Dask cluster that will be created. Must be either "cpu" or "gpu".
+        interface: The network interface the Dask cluster will communicate over.
+            Use nemo_curator.get_network_interfaces() to get a list of available ones.
+        protocol: The networking protocol to use. Can be either "tcp" or "ucx".
+            Setting to "ucx" is recommended for GPU jobs if your cluster supports it.
+        cpu_worker_memory_limit: The maximum memory per process that a Dask worker can use.
+            "5GB" or "5000M" are examples. "0" means no limit.
+        rapids_no_initialize: Will delay or disable the CUDA context creation of RAPIDS libraries,
+            allowing for improved compatibility with UCX-enabled clusters and preventing runtime warnings.
+        cudf_spill: Enables automatic spilling (and “unspilling”) of buffers from device to host to
+            enable out-of-memory computation, i.e., computing on objects that occupy more memory
+            than is available on the GPU.
+        rmm_scheduler_pool_size: Sets a small pool of GPU memory for message transfers when
+            the scheduler is using ucx
+        rmm_worker_pool_size: The amount of GPU memory each GPU worker process may use.
+            Recommended to set at 80-90% of available GPU memory. 72GiB is good for A100/H100
+        libcudf_cufile_policy: Allows reading/writing directly from storage to GPU.
+    """
+
     job_dir: str
     container_entrypoint: str
     script_command: str
