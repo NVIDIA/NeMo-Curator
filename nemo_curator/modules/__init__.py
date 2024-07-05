@@ -22,7 +22,7 @@ os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
 from nemo_curator.utils.import_utils import gpu_only_import_from
 
 from .add_id import AddId
-from .config import FuzzyDuplicatesConfig
+from .config import FuzzyDuplicatesConfig, SemDedupConfig
 from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
 from .filter import Filter, Score, ScoreFilter
@@ -35,6 +35,16 @@ LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "LSH")
 MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "MinHash")
 FuzzyDuplicates = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup", "FuzzyDuplicates"
+)
+SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup", "SemDedup")
+EmbeddingCreator = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup", "EmbeddingCreator"
+)
+ClusteringModel = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup", "ClusteringModel"
+)
+SemanticClusterLevelDedup = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup", "SemanticClusterLevelDedup"
 )
 
 # Pytorch related imports must come after all imports that require cugraph,
@@ -59,7 +69,8 @@ __all__ = [
     "AddId",
     "blend_datasets",
     "Shuffle",
-    "SemDedup" "SemDedupConfig",
+    "SemDedup",
+    "SemDedupConfig",
     "EmbeddingCreator",
     "ClusteringModel",
     "SemanticClusterLevelDedup",
