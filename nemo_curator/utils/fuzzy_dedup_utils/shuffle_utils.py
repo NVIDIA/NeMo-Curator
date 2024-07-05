@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-
 import cudf
 import dask_cuda
 import numpy as np
 from dask import config
 from packaging.version import Version
 
+from nemo_curator._compat import query_planning_enabled
 from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     build_partition,
     get_agg_text_bytes_df,
@@ -64,7 +63,7 @@ def rearange_by_column_direct(
             ignore_index=ignore_index,
         )
 
-    elif "dask_expr" in sys.modules:
+    elif query_planning_enabled():
         from dask_expr._collection import new_collection
         from dask_expr._shuffle import RearrangeByColumn
 
