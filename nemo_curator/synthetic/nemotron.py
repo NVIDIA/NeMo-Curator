@@ -15,8 +15,8 @@ from typing import List, Tuple, Union
 
 import yaml
 
+from nemo_curator.services.conversation_formatter import ConversationFormatter
 from nemo_curator.services.model_client import LLMClient
-from nemo_curator.synthetic.conversation_formatter import ConversationFormatter
 from nemo_curator.synthetic.error import YamlConversionError
 from nemo_curator.synthetic.prompts import (
     DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
