@@ -36,6 +36,9 @@ MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "MinHash")
 FuzzyDuplicates = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup", "FuzzyDuplicates"
 )
+# Pytorch related imports must come after all imports that require cugraph,
+# because of context cleanup issues b/w pytorch and cugraph
+# See this issue: https://github.com/rapidsai/cugraph/issues/2718
 SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup", "SemDedup")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup", "EmbeddingCreator"
@@ -46,10 +49,6 @@ ClusteringModel = gpu_only_import_from(
 SemanticClusterLevelDedup = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup", "SemanticClusterLevelDedup"
 )
-
-# Pytorch related imports must come after all imports that require cugraph,
-# because of context cleanup issues b/w pytorch and cugraph
-# See this issue: https://github.com/rapidsai/cugraph/issues/2718
 from .distributed_data_classifier import DomainClassifier, QualityClassifier
 
 __all__ = [
