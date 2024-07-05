@@ -14,11 +14,12 @@
 import warnings
 from typing import Iterable, List, Optional, Union
 
-from nemo.deploy.nlp import NemoQueryLLM
-
 from nemo_curator.services.conversation_formatter import ConversationFormatter
+from nemo_curator.utils.import_utils import safe_import_from
 
 from .model_client import AsyncLLMClient, LLMClient
+
+NemoQueryLLM = safe_import_from("nemo.deploy.nlp", "NemoQueryLLM")
 
 
 class NemoDeployClient(LLMClient):
@@ -43,7 +44,6 @@ class NemoDeployClient(LLMClient):
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> List[str]:
-
         prompt = conversation_formatter.format_conversation(messages)
         self.client.model_name = model
 
