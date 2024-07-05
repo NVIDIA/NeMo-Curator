@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .model_client import AsyncLLMClient, LLMClient
+from .nemo_client import NemoDeployClient
 from .openai_client import AsyncOpenAIClient, OpenAIClient
 
-__all__ = ["AsyncLLMClient", "LLMClient", "AsyncOpenAIClient", "OpenAIClient"]
+__all__ = [
+    "AsyncLLMClient",
+    "LLMClient",
+    "AsyncOpenAIClient",
+    "OpenAIClient",
+    "NemoDeployClient",
+]
