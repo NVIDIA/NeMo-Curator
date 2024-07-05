@@ -71,6 +71,7 @@ We'll highlight a couple of important ones:
 
 * ``device="cpu"`` determines the type of Dask cluster to initialize. If you are using GPU modules, please set this equal to ``"gpu"``.
 * ``interface="etho0"`` specifies the network interface to use for communication within the Dask cluster. It will likely be different for your Slurm cluster, so please modify as needed. You can determine what interfaces are available by running the following function on your cluster.
+
   .. code-block:: python
 
     from nemo_curator import get_network_interfaces
