@@ -16,12 +16,11 @@ import argparse
 import time
 
 import dask
-from dask import dataframe as dd
 
 from nemo_curator import FuzzyDuplicates, FuzzyDuplicatesConfig
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, write_to_disk
-from nemo_curator.utils.script_utils import add_distributed_args, parse_client_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def pre_imports():
@@ -44,11 +43,13 @@ def main(args):
     assert args.device == "gpu"
 
     with dask.config.set({"dataframe.backend": backend}):
-        client = get_client(**parse_client_args(args))
+        client = get_client(**ArgumentHelper.parse_client_args(args))
         client.run(pre_imports)
 
         t0 = time.time()
         if filetype == "parquet":
+            from dask import dataframe as dd
+
             input_dataset = DocumentDataset(
                 dd.read_parquet(
                     dataset_dir,
@@ -102,7 +103,7 @@ def attach_args(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     ),
 ):
-    return add_distributed_args(parser)
+    return ArgumentHelper(parser).add_distributed_args()
 
 
 if __name__ == "__main__":

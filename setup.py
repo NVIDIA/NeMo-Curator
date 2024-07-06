@@ -46,6 +46,7 @@ setup(
         "fasttext==0.9.2",
         "pycld2==0.41",
         "justext==3.0.0",
+        "resiliparse",
         "ftfy==6.1.1",
         "warcio==1.7.4",
         "zstandard==0.18.0",
@@ -60,7 +61,8 @@ setup(
         "presidio-anonymizer==2.2.351",
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
-        "crossfit @ git+https://github.com/rapidsai/crossfit.git@1ee3de4",
+        "Cython",
+        "crossfit @ git+https://github.com/rapidsai/crossfit.git@0.0.2",
         # justext installation breaks without lxml[html_clean]
         # due to this: https://github.com/miso-belica/jusText/issues/47
         "lxml[html_clean]",
@@ -106,6 +108,9 @@ setup(
             "quality_classifier_inference=nemo_curator.scripts.quality_classifier_inference:console_script",
             "verify_classification_results=nemo_curator.scripts.verify_classification_results:console_script",
             "blend_datasets=nemo_curator.scripts.blend_datasets:console_script",
+            "semdedup_extract_embeddings=nemo_curator.scripts.semdedup.compute_embeddings:console_script",
+            "semdedup_clustering=nemo_curator.scripts.semdedup.clustering:console_script",
+            "semdedup_extract_dedup_ids=nemo_curator.scripts.semdedup.extract_dedup_data:console_script",
         ],
     },
 )
