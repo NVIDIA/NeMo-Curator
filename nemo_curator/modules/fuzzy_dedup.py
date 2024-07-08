@@ -29,7 +29,6 @@ import dask_cudf
 import numpy as np
 from cugraph import MultiGraph
 from dask import dataframe as dd
-from dask.dataframe.shuffle import shuffle as dd_shuffle
 from dask.utils import M
 from tqdm import tqdm
 
@@ -766,8 +765,7 @@ class _MapBuckets:
             transform_divisions=False,
             align_dataframes=False,
         )
-        ddf_anchor_docs_with_bk = dd_shuffle(
-            ddf_anchor_docs_with_bk,
+        ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.shuffle(
             self.id_fields,
             ignore_index=True,
             shuffle_method=shuffle_type,
@@ -1343,8 +1341,7 @@ class ConnectedComponents:
             align_dataframes=False,
         )
 
-        ddf = dd_shuffle(
-            ddf,
+        ddf = ddf.shuffle(
             [self.left_id, self.right_id],
             ignore_index=True,
             shuffle_method="tasks",
@@ -1392,7 +1389,10 @@ class ConnectedComponents:
         unique_docs = ddf.map_partitions(
             ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
         )
-        unique_docs = unique_docs.drop_duplicates(split_out=ddf.npartitions // 4)
+        unique_docs = unique_docs.drop_duplicates(
+            # Dask does not guard against split_out=0
+            split_out=max(ddf.npartitions // 4, 1)
+        )
         unique_docs["uid"] = np.uint64(1)
         unique_docs["uid"] = unique_docs["uid"].cumsum()
         unique_docs["uid"] = unique_docs["uid"] - 1
