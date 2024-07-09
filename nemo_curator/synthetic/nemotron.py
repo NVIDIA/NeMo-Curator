@@ -1439,7 +1439,7 @@ class NemotronGenerator:
 
 class NemotronFormatter(ConversationFormatter):
 
-    BASE_PROMPT = "<extra_id_0>System\n\n<extra_id_1>User\n"
+    PROMPT_PREFIX = "<extra_id_0>System\n\n<extra_id_1>User\n"
 
     @staticmethod
     def format_conversation(conv: List[dict]) -> str:
@@ -1451,7 +1451,7 @@ class NemotronFormatter(ConversationFormatter):
         Returns:
             A conversation formatted as text
         """
-        prompt = NemotronFormatter.BASE_PROMPT
+        prompt = NemotronFormatter.PROMPT_PREFIX
 
         for i, turn in enumerate(conv):
             user_turn = i % 2 == 0

@@ -166,7 +166,7 @@ class DocumentDataset:
         Returns:
             A pandas dataframe (on the CPU)
         """
-        return self.df.compute()
+        return self.df.to_backend("pandas").compute()
 
 
 def _read_json_or_parquet(

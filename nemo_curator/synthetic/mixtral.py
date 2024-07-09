@@ -5,7 +5,7 @@ from nemo_curator.services.conversation_formatter import ConversationFormatter
 
 class Mixtral8x7BFormatter(ConversationFormatter):
 
-    BASE_PROMPT = "<s> [INST] \n"
+    PROMPT_PREFIX = "<s> [INST] \n"
 
     @staticmethod
     def format_conversation(conv: List[dict]) -> str:
@@ -17,7 +17,7 @@ class Mixtral8x7BFormatter(ConversationFormatter):
         Returns:
             A conversation formatted as text
         """
-        prompt = Mixtral8x7BFormatter.BASE_PROMPT
+        prompt = Mixtral8x7BFormatter.PROMPT_PREFIX
 
         for i, turn in enumerate(conv):
             user_turn = i % 2 == 0

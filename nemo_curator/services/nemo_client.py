@@ -40,6 +40,7 @@ class NemoDeployClient(LLMClient):
         n: Optional[int] = None,
         seed: Optional[int] = None,
         stop: Union[Optional[str], List[str]] = None,
+        stream: bool = False,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -54,6 +55,8 @@ class NemoDeployClient(LLMClient):
 
         if n is not None:
             warnings.warn("n is not supported in NemoDeployClient")
+        if stream:
+            warnings.warn("streamming is not supported in NeMoDeployClient")
 
         if isinstance(stop, str):
             stop = [stop]

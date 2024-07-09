@@ -40,6 +40,7 @@ class OpenAIClient(LLMClient):
         n: Union[Optional[int], NotGiven] = NOT_GIVEN,
         seed: Union[Optional[int], NotGiven] = NOT_GIVEN,
         stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
+        stream: Union[Optional[bool], NotGiven] = False,
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
         top_k: Optional[int] = None,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
@@ -57,6 +58,7 @@ class OpenAIClient(LLMClient):
             n=n,
             seed=seed,
             stop=stop,
+            stream=stream,
             temperature=temperature,
             top_p=top_p,
         )
@@ -107,6 +109,7 @@ class AsyncOpenAIClient(AsyncLLMClient):
         n: Union[Optional[int], NotGiven] = NOT_GIVEN,
         seed: Union[Optional[int], NotGiven] = NOT_GIVEN,
         stop: Union[Optional[str], List[str], NotGiven] = NOT_GIVEN,
+        stream: Union[Optional[bool], NotGiven] = False,
         temperature: Union[Optional[float], NotGiven] = NOT_GIVEN,
         top_k: Optional[int] = None,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
@@ -124,6 +127,7 @@ class AsyncOpenAIClient(AsyncLLMClient):
             n=n,
             seed=seed,
             stop=stop,
+            stream=stream,
             temperature=temperature,
             top_p=top_p,
         )
