@@ -38,6 +38,7 @@ def main():
     # Path to NeMo-Curator/examples/slurm/container_entrypoint.sh on the SLURM cluster
     container_entrypoint = "/cluster/path/slurm/container_entrypoint.sh"
     # The NeMo Curator command to run
+    # This command can be susbstituted with any NeMo Curator command
     curator_command = "text_cleaning --input-data-dir=/path/to/data --output-clean-dir=/path/to/output"
     curator_job = SlurmJobConfig(
         job_dir="/home/user/jobs",
