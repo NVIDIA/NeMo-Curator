@@ -16,9 +16,8 @@ import logging
 import os
 from typing import Any, Coroutine, List, Optional, Tuple, Union
 
-import tqdm.asyncio
 import yaml
-from tqdm import tqdm
+from tqdm.asyncio import tqdm
 
 from nemo_curator.log import create_logger
 from nemo_curator.services.model_client import AsyncLLMClient
@@ -171,7 +170,7 @@ class AsyncNemotronGenerator:
         final_list = []
         for i in tqdm(range(0, len(requests), max_requests)):
             request_slice = requests[i : i + max_requests]
-            result = await tqdm.asyncio.gather(*request_slice)
+            result = await tqdm.gather(*request_slice)
             final_list.extend(result)
 
         return final_list
