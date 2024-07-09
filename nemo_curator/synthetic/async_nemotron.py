@@ -1025,7 +1025,7 @@ class AsyncNemotronGenerator:
             prompt_template=subtopic_prompt_template,
         )
         subtopic = subtopic[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             subtopic,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1053,7 +1053,7 @@ class AsyncNemotronGenerator:
             prompt_template=open_qa_from_topics_prompt_template,
         )
         openline = openline[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             openline,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1081,7 +1081,7 @@ class AsyncNemotronGenerator:
             prompt_template=revise_open_qa_prompt_template,
         )
         revised_openline = revised_openline[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             revised_openline,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1200,7 +1200,7 @@ class AsyncNemotronGenerator:
             prompt_template=writing_task_prompt_template,
         )
         raw_tasks = raw_tasks[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             raw_tasks,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1228,7 +1228,7 @@ class AsyncNemotronGenerator:
             prompt_template=revise_writing_task_prompt_template,
         )
         raw_revision = raw_revision[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             raw_revision,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1313,7 +1313,7 @@ class AsyncNemotronGenerator:
             prompt_template=closed_qa_prompt_template,
         )
         raw_instruction = raw_instruction[0]
-        parsed_instructions = self._try_convert_yaml_list(
+        parsed_instructions = await self._try_convert_yaml_list(
             raw_instruction,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1468,7 +1468,7 @@ class AsyncNemotronGenerator:
             prompt_template=subtopic_prompt_template,
         )
         raw_topic = raw_topic[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             raw_topic,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1496,7 +1496,7 @@ class AsyncNemotronGenerator:
             prompt_template=math_problem_prompt_template,
         )
         raw_line = raw_line[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             raw_line,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1647,7 +1647,7 @@ class AsyncNemotronGenerator:
             prompt_template=subtopic_prompt_template,
         )
         raw_topic = raw_topic[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             raw_topic,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
@@ -1675,7 +1675,7 @@ class AsyncNemotronGenerator:
             prompt_template=python_problem_prompt_template,
         )
         raw_line = raw_line[0]
-        return self._try_convert_yaml_list(
+        return await self._try_convert_yaml_list(
             raw_line,
             model=model,
             yaml_conversion_prompt_template=yaml_conversion_prompt_template,
