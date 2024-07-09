@@ -16,9 +16,9 @@ import logging
 import os
 from typing import Any, Coroutine, List, Optional, Tuple, Union
 
-import tqdm
 import tqdm.asyncio
 import yaml
+from tqdm import tqdm
 
 from nemo_curator.log import create_logger
 from nemo_curator.services.model_client import AsyncLLMClient
