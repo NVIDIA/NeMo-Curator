@@ -60,13 +60,13 @@ class AsyncNemotronGenerator:
         self.client = llm_client
         self.max_concurrent_requests = max_concurrent_requests
         if isinstance(logger, str):
-            self._logger = create_logger(
+            self.logger = create_logger(
                 rank=0,
                 log_file=os.path.join(logger, "nemotron-generator.log"),
                 name="AsyncNemotronGenrator",
             )
         else:
-            self._logger = logger
+            self.logger = logger
 
     async def _prompt(
         self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict
@@ -919,9 +919,9 @@ class AsyncNemotronGenerator:
         Returns:
             A list of synthetically generated open Q&A prompts
         """
-        self._logger.info("Starting open q&a pipeline")
+        self.logger.info("Starting open q&a pipeline")
         # Generate the macro topics
-        self._logger.info("Starting macro topic generation")
+        self.logger.info("Starting macro topic generation")
         responses = await self.generate_macro_topics(
             n_macro_topics=n_macro_topics,
             model=model,
@@ -939,7 +939,7 @@ class AsyncNemotronGenerator:
                 f"Error: Length of macro topics {len(macro_topics)} does not match desired n_macro_topics {n_macro_topics}: {macro_topics}"
             )
         macro_topics.extend(additional_macro_topics)
-        self._logger.info("Finished macro topic generation")
+        self.logger.info("Finished macro topic generation")
 
         # Generate the subtopics
         raw_topics = [
@@ -955,11 +955,11 @@ class AsyncNemotronGenerator:
             )
             for macro_topic in macro_topics
         ]
-        self._logger.info("Starting subtopic generation")
+        self.logger.info("Starting subtopic generation")
         raw_topics = await self._gather(raw_topics)
         topic_list = [item for subtopics in raw_topics for item in subtopics]
         topic_list.extend(additional_subtopics)
-        self._logger.info("Finished subtopic generation")
+        self.logger.info("Finished subtopic generation")
 
         # Mix the macro topics with the subtopics
         if combine_topics:
@@ -979,10 +979,10 @@ class AsyncNemotronGenerator:
             )
             for subtopic in topic_list
         ]
-        self._logger.info("Starting openline generation")
+        self.logger.info("Starting openline generation")
         raw_lines = await self._gather(raw_lines)
         openlines = [item for lines in raw_lines for item in lines]
-        self._logger.info("Finished openline generation")
+        self.logger.info("Finished openline generation")
 
         # Revise the openlines
         raw_revisions = [
@@ -998,11 +998,11 @@ class AsyncNemotronGenerator:
             )
             for openline in openlines
         ]
-        self._logger.info("Starting openline revision")
+        self.logger.info("Starting openline revision")
         raw_revisions = await self._gather(raw_revisions)
         revised_openlines = [item for revisions in raw_revisions for item in revisions]
-        self._logger.info("Finished openline revision")
-        self._logger.info("Finished open q&a pipeline")
+        self.logger.info("Finished openline revision")
+        self.logger.info("Finished open q&a pipeline")
 
         return revised_openlines
 
@@ -1134,7 +1134,7 @@ class AsyncNemotronGenerator:
         Returns:
             A list of synthetically generated writing task prompts
         """
-        self._logger.info("Starting writing pipeline")
+        self.logger.info("Starting writing pipeline")
         # Generate the tasks
         raw_writing_tasks = []
         for topic in topics:
@@ -1152,10 +1152,10 @@ class AsyncNemotronGenerator:
                         ignore_conversion_failure=ignore_conversion_failure,
                     )
                 )
-        self._logger.info("Starting writing task generation")
+        self.logger.info("Starting writing task generation")
         raw_writing_tasks = await self._gather(raw_writing_tasks)
         writing_tasks = [item for tasks in raw_writing_tasks for item in tasks]
-        self._logger.info("Finished writing task generation")
+        self.logger.info("Finished writing task generation")
 
         # Revise the tasks
         raw_revised_openlines = [
@@ -1171,11 +1171,11 @@ class AsyncNemotronGenerator:
             )
             for task in writing_tasks
         ]
-        self._logger.info("Starting writing task revision")
+        self.logger.info("Starting writing task revision")
         raw_revised_openlines = await self._gather(raw_revised_openlines)
         revised_openlines = [item for lines in raw_revised_openlines for item in lines]
-        self._logger.info("Finished writing task revision")
-        self._logger.info("Finished writing pipeline")
+        self.logger.info("Finished writing task revision")
+        self.logger.info("Finished writing pipeline")
 
         return revised_openlines
 
@@ -1272,7 +1272,7 @@ class AsyncNemotronGenerator:
             A list of pairs where the first element represents the index of the document used to generate the question in the documents list
             and the second element represents a synthetically generated closed Q&A prompt. Example: [(0, "Summarize this document"), ...]
         """
-        self._logger.info("Starting closed q&a pipeline")
+        self.logger.info("Starting closed q&a pipeline")
         raw_qa = [
             self._generate_parse_closed_qa(
                 document_id=i,
@@ -1289,7 +1289,7 @@ class AsyncNemotronGenerator:
         ]
         raw_qa = await self._gather(raw_qa)
         document_openline_pairs = [item for lines in raw_qa for item in lines]
-        self._logger.info("Finished closed q&a pipeline")
+        self.logger.info("Finished closed q&a pipeline")
 
         return document_openline_pairs
 
@@ -1380,9 +1380,9 @@ class AsyncNemotronGenerator:
         Returns:
             A list of synthetically generated math prompts
         """
-        self._logger.info("Starting math pipeline")
+        self.logger.info("Starting math pipeline")
         # Generate the macro topics
-        self._logger.info("Starting math macro topic generation")
+        self.logger.info("Starting math macro topic generation")
         responses = await self.generate_math_macro_topics(
             n_macro_topics=n_macro_topics,
             school_level=school_level,
@@ -1401,7 +1401,7 @@ class AsyncNemotronGenerator:
                 f"Error: Length of macro topics {len(macro_topics)} does not match desired n_macro_topics {n_macro_topics}: {macro_topics}"
             )
         macro_topics.extend(additional_macro_topics)
-        self._logger.info("Finished math macro topic generation")
+        self.logger.info("Finished math macro topic generation")
 
         # Generate the subtopics
         raw_topics = [
@@ -1417,11 +1417,11 @@ class AsyncNemotronGenerator:
             )
             for macro_topic in macro_topics
         ]
-        self._logger.info("Starting math subtopic generation")
+        self.logger.info("Starting math subtopic generation")
         raw_topics = await self._gather(raw_topics)
         topic_list = [item for subtopics in raw_topics for item in subtopics]
         topic_list.extend(additional_subtopics)
-        self._logger.info("Finished math subtopic generation")
+        self.logger.info("Finished math subtopic generation")
 
         # Mix the macro topics with the subtopics
         if combine_topics:
@@ -1441,11 +1441,11 @@ class AsyncNemotronGenerator:
             )
             for subtopic in topic_list
         ]
-        self._logger.info("Starting math openline generation")
+        self.logger.info("Starting math openline generation")
         raw_lines = await self._gather(raw_lines)
         openlines = [item for lines in raw_lines for item in lines]
-        self._logger.info("Finished math openline generation")
-        self._logger.info("Finished math pipeline")
+        self.logger.info("Finished math openline generation")
+        self.logger.info("Finished math pipeline")
 
         return openlines
 
@@ -1560,9 +1560,9 @@ class AsyncNemotronGenerator:
         Returns:
             A list of synthetically generated Python prompts
         """
-        self._logger.info("Starting python pipeline")
+        self.logger.info("Starting python pipeline")
         # Generate the macro topics
-        self._logger.info("Starting python macro topic generation")
+        self.logger.info("Starting python macro topic generation")
         responses = await self.generate_python_macro_topics(
             n_macro_topics=n_macro_topics,
             model=model,
@@ -1580,7 +1580,7 @@ class AsyncNemotronGenerator:
                 f"Error: Length of macro topics {len(macro_topics)} does not match desired n_macro_topics {n_macro_topics}: {macro_topics}"
             )
         macro_topics.extend(additional_macro_topics)
-        self._logger.info("Finished python macro topic generation")
+        self.logger.info("Finished python macro topic generation")
 
         # Generate the subtopics
         raw_topics = [
@@ -1596,11 +1596,11 @@ class AsyncNemotronGenerator:
             )
             for macro_topic in macro_topics
         ]
-        self._logger.info("Starting python subtopic generation")
+        self.logger.info("Starting python subtopic generation")
         raw_topics = await self._gather(raw_topics)
         topic_list = [item for subtopics in raw_topics for item in subtopics]
         topic_list.extend(additional_subtopics)
-        self._logger.info("Finished python subtopic generation")
+        self.logger.info("Finished python subtopic generation")
 
         # Mix the macro topics with the subtopics
         if combine_topics:
@@ -1620,11 +1620,11 @@ class AsyncNemotronGenerator:
             )
             for subtopic in topic_list
         ]
-        self._logger.info("Starting python openline generation")
+        self.logger.info("Starting python openline generation")
         raw_lines = await self._gather(raw_lines)
         openlines = [item for lines in raw_lines for item in lines]
-        self._logger.info("Finished python openline generation")
-        self._logger.info("Finished python pipeline")
+        self.logger.info("Finished python openline generation")
+        self.logger.info("Finished python pipeline")
 
         return openlines
 
