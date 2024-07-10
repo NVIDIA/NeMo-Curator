@@ -755,7 +755,7 @@ class _MapBuckets:
     ):
         # String bytes limit for cuDF
         # https://github.com/rapidsai/cudf/issues/13733
-        max_text_bytes_per_part = int(np.iinfo(np.int32).max * 1.2)
+        max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
 
         self._logger.info(f"max_text_bytes_per_part = {max_text_bytes_per_part}")
         # Increasing in an attempt to prevent hitting
