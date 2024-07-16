@@ -27,6 +27,7 @@ Despite its name, the OpenAI API is used for querying models across different pl
 Here is how we can connect to `build.nvidia.com <https://build.nvidia.com/explore/discover>`_ to query Gemma 2 9b-it using NeMo Curator and the OpenAI API.
 
 .. code-block:: python
+
     from openai import OpenAI
     from nemo_curator import OpenAIClient
 
@@ -65,6 +66,7 @@ Assuming you deploy a model named "mistralai/mixtral-8x7b-instruct-v0.1" on your
 you can run the same query using the following code.
 
 .. code-block:: python
+
     from nemo.deploy.nlp import NemoQueryLLM
     from nemo_curator import NemoDeployClient
     from nemo_curator.synthetic import Mixtral8x7BFormatter
@@ -96,6 +98,7 @@ Let's focus on the main differences here.
 * ``conversation_formatter=Mixtral8x7BFormatter()``. LLMs take a tokenized string of text as input, not a list of conversation turns. Therefore, during the alignment process each LLM uses a conversation format to turn the conversation into a single string. For Mixtral-8x7B-Instruct-v0.1, the format looks like this:
 
     .. code-block::
+
         <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
 
     Services that use the OpenAI API perform this formatting on the backend. In contrast, since NeMo Deploy allows you to run any model you want, you need to specify what conversation format you should use on when making the request.
@@ -104,15 +107,16 @@ Let's focus on the main differences here.
 .. note::
     OpenAI API backends likely format the conversation for you automatically. Depending on your synthetic data generation process, this may lead to incorrect results. Please refer to your service's documentation to see what kind of prompt formatting they follow.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+############################
 Querying a Reward Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+############################
 Reward models can be used to score conversations between a user and assistant.
 Instead of responding to a user prompt with text follow up as an assistant, a reward model will return a mapping of category to score.
 These scores can then be used to filter the dataset to be higher quality.
 Here is how we can query the Nemotron-4 340b reward model in NeMo Curator:
 
 .. code-block:: python
+
     from openai import OpenAI
     from nemo_curator import OpenAIClient
 
@@ -161,6 +165,7 @@ NeMo Curator encapsulates all the synthetic data generation methods for Nemotron
 We'll dive into all the methods it provides in the following sections, but here is a small example that establishes a pattern you will see with all of the functions.
 
 .. code-block:: python
+
     from openai import OpenAI
     from nemo_curator import OpenAIClient
     from nemo_curator.synthetic import NemotronGenerator
@@ -201,6 +206,7 @@ Many LLM responses in the Nemotron pipeline will contain a list.
 Therefore, ``NemotronGenerator`` provides a helper function that will attempt to convert an LLM response into a Python list of strings
 
 .. code-block:: python
+
     responses = generator.generate_macro_topics(
         n_macro_topics=n_macro_topics, model=model, model_kwargs=model_kwargs
     )
@@ -224,15 +230,20 @@ For a more in-depth explanation of each of the steps, please refer to the `Nemot
 Open Q&A Prompt Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Open Q&A prompt generation follows these steps:
-1. Generate a list of macro topics about the world
-2. Generate a list of subtopics related to each macro topic
-3. Create a list of questions relating to the previously generated topics
-   a. Additional topics can also be manually specified
-4. Revise the questions to be more detailed
+#. Generate a list of macro topics about the world
+
+#. Generate a list of subtopics related to each macro topic
+
+#. Create a list of questions relating to the previously generated topics
+
+   #. Additional topics can also be manually specified
+
+#. Revise the questions to be more detailed
 
 Using NeMo Curator, each step can be performed as follows:
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     macro_topic_responses = generator.generate_macro_topics(
         n_macro_topics=20, model=model
@@ -259,6 +270,7 @@ Using NeMo Curator, each step can be performed as follows:
 An end-to-end pipeline that composes all of these steps can be run with the ``NemotronGenerator.run_open_qa_pipeline``
 
 .. code-block:: python
+
     open_qa_questions = generator.run_open_qa_pipeline(
         n_macro_topics=20,
         n_subtopics=5,
@@ -281,12 +293,14 @@ However, an error will still be thrown if the first step of the pipeline cannot 
 Writing Prompt Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Writing prompt generation follows these steps:
-1. Generate tasks to write an email, essay, etc. about a topic
-2. Revise the tasks to be more detailed
+#. Generate tasks to write an email, essay, etc. about a topic
+
+#. Revise the tasks to be more detailed
 
 Using NeMo Curator, each step can be performed as follows:
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     writing_tasks_responses = generator.generate_writing_tasks(
         topic="Climate Change and Sustainable Living",
@@ -304,6 +318,7 @@ Using NeMo Curator, each step can be performed as follows:
 An end-to-end pipeline that composes all of these steps can be run with the ``NemotronGenerator.run_writing_pipeline``
 
 .. code-block:: python
+
     writing_tasks = generator.run_writing_pipeline(
         topics=[
             "Climate Change and Sustainable Living",
@@ -326,11 +341,13 @@ However, an error will still be thrown if the first step of the pipeline cannot 
 Closed Q&A Prompt Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Closed Q&A prompt generation is simple and has a single step:
-1. Given a document, generate some questions about it
+
+#. Given a document, generate some questions about it
 
 Using NeMo Curator, this can be performed as follows:
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     closed_qa_responses = generator.generate_closed_qa_instructions(
         document="Four score and seven years ago...",
@@ -342,6 +359,7 @@ Using NeMo Curator, this can be performed as follows:
 An end-to-end pipeline that repeats this for many documents can be run with the ``NemotronGenerator.run_closed_qa_pipeline``
 
 .. code-block:: python
+
     closed_qa_questions = generator.run_closed_qa_pipeline(
         documents=["Four score and seven years ago...", ...],
         n_openlines=5,
@@ -367,14 +385,18 @@ Math
 **************
 
 Math prompt generation follows these steps:
-1. Generate math macro topics targetted at a specific school level
-2. Generate subtopics for each macro topic
-3. Generate a math problem for each topic
-   a. Additional topics can also be manually specified
+#. Generate math macro topics targetted at a specific school level
+
+#. Generate subtopics for each macro topic
+
+#. Generate a math problem for each topic
+
+    #. Additional topics can also be manually specified
 
 Using NeMo Curator, each step can be performed as follows:
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     macro_topic_responses = generator.generate_math_macro_topics(
         n_macro_topics=20,
@@ -402,6 +424,7 @@ Using NeMo Curator, each step can be performed as follows:
 An end-to-end pipeline that composes all of these steps can be run with the ``NemotronGenerator.run_math_pipeline``
 
 .. code-block:: python
+
     math_questions = generator.run_math_pipeline(
         n_macro_topics=20,
         school_level="university",
@@ -424,14 +447,18 @@ Coding
 
 The coding generation pipeline is similar to the math generation pipeline.
 Coding, in particular Python-related, prompt generation follows these steps:
-1. Generate macro topics relating to Python
-2. Generate subtopics for each macro topic
-3. Generate a Python coding problem for each topic
-   a. Additional topics can also be manually specified
+#. Generate macro topics relating to Python
+
+#. Generate subtopics for each macro topic
+
+#. Generate a Python coding problem for each topic
+
+   #. Additional topics can also be manually specified
 
 Using NeMo Curator, each step can be performed as follows:
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     macro_topic_responses = generator.generate_python_macro_topics(
         n_macro_topics=20,
@@ -458,6 +485,7 @@ Using NeMo Curator, each step can be performed as follows:
 An end-to-end pipeline that composes all of these steps can be run with the ``NemotronGenerator.run_python_pipeline``
 
 .. code-block:: python
+
     python_questions = generator.run_python_pipeline(
         n_macro_topics=20,
         n_subtopics=5,
@@ -490,6 +518,7 @@ So long as the placeholders match the required function arguments, you can swap 
 For example, the default prompt template for generating a Python problem from a topic is ``PYTHON_PROBLEM_BEGINNER_PROMPT_TEMPLATE``, but it can be changed as follows.
 
 .. code-block:: python
+
     from nemo_curator.synthetic import PYTHON_PROBLEM_ADVANCED_PROMPT_TEMPLATE
 
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
@@ -521,6 +550,7 @@ You can supply your own prompt template that has additional placeholders, and Ne
 For example, you can define a prompt template that generates macro topics with exceptions.
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     my_prompt_template = "Can you generate {n_macro_topics} comprehensive topics that encompass various aspects of our daily life, the world, and science? Your answer should be a list of topics. Make the topics as diverse as possible, but do not include anything relating to {exception}"
     macro_topic_responses = generator.generate_macro_topics(
@@ -540,6 +570,7 @@ In the dialogue, an LLM will play the part of both user and assistant.
 ``Nemotron.generate_dialogue`` is a simple method to do this.
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     dialogue = generator.generate_dialogue(
         openline="Write a poem about the moon.",
@@ -559,6 +590,7 @@ Having an LLM play the role of an assistant is easy, since that is what it is de
 In order to impersonate a user, the following special prompt template is used:
 
 .. code-block:: python
+
     DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a user and an assistant.\n<|The Start of Assistant's Conversation with User|>\n{conversation_history}\n<|The End of Assistant's Conversation with User|>\n\nGiven the conversation above, generate a followup request or question in the tone of User. Directly give me the question without extraneous words."
 
     conversation = [
@@ -583,6 +615,7 @@ In this context, a two-turn prompt is a conversation that has a user turn, assis
 Here is an example:
 
 .. code-block:: python
+
     conversation = [
         {"role": "user", "content": "Write a poem about the moon."},
         {"role": "assistant", "content": "The moon is bright. It shines at night."},
@@ -592,6 +625,7 @@ Here is an example:
 Two-turn prompt generation is easy in NeMo Curator with ``Nemotron.generate_two_turn_prompt``.
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     dialogue = generator.generate_two_turn_prompt(
         openline="Write a poem about the moon.",
@@ -616,6 +650,7 @@ Nemotron-4 340B uses an LLM to classify Wikipedia entities to determine if they 
 NeMo Curator provides two simple functions for classifying math and Python entities.
 
 .. code-block:: python
+
     model = "mistralai/mixtral-8x7b-instruct-v0.1"
     math_classification_responses = generator.classify_math_entity(
         entity="Set theory",
@@ -642,6 +677,7 @@ This can be very ineffecient since many requests can be sent simultaneously in m
 Therefore, NeMo Curator provides an asynchronous alternative using OpenAI's async API.
 
 .. code-block:: python
+
     from openai import AsyncOpenAI
     from nemo_curator import AsyncOpenAIClient
     from nemo_curator.synthetic import AsyncNemotronGenerator
@@ -687,6 +723,7 @@ We recommend using ``DocumentDataset.from_pandas`` and ``DocumentDataset.to_pand
 For example, you could do something like this:
 
 .. code-block:: python
+
     import pandas as pd
     from nemo_curator.datasets import DocumentDataset
 
