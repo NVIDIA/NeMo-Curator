@@ -370,7 +370,7 @@ An end-to-end pipeline that repeats this for many documents can be run with the 
 
     print(closed_qa_questions[0])
     # Output:
-    # (0, "Which President of the United States gave this speech?"")
+    # (0, "Which President of the United States gave this speech?")
 
 This function runs generates ``n_openlines`` questions for each document provided.
 At the end, it tries to automatically convert the LLM responses to Python lists using ``convert_response_to_yaml_list``.
@@ -393,7 +393,7 @@ Math prompt generation follows these steps:
 
 #. Generate a math problem for each topic
 
-    #. Additional topics can also be manually specified
+   #. Additional topics can also be manually specified
 
 Using NeMo Curator, each step can be performed as follows:
 
