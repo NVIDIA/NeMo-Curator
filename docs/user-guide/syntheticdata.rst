@@ -94,15 +94,17 @@ you can run the same query using the following code.
     # In the realm of computing, it's quite a sight!
 
 Let's focus on the main differences here.
+
 * ``nemo_client = NemoQueryLLM(url="localhost:8000", model_name=model)``. This initialization requires you to specify the model name. NeMoQueryLLM is primarily built for querying a single LLM, but NeMo Curator allows you to change the model you are querying on your local server for each request.
+
 * ``conversation_formatter=Mixtral8x7BFormatter()``. LLMs take a tokenized string of text as input, not a list of conversation turns. Therefore, during the alignment process each LLM uses a conversation format to turn the conversation into a single string. For Mixtral-8x7B-Instruct-v0.1, the format looks like this:
 
     .. code-block::
 
         <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
 
-    Services that use the OpenAI API perform this formatting on the backend. In contrast, since NeMo Deploy allows you to run any model you want, you need to specify what conversation format you should use on when making the request.
-    NeMo Curator provides prebuilt conversation formatters for Mixtral-8x7B-Instruct-v0.1 and Nemotron-4 340B named ``Mixtral8x7BFormatter``and ``NemotronFormatter`` respectively.
+Services that use the OpenAI API perform this formatting on the backend. In contrast, since NeMo Deploy allows you to run any model you want, you need to specify what conversation format you should use on when making the request.
+NeMo Curator provides prebuilt conversation formatters for Mixtral-8x7B-Instruct-v0.1 and Nemotron-4 340B named ``Mixtral8x7BFormatter``and ``NemotronFormatter`` respectively.
 
 .. note::
     OpenAI API backends likely format the conversation for you automatically. Depending on your synthetic data generation process, this may lead to incorrect results. Please refer to your service's documentation to see what kind of prompt formatting they follow.
