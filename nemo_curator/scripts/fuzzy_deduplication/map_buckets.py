@@ -21,7 +21,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
     get_bucket_ddf_from_parquet_path,
     get_text_ddf_from_json_path_with_blocksize,
 )
-from nemo_curator.utils.script_utils import parse_client_args, parse_gpu_dedup_args
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def get_anchor_and_output_map_info(
@@ -34,6 +34,7 @@ def get_anchor_and_output_map_info(
     input_bucket_field,
     input_id_field,
     input_text_field,
+    input_meta,
 ):
     """
     Get anchor docs with bucket info
@@ -53,6 +54,7 @@ def get_anchor_and_output_map_info(
         blocksize=text_ddf_blocksize,
         id_column=input_id_field,
         text_column=input_text_field,
+        input_meta=input_meta,
     )
     ddf_bk = get_bucket_ddf_from_parquet_path(
         input_bucket_path=input_bucket_path, num_workers=num_workers
@@ -68,33 +70,22 @@ def get_anchor_and_output_map_info(
 
 
 def attach_args(parser=None):
-    description = """Takes the buckets generated from minhashes and uses
-    document length information to create a coarse mapping of mapping multiple
-    buckets to a logical partition by using a modified bin packing algorithm.
-    """
     if not parser:
-        parser = parse_gpu_dedup_args(description=description)
+        description = """Takes the buckets generated from minhashes and uses
+        document length information to create a coarse mapping of mapping multiple
+        buckets to a logical partition by using a modified bin packing algorithm.
+        """
+        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
+
+    argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.add_arg_input_meta()
+    argumentHelper.add_arg_output_dir()
+    argumentHelper.add_arg_text_ddf_blocksize()
     parser.add_argument(
         "--input-bucket-dir",
         type=str,
         help="The directory containing bucket information files",
-    )
-    parser.add_argument(
-        "--text-ddf-blocksize",
-        type=int,
-        default=256,
-        help="The block size for chunking jsonl files for text ddf in mb",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        help="The output directory to write results in",
-    )
-    parser.add_argument(
-        "--shuffle-type",
-        type=str,
-        default="tasks",
-        help="Type of shuffle to use before writing to parquet",
     )
     parser.add_argument(
         "--input-bucket-field",
@@ -102,6 +93,13 @@ def attach_args(parser=None):
         default="_bucket_id",
         help="Name of the column containing minhashes",
     )
+    parser.add_argument(
+        "--shuffle-type",
+        type=str,
+        default="tasks",
+        help="Type of shuffle to use before writing to parquet",
+    )
+
     return parser
 
 
@@ -116,6 +114,7 @@ def jaccard_get_output_map_workflow(
     input_bucket_field,
     input_id_field,
     input_text_field,
+    input_meta,
 ):
     """
     Workflow for jaccard shuffle
@@ -140,6 +139,7 @@ def jaccard_get_output_map_workflow(
         input_bucket_field,
         input_id_field,
         input_text_field,
+        input_meta=input_meta,
     )
     ddf_anchor_docs_with_bk.to_parquet(
         output_anchor_docs_with_bk_path,
@@ -154,7 +154,7 @@ def main(args):
     output_anchor_docs_with_bk_path = os.path.join(
         OUTPUT_PATH, "anchor_docs_with_bk.parquet"
     )
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
     print(f"Num Workers = {get_num_workers(client)}", flush=True)
     print("Connected to dask cluster", flush=True)
     print("Running jaccard map buckets script", flush=True)
@@ -171,6 +171,7 @@ def main(args):
         args.input_bucket_field,
         args.input_json_id_field,
         args.input_json_text_field,
+        args.input_meta,
     )
     et = time.time()
     print(f"Bucket Mapping time taken = {et-st} s")

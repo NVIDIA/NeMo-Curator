@@ -1,4 +1,4 @@
-.. include:: DataCuration.rsts
+.. include:: datacuration.rsts
 
 :ref:`Downloading and Extracting Text <data-curator-download>`
    Downloading a massive public dataset is usually the first step in data curation, and it can be cumbersome due to the dataset’s massive size and hosting method. This section describes how to download and extract large corpora efficiently.
@@ -18,6 +18,9 @@
 :ref:`GPU Accelerated Exact and Fuzzy Deduplication <data-curator-gpu-deduplication>`
    Both exact and fuzzy deduplication functionalities are supported in NeMo Curator and accelerated using RAPIDS cuDF.
 
+:ref:`Synthetic Data Generation <data-curator-syntheticdata>`
+   Synthetic data generation tools and example piplines are available within NeMo Curator.
+
 :ref:`Downstream Task Decontamination <data-curator-downstream>`
    After training, large language models are usually evaluated by their performance on downstream tasks consisting of unseen test data. When dealing with large datasets, there is a potential for leakage of this test data into the model’s training dataset. NeMo Curator allows you to remove sections of documents in your dataset that are present in downstream tasks.
 
@@ -27,18 +30,26 @@
 :ref:`NeMo Curator on Kubernetes <data-curator-kubernetes>`
    Demonstration of how to run the NeMo Curator on a Dask Cluster deployed on top of Kubernetes
 
+:ref:`NeMo Curator with NeMo SDK <data-curator-nemo-sdk>`
+   Example of how to use NeMo Curator with NeMo SDK to run on various platforms
+
+`Tutorials <https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials>`__
+   To get started, you can explore the NeMo Curator GitHub repository and follow the available tutorials and notebooks. These resources cover various aspects of data curation, including training from scratch and Parameter-Efficient Fine-Tuning (PEFT).
+
+
 .. toctree::
    :maxdepth: 4
    :titlesonly:
 
 
-   Download.rst
-   DocumentDataset.rst
-   CPUvsGPU.rst
-   QualityFiltering.rst
-   LanguageIdentificationUnicodeFormatting.rst
-   GpuDeduplication.rst
-   TaskDecontamination.rst
-   PersonalIdentifiableInformationIdentificationAndRemoval.rst
-   DistributedDataClassification.rst
-   KubernetesCurator.rst
+   download.rst
+   documentdataset.rst
+   cpuvsgpu.rst
+   qualityfiltering.rst
+   languageidentificationunicodeformatting.rst
+   gpudeduplication.rst
+   taskdecontamination.rst
+   personalidentifiableinformationidentificationandremoval.rst
+   distributeddataclassification.rst
+   kubernetescurator.rst
+   nemosdk.rst
