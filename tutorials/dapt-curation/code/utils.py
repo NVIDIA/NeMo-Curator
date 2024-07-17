@@ -87,7 +87,7 @@ def clean_and_unify(dataset: DocumentDataset) -> DocumentDataset:
     return cleaners(dataset)
 
 
-def filter_txt(dataset: DocumentDataset) -> DocumentDataset:
+def filter_text(dataset: DocumentDataset) -> DocumentDataset:
     """
     Filters the given dataset based on various criteria.
     Refer to the full list of all filters here:
@@ -307,7 +307,6 @@ def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
                 "EMAIL_ADDRESS",
             ],
             anonymize_action="replace",
-            #             batch_size=1000,
             device="gpu",
         ),
         text_field="text",

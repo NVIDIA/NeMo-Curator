@@ -30,7 +30,7 @@ from utils import (
     filter_code,
     filter_code_dataset,
     filter_code_lines,
-    filter_txt,
+    filter_text,
     filter_txt_lines,
     redact,
     redact_pii,
@@ -129,7 +129,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         [
             dedupe,
             filter_txt_lines,
-            filter_txt,
+            filter_text,
             clean_and_unify,
         ]
     )
