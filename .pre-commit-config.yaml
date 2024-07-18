@@ -45,4 +45,5 @@ repos:
     hooks:
       - id: isort
         name: Format imports
+        args: ["--profile=black"] # <-- this one
         exclude: docs/|nemo_curator/modules/__init__.py
