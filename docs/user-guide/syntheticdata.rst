@@ -99,12 +99,12 @@ Let's focus on the main differences here.
 
 * ``conversation_formatter=Mixtral8x7BFormatter()``. LLMs take a tokenized string of text as input, not a list of conversation turns. Therefore, during the alignment process each LLM uses a conversation format to turn the conversation into a single string. For Mixtral-8x7B-Instruct-v0.1, the format looks like this:
 
-    .. code-block::
+  .. code-block::
 
-        <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+    <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
 
-Services that use the OpenAI API perform this formatting on the backend. In contrast, since NeMo Deploy allows you to run any model you want, you need to specify what conversation format you should use on when making the request.
-NeMo Curator provides prebuilt conversation formatters for Mixtral-8x7B-Instruct-v0.1 and Nemotron-4 340B named ``Mixtral8x7BFormatter``and ``NemotronFormatter`` respectively.
+  Services that use the OpenAI API perform this formatting on the backend. In contrast, since NeMo Deploy allows you to run any model you want, you need to specify what conversation format you should use on when making the request.
+  NeMo Curator provides prebuilt conversation formatters for Mixtral-8x7B-Instruct-v0.1 and Nemotron-4 340B named ``Mixtral8x7BFormatter`` and ``NemotronFormatter`` respectively.
 
 .. note::
     OpenAI API backends likely format the conversation for you automatically. Depending on your synthetic data generation process, this may lead to incorrect results. Please refer to your service's documentation to see what kind of prompt formatting they follow.
@@ -232,6 +232,7 @@ For a more in-depth explanation of each of the steps, please refer to the `Nemot
 Open Q&A Prompt Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Open Q&A prompt generation follows these steps:
+
 #. Generate a list of macro topics about the world
 
 #. Generate a list of subtopics related to each macro topic
@@ -295,6 +296,7 @@ However, an error will still be thrown if the first step of the pipeline cannot 
 Writing Prompt Generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Writing prompt generation follows these steps:
+
 #. Generate tasks to write an email, essay, etc. about a topic
 
 #. Revise the tasks to be more detailed
@@ -387,6 +389,7 @@ Math
 **************
 
 Math prompt generation follows these steps:
+
 #. Generate math macro topics targetted at a specific school level
 
 #. Generate subtopics for each macro topic
@@ -449,6 +452,7 @@ Coding
 
 The coding generation pipeline is similar to the math generation pipeline.
 Coding, in particular Python-related, prompt generation follows these steps:
+
 #. Generate macro topics relating to Python
 
 #. Generate subtopics for each macro topic
