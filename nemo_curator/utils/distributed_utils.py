@@ -105,14 +105,14 @@ def get_client(
     protocol="tcp",
     rmm_pool_size="1024M",
     enable_spilling=True,
-    set_torch_to_use_rmm=True,
+    set_torch_to_use_rmm=False,
 ) -> Client:
     """
     Initializes or connects to a Dask cluster.
     The Dask cluster can be CPU-based or GPU-based (if GPUs are available).
     The intialization ensures maximum memory efficiency for the GPU by:
-        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool.
-        2. Enabling spilling for cuDF.
+        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool. (If `set_torch_to_use_rmm` is True)
+        2. Enabling spilling for cuDF. (If `enable_spilling` is True)
 
     Args:
         cluster_type: The type of cluster to set up. Either "cpu" or "gpu". Defaults to "cpu".
