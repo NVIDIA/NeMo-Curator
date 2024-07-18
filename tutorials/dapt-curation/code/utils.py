@@ -20,14 +20,21 @@ import re
 import dask.dataframe as dd
 import pandas as pd
 from modifiers import QuotationUnifier
+
 from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import (DocumentFilter, RepeatedLinesFilter,
-                                  RepeatedParagraphsFilter,
-                                  RepeatingTopNGramsFilter, UrlsFilter,
-                                  WordCountFilter)
-from nemo_curator.filters.code import (NumberOfLinesOfCodeFilter,
-                                       PythonCommentToCodeFilter)
+from nemo_curator.filters import (
+    DocumentFilter,
+    RepeatedLinesFilter,
+    RepeatedParagraphsFilter,
+    RepeatingTopNGramsFilter,
+    UrlsFilter,
+    WordCountFilter,
+)
+from nemo_curator.filters.code import (
+    NumberOfLinesOfCodeFilter,
+    PythonCommentToCodeFilter,
+)
 from nemo_curator.modifiers import DocumentModifier
 from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter

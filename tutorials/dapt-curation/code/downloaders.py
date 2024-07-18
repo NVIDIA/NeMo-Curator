@@ -19,9 +19,17 @@ from typing import Optional
 
 import pandas as pd  # FIXME
 from docbuilder import (  # For Wikipedia sources; For GitHub sources; For arXiv sources
-    ArxivDownloader, ArxivExtractor, ArxivIterator, GitHubDownloader,
-    GitHubExtractor, GitHubIterator, WikitxtDownloader, WikitxtExtractor,
-    WikitxtIterator)
+    ArxivDownloader,
+    ArxivExtractor,
+    ArxivIterator,
+    GitHubDownloader,
+    GitHubExtractor,
+    GitHubIterator,
+    WikitxtDownloader,
+    WikitxtExtractor,
+    WikitxtIterator,
+)
+
 from nemo_curator.download.doc_builder import download_and_extract
 
 

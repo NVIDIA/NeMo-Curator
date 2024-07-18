@@ -19,9 +19,23 @@ import shutil
 from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
+from downloaders import (
+    download_github_sources,
+    download_pdf_sources,
+    download_wikipedia_sources,
+)
+from utils import (
+    clean_and_unify,
+    dedupe,
+    filter_code,
+    filter_code_dataset,
+    filter_code_lines,
+    filter_text,
+    filter_text_lines,
+    redact_code,
+)
+
 import nemo_curator as nc
-from downloaders import (download_github_sources, download_pdf_sources,
-                         download_wikipedia_sources)
 from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import RepeatingTopNGramsFilter, WordCountFilter
@@ -30,12 +44,11 @@ from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.modules import ExactDuplicates
 from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import (get_all_files_paths_under,
-                                           separate_by_metadata)
+from nemo_curator.utils.file_utils import (
+    get_all_files_paths_under,
+    separate_by_metadata,
+)
 from nemo_curator.utils.script_utils import ArgumentHelper
-from utils import (clean_and_unify, dedupe, filter_code, filter_code_dataset,
-                   filter_code_lines, filter_text, filter_text_lines,
-                   redact_code)
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
