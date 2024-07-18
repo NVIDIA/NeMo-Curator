@@ -31,9 +31,8 @@ from utils import (
     filter_code_dataset,
     filter_code_lines,
     filter_text,
-    filter_txt_lines,
-    redact,
-    redact_pii,
+    filter_text_lines,
+    redact_code,
 )
 
 import nemo_curator as nc
@@ -128,7 +127,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     curation_steps_text = Sequential(
         [
             dedupe,
-            filter_txt_lines,
+            filter_text_lines,
             filter_text,
             clean_and_unify,
         ]
@@ -141,7 +140,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
             filter_code_lines,
             filter_code,
             clean_and_unify,
-            #          redact_pii,
+            redact_code,
         ]
     )
 

@@ -211,87 +211,9 @@ def filter_code_dataset(dataset: DocumentDataset) -> DocumentDataset:
 
 
 # +
-def comment_redaction(json_data):
-    """
-    Redact PII on comment lines on extracted json data.
-
-    """
-    data = json.loads(json_data)
-    json_docs = data.get("documents", [])
-    print("len of docs: ", len(json_docs))
-    print(json_docs)
-    for doc in json_docs:
-        print(doc)
-        if "text" in doc:
-            # Extract the comment content between /* and */
-            start_idx = doc["text"].find("/*")
-            end_idx = doc["text"].find("*/")
-            if start_idx != -1 and end_idx != -1:
-                comment = doc["text"][start_idx : end_idx + 2]
-
-                # Create a Dask DataFrame from the given data
-                comment_df = dd.from_pandas(
-                    pd.DataFrame([{"text": comment}]), npartitions=1
-                )
-                # Create a DocumentDataset instance
-                comment_doc_dataset = DocumentDataset(comment_df)
-                redacted_comment = redact_pii(comment_doc_dataset)
-
-                # Extract the "text" column from the DocumentDataset
-                text_column = redacted_comment.df["text"]
-
-                # Convert the Dask Series to a Pandas Series (if needed)
-                text_series = text_column.compute()
-
-                # Get the first (and presumably only) value from the Series
-                text_value = text_series.iloc[0]
-
-                # Convert the value to a string
-                redacted_text_string = str(text_value)
-
-                doc["text"] = doc["text"].replace(comment, redacted_text_string)
-
-    # Serialize the updated dictionary back to a JSON string
-    updated_json_data = json.dumps(data, indent=2)
-    return updated_json_data
-
-
-def redact(dataset: DocumentDataset) -> DocumentDataset:
-    """
-    Redact PII on comment lines on a  given code dataset.
-
-    Args:
-        dataset (DocumentDataset): The dataset to be redacted.
-
-    Returns:
-        DocumentDataset: The redacted dataset.
-    """
-    # Extract relevant data from the Dask DataFrame
-    length = len(dataset)
-    data_dict = {
-        "documents": dataset.df.compute().to_dict(orient="records"),
-    }
-    # Serialize the dictionary to a JSON string
-    json_data = json.dumps(data_dict, indent=2)
-    redactd_json_data = comment_redaction(json_data)
-
-    # Deserialize the JSON string to a dictionary
-    redactd_data_dict = json.loads(redactd_json_data)
-
-    # Create a DataFrame from the dictionary
-    redactd_dataset_df = dd.from_pandas(
-        pd.DataFrame(redactd_data_dict["documents"]), npartitions=length
-    )
-
-    # Create a DocumentDataset instance
-    redactd_document_dataset = DocumentDataset(redactd_dataset_df)
-
-    return redactd_document_dataset
-
-
 def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
     """
-    Redacts personally identifiable information (PII) from a given dataset.
+    Redacts personally identifiable information (PII) from extracted comment lines in a given dataset.
 
     Args:
         dataset (DocumentDataset): The dataset containing documents with PII.
@@ -309,9 +231,38 @@ def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
             anonymize_action="replace",
             device="gpu",
         ),
-        text_field="text",
+        text_field="extracted_comment",
     )
     return redactor(dataset)
+
+
+def redact_code(dataset: DocumentDataset) -> DocumentDataset:
+    """
+    Redact PII on comment lines on a  given code dataset.
+
+    Args:
+        dataset (DocumentDataset): The dataset to be redacted.
+
+    Returns:
+        DocumentDataset: The redacted dataset.
+    """
+
+    # functions to extract comment lines from each row in a dataframe
+    def func(row):
+        return row["text"][row["text"].find("/*") : row["text"].find("*/") + 2]
+
+    def func2(row):
+        comment = row["text"][row["text"].find("/*") : row["text"].find("*/") + 2]
+        return row["text"].replace(comment, str(row["extracted_comment"]))
+
+    dataset.df["extracted_comment"] = dataset.df.apply(func, axis=1, meta=(None, str))
+    redacted_dataset = redact_pii(dataset)
+    redacted_dataset.df["text"] = redacted_dataset.df.apply(
+        func2, axis=1, meta=(None, str)
+    )
+    redacted_dataset.df = redacted_dataset.df.drop(["extracted_comment"], axis=1)
+
+    return redacted_dataset
 
 
 # -
@@ -341,7 +292,7 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
 
 
 # +
-def filter_txt_lines(dataset: DocumentDataset) -> DocumentDataset:
+def filter_text_lines(dataset: DocumentDataset) -> DocumentDataset:
     """
     Discard text files based on lines.
     """
