@@ -9,7 +9,6 @@ Here, we share a tutotial with best practices on data curation for DAPT (domain-
 * `\code\data` contains curated data after processing
 
 The small size of this dataset makes it ideal for creating and validating data curation pipelines on a local machine or a cluster.
-
 This playbook utilizes specific tools and techniques. First, we convert all files to Txt format (if not already in Txt), compress files on disk, add metadata, and convert them to JSON (`./data/raw/`). Then, we leverage [NeMo Curator](https://github.com/NVIDIA/NeMo-Curator/tree/main) to mine high-quality text at scale from a massive code-generation corpus. We use its capabilities to extract text, identify code file types, fix unicode errors, filter quality through heuristics, deduplicate, and redact personal information. We finally also provide steps to blend and shuffle data sources for continued pre-training.
 
 
