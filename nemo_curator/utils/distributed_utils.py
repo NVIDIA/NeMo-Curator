@@ -171,10 +171,18 @@ def _set_torch_to_use_rmm():
 
     See article:
     https://medium.com/rapids-ai/pytorch-rapids-rmm-maximize-the-memory-efficiency-of-your-workflows-f475107ba4d4
-
     """
+    import warnings
+
     import torch
     from rmm.allocators.torch import rmm_torch_allocator
+
+    if torch.cuda.get_allocator_backend() == "pluggable":
+        warnings.warn(
+            "PyTorch allocator already plugged in, not switching to RMM. "
+            "Please ensure you have not already swapped it."
+        )
+        return
 
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
