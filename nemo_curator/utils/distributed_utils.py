@@ -172,7 +172,6 @@ def _set_torch_to_use_rmm():
     See article:
     https://medium.com/rapids-ai/pytorch-rapids-rmm-maximize-the-memory-efficiency-of-your-workflows-f475107ba4d4
     """
-    import warnings
 
     import torch
     from rmm.allocators.torch import rmm_torch_allocator
