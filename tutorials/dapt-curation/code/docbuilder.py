@@ -24,13 +24,10 @@ import arxiv
 import cchardet as chardet
 import requests
 from bs4 import BeautifulSoup
+from nemo_curator.download.doc_builder import (DocumentDownloader,
+                                               DocumentExtractor,
+                                               DocumentIterator)
 from unstructured.partition.auto import partition
-
-from nemo_curator.download.doc_builder import (
-    DocumentDownloader,
-    DocumentExtractor,
-    DocumentIterator,
-)
 
 
 class WikitxtDownloader(DocumentDownloader):
