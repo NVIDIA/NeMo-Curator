@@ -390,7 +390,7 @@ Math
 
 Math prompt generation follows these steps:
 
-#. Generate math macro topics targetted at a specific school level
+#. Generate math macro topics targeted at a specific school level
 
 #. Generate subtopics for each macro topic
 
