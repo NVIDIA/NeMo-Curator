@@ -22,12 +22,14 @@ import torch
 import torch.nn as nn
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
-from packaging import version
-from transformers import AutoConfig, AutoModel
-from transformers import __version__ as TRANSFORMERS_VERSION
+from huggingface_hub import PyTorchModelHubMixin
+from transformers import AutoConfig, AutoTokenizer, AutoModel
 from transformers.models.deberta_v2 import DebertaV2TokenizerFast
 
 from nemo_curator.datasets import DocumentDataset
+
+
+DOMAIN_IDENTIFIER = "nvidia/domain-classifier"
 
 
 @dataclass
@@ -44,22 +46,23 @@ class QualityModelConfig:
     max_len = 512
 
 
-class CustomModel(nn.Module):
+# TODO: Remove this class after Quality Model is uploaded to HuggingFace
+class NCCustomModel(nn.Module):
     def __init__(
         self, config, out_dim, config_path=None, pretrained=False, autocast=False
     ):
         super().__init__()
         self.config = config
         if config_path is None:
-            self.config = AutoConfig.from_pretrained(
-                config.model, output_hidden_states=True
-            )
+            self.config = AutoConfig.from_pretrained(config.model, output_hidden_states=True)
         else:
             self.config = torch.load(config_path)
+
         if pretrained:
             self.model = AutoModel.from_pretrained(config.model, config=self.config)
         else:
             self.model = AutoModel(self.config)
+
         self.fc_dropout = nn.Dropout(config.fc_dropout)
         self.fc = nn.Linear(self.config.hidden_size, out_dim)
         self._init_weights(self.fc)
@@ -95,6 +98,30 @@ class CustomModel(nn.Module):
                 return self._forward(batch)
         else:
             return self._forward(batch)
+
+
+class HFCustomModel(nn.Module, PyTorchModelHubMixin):
+    def __init__(self, config):
+        super(HFCustomModel, self).__init__()
+        self.model = AutoModel.from_pretrained(config["base_model"])
+        self.dropout = nn.Dropout(config["fc_dropout"])
+        self.fc = nn.Linear(self.model.config.hidden_size, len(config["id2label"]))
+
+    def _forward(self, batch):
+        features = self.model(batch["input_ids"], batch["attention_mask"]).last_hidden_state
+        dropped = self.dropout(features)
+        outputs = self.fc(dropped)
+        return torch.softmax(outputs[:, 0, :], dim=1)
+
+    def forward(self, batch):
+        if self.autocast:
+            with torch.autocast(device_type="cuda"):
+                return self._forward(batch)
+        else:
+            return self._forward(batch)
+    
+    def set_autocast(self, autocast):
+        self.autocast = autocast
 
 
 class DistributedDataClassifier(ABC):
@@ -183,6 +210,7 @@ def _run_classifier_helper(
         keep_cols=columns_to_keep_list,
     )
     df = classifier_pipe(df)
+
     # TODO: Make crossfit handle this cleanly
     # to prevent the labeler from dropping the prob_internal_col
     # and combine it into a single step
@@ -191,6 +219,7 @@ def _run_classifier_helper(
         keep_cols=columns_to_keep_list + [prob_internal_col],
     )
     df = labeling_pipe(df)
+
     if keep_prob:
         df = df.rename(
             columns={prob_internal_col: prob_col, pred_internal_col: label_col},
@@ -198,41 +227,27 @@ def _run_classifier_helper(
     else:
         df = df.rename(columns={pred_internal_col: label_col})
         df = df.drop(columns=[prob_internal_col])
+
     return df
 
 
 class DomainModel(HFModel):
-    def __init__(self, config, out_dim=None, model_path=None, autocast=False):
+    def __init__(self, config, autocast=False):
         self.config = config
-        self.out_dim = out_dim
-        self.model_path = model_path
         self.autocast = autocast
         super().__init__(self.config.model)
 
     def load_model(self, device="cuda"):
-        model = CustomModel(
-            self.config,
-            out_dim=self.out_dim,
-            config_path=None,
-            pretrained=True,
-            autocast=self.autocast,
-        )
+        model = HFCustomModel.from_pretrained(DOMAIN_IDENTIFIER)
+        model.set_autocast(self.autocast)
         model = model.to(device)
-        if os.path.exists(self.model_path):
-            sd = torch.load(os.path.join(self.model_path), map_location="cpu")
-            sd = {k[7:] if k.startswith("module.") else k: sd[k] for k in sd.keys()}
-            if version.parse(TRANSFORMERS_VERSION) >= version.parse("4.31.0"):
-                sd.pop("model.embeddings.position_ids", None)
-            model.load_state_dict(sd, strict=True)
-        else:
-            raise ValueError(f"Model path {self.model_path} does not exist")
         return model.eval()
 
     def load_tokenizer(self):
-        return DebertaV2TokenizerFast.from_pretrained(self.config.model)
+        return AutoTokenizer.from_pretrained(DOMAIN_IDENTIFIER)
 
     def load_config(self):
-        return AutoConfig.from_pretrained(self.path_or_name)
+        return AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
 
 
 class QualityModel(HFModel):
@@ -244,7 +259,7 @@ class QualityModel(HFModel):
         super().__init__(self.config.model)
 
     def load_model(self, device="cuda"):
-        model = CustomModel(
+        model = NCCustomModel(
             self.config,
             out_dim=self.out_dim,
             config_path=None,
@@ -252,6 +267,7 @@ class QualityModel(HFModel):
             autocast=self.autocast,
         )
         model = model.to(device)
+
         if os.path.exists(self.model_path):
             sd = torch.load(self.model_path, map_location="cpu")
             if "model_state_dict" in sd:
@@ -260,8 +276,8 @@ class QualityModel(HFModel):
             model.load_state_dict(sd, strict=True)
         else:
             raise ValueError(f"Model path {self.model_path} does not exist")
-        model.eval()
-        return model
+
+        return model.eval()
 
     def load_tokenizer(self):
         return DebertaV2TokenizerFast.from_pretrained(self.config.model)
@@ -273,7 +289,6 @@ class QualityModel(HFModel):
 class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
-        model_path,
         filter_by=None,
         batch_size=256,
         pred_column="domain_pred",
@@ -282,44 +297,13 @@ class DomainClassifier(DistributedDataClassifier):
         device_type="cuda",
         autocast=True,
     ):
-        self.labels = [
-            "Adult",
-            "Arts_and_Entertainment",
-            "Autos_and_Vehicles",
-            "Beauty_and_Fitness",
-            "Books_and_Literature",
-            "Business_and_Industrial",
-            "Computers_and_Electronics",
-            "Finance",
-            "Food_and_Drink",
-            "Games",
-            "Health",
-            "Hobbies_and_Leisure",
-            "Home_and_Garden",
-            "Internet_and_Telecom",
-            "Jobs_and_Education",
-            "Law_and_Government",
-            "News",
-            "Online_Communities",
-            "People_and_Society",
-            "Pets_and_Animals",
-            "Real_Estate",
-            "Science",
-            "Sensitive_Subjects",
-            "Shopping",
-            "Sports",
-            "Travel_and_Transportation",
-        ]
-        self.out_dim = len(self.labels)
+        config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
 
         self.prob_column = prob_column
+        self.labels = list(config.label2id.keys())
+        self.out_dim = len(self.labels)
 
-        model = DomainModel(
-            config=DomainModelConfig,
-            out_dim=self.out_dim,
-            model_path=model_path,
-            autocast=autocast,
-        )
+        model = DomainModel(config=DomainModelConfig, autocast=autocast)
 
         super().__init__(
             model=model,

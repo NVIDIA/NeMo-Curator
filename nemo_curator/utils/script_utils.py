@@ -397,8 +397,8 @@ class ArgumentHelper:
         parser.add_argument(
             "--pretrained-model-name-or-path",
             type=str,
-            help="HuggingFace name of model, or local path to downloaded model file",
-            required=True,
+            help="The path to the model file",
+            required=False,
         )
         parser.add_argument(
             "--input-file-type",
