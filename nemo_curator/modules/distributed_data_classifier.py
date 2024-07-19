@@ -17,6 +17,7 @@ import os
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -48,7 +49,12 @@ class QualityModelConfig:
 # TODO: Remove this class after Quality Model is uploaded to HuggingFace
 class NCCustomModel(nn.Module):
     def __init__(
-        self, config, out_dim, config_path=None, pretrained=False, autocast=False
+        self,
+        config: dataclass,
+        out_dim: int,
+        config_path: str = None,
+        pretrained: bool = False,
+        autocast: bool = False,
     ):
         super().__init__()
         self.config = config
@@ -102,7 +108,7 @@ class NCCustomModel(nn.Module):
 
 
 class HFCustomModel(nn.Module, PyTorchModelHubMixin):
-    def __init__(self, config):
+    def __init__(self, config: dataclass):
         super(HFCustomModel, self).__init__()
         self.model = AutoModel.from_pretrained(config["base_model"])
         self.dropout = nn.Dropout(config["fc_dropout"])
@@ -179,7 +185,7 @@ class DistributedDataClassifier(ABC):
 
         raise TypeError("filter_by must be a string or list type")
 
-    def get_labels(self):
+    def get_labels(self) -> List[str]:
         return self.labels
 
 
@@ -235,7 +241,7 @@ def _run_classifier_helper(
 
 
 class DomainModel(HFModel):
-    def __init__(self, config, autocast=False):
+    def __init__(self, config: dataclass, autocast: bool = False):
         self.config = config
         self.autocast = autocast
         super().__init__(self.config.model)
