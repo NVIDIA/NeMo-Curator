@@ -225,7 +225,7 @@ Performance Considerations
 
 Semantic deduplication is computationally intensive, especially for large datasets. However, the benefits in terms of reduced training time and improved model performance often outweigh the upfront cost. Consider the following:
 
-- Use GPU acceleration when available for faster embedding generation and clustering.
+- Use GPU acceleration for faster embedding generation and clustering.
 - Adjust the number of clusters (`n_clusters`) based on your dataset size and available computational resources.
 - The `eps_to_extract` parameter allows you to control the trade-off between dataset size reduction and potential information loss.
 
