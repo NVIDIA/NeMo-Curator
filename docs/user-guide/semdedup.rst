@@ -14,7 +14,7 @@ Unlike exact or fuzzy deduplication, which focus on textual similarity, semantic
 As outlined in the paper "SemDeDup: Data-efficient learning at web-scale through semantic deduplication" by Abbas et al.,
 this method can significantly reduce dataset size while maintaining or even improving model performance.
  Semantic deduplication is particularly effective for large, uncurated web-scale datasets, where it can remove up to 50% of the data with minimal performance loss.
-The semantic deduplication module in NeMo Curator uses embeddings from pre-trained foundation models to identify and remove "semantic duplicates" - data pairs that are semantically similar but not exactly identical.
+The semantic deduplication module in NeMo Curator uses embeddings from to identify and remove "semantic duplicates" - data pairs that are semantically similar but not exactly identical.
 
 -----------------------------------------
 How It Works
