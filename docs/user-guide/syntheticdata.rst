@@ -8,7 +8,7 @@ Synthetic Data Generation
 Background
 --------------------------------------
 Synthetic data generation has become increasing useful in large language model training.
-It is used in pretraining, fine-tuning, and evalutation.
+It is used in pretraining, fine-tuning, and evaluation.
 Synthetically generated data can be useful for adapting an LLM to low resource languages/domains, or performing knowledge distillation from other models among other purposes.
 There are a variety of ways to construct synthetic data generation pipelines, with numerous LLM and classical filters.
 
@@ -33,7 +33,7 @@ Here is how we can connect to `build.nvidia.com <https://build.nvidia.com/explor
 
     openai_client = OpenAI(
         base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert API key>",
+        api_key="<insert NVIDIA API key>",
     )
     client = OpenAIClient(openai_client)
     responses = client.query_model(
@@ -95,7 +95,7 @@ you can run the same query using the following code.
 
 Let's focus on the main differences here.
 
-* ``nemo_client = NemoQueryLLM(url="localhost:8000", model_name=model)``. This initialization requires you to specify the model name. NeMoQueryLLM is primarily built for querying a single LLM, but NeMo Curator allows you to change the model you are querying on your local server for each request.
+* ``nemo_client = NemoQueryLLM(url="localhost:8000", model_name=model)``. This initialization requires you to specify the model name. NemoQueryLLM is primarily built for querying a single LLM, but NeMo Curator allows you to change the model you are querying on your local server for each request.
 
 * ``conversation_formatter=Mixtral8x7BFormatter()``. LLMs take a tokenized string of text as input, not a list of conversation turns. Therefore, during the alignment process each LLM uses a conversation format to turn the conversation into a single string. For Mixtral-8x7B-Instruct-v0.1, the format looks like this:
 
