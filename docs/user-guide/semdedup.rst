@@ -8,7 +8,7 @@ Semantic Deduplication
 Background
 -----------------------------------------
 
-Semantic deduplication is an advanced technique for removing redundant data from large datasets by identifying and eliminating semantically similar documents.
+Semantic deduplication is an advanced technique for removing redundant data from large datasets by identifying and eliminating semantically similar data points.
 Unlike exact or fuzzy deduplication, which focus on textual similarity, semantic deduplication leverages the semantic meaning of the content to identify duplicates.
 
 As outlined in the paper `SemDeDup: Data-efficient learning at web-scale through semantic deduplication <https://arxiv.org/pdf/2303.09540>`_ by Abbas et al.,
@@ -22,11 +22,11 @@ How It Works
 
 The SemDeDup algorithm consists of the following main steps:
 
-1. Embedding Generation: Each data point is embedded using a pre-trained language model.
+1. Embedding Generation: Each data point is embedded using a pre-trained model.
 2. Clustering: The embeddings are clustered into k clusters using k-means clustering.
 3. Similarity Computation: Within each cluster, pairwise cosine similarities are computed.
 4. Duplicate Identification: Data pairs with cosine similarity above a threshold are considered semantic duplicates.
-5. Duplicate Removal: From each group of semantic duplicates within a cluster, one representative document is kept (typically the one with the lowest cosine similarity to the cluster centroid) and the rest are removed.
+5. Duplicate Removal: From each group of semantic duplicates within a cluster, one representative datapoint is kept (typically the one with the lowest cosine similarity to the cluster centroid) and the rest are removed.
 
 -----------------------------------------
 Configuration
@@ -107,7 +107,7 @@ By selecting an appropriate embedding model, you can optimize the semantic dedup
 Usage
 -----------------------------------------
 
-Before running semantic deduplication, ensure that each document in your dataset has a unique identifier. You can use the `add_id` module from NeMo Curator if needed:
+Before running semantic deduplication, ensure that each document/datapoint in your dataset has a unique identifier. You can use the `add_id` module from NeMo Curator if needed:
 
 .. code-block:: bash
 
@@ -123,7 +123,7 @@ Using individual components:
 
 .. code-block:: python
 
-    from nemo_curator.modules.semantic_dedup import EmbeddingCreator
+    from nemo_curator import EmbeddingCreator
 
     # Step 1: Embedding Creation
     embedding_creator = EmbeddingCreator(
@@ -141,7 +141,7 @@ Using individual components:
 
 .. code-block:: python
 
-    from nemo_curator.modules.semantic_dedup import ClusteringModel
+    from nemo_curator import ClusteringModel
 
     # Step 2: Clustering
     clustering_model = ClusteringModel(
@@ -153,11 +153,11 @@ Using individual components:
     )
     clustered_dataset = clustering_model(embeddings_dataset)
 
-3. Semantic Deduplication:
+1. Semantic Deduplication:
 
 .. code-block:: python
 
-    from nemo_curator.modules.semantic_dedup import SemanticClusterLevelDedup
+    from nemo_curator import SemanticClusterLevelDedup
 
     # Step 3: Semantic Deduplication
     semantic_dedup = SemanticClusterLevelDedup(
@@ -173,11 +173,11 @@ Using individual components:
     semantic_dedup.compute_semantic_match_dfs()
     deduplicated_dataset_ids = semantic_dedup.extract_dedup_data(eps_to_extract=0.07)
 
-4. Alternatively, you can use the SemDedup class to perform all steps:
+1. Alternatively, you can use the SemDedup class to perform all steps:
 
 .. code-block:: python
 
-    from nemo_curator.modules.semantic_dedup import SemDedup, SemDedupConfig
+    from nemo_curator import SemDedup, SemDedupConfig
     import yaml
 
     # Load configuration from YAML file
@@ -214,8 +214,8 @@ Output
 
 The semantic deduplication process produces a deduplicated dataset, typically reducing the dataset size by 20-50% while maintaining or improving model performance. The output includes:
 
-1. Embeddings for each document
-2. Cluster assignments for each document
+1. Embeddings for each datapoint
+2. Cluster assignments for each datapoint
 3. A list of semantic duplicates
 4. The final deduplicated dataset
 
