@@ -2,13 +2,16 @@
 Running NeMo Curator on AWS EKS
 ======================================
 
+--------------------------------------
+Background
+--------------------------------------
 AWS EKS is a fully managed service that makes it easier to run Kubernetes on AWS without needing to install, operate, and maintain your own Kubernetes control plane.
 
 Running NeMo Curator on AWS EKS offers streamlined Kubernetes management integrated with AWS services like CloudWatch for enhanced monitoring and logging, and native auto-scaling capabilities.
 
-For more details, refer to the EKS documentation <https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html>__.
+For more details, refer to `EKS documentation <https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html>`__
 
-This guide covers all essential prerequisites. It includes an example demonstrating how to create an EFS storage class and offers step-by-step instructions for setting up an EFS Persistent Volume Claim to dynamically provision Kubernetes Persistent Volumes. Furthermore, it outlines the required steps to deploy a Dask cluster and delves into utilizing the Kubernetes Python client library to assign NeMo-Curator tasks to the Dask scheduler.
+This guide covers all essential prerequisites. It includes an example demonstrating how to create an EFS storage class and offers step-by-step instructions for setting up an EFS Persistent Volume Claim to dynamically provisioning Kubernetes Persistent Volume. Furthermore, it outlines the required steps to deploy a Dask cluster and delves into utilizing the Kubernetes Python client library to assign NeMo-Curator tasks to the Dask scheduler.
 
 
 Prerequisites:
@@ -120,7 +123,6 @@ The output will look as follows:
 
 
 Use Kubernetes Python client library to submit NeMo-Curator jobs to the Dask scheduler:
-
 ------------------------------------------------------
 
 In this method, we programmatically connect to the scheduler pod using the Kubernetes Python client library to execute the existing NeMo curator modules.
@@ -187,15 +189,17 @@ Moreover, deploying this client pod can be orchestrated by another service such 
 The above yaml file creates a ClusterRole and a ClusterRoleBinding.
 
 ClusterRole Definition:
-- Specifies permissions (rules) for interacting with Kubernetes pods.
-- resources: ["pods", "pods/exec"] specifies the resources pods and pods/exec.
-- verbs: ["list", "get", "watch", "create"] lists the actions allowed on these resources (list, get, watch, create).
+  * Specifies permissions (rules) for interacting with Kubernetes pods.
+  * `resources`: `["pods", "pods/exec"]` specifies the resources pods and pods/exec.
+  * `verbs`: `["list", "get", "watch", "create"]` lists the actions allowed on these resources (`list`, `get`, `watch`, `create`).
+
 
 ClusterRoleBinding Definition:
-- Binds the pod-exec ClusterRole to a specific ServiceAccount (default in the default namespace).
-- This means that any pods using the default ServiceAccount in the default namespace will have the permissions specified in the pod-exec ClusterRole.
+  * Binds the `pod-exec` ClusterRole to a specific ServiceAccount (`default` in the `default` namespace).
+  * This means that any pods using the `default` ServiceAccount in the `default` namespace will have the permissions specified in the `pod-exec` ClusterRole.
 
- Now, we can spin up a client pod.
+
+Now, we can spin up a client pod.
 
 .. code-block:: yaml
 
