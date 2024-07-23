@@ -3,7 +3,7 @@ Filters
 ============================
 
 ------------------------------
-Base class for all filters
+DocumentFilter
 ------------------------------
 
 .. autoclass:: nemo_curator.filters.DocumentFilter

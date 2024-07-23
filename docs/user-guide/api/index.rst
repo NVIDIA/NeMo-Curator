@@ -1,5 +1,5 @@
 ======================================
-NeMo Curator API Reference
+API Reference
 ======================================
 
 .. toctree::
