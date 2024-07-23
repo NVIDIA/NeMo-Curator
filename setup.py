@@ -21,7 +21,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="nemo_curator",
-    version="0.3.0",
+    version="0.4.0",
     description="Scalable Data Preprocessing Tool for "
     "Training Large Language Models",
     long_description=long_description,
@@ -34,6 +34,7 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
     ],
     packages=find_packages(),
     python_requires=">=3.10, <3.11",
@@ -44,7 +45,7 @@ setup(
         "charset_normalizer>=3.1.0",
         "awscli>=1.22.55",
         "fasttext==0.9.2",
-        "pycld2==0.41",
+        "pycld2",
         "justext==3.0.1",
         "resiliparse",
         "ftfy==6.1.1",
@@ -66,6 +67,7 @@ setup(
         # Numpy 2.0 breaks with spacy https://github.com/explosion/spaCy/issues/13528
         # TODO: Remove when issue is fixed
         "numpy<2",
+        "openai",
     ],
     extras_require={
         "cuda12x": [
@@ -75,7 +77,7 @@ setup(
             "cugraph-cu12>=24.2",
             "dask-cuda>=24.2",
             "spacy[cuda12x]>=3.6.0, <4.0.0",
-        ]
+        ],
     },
     entry_points={
         "console_scripts": [

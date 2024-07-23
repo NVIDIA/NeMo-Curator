@@ -21,11 +21,12 @@ import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
@@ -104,14 +105,14 @@ def get_client(
     protocol="tcp",
     rmm_pool_size="1024M",
     enable_spilling=True,
-    set_torch_to_use_rmm=True,
+    set_torch_to_use_rmm=False,
 ) -> Client:
     """
     Initializes or connects to a Dask cluster.
     The Dask cluster can be CPU-based or GPU-based (if GPUs are available).
     The intialization ensures maximum memory efficiency for the GPU by:
-        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool.
-        2. Enabling spilling for cuDF.
+        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool. (If `set_torch_to_use_rmm` is True)
+        2. Enabling spilling for cuDF. (If `enable_spilling` is True)
 
     Args:
         cluster_type: The type of cluster to set up. Either "cpu" or "gpu". Defaults to "cpu".
@@ -170,10 +171,17 @@ def _set_torch_to_use_rmm():
 
     See article:
     https://medium.com/rapids-ai/pytorch-rapids-rmm-maximize-the-memory-efficiency-of-your-workflows-f475107ba4d4
-
     """
+
     import torch
     from rmm.allocators.torch import rmm_torch_allocator
+
+    if torch.cuda.get_allocator_backend() == "pluggable":
+        warnings.warn(
+            "PyTorch allocator already plugged in, not switching to RMM. "
+            "Please ensure you have not already swapped it."
+        )
+        return
 
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
@@ -611,3 +619,13 @@ def seed_all(seed: int = 42):
         # Ensure deterministic behavior for CUDA algorithms
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+
+
+def get_network_interfaces() -> List[str]:
+    """
+    Gets a list of all valid network interfaces on a machine
+
+    Returns:
+        A list of all valid network interfaces on a machine
+    """
+    return list(psutil.net_if_addrs().keys())
