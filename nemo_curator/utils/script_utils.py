@@ -283,10 +283,10 @@ class ArgumentHelper:
 
     def add_arg_model_path(self, help="The path to the model file"):
         self.parser.add_argument(
-            "--model-path",
+            "--pretrained-model-name-or-path",
             type=str,
             help=help,
-            required=True,
+            required=False,
         )
 
     def add_arg_autocaset(self, help="Whether to use autocast or not"):
@@ -427,57 +427,7 @@ class ArgumentHelper:
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
         # by default
-<<<<<<< HEAD
-        parser.set_defaults(rmm_pool_size="512MB")
-        parser.add_argument(
-            "--input-data-dir",
-            type=str,
-            help="The path of the input files",
-            required=True,
-        )
-        parser.add_argument(
-            "--output-data-dir",
-            type=str,
-            help="The path of the output files",
-            required=True,
-        )
-        parser.add_argument(
-            "--pretrained-model-name-or-path",
-            type=str,
-            help="The path to the model file",
-            required=False,
-        )
-        parser.add_argument(
-            "--input-file-type",
-            type=str,
-            help="The type of the input files",
-            required=True,
-        )
-        parser.add_argument(
-            "--output-file-type",
-            type=str,
-            default="jsonl",
-            help="The type of the output files",
-        )
-        parser.add_argument(
-            "--batch-size",
-            type=int,
-            default=128,
-            help="The batch size to be used for inference",
-        )
-        ArgumentHelper.attach_bool_arg(
-            parser, "autocast", default=True, help="Whether to use autocast or not"
-        )
-        ArgumentHelper.attach_bool_arg(
-            parser,
-            "enable-spilling",
-            default=True,
-            help="Whether to enable spilling or not",
-        )
-
-=======
         argumentHelper.parser.set_defaults(rmm_pool_size="512MB")
->>>>>>> fb12646 (Prevent plugging an allocator twice (#154))
         # Setting to False makes it more stable for long running jobs
         # possibly because of memory fragmentation
         argumentHelper.parser.set_defaults(set_torch_to_use_rmm=False)
