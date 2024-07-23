@@ -124,7 +124,7 @@ Here is how we can query the Nemotron-4 340b reward model in NeMo Curator:
 
     openai_client = OpenAI(
         base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert API key>",
+        api_key="<insert NVIDIA API key>",
     )
     client = OpenAIClient(openai_client)
 
@@ -174,7 +174,7 @@ We'll dive into all the methods it provides in the following sections, but here 
 
     openai_client = OpenAI(
         base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert API key>"
+        api_key="<insert NVIDIA API key>"
     )
     client = OpenAIClient(openai_client)
     generator = NemotronGenerator(client)
@@ -689,7 +689,7 @@ Therefore, NeMo Curator provides an asynchronous alternative using OpenAI's asyn
     from nemo_curator.synthetic import AsyncNemotronGenerator
 
     openai_client = AsyncOpenAI(
-        base_url="https://integrate.api.nvidia.com/v1", api_key="<insert API key>"
+        base_url="https://integrate.api.nvidia.com/v1", api_key="<insert NVIDIA API key>"
     )
     client = AsyncOpenAIClient(openai_client)
     generator = AsyncNemotronGenerator(client, max_concurrent_requests=10)
