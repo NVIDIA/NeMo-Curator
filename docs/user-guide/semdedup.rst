@@ -105,6 +105,40 @@ When changing the model, ensure that:
 By selecting an appropriate embedding model, you can optimize the semantic deduplication process for your specific use case and potentially improve the quality of the deduplicated dataset.
 
 -----------------------------------------
+Deduplication Thresholds
+-----------------------------------------
+
+The semantic deduplication process is controlled by two key threshold parameters:
+
+.. code-block:: yaml
+
+    eps_thresholds:
+      - 0.01
+      - 0.001
+
+    eps_to_extract: 0.01
+
+1. `eps_thresholds`: A list of similarity thresholds used to compute semantic matches. Each threshold represents a different level of strictness in determining duplicates.
+                     Lower values are more strict, requiring higher similarity for documents to be considered duplicates.
+
+2. `eps_to_extract`: The specific threshold used for the final extraction of deduplicated data.
+                     This value must be one of the thresholds listed in `eps_thresholds`.
+
+This two-step approach offers several advantages:
+- Flexibility to compute matches at multiple thresholds without rerunning the entire process.
+- Ability to analyze the impact of different thresholds on your dataset.
+- Option to fine-tune the final threshold based on specific needs without recomputing all matches.
+
+Choosing appropriate thresholds:
+- Lower thresholds (e.g., 0.001): More strict, resulting in less deduplication but higher confidence in the identified duplicates.
+- Higher thresholds (e.g., 0.1): Less strict, leading to more aggressive deduplication but potentially removing documents that are only somewhat similar.
+
+It's recommended to experiment with different threshold values to find the optimal balance between data reduction and maintaining dataset diversity and quality.
+The impact of these thresholds can vary depending on the nature and size of your dataset.
+
+Remember, if you want to extract data using a threshold that's not in `eps_thresholds`, you'll need to recompute the semantic matches with the new threshold included in the list.
+
+-----------------------------------------
 Usage
 -----------------------------------------
 
