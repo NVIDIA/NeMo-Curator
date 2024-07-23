@@ -15,6 +15,7 @@ As outlined in the paper `SemDeDup: Data-efficient learning at web-scale through
 this method can significantly reduce dataset size while maintaining or even improving model performance.
  Semantic deduplication is particularly effective for large, uncurated web-scale datasets, where it can remove up to 50% of the data with minimal performance loss.
 The semantic deduplication module in NeMo Curator uses embeddings from to identify and remove "semantic duplicates" - data pairs that are semantically similar but not exactly identical.
+While this documentation primarily focuses on text-based deduplication, the underlying principles can be extended to other modalities with appropriate embedding models.
 
 -----------------------------------------
 How It Works
@@ -107,13 +108,19 @@ By selecting an appropriate embedding model, you can optimize the semantic dedup
 Usage
 -----------------------------------------
 
-Before running semantic deduplication, ensure that each document/datapoint in your dataset has a unique identifier. You can use the `add_id` module from NeMo Curator if needed:
+Before running semantic deduplication, ensure that each document/datapoint in your dataset has a unique identifier.
+You can use the `add_id` module from NeMo Curator if needed:
 
-.. code-block:: bash
+.. code-block:: python
 
-    add_id \
-      --input-data-dir=<Path to directory containing jsonl files> \
-      --log-dir=./log/add_id
+    from nemo_curator import AddId
+    from nemo_curator.datasets import DocumentDataset
+
+    add_id = AddId(id_field="doc_id")
+    dataset = DocumentDataset.read_json("input_file_path", add_filename=True)
+    id_dataset = add_id(dataset)
+    id_dataset.to_json("output_file_path", write_to_filename=True)
+
 
 To perform semantic deduplication, you can either use individual components or the SemDedup class with a configuration file:
 
