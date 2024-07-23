@@ -11,7 +11,7 @@ Background
 Semantic deduplication is an advanced technique for removing redundant data from large datasets by identifying and eliminating semantically similar documents.
 Unlike exact or fuzzy deduplication, which focus on textual similarity, semantic deduplication leverages the semantic meaning of the content to identify duplicates.
 
-As outlined in the paper "SemDeDup: Data-efficient learning at web-scale through semantic deduplication" by Abbas et al.,
+As outlined in the paper `SemDeDup: Data-efficient learning at web-scale through semantic deduplication <https://arxiv.org/pdf/2303.09540>`_ by Abbas et al.,
 this method can significantly reduce dataset size while maintaining or even improving model performance.
  Semantic deduplication is particularly effective for large, uncurated web-scale datasets, where it can remove up to 50% of the data with minimal performance loss.
 The semantic deduplication module in NeMo Curator uses embeddings from to identify and remove "semantic duplicates" - data pairs that are semantically similar but not exactly identical.
@@ -229,4 +229,4 @@ Semantic deduplication is computationally intensive, especially for large datase
 - Adjust the number of clusters (`n_clusters`) based on your dataset size and available computational resources.
 - The `eps_to_extract` parameter allows you to control the trade-off between dataset size reduction and potential information loss.
 
-For more details on the algorithm and its performance implications, refer to the original paper: "SemDeDup: Data-efficient learning at web-scale through semantic deduplication" by Abbas et al.
+For more details on the algorithm and its performance implications, refer to the original paper: `SemDeDup: Data-efficient learning at web-scale through semantic deduplication <https://arxiv.org/pdf/2303.09540>`_ by Abbas et al.
