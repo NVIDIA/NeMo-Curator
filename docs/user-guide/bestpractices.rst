@@ -4,9 +4,9 @@
 Best Practices
 ======================================
 
-------------------------------
+-------------------------------------------
 Choosing the Right Quality Model Type
-------------------------------
+-------------------------------------------
 NeMo Curator offers a variety of methods for determining the quality of a piece of text.
 Here are the methods in increasing order of compute required for them.
 
