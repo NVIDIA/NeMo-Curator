@@ -71,10 +71,8 @@ def download_wikipedia_sources(
 
     if limit:
         urls = urls[:limit]
-    #     print(urls)
     output_format = {
         "text": str,
-        #         "filename": str,
         "id": str,
         "file_extension": str,
         "file_type": str,
@@ -246,9 +244,3 @@ def download_pdf_sources(
     # Force the computation of the dataset
     dataset.persist()
     return output_jsonl_dir
-
-
-if __name__ == "__main__":
-    download_wikipedia_sources(limit=100)
-    download_github_sources()
-    download_pdf_sources()

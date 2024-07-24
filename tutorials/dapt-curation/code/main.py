@@ -53,11 +53,6 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
 
-#
-# TODO
-# Add instructions for apt install tessaract-ocr
-# Add improved PII redaction, classifier based filtering & fuzzy dedupe
-
 
 def download_sources(
     wikipedia_limit: Optional[int] = None,
@@ -220,8 +215,6 @@ def main():
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 4)
-    #     args.device = "gpu"
-
     print("Args: ", args)
 
     # Download all the sources and get the list of text and code files.
