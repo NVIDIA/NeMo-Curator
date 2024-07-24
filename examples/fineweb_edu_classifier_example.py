@@ -13,6 +13,8 @@
 # limitations under the License.
 import argparse
 import os
+
+os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 import time
 
 import torch
