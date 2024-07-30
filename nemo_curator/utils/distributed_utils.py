@@ -20,8 +20,9 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
 from contextlib import nullcontext
+from itertools import zip_longest
 from pathlib import Path
-from typing import List, Union
+from typing import Optional, List, Union, Tuple
 
 import dask.dataframe as dd
 import numpy as np
@@ -293,6 +294,56 @@ def read_pandas_pickle(file, add_filename=False) -> pd.DataFrame:
     if add_filename:
         warnings.warn("add_filename is not supported for pickle files")
     return pd.read_pickle(file)
+
+
+def read_single_simple_bitext_file_pair(
+    input_file_pair: Tuple[str],
+    src_lang: str,
+    tgt_lang: str,
+    doc_id: str = None,
+    backend: str = "cudf",
+) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+
+    src_input_file, tgt_input_file = input_file_pair
+
+    # TODO: it seems like cudf.read_csv can only take one file max
+    # so maybe we shouldn't pass more than one
+    if backend == "cudf":
+        df = cudf
+    else:
+        df = pd
+
+    df_src = df.read_csv(src_input_file, header=None, names=["src"], sep='\t')
+    df_tgt = df.read_csv(tgt_input_file, header=None, names=["tgt"], sep='\t')
+    df_combined = df.concat([df_src, df_tgt], axis=1)
+    df_combined["src_lang"] = src_lang
+    df_combined["tgt_lang"] = tgt_lang
+    df_combined['seg_id'] = pd.Series(range(len(df_combined))).astype(str)
+
+    if not doc_id:
+        doc_id = '__'.join([str(src_input_file), str(tgt_input_file)])
+    df_combined["doc_id"] = doc_id
+
+    return df_combined
+
+
+def read_simple_bitext_data(
+    src_input_files,
+    tgt_input_files,
+    src_lang,
+    tgt_lang,
+    backend: str = "cudf",
+) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+
+    # TODO: use default doc id for now
+    # but it might be useful to allow customizing doc id by passing a prefix
+    return dd.from_map(
+        read_single_simple_bitext_file_pair,
+        list(zip(src_input_files, tgt_input_files)),
+        src_lang=src_lang,
+        tgt_lang=tgt_lang,
+        backend=backend,
+    )
 
 
 def read_data(
