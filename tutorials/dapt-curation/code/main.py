@@ -36,13 +36,11 @@ from utils import (
 )
 
 import nemo_curator as nc
-from nemo_curator import ScoreFilter, Sequential
+from nemo_curator import ExactDuplicates, Modify, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import RepeatingTopNGramsFilter, WordCountFilter
 from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
-from nemo_curator.modules import ExactDuplicates
-from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import (
     get_all_files_paths_under,
