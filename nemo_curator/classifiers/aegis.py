@@ -253,6 +253,8 @@ class AegisClassifier(DistributedDataClassifier):
         translated_meta = ddf._meta.copy()
         if self.keep_raw_pred:
             translated_meta[self.raw_pred_column] = "DUMMY_STRING"
+        else:
+            translated_meta = translated_meta.drop(columns=[self.raw_pred_column])
         translated_meta[self.pred_column] = "DUMMY_STRING"
         ddf = ddf.map_partitions(self._postprocess_responses, meta=translated_meta)
         ddf = ddf.drop(columns=["_hidden_text"])
