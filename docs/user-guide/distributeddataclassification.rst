@@ -56,14 +56,13 @@ And, ``DomainClassifier`` requires ``DocumentDataset`` to be on the GPU (i.e., h
 It is easy to extend ``DistributedDataClassifier`` to your own model.
 Check out ``nemo_curator.modules.distributed_data_classifier.py`` for reference.
 
------------------------------------------
+
 CrossFit Integration
------------------------------------------
+====================
 
 The module is powered by CrossFit, an open-source library by RAPIDS AI for fast offline inference scaled to
 Multi-Node Multi-GPU (MNMG) environments.
 
-CrossFit GitHub: https://github.com/rapidsai/crossfit
 Key features:
 
 - PyTorch integration for model inference
@@ -71,9 +70,9 @@ Key features:
 - Smart batching/chunking for optimized processing
 - 1.4x-4x performance improvement over Dask + PyTorch baselines
 
------------------------------------------
+
 Sorted Sequence Data Loader
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The key freature of CrossFit used in curator is sorted sequence data loader,
 it optimizes throughput for offline processing:
@@ -84,7 +83,8 @@ it optimizes throughput for offline processing:
   length and batch size
 
 .. image:: images/sorted_sequence_dataloader.png
-   :width: 400px
-   :height: 300px
    :alt: Sorted Sequence Data Loader
-   :align: center
+
+Check out the `rapidsai/crossfit`_ repository for more information.
+
+.. _rapidsai/crossfit: https://github.com/rapidsai/crossfit
