@@ -16,6 +16,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from dask.dataframe.extensions import make_array_nonempty
 from dask.typing import no_default
+from dask.array import logical_and
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import DocumentFilter
@@ -204,3 +205,76 @@ class ScoreFilter:
             bool_mask = ~bool_mask
 
         return DocumentDataset(dataset.df[bool_mask])
+
+# Work in Progress, not fully tested
+class ParallelScoreFilter:
+    def __init__(
+        self,
+        filter_obj,
+        src_field="src",
+        tgt_field="tgt",
+        src_score=None,
+        tgt_score=None,
+        score_type=None,
+        invert=False,
+    ):
+        """
+        Args:
+          score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
+        """
+        self.filter_obj = filter_obj
+        self.src_field = src_field
+        self.tgt_field = tgt_field
+        self.src_score = src_score
+        self.tgt_score = tgt_score
+        self.score_type = score_type
+        self.invert = invert
+
+    def __call__(self, dataset):
+        # Set the metadata for the function calls if provided
+        if self.score_type:
+            meta = (None, self.score_type)
+        else:
+            meta = no_default
+
+        scores_list = {}
+        if is_batched(self.filter_obj.score_document):
+            for field in [self.src_field, self.tgt_field]:
+                scores = dataset.df[field].map_partitions(
+                    self.filter_obj.score_document, meta=meta
+                )
+                scores_list[field] = scores
+        else:
+            for field in [self.src_field, self.tgt_field]:
+                scores = dataset.df[field].apply(
+                    self.filter_obj.score_document, meta=meta
+                )
+                scores_list[field] = scores
+
+        if self.src_score is not None:
+            dataset.df[self.src_score] = scores_list[self.src_field]
+        if self.tgt_score is not None:
+            dataset.df[self.tgt_score] = scores_list[self.tgt_field]
+
+        bool_masks = {}
+        if is_batched(self.filter_obj.keep_document):
+            for field in  [self.src_field, self.tgt_field]:
+                bool_mask = scores_list[field].map_partitions(
+                    self.filter_obj.keep_document, meta=(None, bool)
+                )
+                bool_masks[field] = bool_mask
+        else:
+            for field in  [self.src_field, self.tgt_field]:
+                bool_mask = scores_list[field].apply(
+                    self.filter_obj.keep_document, meta=(None, bool)
+                )
+                bool_masks[field] = bool_mask
+        if self.invert:
+            for field in [self.src_field, self.tgt_field]:
+                bool_masks[field] = ~bool_masks[field]
+            bool_mask = ~bool_mask
+
+        # remove lines together if one of them is filtered
+        bool_mask_joint = logical_and(bool_masks[self.src_field], bool_masks[self.tgt_field])
+        
+        return DocumentDataset(dataset.df[bool_mask_joint])
