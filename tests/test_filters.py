@@ -338,7 +338,7 @@ class TestFilterModule:
 
     def test_joint_score_filter(self, length_ratio_data):
         length_ratio_filter = LengthRatioFilter(max_ratio=1.5, src_lang="en", tgt_lang="de")
-        filter_step = JointScoreFilter(length_ratio_filter, score_field="ratio", score_type=int)
+        filter_step = JointScoreFilter(length_ratio_filter, score_field="ratio", score_type=float)
         filtered_data = filter_step(length_ratio_data)
 
         expected_indices = [0, 2]
