@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os.path
 import regex
+import requests
+import tarfile
 
 from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
 from nemo_curator.utils.constants import (
@@ -653,3 +656,58 @@ class LengthRatioFilter(DocumentFilter):
 
     def keep_document(self, score):
         return score < self._max_ratio
+
+
+class HistogramFilter(DocumentFilter):
+    """
+    Histogram filter used by the NLLB paper (https://arxiv.org/pdf/2207.04672). See p30 for details.
+    """
+
+    def __init__(self, lang="en", threshold=0.8, cache_dir="~/.cache/", threshold_char="]"):
+        super().__init__()
+        self._lang = lang
+        self._threshold = threshold
+        self._cache_dir = cache_dir
+        self._threshold_char = threshold_char
+        self._histogram = None
+
+    def _download_histograms(self):
+        # Send a GET request to the URL
+        response = requests.get("https://dl.fbaipublicfiles.com/m2m_100/histograms.tar.gz")
+
+        # Check if the request was successful
+        if response.status_code != 200:
+            raise requests.exceptions.RequestException(f'Failed to download histogram file. Status code: {response.status_code}')
+
+        # Open a file to write the content
+        os.makedirs(self._cache_dir, exist_ok=True)
+        download_dest_path = os.path.join(self._cache_dir, "histograms.tar.gz")
+        with open(download_dest_path, 'wb') as file:
+            file.write(response.content)
+            
+        extract_path = os.path.join(self._cache_dir, "histograms")
+        with tarfile.open(download_dest_path, 'r:gz') as tar:
+            # Extract all the contents into the specified directory
+            tar.extractall(path=extract_path)
+
+    def _read_hist(self):
+        self._histogram = []
+        with open(os.path.join(self._cache_dir, self._lang)) as f:
+            for line in f:
+                c = line[0]
+                if c == self._threshold_char:
+                    break
+                self._histogram.append(c)
+
+    def score_document(self, text):
+        if not os.path.isdir(os.path.join(self._cache_dir, "histograms")):
+            self._download_histograms()
+
+        if self._histogram is None:
+            self._read_hist()
+
+        cnt = len([c for c in text.strip() if c in self._histogram])
+        return 1 if cnt / len(text) > self._threshold else 0
+
+    def keep_document(self, score):
+        return score == 1   
