@@ -633,3 +633,23 @@ class PornographicUrlsFilter(DocumentFilter):
 
     def keep_document(self, score):
         return score != 1
+
+class LengthRatioFilter(DocumentFilter):
+    """
+    For bitext cleaning.
+    If the ratio between source and target tokens is not within a specified range then discard. Either direction (src/tgt, tgt/src) is considered. See mosesdecoder/scripts/training/clean-corpus-n.perl for details 
+    """
+    def __init__(self, max_ratio=3, src_lang="en", tgt_lang="en"):
+        super().__init__()
+        self._max_ratio = max_ratio
+        self._src_word_splitter = get_word_splitter(src_lang)
+        self._tgt_word_splitter = get_word_splitter(tgt_lang)
+        self._name = "length_ratio"
+
+    def score_document(self, bitext_tuple):
+        src_len = len(self._src_word_splitter(bitext_tuple.iloc[0].strip()))
+        tgt_len = len(self._tgt_word_splitter(bitext_tuple.iloc[1].strip()))
+        return max(src_len / tgt_len, tgt_len / src_len)
+
+    def keep_document(self, score):
+        return score < self._max_ratio

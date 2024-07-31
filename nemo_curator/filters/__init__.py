@@ -47,6 +47,7 @@ from .heuristic_filter import (
     WhiteSpaceFilter,
     WordCountFilter,
     WordsWithoutAlphabetsFilter,
+    LengthRatioFilter,
 )
 
 __all__ = [
@@ -84,4 +85,5 @@ __all__ = [
     "AlphaFilter",
     "HTMLBoilerplateFilter",
     "PerExtensionFilter",
+    "LengthRatioFilter"
 ]

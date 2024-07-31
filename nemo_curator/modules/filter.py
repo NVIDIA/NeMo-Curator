@@ -207,6 +207,57 @@ class ScoreFilter:
         return DocumentDataset(dataset.df[bool_mask])
 
 # Work in Progress, not fully tested
+class JointScoreFilter:
+    def __init__(
+        self,
+        filter_obj,
+        src_field="src",
+        tgt_field="tgt",
+        score_field=None,
+        score_type=None,
+        invert=False,
+    ):
+        """
+        Args:
+          filter_obj: Needs to be a filter that applies to 2 text columns, as is the case in bitext.
+          score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
+        """
+        self.filter_obj = filter_obj
+        self.src_field = src_field
+        self.tgt_field = tgt_field
+        self.score_field = score_field
+        self.score_type = score_type
+        self.invert = invert
+        
+    def __call__(self, dataset):
+        # Set the metadata for the function calls if provided
+        if self.score_type:
+            meta = (None, self.score_type)
+        else:
+            meta = no_default
+        if is_batched(self.filter_obj.score_document):
+            scores = dataset.df[[self.src_field, self.tgt_field]].map_partitions(
+                self.filter_obj.score_document,  axis=1, meta=meta
+            )
+        else:
+            scores = dataset.df[[self.src_field, self.tgt_field]].apply(
+                self.filter_obj.score_document, axis=1, meta=meta
+            )
+
+        if self.score_field is not None:
+            dataset.df[self.score_field] = scores
+            
+        if is_batched(self.filter_obj.keep_document):
+            bool_mask = scores.map_partitions(
+                self.filter_obj.keep_document, meta=(None, bool)
+            )
+        else:
+            bool_mask = scores.apply(self.filter_obj.keep_document, meta=(None, bool))
+        if self.invert:
+            bool_mask = ~bool_mask
+
+        return DocumentDataset(dataset.df[bool_mask])
+
 class ParallelScoreFilter:
     def __init__(
         self,
