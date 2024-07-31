@@ -17,36 +17,44 @@ from pathlib import Path
 import pytest
 
 
-class TestReadSimpleBitext:
-    src_file = Path("tests/bitext_data/toy.de")
-    tgt_file = Path("tests/bitext_data/toy.en")
+@pytest.fixture
+def src_file():
+    return Path("tests/bitext_data/toy.de")
 
-    def test_pandas_read_simple_bitext(self):
+
+@pytest.fixture
+def tgt_file():
+    return Path("tests/bitext_data/toy.en")
+
+
+class TestReadSimpleBitext:
+
+    def test_pandas_read_simple_bitext(self, src_file, tgt_file):
         ds = ParallelDataset.read_simple_bitext(
-            src_input_files=[self.src_file],
-            tgt_input_files=[self.tgt_file],
+            src_input_files=[src_file],
+            tgt_input_files=[tgt_file],
             src_lang = "de",
             tgt_lang = "en",
             backend="pandas",
         )
 
-        for idx, (src_line, tgt_line) in enumerate(zip(open(self.src_file), open(self.tgt_file))):
+        for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
             assert ds.df['src'].compute()[idx] == src_line.rstrip('\n')
             assert ds.df['tgt'].compute()[idx] == tgt_line.rstrip('\n')
             assert ds.df['src_lang'].compute()[idx] == "de"
             assert ds.df['tgt_lang'].compute()[idx] == "en"
 
     @pytest.mark.gpu
-    def test_cudf_read_simple_bitext(self):
+    def test_cudf_read_simple_bitext(self, src_file, tgt_file):
         ds = ParallelDataset.read_simple_bitext(
-            src_input_files=[self.src_file],
-            tgt_input_files=[self.tgt_file],
+            src_input_files=[src_file],
+            tgt_input_files=[tgt_file],
             src_lang = "de",
             tgt_lang = "en",
             backend="cudf",
         )
 
-        for idx, (src_line, tgt_line) in enumerate(zip(open(self.src_file), open(self.tgt_file))):
+        for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
             assert ds.df['src'].compute()[idx] == src_line.rstrip('\n')
             assert ds.df['tgt'].compute()[idx] == tgt_line.rstrip('\n')
             assert ds.df['src_lang'][idx].compute()[idx] == "de"

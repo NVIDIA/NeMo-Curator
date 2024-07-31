@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-from nemo_curator.datasets import DocumentDataset
+from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import (
     AlphaFilter,
     BoilerPlateStringFilter,
@@ -54,7 +54,7 @@ from nemo_curator.filters import (
     WordsWithoutAlphabetsFilter,
     XMLHeaderFilter,
 )
-from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
+from nemo_curator.modules import Filter, Score, ScoreFilter, ParallelScoreFilter, Sequential
 from nemo_curator.utils.decorators import batched
 
 
@@ -107,10 +107,26 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
     return DocumentDataset(dd.from_pandas(pdf, npartitions=npartitions))
 
 
+def two_lists_to_parallel_dataset(src_documents, tgt_documents, src_col_name="src", tgt_col_name="tgt", npartitions=2):
+    data = {src_col_name: src_documents, tgt_col_name: tgt_documents}
+    pdf = pd.DataFrame(data)
+
+    return ParallelDataset(dd.from_pandas(pdf, npartitions=npartitions))
+
+
 @pytest.fixture
 def letter_count_data():
     return list_to_dataset(
         ["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"], col_name="documents"
+    )
+
+
+@pytest.fixture
+def parallel_letter_count_data():
+    return two_lists_to_parallel_dataset(
+        ["Einsa", "Zwei aaa", "a Drei a", "Fünf aaa a", "aaaSieben aaaa"],
+        ["aOne", "Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"],
+        src_col_name="src", tgt_col_name="tgt"
     )
 
 
@@ -295,6 +311,17 @@ class TestFilterModule:
 
         expected_indices = [2]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_parallel_score_filter(self, parallel_letter_count_data):
+        letter_count_filter = LetterCountFilter(min_count=4)
+        filter_step = ParallelScoreFilter(letter_count_filter)
+        filtered_data = filter_step(parallel_letter_count_data)
+
+        expected_indices = [3, 4]
+        expected_data = ParallelDataset(parallel_letter_count_data.df.loc[expected_indices])
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
