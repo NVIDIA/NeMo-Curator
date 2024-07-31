@@ -29,6 +29,7 @@ from nemo_curator.filters import (
     DocumentFilter,
     EllipsisFilter,
     GeneralCommentToCodeFilter,
+    HistogramFilter,
     HTMLBoilerplateFilter,
     LongWordFilter,
     MeanWordLengthFilter,
@@ -651,6 +652,34 @@ class TestHeuristicFilters:
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_histogram(self):
+        dataset = list_to_dataset(
+            [
+                "This is a perfectly fine English document.",
+                "But if you insist that this is written in Chinese,",
+                "it's likely that something is fishy.",
+                "另一方面，这是一个好的中文文档，",
+                "但你一定要说这是英文文档，",
+                "那很可能有些地方出了差错。",
+            ]
+        )
+        filter1 = ScoreFilter(HistogramFilter(lang="en"))
+        filter2 = ScoreFilter(HistogramFilter(lang="zh"))
+
+        expected_indices1 = [0, 1, 2]
+        expected_indices2 = [3, 4, 5]
+        expected_data1 = DocumentDataset(dataset.df.loc[expected_indices1])
+        expected_data2 = DocumentDataset(dataset.df.loc[expected_indices2])
+
+        filtered_data1 = filter1(dataset)
+        filtered_data2 = filter2(dataset)
+        assert all_equal(
+            expected_data1, filtered_data1
+        ), f"Expected {expected_data1} but got {filtered_data1}"
+        assert all_equal(
+            expected_data2, filtered_data2
+        ), f"Expected {expected_data2} but got {filtered_data2}"
 
 
 class TestCodeFilters:

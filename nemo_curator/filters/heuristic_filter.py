@@ -39,6 +39,7 @@ from nemo_curator.utils.text_utils import (
     get_word_splitter,
     is_paragraph_indices_in_top_or_bottom_only,
 )
+from platformdirs import user_cache_dir
 
 
 class NonAlphaNumericFilter(DocumentFilter):
@@ -663,11 +664,11 @@ class HistogramFilter(DocumentFilter):
     Histogram filter used by the NLLB paper (https://arxiv.org/pdf/2207.04672). See p30 for details.
     """
 
-    def __init__(self, lang="en", threshold=0.8, cache_dir="~/.cache/", threshold_char="]"):
+    def __init__(self, lang="en", threshold=0.8, cache_dir="", threshold_char="]"):
         super().__init__()
         self._lang = lang
         self._threshold = threshold
-        self._cache_dir = cache_dir
+        self._cache_dir = cache_dir if cache_dir else user_cache_dir()
         self._threshold_char = threshold_char
         self._histogram = None
 
@@ -684,7 +685,7 @@ class HistogramFilter(DocumentFilter):
         download_dest_path = os.path.join(self._cache_dir, "histograms.tar.gz")
         with open(download_dest_path, 'wb') as file:
             file.write(response.content)
-            
+
         extract_path = os.path.join(self._cache_dir, "histograms")
         with tarfile.open(download_dest_path, 'r:gz') as tar:
             # Extract all the contents into the specified directory
@@ -692,7 +693,7 @@ class HistogramFilter(DocumentFilter):
 
     def _read_hist(self):
         self._histogram = []
-        with open(os.path.join(self._cache_dir, self._lang)) as f:
+        with open(os.path.join(self._cache_dir, "histograms", "checkpoint", "edunov", "cc60_multilingual", "clean_hists", self._lang)) as f:
             for line in f:
                 c = line[0]
                 if c == self._threshold_char:

@@ -29,6 +29,7 @@ from .heuristic_filter import (
     BulletsFilter,
     CommonEnglishWordsFilter,
     EllipsisFilter,
+    HistogramFilter,
     LongWordFilter,
     MeanWordLengthFilter,
     NonAlphaNumericFilter,
