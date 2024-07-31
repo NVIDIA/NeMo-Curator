@@ -54,8 +54,9 @@ from nemo_curator.filters import (
     WordCountFilter,
     WordsWithoutAlphabetsFilter,
     XMLHeaderFilter,
+    LengthRatioFilter,
 )
-from nemo_curator.modules import Filter, Score, ScoreFilter, ParallelScoreFilter, Sequential
+from nemo_curator.modules import Filter, Score, ScoreFilter, ParallelScoreFilter, JointScoreFilter, Sequential
 from nemo_curator.utils.decorators import batched
 
 
@@ -128,6 +129,13 @@ def parallel_letter_count_data():
         ["Einsa", "Zwei aaa", "a Drei a", "Fünf aaa a", "aaaSieben aaaa"],
         ["aOne", "Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"],
         src_col_name="src", tgt_col_name="tgt"
+    )
+
+@pytest.fixture
+def length_ratio_data():
+    return two_lists_to_parallel_dataset(
+        ["Test", "test", "Test Test ", "Test Test"],
+        ["Prueba", "prueba prueba prueba", "Prueba Prueba", "Prueba Prueba Prueba "],
     )
 
 
@@ -324,6 +332,17 @@ class TestFilterModule:
 
         expected_indices = [2, 3, 4]
         expected_data = ParallelDataset(parallel_letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_joint_score_filter(self, length_ratio_data):
+        length_ratio_filter = LengthRatioFilter(max_ratio=1.5, src_lang="en", tgt_lang="de")
+        filter_step = JointScoreFilter(length_ratio_filter, score_field="ratio", score_type=int)
+        filtered_data = filter_step(length_ratio_data)
+
+        expected_indices = [0, 2]
+        expected_data = ParallelDataset(length_ratio_data.df.loc[expected_indices])
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
