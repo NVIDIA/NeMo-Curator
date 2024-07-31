@@ -210,7 +210,8 @@ class ScoreFilter:
 class ParallelScoreFilter:
     def __init__(
         self,
-        filter_obj,
+        src_filter_obj,
+        tgt_filter_obj,
         src_field="src",
         tgt_field="tgt",
         src_score=None,
@@ -222,7 +223,8 @@ class ParallelScoreFilter:
         Args:
           score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
         """
-        self.filter_obj = filter_obj
+        self.src_filter_obj = src_filter_obj
+        self.tgt_filter_obj = tgt_filter_obj
         self.src_field = src_field
         self.tgt_field = tgt_field
         self.src_score = src_score
@@ -238,16 +240,18 @@ class ParallelScoreFilter:
             meta = no_default
 
         scores_list = {}
-        if is_batched(self.filter_obj.score_document):
-            for field in [self.src_field, self.tgt_field]:
+        for filter_obj, field in [
+                (self.src_filter_obj, self.src_field),
+                (self.tgt_filter_obj, self.tgt_field)
+        ]:
+            if is_batched(filter_obj.score_document):
                 scores = dataset.df[field].map_partitions(
-                    self.filter_obj.score_document, meta=meta
+                    filter_obj.score_document, meta=meta
                 )
                 scores_list[field] = scores
-        else:
-            for field in [self.src_field, self.tgt_field]:
+            else:
                 scores = dataset.df[field].apply(
-                    self.filter_obj.score_document, meta=meta
+                    filter_obj.score_document, meta=meta
                 )
                 scores_list[field] = scores
 
@@ -257,16 +261,18 @@ class ParallelScoreFilter:
             dataset.df[self.tgt_score] = scores_list[self.tgt_field]
 
         bool_masks = {}
-        if is_batched(self.filter_obj.keep_document):
-            for field in  [self.src_field, self.tgt_field]:
+        for filter_obj, field in [
+                (self.src_filter_obj, self.src_field),
+                (self.tgt_filter_obj, self.tgt_field)
+        ]:
+            if is_batched(filter_obj.keep_document):
                 bool_mask = scores_list[field].map_partitions(
-                    self.filter_obj.keep_document, meta=(None, bool)
+                    filter_obj.keep_document, meta=(None, bool)
                 )
                 bool_masks[field] = bool_mask
-        else:
-            for field in  [self.src_field, self.tgt_field]:
+            else:
                 bool_mask = scores_list[field].apply(
-                    self.filter_obj.keep_document, meta=(None, bool)
+                    filter_obj.keep_document, meta=(None, bool)
                 )
                 bool_masks[field] = bool_mask
         if self.invert:

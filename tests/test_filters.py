@@ -316,11 +316,12 @@ class TestFilterModule:
         ), f"Expected {expected_data} but got {filtered_data}"
 
     def test_parallel_score_filter(self, parallel_letter_count_data):
-        letter_count_filter = LetterCountFilter(min_count=4)
-        filter_step = ParallelScoreFilter(letter_count_filter)
+        src_letter_count_filter = LetterCountFilter(min_count=2)
+        tgt_letter_count_filter = LetterCountFilter(min_count=3)
+        filter_step = ParallelScoreFilter(src_letter_count_filter, tgt_letter_count_filter)
         filtered_data = filter_step(parallel_letter_count_data)
 
-        expected_indices = [3, 4]
+        expected_indices = [2, 3, 4]
         expected_data = ParallelDataset(parallel_letter_count_data.df.loc[expected_indices])
         assert all_equal(
             expected_data, filtered_data
