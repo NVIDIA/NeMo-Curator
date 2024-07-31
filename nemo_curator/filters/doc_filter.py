@@ -46,8 +46,8 @@ class DocumentFilter(ABC):
 
         Returns:
             Any: A score or set of scores representing the document's
-                 relevance or quality. The type and structure of the
-                 return value should be consistent for each subclass.
+            relevance or quality. The type and structure of the
+            return value should be consistent for each subclass.
 
         Raises:
             NotImplementedError: If the method is not implemented in a subclass.
@@ -108,7 +108,19 @@ class DocumentFilter(ABC):
         self._ngrams = ngrams
 
 
-def import_filter(filter_path):
+def import_filter(filter_path: str) -> DocumentFilter:
+    """
+    Imports a filter under nemo_curator.filters given the module path
+
+    Args:
+        filter_path (str): The path to the filter in the form of "nemo_curator.filters.filter_name"
+
+    Returns:
+        DocumentFilter: The filter that is at the given path
+
+    Raises:
+        ValueError: If the filter_path does not point to a DocumentFilter
+    """
     module_path, filter_name = filter_path.rsplit(".", 1)
     filter_module = importlib.import_module(module_path)
     filter_class = getattr(filter_module, filter_name)

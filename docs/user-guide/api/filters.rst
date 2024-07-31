@@ -3,7 +3,7 @@ Filters
 ============================
 
 ------------------------------
-DocumentFilter
+Base Class
 ------------------------------
 
 .. autoclass:: nemo_curator.filters.DocumentFilter
@@ -11,11 +11,19 @@ DocumentFilter
 
 .. autofunction:: nemo_curator.filters.import_filter
 
+------------------------------
+FastText Filters
+------------------------------
+
 .. autoclass:: nemo_curator.filters.FastTextLangId
     :members:
 
 .. autoclass:: nemo_curator.filters.FastTextQualityFilter
     :members:
+
+------------------------------
+Heuristic Filters
+------------------------------
 
 .. autoclass:: nemo_curator.filters.NonAlphaNumericFilter
     :members:
@@ -82,6 +90,10 @@ DocumentFilter
 
 .. autoclass:: nemo_curator.filters.PornographicUrlsFilter
     :members:
+
+------------------------------
+Code Filters
+------------------------------
 
 .. autoclass:: nemo_curator.filters.PythonCommentToCodeFilter
     :members:
