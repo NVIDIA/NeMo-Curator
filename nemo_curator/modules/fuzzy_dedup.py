@@ -19,6 +19,7 @@ import os
 import time
 import warnings
 from datetime import datetime
+from itertools import combinations
 from typing import List, Tuple, Union
 
 import cudf
@@ -27,6 +28,8 @@ import cugraph.dask.comms.comms as Comms
 import cupy as cp
 import dask_cudf
 import numpy as np
+import pandas as pd
+import pyarrow as pa
 from cugraph import MultiGraph
 from dask import dataframe as dd
 from dask.dataframe.shuffle import shuffle as dd_shuffle
@@ -529,6 +532,114 @@ class FuzzyDuplicates:
         self.connected_components.cc_workflow(cc_path)
         print("Stage5: Connected Components across buckets complete!")
         return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
+
+
+class _BucketsToEdges:
+    """
+    Maps buckets generated from LSH into an edgelist that
+    can be processed further by Connected Components to find duplicate
+    documents
+    """
+
+    def __init__(
+        self,
+        cache_dir: str = None,
+        id_fields: Union[list, str] = "id",
+        str_id_name: str = "id",
+        bucket_field: str = "_bucket_id",
+        logger: Union[logging.LoggerAdapter, str] = "./",
+    ):
+        """
+        Parameters
+        ----------
+        cache_dir: str or None
+          If specified, will compute & write the edgelist to a file
+        id_fields: list or str
+          id fields of documents in buckets_df
+        str_id_name: str
+          Ignored if there is a single id field. Multiple id fields
+          will be combined into a single id field with the given name.
+        bucket_field: str
+          Column denoting bucket ID
+        num_buckets: Number of bands/buckets to create from the minhash signature.
+          Hashes_per_signature = num_hashes / num_buckets
+        """
+        self.cache_dir = cache_dir
+        self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
+        self.str_id_name = str_id_name if len(self.id_fields) > 1 else self.id_fields[0]
+        self.output_ids = [f"{self.str_id_name}_x", f"{self.str_id_name}_y"]
+        self.bucket_field = bucket_field
+        if isinstance(logger, str):
+            self._logger = create_logger(
+                rank=0,
+                log_file=os.path.join(logger, "Map_Buckets.log"),
+                name="Map_Buckets",
+            )
+
+    @staticmethod
+    def combine_multiple_ids(
+        input_df: dask_cudf.DataFrame, input_id_fields: list, output_id_field: str
+    ) -> dask_cudf.DataFrame:
+        if output_id_field in input_df.columns:
+            raise ValueError(
+                f"Input df already contains column named: {output_id_field}"
+            )
+
+        output_df = input_df.copy()[input_df.columns.difference(input_id_fields)]
+
+        output_df[output_id_field] = input_df[input_id_fields[0]].astype(str)
+        for input_field in input_id_fields[1:]:
+            output_df[output_id_field] = output_df[output_id_field] = (
+                input_df[input_id_fields[0]].astype(str)
+                + "-"
+                + input_df[input_field].astype(str)
+            )
+
+        return output_df
+
+    def buckets_to_edges(
+        self,
+        buckets_df: cudf.DataFrame,
+    ) -> dask_cudf.DataFrame:
+
+        grouped_buckets = (
+            buckets_df.groupby(self.bucket_field)[self.str_id_name]
+            .agg(list)
+            .list.sort_values()
+        )
+        bucket_docs = grouped_buckets.to_arrow().to_pylist()
+        edges = []
+        # Create pairs of all documents within a bucket since they are near duplicates
+        # Effectively create a edge list of all near duplicate documents
+        for bucket_doc in bucket_docs:
+            edges.extend(combinations(bucket_doc, 2))
+        edges = pd.DataFrame(edges, columns=self.output_ids)
+        edges = pa.Table.from_pandas(edges)
+        result_df = cudf.DataFrame.from_arrow(edges)
+        result_df = result_df.drop_duplicates(self.output_ids).reset_index(drop=True)
+        result_df["jaccard"] = np.float32(1.0)
+        return result_df
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        buckets_df = dataset.df
+        if len(self.id_fields) > 1:
+            buckets_df = buckets_df.map_partitions(
+                _BucketsToEdges.combine_multiple_ids,
+                input_id_fields=self.id_fields,
+                output_id_field=self.str_id_name,
+            )
+
+        meta = [(output_id, str) for output_id in self.output_ids]
+        meta.append(("jaccard", np.float32))
+        edges_df = buckets_df.map_partitions(self.buckets_to_edges, meta=meta)
+        if self.cache_dir is None:
+            return DocumentDataset(edges_df)
+
+        write_path = os.path.join(self.cache_dir, "_edges.parquet")
+        edges_df.to_parquet(write_path, write_index=False)
+        return DocumentDataset(
+            dask_cudf.read_parquet(write_path, split_row_groups=False)
+        )
 
 
 class _MapBuckets:
