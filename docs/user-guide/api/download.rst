@@ -15,6 +15,9 @@ Base Classes
 .. autoclass:: nemo_curator.download.DocumentExtractor
     :members:
 
+.. autoclass:: nemo_curator.download.batch_download
+    :members:
+
 .. autoclass:: nemo_curator.download.download_and_extract
     :members:
 
@@ -26,6 +29,10 @@ Base Classes
 
 .. autoclass:: nemo_curator.download.import_iterator
     :members:
+
+------------------------------
+Common Crawl
+------------------------------
 
 .. autoclass:: nemo_curator.download.download_common_crawl
     :members:
@@ -48,6 +55,10 @@ Base Classes
 .. autoclass:: nemo_curator.download.ResiliparseExtractor
     :members:
 
+------------------------------
+Wikipedia
+------------------------------
+
 .. autoclass:: nemo_curator.download.download_wikipedia
     :members:
 
@@ -60,8 +71,9 @@ Base Classes
 .. autoclass:: nemo_curator.download.WikipediaExtractor
     :members:
 
-.. autoclass:: nemo_curator.download.batch_download
-    :members:
+------------------------------
+Arxiv
+------------------------------
 
 .. autoclass:: nemo_curator.download.download_arxiv
     :members:

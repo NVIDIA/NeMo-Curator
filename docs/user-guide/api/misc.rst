@@ -5,6 +5,8 @@ Miscellaneous
 .. autoclass:: nemo_curator.Sequential
     :members:
 
+.. autodecorator:: nemo_curator.utils.decorators.batched
+
 .. autoclass:: nemo_curator.AddId
     :members:
 

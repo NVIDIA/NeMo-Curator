@@ -8,6 +8,7 @@ Base Class
 
 .. autoclass:: nemo_curator.filters.DocumentFilter
     :members:
+    :member-order: bysource
 
 .. autofunction:: nemo_curator.filters.import_filter
 
