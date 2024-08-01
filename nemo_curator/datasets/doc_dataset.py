@@ -269,7 +269,7 @@ class ParallelDataset(DocumentDataset):
         tgt_input_files: Union[str, List[str]],
         src_lang: str,
         tgt_lang: str,
-        backend: str,
+        backend: str = "pandas",
     ):
         return cls(
             read_simple_bitext_data(
