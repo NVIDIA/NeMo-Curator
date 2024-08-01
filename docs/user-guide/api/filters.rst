@@ -18,15 +18,15 @@ Modules
 
 .. autoclass:: nemo_curator.ScoreFilter
     :members:
-    :special-members:
+    :special-members: __init__, __call__
 
 .. autoclass:: nemo_curator.Score
     :members:
-    :special-members:
+    :special-members: __init__, __call__
 
 .. autoclass:: nemo_curator.Filter
     :members:
-    :special-members:
+    :special-members: __init__, __call__
 
 ------------------------------
 FastText Filters
