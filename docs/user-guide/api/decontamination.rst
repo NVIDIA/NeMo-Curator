@@ -6,10 +6,10 @@ Task Decontamination
 Base Class
 ------------------------------
 
-.. autoclass:: nemo_curator.task.DownstreamTask
+.. autoclass:: nemo_curator.tasks.DownstreamTask
     :members:
 
-.. autoclass:: nemo_curator.task.import_task
+.. autoclass:: nemo_curator.tasks.import_task
     :members:
 
 -------------------------
@@ -23,86 +23,86 @@ Module
 Tasks
 -------------------------
 
-.. autoclass:: nemo_curator.task.Race
+.. autoclass:: nemo_curator.tasks.Race
     :members:
 
-.. autoclass:: nemo_curator.task.Squad
+.. autoclass:: nemo_curator.tasks.Squad
     :members:
 
-.. autoclass:: nemo_curator.task.ArcEasy
+.. autoclass:: nemo_curator.tasks.ArcEasy
     :members:
 
-.. autoclass:: nemo_curator.task.ArcChallenge
+.. autoclass:: nemo_curator.tasks.ArcChallenge
     :members:
 
-.. autoclass:: nemo_curator.task.OpenBookQA
+.. autoclass:: nemo_curator.tasks.OpenBookQA
     :members:
 
-.. autoclass:: nemo_curator.task.BoolQ
+.. autoclass:: nemo_curator.tasks.BoolQ
     :members:
 
-.. autoclass:: nemo_curator.task.Copa
+.. autoclass:: nemo_curator.tasks.Copa
     :members:
 
-.. autoclass:: nemo_curator.task.RTE
+.. autoclass:: nemo_curator.tasks.RTE
     :members:
 
-.. autoclass:: nemo_curator.task.MultiRC
+.. autoclass:: nemo_curator.tasks.MultiRC
     :members:
 
-.. autoclass:: nemo_curator.task.WSC
+.. autoclass:: nemo_curator.tasks.WSC
     :members:
 
-.. autoclass:: nemo_curator.task.CB
+.. autoclass:: nemo_curator.tasks.CB
     :members:
 
-.. autoclass:: nemo_curator.task.ANLI
+.. autoclass:: nemo_curator.tasks.ANLI
     :members:
 
-.. autoclass:: nemo_curator.task.Record
+.. autoclass:: nemo_curator.tasks.Record
     :members:
 
-.. autoclass:: nemo_curator.task.COQA
+.. autoclass:: nemo_curator.tasks.COQA
     :members:
 
-.. autoclass:: nemo_curator.task.TriviaQA
+.. autoclass:: nemo_curator.tasks.TriviaQA
     :members:
 
-.. autoclass:: nemo_curator.task.Quac
+.. autoclass:: nemo_curator.tasks.Quac
     :members:
 
-.. autoclass:: nemo_curator.task.WebQA
+.. autoclass:: nemo_curator.tasks.WebQA
     :members:
 
-.. autoclass:: nemo_curator.task.Drop
+.. autoclass:: nemo_curator.tasks.Drop
     :members:
 
-.. autoclass:: nemo_curator.task.WiC
+.. autoclass:: nemo_curator.tasks.WiC
     :members:
 
-.. autoclass:: nemo_curator.task.MMLU
+.. autoclass:: nemo_curator.tasks.MMLU
     :members:
 
-.. autoclass:: nemo_curator.task.BigBenchHard
+.. autoclass:: nemo_curator.tasks.BigBenchHard
     :members:
 
-.. autoclass:: nemo_curator.task.BigBenchLight
+.. autoclass:: nemo_curator.tasks.BigBenchLight
     :members:
 
-.. autoclass:: nemo_curator.task.Multilingual
+.. autoclass:: nemo_curator.tasks.Multilingual
     :members:
 
-.. autoclass:: nemo_curator.task.PIQA
+.. autoclass:: nemo_curator.tasks.PIQA
     :members:
 
-.. autoclass:: nemo_curator.task.Winogrande
+.. autoclass:: nemo_curator.tasks.Winogrande
     :members:
 
-.. autoclass:: nemo_curator.task.Lambada
+.. autoclass:: nemo_curator.tasks.Lambada
     :members:
 
-.. autoclass:: nemo_curator.task.NumDasc
+.. autoclass:: nemo_curator.tasks.NumDasc
     :members:
 
-.. autoclass:: nemo_curator.task.StoryCloze
+.. autoclass:: nemo_curator.tasks.StoryCloze
     :members:
