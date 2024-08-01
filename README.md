@@ -41,7 +41,7 @@ NeMo Curator provides a collection of scalable data-mining modules. Some of the 
 
   - exact and fuzzy (near-identical) deduplication are accelerated using cuDF and Dask
   - For fuzzy deduplication, our implementation follows the method described in [Microsoft Turing NLG 530B](https://arxiv.org/abs/2201.11990)
-  - For semantic deduplication,  our implementation follows the method described in [SemDeDup] (https://arxiv.org/pdf/2303.09540) by Meta AI (FAIR) (https://github.com/facebookresearch/SemDeDup)
+  - For semantic deduplication,  our implementation follows the method described in [SemDeDup](https://arxiv.org/pdf/2303.09540) by Meta AI (FAIR) [facebookresearch/SemDeDup](https://github.com/facebookresearch/SemDeDup)
 
 - [Multilingual downstream-task decontamination](docs/user-guide/taskdecontamination.rst) following the approach of [OpenAI GPT3](https://arxiv.org/pdf/2005.14165.pdf) and [Microsoft Turing NLG 530B](https://arxiv.org/abs/2201.11990)
 
@@ -64,6 +64,7 @@ These modules offer flexibility and permit reordering, with only a few exception
   - [Curating Trillion-Token Datasets: Introducing NVIDIA NeMo Data Curator](https://developer.nvidia.com/blog/curating-trillion-token-datasets-introducing-nemo-data-curator/)
   - [Scale and Curate High-Quality Datasets for LLM Training with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/scale-and-curate-high-quality-datasets-for-llm-training-with-nemo-curator/)
   - [Curating Custom Datasets for LLM Training with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/curating-custom-datasets-for-llm-training-with-nvidia-nemo-curator/)
+  - [Curating Custom Datasets for LLM Parameter-Efficient Fine-Tuning with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/curating-custom-datasets-for-llm-parameter-efficient-fine-tuning-with-nvidia-nemo-curator/)
 
 ## Get Started
 

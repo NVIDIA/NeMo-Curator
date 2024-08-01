@@ -32,36 +32,22 @@ classification helps mitigate biases and inaccuracies that may arise from poorly
 Usage
 -----------------------------------------
 
-NeMo Curator provides a base class ``DistributedDataClassifier`` that can be extended to fit your specfic model.
+NeMo Curator provides a base class ``DistributedDataClassifier`` that can be extended to fit your specific model.
 The only requirement is that the model can fit on a single GPU.
 We have also provided two subclasses that focus on domain and quality classification.
 Let's see how ``DomainClassifier`` works in a small excerpt taken from ``examples/domain_classifier_example.py``:
 
 .. code-block:: python
 
-    labels = [
-        "Adult",
-        "Arts_and_Entertainment",
-        "Autos_and_Vehicles",
-        ...,
-        "Shopping",
-        "Sports",
-        "Travel_and_Transportation",
-    ]
-
-    model_path = "pytorch_model_file.pth"
-
     files = get_all_files_paths_under("books_dataset/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf", add_filename=True)
 
-    domain_classifier = DomainClassifier(
-        model_path=model_path,
-        labels=labels,
-        filter_by=["Games", "Sports"],
-    )
+    domain_classifier = DomainClassifier(filter_by=["Games", "Sports"])
     result_dataset = domain_classifier(dataset=input_dataset)
 
     result_dataset.to_json("games_and_sports/", write_to_filename=True)
+
+In the above excerpt, the domain classifier is obtained directly from `HuggingFace <https://huggingface.co/nvidia/domain-classifier>`_.
 
 This module functions very similarly to the ``ScoreFilter`` module.
 The key differences is that it operates on the GPU instead of the CPU.
@@ -69,3 +55,36 @@ Therefore, the Dask cluster must be started as a GPU one.
 And, ``DomainClassifier`` requires ``DocumentDataset`` to be on the GPU (i.e., have ``backend=cudf``).
 It is easy to extend ``DistributedDataClassifier`` to your own model.
 Check out ``nemo_curator.modules.distributed_data_classifier.py`` for reference.
+
+
+CrossFit Integration
+====================
+
+The module is powered by CrossFit, an open-source library by RAPIDS AI for fast offline inference scaled to
+Multi-Node Multi-GPU (MNMG) environments.
+
+Key features:
+
+- PyTorch integration for model inference
+- Efficient I/O and tokenization with cuDF
+- Smart batching/chunking for optimized processing
+- 1.4x-4x performance improvement over Dask + PyTorch baselines
+
+
+Sorted Sequence Data Loader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The key freature of CrossFit used in curator is sorted sequence data loader,
+it optimizes throughput for offline processing:
+
+- Sorts input sequences by length
+- Groups sorted sequences into optimized batches
+- Efficiently allocates batches to the the provided GPU memories by estimating the memory footprint for each sequence
+  length and batch size
+
+.. image:: images/sorted_sequence_dataloader.png
+   :alt: Sorted Sequence Data Loader
+
+Check out the `rapidsai/crossfit`_ repository for more information.
+
+.. _rapidsai/crossfit: https://github.com/rapidsai/crossfit

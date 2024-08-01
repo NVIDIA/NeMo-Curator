@@ -33,6 +33,12 @@
 :ref:`NeMo Curator with NeMo SDK <data-curator-nemo-sdk>`
    Example of how to use NeMo Curator with NeMo SDK to run on various platforms
 
+:ref:`Best Practices <data-curator-best-practices>`
+   A collection of suggestions on how to best use NeMo Curator to curate your dataset
+
+:ref:`Next Steps <data-curator-next-steps>`
+   Now that you've curated your data, let's discuss where to go next in the NeMo Framework to put it to good use.
+
 `Tutorials <https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials>`__
    To get started, you can explore the NeMo Curator GitHub repository and follow the available tutorials and notebooks. These resources cover various aspects of data curation, including training from scratch and Parameter-Efficient Fine-Tuning (PEFT).
 
@@ -55,4 +61,6 @@
    distributeddataclassification.rst
    kubernetescurator.rst
    nemosdk.rst
+   bestpractices.rst
+   nextsteps.rst
    api/index.rst
