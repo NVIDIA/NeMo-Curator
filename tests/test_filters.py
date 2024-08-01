@@ -20,6 +20,7 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
+from comet import download_model, load_from_checkpoint
 from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import (
     AlphaFilter,
@@ -700,6 +701,27 @@ class TestHeuristicFilters:
             expected_data2, filtered_data2
         ), f"Expected {expected_data2} but got {filtered_data2}"
 
+    def test_comet_qe_filter(self):
+        dataset = two_lists_to_parallel_dataset(
+            [
+                "This sentence will be translated on the Chinese side.",
+                "This sentence will have something irrelevant on the Chinese side.",
+            ],
+            [
+                "这句话在中文一侧会被翻译。",
+                "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
+            ]
+        )
+
+        filter_ = JointScoreFilter(COMETQualityEstimationCpuNoBatchFilter())
+        filtered_data = filter_(dataset)
+
+        expected_indices = [0]
+        expected_data = ParallelDataset(dataset.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
 
 class TestCodeFilters:
     def test_python_comment_to_code(self):
@@ -895,6 +917,22 @@ class FakeLangId(DocumentFilter):
 
     def keep_document(self, score):
         return score[0] >= self._cutoff
+
+
+class COMETQualityEstimationCpuNoBatchFilter(DocumentFilter):
+
+    def __init__(self, cutoff=-0.25):
+        self._name = "comet_qe"
+        self._model_path = download_model("Unbabel/wmt20-comet-qe-da")
+        self._cutoff = cutoff
+        self.model = load_from_checkpoint(self._model_path)
+
+    def score_document(self, bitext_tuple):
+        model_output = self.model.predict([{"src": bitext_tuple['src'], "mt": bitext_tuple['tgt']}], gpus=0)
+        return model_output.scores[0]
+
+    def keep_document(self, score):
+        return score >= self._cutoff
 
 
 class TestClassifierFilters:

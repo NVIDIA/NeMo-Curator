@@ -670,7 +670,11 @@ class HistogramFilter(DocumentFilter):
         self._threshold = threshold
         self._cache_dir = cache_dir if cache_dir else user_cache_dir()
         self._threshold_char = threshold_char
-        self._histogram = None
+        
+        if not os.path.isdir(os.path.join(self._cache_dir, "histograms")):
+            self._download_histograms()
+
+        self._read_hist()
 
     def _download_histograms(self):
         # Send a GET request to the URL
@@ -701,12 +705,6 @@ class HistogramFilter(DocumentFilter):
                 self._histogram.append(c)
 
     def score_document(self, text):
-        if not os.path.isdir(os.path.join(self._cache_dir, "histograms")):
-            self._download_histograms()
-
-        if self._histogram is None:
-            self._read_hist()
-
         cnt = len([c for c in text.strip() if c in self._histogram])
         return 1 if cnt / len(text) > self._threshold else 0
 

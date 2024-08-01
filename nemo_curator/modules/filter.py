@@ -206,7 +206,7 @@ class ScoreFilter:
 
         return DocumentDataset(dataset.df[bool_mask])
 
-# Work in Progress, not fully tested
+
 class JointScoreFilter:
     def __init__(
         self,
@@ -257,6 +257,7 @@ class JointScoreFilter:
             bool_mask = ~bool_mask
 
         return DocumentDataset(dataset.df[bool_mask])
+
 
 class ParallelScoreFilter:
     def __init__(
