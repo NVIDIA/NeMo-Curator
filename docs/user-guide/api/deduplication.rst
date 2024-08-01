@@ -13,33 +13,33 @@ Exact
 Fuzzy
 ------------------------
 
-.. autoclass:: nemo_curator.modules.fuzzy_dedup.FuzzyDuplicatesConfig
+.. autoclass:: nemo_curator.FuzzyDuplicatesConfig
     :members:
 
-.. autoclass:: nemo_curator.modules.fuzzy_dedup.FuzzyDuplicates
+.. autoclass:: nemo_curator.FuzzyDuplicates
     :members:
 
-.. autoclass:: nemo_curator.modules.fuzzy_dedup.LSH
+.. autoclass:: nemo_curator.LSH
     :members:
 
-.. autoclass:: nemo_curator.modules.fuzzy_dedup.MinHash
+.. autoclass:: nemo_curator.MinHash
     :members:
 
 ------------------------
 Semantic
 ------------------------
 
-.. autoclass:: nemo_curator.modules.semantic_dedup.SemDedup
+.. autoclass:: nemo_curator.SemDedup
     :members:
 
-.. autoclass:: nemo_curator.modules.semantic_dedup.SemDedupConfig
+.. autoclass:: nemo_curator.SemDedupConfig
     :members:
 
-.. autoclass:: nemo_curator.modules.semantic_dedup.EmbeddingCreator
+.. autoclass:: nemo_curator.EmbeddingCreator
     :members:
 
-.. autoclass:: nemo_curator.modules.semantic_dedup.ClusteringModel
+.. autoclass:: nemo_curator.ClusteringModel
     :members:
 
-.. autoclass:: nemo_curator.modules.semantic_dedup.SemanticClusterLevelDedup
+.. autoclass:: nemo_curator.SemanticClusterLevelDedup
     :members:
