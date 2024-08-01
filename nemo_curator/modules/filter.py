@@ -58,7 +58,16 @@ class Score:
         self.text_field = text_field
         self.score_type = score_type
 
-    def __call__(self, dataset: DocumentDataset):
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        """
+        Applies the scoring to a dataset
+
+        Args:
+            dataset (DocumentDataset): The dataset to apply the module to
+
+        Returns:
+            DocumentDataset: A dataset with the new score
+        """
         # Set the metadata for the function calls if provided
         if self.score_type:
             meta = (None, self.score_type)
@@ -88,16 +97,27 @@ class Filter:
 
     def __init__(self, filter_fn: Callable, filter_field: str, invert: bool = False):
         """
+        Constructs a Filter module
+
         Args:
-          filter_fn: A function that returns True if the document is to be kept
-          filter_field: The field(s) to be passed into the filter function.
-          invert: Whether to invert the filter condition
+          filter_fn (Callable): A function that returns True if the document is to be kept
+          filter_field (str): The field(s) to be passed into the filter function.
+          invert (bool): Whether to invert the filter condition
         """
         self.filter_fn = filter_fn
         self.filter_field = filter_field
         self.invert = invert
 
-    def __call__(self, dataset: DocumentDataset):
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        """
+        Applies the filtering to a dataset
+
+        Args:
+            dataset (DocumentDataset): The dataset to apply the module to
+
+        Returns:
+            DocumentDataset: A dataset with entries removed according to the filter
+        """
         if is_batched(self.filter_fn):
             bool_mask = dataset.df[self.filter_field].map_partitions(
                 self.filter_fn, meta=(None, bool)
@@ -147,8 +167,16 @@ class ScoreFilter:
         self.score_type = score_type
         self.invert = invert
 
-    def __call__(self, dataset: DocumentDataset):
-        # Set the metadata for the function calls if provided
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        """
+        Scores and filters all records in the dataset
+
+        Args:
+            dataset (DocumentDataset): The dataset to apply the module to
+
+        Returns:
+            DocumentDataset: A dataset with the score and filter applied
+        """
         if self.score_type:
             meta = (None, self.score_type)
         else:
