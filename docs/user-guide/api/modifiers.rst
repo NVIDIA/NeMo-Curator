@@ -9,6 +9,18 @@ Base Class
 .. autoclass:: nemo_curator.modifiers.DocumentModifier
     :members:
 
+
+------------------------------
+Module
+------------------------------
+
+.. autoclass:: nemo_curator.Modify
+    :members:
+
+------------------------------
+Modifiers
+------------------------------
+
 .. autoclass:: nemo_curator.modifiers.BoilerPlateStringModifier
     :members:
 

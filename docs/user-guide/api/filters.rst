@@ -12,6 +12,19 @@ Base Class
 .. autofunction:: nemo_curator.filters.import_filter
 
 ------------------------------
+Modules
+------------------------------
+
+.. autoclass:: nemo_curator.ScoreFilter
+    :members:
+
+.. autoclass:: nemo_curator.Score
+    :members:
+
+.. autoclass:: nemo_curator.Filter
+    :members:
+
+------------------------------
 FastText Filters
 ------------------------------
 

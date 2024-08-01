@@ -10,10 +10,10 @@ API Reference
    datasets.rst
    download.rst
    filters.rst
+   classifiers.rst
    modifiers.rst
    deduplication.rst
    decontamination.rst
    services.rst
    synthetic.rst
-   nemorun.rst
    misc.rst

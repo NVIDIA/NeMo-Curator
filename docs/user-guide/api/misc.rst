@@ -2,6 +2,9 @@
 Miscellaneous
 ==================
 
+.. autoclass:: nemo_curator.Sequential
+    :members:
+
 .. autoclass:: nemo_curator.AddId
     :members:
 
