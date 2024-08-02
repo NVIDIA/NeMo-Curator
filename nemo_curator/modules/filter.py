@@ -237,7 +237,7 @@ class JointScoreFilter:
             meta = no_default
         if is_batched(self.filter_obj.score_document):
             scores = dataset.df[[self.src_field, self.tgt_field]].map_partitions(
-                self.filter_obj.score_document,  axis=1, meta=meta
+                self.filter_obj.score_document, meta=meta
             )
         else:
             scores = dataset.df[[self.src_field, self.tgt_field]].apply(

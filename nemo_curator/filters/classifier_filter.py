@@ -17,6 +17,7 @@ import fasttext
 import numpy as np
 import pandas as pd
 
+from comet import download_model, load_from_checkpoint
 from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
@@ -99,3 +100,32 @@ class FastTextLangId(DocumentFilter):
 
     def _load_model(self):
         return fasttext.load_model(self._model_path)
+
+
+class COMETQualityEstimationFilter(DocumentFilter):
+
+    def __init__(self, cutoff=-0.25, gpu=False):
+        self._name = "comet_qe"
+        self._model_path = download_model("Unbabel/wmt20-comet-qe-da")
+        self._cutoff = cutoff
+        self._gpu = gpu
+
+    @batched
+    def score_document(self, df: pd.Series):
+        model_attr = f"{self._name}_{self._model_path}"
+        try:
+            model = load_object_on_worker(model_attr, self._load_model, {})
+        except NoWorkerError:
+            return pd.Series([-1.0 for _ in range(len(df))])
+
+        comet_input = [ {"src": src, "mt": tgt} for src, tgt in zip(df['src'], df['tgt']) ]
+        model_output = model.predict(comet_input, gpus=int(self._gpu), num_workers=0)
+
+        return pd.Series(model_output.scores, index=df.index)
+
+    def keep_document(self, score):
+        print(f"this sentence has score {score}")
+        return score >= self._cutoff
+
+    def _load_model(self):
+        return load_from_checkpoint(self._model_path)

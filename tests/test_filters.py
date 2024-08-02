@@ -701,27 +701,6 @@ class TestHeuristicFilters:
             expected_data2, filtered_data2
         ), f"Expected {expected_data2} but got {filtered_data2}"
 
-    def test_comet_qe_filter(self):
-        dataset = two_lists_to_parallel_dataset(
-            [
-                "This sentence will be translated on the Chinese side.",
-                "This sentence will have something irrelevant on the Chinese side.",
-            ],
-            [
-                "这句话在中文一侧会被翻译。",
-                "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
-            ]
-        )
-
-        filter_ = JointScoreFilter(COMETQualityEstimationCpuNoBatchFilter())
-        filtered_data = filter_(dataset)
-
-        expected_indices = [0]
-        expected_data = ParallelDataset(dataset.df.loc[expected_indices])
-        assert all_equal(
-            expected_data, filtered_data
-        ), f"Expected {expected_data} but got {filtered_data}"
-
 
 class TestCodeFilters:
     def test_python_comment_to_code(self):
@@ -957,3 +936,49 @@ class TestClassifierFilters:
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_comet_qe_filter(self):
+        dataset = two_lists_to_parallel_dataset(
+            [
+                "This sentence will be translated on the Chinese side.",
+                "This sentence will have something irrelevant on the Chinese side.",
+            ],
+            [
+                "这句话在中文一侧会被翻译。",
+                "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
+            ]
+        )
+
+        filter_ = JointScoreFilter(COMETQualityEstimationCpuNoBatchFilter())
+        filtered_data = filter_(dataset)
+
+        expected_indices = [0]
+        expected_data = ParallelDataset(dataset.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_real_comet_qe_filter(self):
+        dataset = two_lists_to_parallel_dataset(
+            [
+                "This sentence will be translated on the Chinese side.",
+                "This sentence will have something irrelevant on the Chinese side.",
+            ],
+            [
+                "这句话在中文一侧会被翻译。",
+                "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
+            ]
+        )
+
+        from nemo_curator.filters import COMETQualityEstimationFilter
+        from nemo_curator.utils.distributed_utils import get_client
+        client = get_client(n_workers=1)  # cluster_type="gpu"
+        filter_ = JointScoreFilter(COMETQualityEstimationFilter(gpu=True), score_type=float)
+        filtered_data = filter_(dataset)
+
+        expected_indices = [0]
+        expected_data = ParallelDataset(dataset.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+        client.close()
