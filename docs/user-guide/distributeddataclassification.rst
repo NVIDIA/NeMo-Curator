@@ -40,12 +40,12 @@ Let's see how ``DomainClassifier`` works in a small excerpt taken from ``example
 .. code-block:: python
 
     files = get_all_files_paths_under("books_dataset/")
-    input_dataset = DocumentDataset.read_json(files, backend="cudf", add_filename=True)
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     domain_classifier = DomainClassifier(filter_by=["Games", "Sports"])
     result_dataset = domain_classifier(dataset=input_dataset)
 
-    result_dataset.to_json("games_and_sports/", write_to_filename=True)
+    result_dataset.to_json("games_and_sports/")
 
 In the above excerpt, the domain classifier is obtained directly from `HuggingFace <https://huggingface.co/nvidia/domain-classifier>`_.
 
@@ -56,9 +56,28 @@ And, ``DomainClassifier`` requires ``DocumentDataset`` to be on the GPU (i.e., h
 It is easy to extend ``DistributedDataClassifier`` to your own model.
 Check out ``nemo_curator.modules.distributed_data_classifier.py`` for reference.
 
+AEGIS Safety Model
+#####################
+Aegis is a family of content safety LLMs used for detecting if a piece of text contains content that is a part of 13 critical risk categories.
+There are two variants, `defensive <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0>`_ and `permissive <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0>`_, that are useful for filtering harmful data out of your training set.
+The models are parameter efficient instruction tuned versions of Llama Guard based on Llama2-7B trained on Nvidia's content safety dataset `Aegis Content Safety Dataset <https://huggingface.co/datasets/nvidia/Aegis-AI-Content-Safety-Dataset-1.0>`_.
+More details on training and the model can be found `here <https://arxiv.org/abs/2404.05993>`_.
+
+NeMo Curator provides an easy way to annotate and filter your data using the safety models through our distributed data classfication framework.
+
+.. code-block:: python
+    files = get_all_files_paths_under("unsafe_documents/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    safety_classifier = AegisClassifier(aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0", filter_by=["safe", "O13"])
+    result_dataset = safety_classifier(dataset=input_dataset)
+
+    result_dataset.to_json("safe_documents/")
+
+This example filters out all documents except those that AEGIS classifies as safe or O13 (the category for "Needs caution").
 
 CrossFit Integration
-====================
+####################
 
 The module is powered by CrossFit, an open-source library by RAPIDS AI for fast offline inference scaled to
 Multi-Node Multi-GPU (MNMG) environments.
