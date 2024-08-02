@@ -68,31 +68,21 @@ class AegisModel(nn.Module):
         peft_model_name_or_path: str,
         dtype: torch.dtype,
         token: str,
-        autocast: bool = False,
     ):
         super().__init__()
         base_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path, torch_dtype=dtype, token=token
         )
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
-        self.autocast = autocast
 
     @torch.no_grad()
-    def _forward(self, batch):
+    def forward(self, batch):
         response = self.model.generate(
             **batch,
             max_new_tokens=100,
             pad_token_id=0,
         )
         return response
-
-    def forward(self, batch):
-        if self.autocast:
-            with torch.autocast(device_type="cuda"):
-                outputs = self._forward(batch)
-        else:
-            outputs = self._forward(batch)
-        return outputs
 
 
 class AegisHFModel(HFModel):
