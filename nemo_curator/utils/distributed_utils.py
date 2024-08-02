@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import ast
+import csv
 import os
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
@@ -313,8 +314,8 @@ def read_single_simple_bitext_file_pair(
     else:
         df = pd
 
-    df_src = df.read_csv(src_input_file, header=None, names=["src"], sep='\t')
-    df_tgt = df.read_csv(tgt_input_file, header=None, names=["tgt"], sep='\t')
+    df_src = df.read_table(src_input_file, names=["src"], quoting=csv.QUOTE_NONE)
+    df_tgt = df.read_table(tgt_input_file, names=["tgt"], quoting=csv.QUOTE_NONE)
     df_combined = df.concat([df_src, df_tgt], axis=1)
     df_combined["src_lang"] = src_lang
     df_combined["tgt_lang"] = tgt_lang

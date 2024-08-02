@@ -703,6 +703,7 @@ class HistogramFilter(DocumentFilter):
                 if c == self._threshold_char:
                     break
                 self._histogram.append(c)
+        self._histogram = set(self._histogram)
 
     def score_document(self, text):
         cnt = len([c for c in text.strip() if c in self._histogram])
