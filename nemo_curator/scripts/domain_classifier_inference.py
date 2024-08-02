@@ -17,7 +17,7 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
-from nemo_curator import DomainClassifier
+from nemo_curator.classifiers import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args

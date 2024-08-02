@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator import DomainClassifier
+from nemo_curator.classifiers import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper

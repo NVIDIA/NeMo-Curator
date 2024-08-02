@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .aegis import AegisClassifier
+import os
 
-__all__ = ["AegisClassifier"]
+os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+from .aegis import AegisClassifier
+from .domain import DomainClassifier
+from .quality import QualityClassifier
+
+__all__ = ["DomainClassifier", "QualityClassifier", "AegisClassifier"]
