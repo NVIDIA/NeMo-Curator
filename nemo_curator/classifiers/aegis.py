@@ -38,7 +38,6 @@ class AegisConfig:
     token: Optional[Union[str, bool]] = None
     pretrained_model_name_or_path: str = "meta-llama/LlamaGuard-7b"
     dtype: torch.dtype = torch.bfloat16
-    autocast: bool = False
     max_length: int = 4096
 
 
@@ -104,7 +103,6 @@ class AegisHFModel(HFModel):
             self.config.peft_model_name_or_path,
             self.config.dtype,
             self.config.token,
-            self.config.autocast,
         )
         model = model.to(device)
         model.eval()
@@ -151,11 +149,8 @@ class AegisClassifier(DistributedDataClassifier):
         keep_raw_pred=False,
         max_chars=6000,
         device_type="cuda",
-        autocast=True,
     ):
-        config = AegisConfig(
-            peft_model_name_or_path=aegis_variant, token=token, autocast=autocast
-        )
+        config = AegisConfig(peft_model_name_or_path=aegis_variant, token=token)
 
         self.text_field = text_field
         self.labels = AEGIS_LABELS
@@ -174,7 +169,7 @@ class AegisClassifier(DistributedDataClassifier):
             pred_column=pred_column,
             max_chars=max_chars,
             device_type=device_type,
-            autocast=autocast,
+            autocast=False,
         )
 
     def _wrap_in_prompt(self, df):
