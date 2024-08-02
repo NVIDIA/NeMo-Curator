@@ -1,14 +1,11 @@
 
 
 import os
-from typing import Set, Tuple
 
 import requests
 
 from nemo_curator.download.doc_builder import (
     DocumentDownloader,
-    DocumentExtractor,
-    DocumentIterator,
 )
 
 class TedTalksDownloader(DocumentDownloader): 
@@ -44,36 +41,3 @@ class TedTalksDownloader(DocumentDownloader):
         return output_files
 
 
-class TedTalksIterator(DocumentIterator):
-    def __init__(self):
-        super().__init__()
-        self._counter = -1
-    def iterate(self, file_path):
-        self._counter = -1
-        file_name = os.path.basename(file_path)
-
-        with open(file_path, "r") as file:
-            example = []
-            def split_meta(example):
-                if example:
-                    self._counter += 1
-                    content = example
-                    meta = {
-                        "filename": file_name,
-                        "id": f"{file_name}-{self._counter}",
-                    }
-
-                    return meta, content
-                return
-            for line in file:
-                example = line.strip()
-                if example:
-                    yield split_meta(example)
-                    example = []
-            if example:
-                yield split_meta(example)
-
-class TedTalksExtractor(DocumentExtractor):
-    def extract(self, content: str) -> Tuple[Set, str]:
-        # No metadata for the text, just the content.
-        return {}, content

@@ -13,15 +13,15 @@
 # limitations under the License.
 
 from .arxiv import ArxivDownloader, ArxivExtractor, ArxivIterator, download_arxiv
-from .commoncrawl import (
-    CommonCrawlWARCDownloader,
-    CommonCrawlWARCDownloaderExtractOnly,
-    CommonCrawlWARCExtractor,
-    CommonCrawlWARCIterator,
-    JusTextExtractor,
-    ResiliparseExtractor,
-    download_common_crawl,
-)
+# from .commoncrawl import (
+#     CommonCrawlWARCDownloader,
+#     CommonCrawlWARCDownloaderExtractOnly,
+#     CommonCrawlWARCExtractor,
+#     CommonCrawlWARCIterator,
+#     JusTextExtractor,
+#     ResiliparseExtractor,
+#     download_common_crawl,
+# )
 from .doc_builder import (
     DocumentDownloader,
     DocumentExtractor,
@@ -32,12 +32,12 @@ from .doc_builder import (
     import_extractor,
     import_iterator,
 )
-from .wikipedia import (
-    WikipediaDownloader,
-    WikipediaExtractor,
-    WikipediaIterator,
-    download_wikipedia,
-)
+# from .wikipedia import (
+#     WikipediaDownloader,
+#     WikipediaExtractor,
+#     WikipediaIterator,
+#     download_wikipedia,
+# )
 
 __all__ = [
     "DocumentDownloader",
@@ -47,17 +47,7 @@ __all__ = [
     "import_downloader",
     "import_extractor",
     "import_iterator",
-    "download_common_crawl",
-    "CommonCrawlWARCDownloader",
-    "CommonCrawlWARCExtractor",
-    "CommonCrawlWARCIterator",
-    "CommonCrawlWARCDownloaderExtractOnly",
     "JusTextExtractor",
-    "ResiliparseExtractor",
-    "download_wikipedia",
-    "WikipediaDownloader",
-    "WikipediaIterator",
-    "WikipediaExtractor",
     "batch_download",
     "download_arxiv",
     "ArxivDownloader",

@@ -670,6 +670,7 @@ class HistogramFilter(DocumentFilter):
         self._threshold = threshold
         self._cache_dir = cache_dir if cache_dir else user_cache_dir()
         self._threshold_char = threshold_char
+        self._name = "histogram"
         
         if not os.path.isdir(os.path.join(self._cache_dir, "histograms")):
             self._download_histograms()
@@ -718,9 +719,9 @@ class LengthRatioFilter(DocumentFilter):
     For bitext cleaning.
     If the ratio between source and target tokens is not within a specified range then discard. Either direction (src/tgt, tgt/src) is considered. See mosesdecoder/scripts/training/clean-corpus-n.perl for details 
     """
-    def __init__(self, max_ratio=3, src_lang="en", tgt_lang="en"):
+    def __init__(self, max_ratio=3.0, src_lang="en", tgt_lang="en"):
         super().__init__()
-        self._max_ratio = max_ratio
+        self._max_ratio = float(max_ratio)
         self._src_word_splitter = get_word_splitter(src_lang)
         self._tgt_word_splitter = get_word_splitter(tgt_lang)
         self._name = "length_ratio"

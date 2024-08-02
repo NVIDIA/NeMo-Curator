@@ -10,7 +10,6 @@ from nemo_curator.filters import LengthRatioFilter, HistogramFilter
 from nemo_curator.datasets import ParallelDataset
 from nemo_curator.utils.script_utils import ArgumentHelper
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 
 TED_DE_URL = "https://www.cs.jhu.edu/~kevinduh/a/multitarget-tedtalks/t/en-de/raw/ted_train_en-de.raw.de"
@@ -48,7 +47,7 @@ def filter_dataset(dataset: ParallelDataset) -> ParallelDataset:
             )
         ]
     )
-    filtered_dataset = filters(dataset) #152591
+    filtered_dataset = filters(dataset) 
     return filtered_dataset
 
 def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
@@ -57,10 +56,10 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
     print(f"Running curation pipeline on '{src_file} and {tgt_file}'...")
 
     print("Reading the data...")
+    
     bitext_dataset = ParallelDataset.read_simple_bitext([src_file], [tgt_file],
                                                         SRC_LANG, TGT_LANG
                                                         )
-    breakpoint()
     curation_steps = Sequential(
         [
             filter_dataset,
@@ -75,7 +74,7 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
     print(f"After dataprep: {len(dataset.df)}")
     print("Writing the results to disk...")
 
-    raise NotImplementedError("writing not finished yet, filters not checked")
+    #raise NotImplementedError("writing not finished yet, filters not checked")
 
     # Overwrite existing files in the curated directory.
     out_path = os.path.join(DATA_DIR, "curated")
@@ -84,7 +83,7 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
         shutil.rmtree(out_path)
 
     os.makedirs(out_path)
-    dataset.to_json(out_path, write_to_filename=True)
+    dataset.to_json(out_path, write_to_filename=False)
     client.close()
 
 
