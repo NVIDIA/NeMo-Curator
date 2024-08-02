@@ -23,6 +23,7 @@ from nemo_curator.download.doc_builder import (
     DocumentIterator,
 )
 
+
 class TinyStoriesDownloader(DocumentDownloader):
     def __init__(self, download_dir: str):
         super().__init__()
