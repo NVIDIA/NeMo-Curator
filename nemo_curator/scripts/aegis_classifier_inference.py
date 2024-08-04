@@ -35,7 +35,7 @@ def main():
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting domain classifier inference", flush=True)
+    print("Starting AEGIS classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
@@ -95,7 +95,7 @@ def main():
 
     global_et = time.time()
     print(
-        f"Total time taken for domain classifier inference: {global_et-global_st} s",
+        f"Total time taken for AEGIS classifier inference: {global_et-global_st} s",
         flush=True,
     )
     client.close()
