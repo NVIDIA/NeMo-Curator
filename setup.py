@@ -68,6 +68,7 @@ setup(
         # TODO: Remove when issue is fixed
         "numpy<2",
         "openai",
+        "peft",
     ],
     extras_require={
         "cuda12x": [
