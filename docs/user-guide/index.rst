@@ -43,7 +43,7 @@
    To get started, you can explore the NeMo Curator GitHub repository and follow the available tutorials and notebooks. These resources cover various aspects of data curation, including training from scratch and Parameter-Efficient Fine-Tuning (PEFT).
 
 :ref:`API Docs <data-curator-api>`
-   API Docuemntation for all the modules in NeMo Curator
+   API Documentation for all the modules in NeMo Curator
 
 .. toctree::
    :maxdepth: 4

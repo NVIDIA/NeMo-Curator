@@ -30,7 +30,7 @@ make_array_nonempty.register(
 
 class Score:
     """
-    The module responsible for adding metadata to records based statistics about the text.
+    The module responsible for adding metadata to records based on statistics about the text.
     It accepts an arbitrary scoring function that accepts a text field and returns a score.
 
     Unlike ScoreFilter, it does not filter based on the computed score.
@@ -48,7 +48,7 @@ class Score:
         Constructs a Score module.
 
         Args:
-          score_fn (Callable): The score function that takes in a document string and outputs a score for the document
+          score_fn (Callable): The score function that takes in a document string and outputs a score for the document.
           score_field (str): The field the score will be stored in.
           text_field (str): The field the documents will be read from.
           score_type (Union[type, str]): The datatype of the score that will be made for each document.
@@ -100,9 +100,9 @@ class Filter:
         Constructs a Filter module
 
         Args:
-          filter_fn (Callable): A function that returns True if the document is to be kept
+          filter_fn (Callable): A function that returns True if the document is to be kept.
           filter_field (str): The field(s) to be passed into the filter function.
-          invert (bool): Whether to invert the filter condition
+          invert (bool): Whether to invert the filter condition.
         """
         self.filter_fn = filter_fn
         self.filter_field = filter_field
@@ -155,7 +155,7 @@ class ScoreFilter:
         Constructs a ScoreFilter module.
 
         Args:
-          filter_obj (DocumentFilter): The score function that takes in a document string and outputs a score for the document
+          filter_obj (DocumentFilter): The score function that takes in a document string and outputs a score for the document.
           text_field (str): The field the documents will be read from.
           score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
           score_type (Union[type, str]): The datatype of the score that will be made for each document.
