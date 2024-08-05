@@ -127,21 +127,23 @@ class QualityEstimationFilter(DocumentFilter):
         def _has_en(src_lang: str, tgt_lang: str):
             return src_lang == "en" and tgt_lang == "en"
 
+        model_class = self.SUPPORTED_MODELS[self._name]
+
         if mode == "simple":
-            input = [model.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]
+            input = [model_class.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]
             return model.predict(input)
         elif mode == "always_en_x":
             # if English is included but it's on the target side, flip to make sure we are scoring with en-x
             # this strategy was proposed in: https://aclanthology.org/2023.wmt-1.50.pdf
             input = [
-                model.wrap_qe_input(src, tgt, reverse=(_has_en(src_lang, tgt_lang) and not _is_en_x(src_lang, tgt_lang)))
+                model_class.wrap_qe_input(src, tgt, reverse=(_has_en(src_lang, tgt_lang) and not _is_en_x(src_lang, tgt_lang)))
                 for src, tgt, src_lang, tgt_lang in zip(df['src'], df['tgt'], df['src_lang'], df['tgt_lang'])
             ]
             return model.predict(input)  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
         elif mode == "bidi":
             # score twice -- once forward and once backward
-            fwd_input = [model.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]
-            rev_input = [model.wrap_qe_input(src, tgt, reverse=True) for src, tgt in zip(df['src'], df['tgt'])]
+            fwd_input = [model_class.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]
+            rev_input = [model_class.wrap_qe_input(src, tgt, reverse=True) for src, tgt in zip(df['src'], df['tgt'])]
             scores = model.predict(fwd_input + rev_input)  # making one call to take advantage of batching
             # first half is forward score, second half is reverse score -- now we unpack and average
             fwd_scores = scores[:len(df)]

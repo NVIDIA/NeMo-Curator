@@ -14,9 +14,9 @@ class QEModel(ABC):
     def load_model(cls, model_name: str):
         pass
 
-    @classmethod
+    @staticmethod
     @abstractmethod
-    def wrap_qe_input(self, src: str, tgt: str, reverse=False, **kwargs):
+    def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
         pass
 
     @abstractmethod
@@ -35,7 +35,8 @@ class COMETQEModel(QEModel):
         path = download_model(cls.MODEL_NAME_TO_HF_PATH[model_name])
         return cls(load_from_checkpoint(path), gpu)
 
-    def wrap_qe_input(self, src: str, tgt: str, reverse=False, **kwargs):
+    @staticmethod
+    def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
         return {"src": src, "mt": tgt} if not reverse else {"src": tgt, "mt": src}
 
     def predict(self, input: List, **kwargs) -> List[float]:
