@@ -30,7 +30,9 @@ def main(args):
     input_file_path = "/path/to/data"
     output_file_path = "./"
 
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    client_args = ArgumentHelper.parse_client_args(args)
+    client_args["cluster_type"] = "gpu"
+    client = get_client(**client_args)
 
     input_dataset = DocumentDataset.read_json(
         input_file_path, backend="cudf", add_filename=True
@@ -41,7 +43,8 @@ def main(args):
         filter_by=["High", "Medium"],
     )
     result_dataset = quality_classifier(dataset=input_dataset)
-    print(result_dataset.df.head())
+
+    result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
 
     global_et = time.time()
     print(
@@ -59,7 +62,6 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_arg_device()
     argumentHelper.add_arg_enable_spilling()
     argumentHelper.add_arg_nvlink_only()
     argumentHelper.add_arg_protocol()

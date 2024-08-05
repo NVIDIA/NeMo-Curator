@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator.classifiers import DomainClassifier
+from nemo_curator.classifiers import AegisClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -27,6 +27,7 @@ def main(args):
     # Input can be a string or list
     input_file_path = "/path/to/data"
     output_file_path = "./"
+    huggingface_token = "hf_1234"  # Replace with a HuggingFace user access token
 
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
@@ -36,8 +37,12 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    domain_classifier = DomainClassifier(filter_by=["Games", "Sports"])
-    result_dataset = domain_classifier(dataset=input_dataset)
+    safety_classifier = AegisClassifier(
+        aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0",
+        token=huggingface_token,
+        filter_by=["safe", "O13"],
+    )
+    result_dataset = safety_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
 
