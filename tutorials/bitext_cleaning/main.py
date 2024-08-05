@@ -1,12 +1,14 @@
 import argparse 
 import os
 import shutil
+
+from functools import partial
 from typing import Any
 
 from docbuilder import TedTalksDownloader
 
 from nemo_curator import ParallelScoreFilter, JointScoreFilter, Sequential
-from nemo_curator.filters import LengthRatioFilter, HistogramFilter
+from nemo_curator.filters import LengthRatioFilter, HistogramFilter, COMETQualityEstimationFilter
 from nemo_curator.datasets import ParallelDataset
 from nemo_curator.utils.script_utils import ArgumentHelper
 from nemo_curator.utils.distributed_utils import get_client
@@ -28,7 +30,7 @@ def download_files() -> str:
     ted_files = downloader.download(TED_EN_URL, TED_DE_URL, force=False)
     return ted_files['src'], ted_files['tgt']
     
-def filter_dataset(dataset: ParallelDataset) -> ParallelDataset:
+def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDataset:
     filters = Sequential(
         [
             JointScoreFilter(
@@ -44,6 +46,9 @@ def filter_dataset(dataset: ParallelDataset) -> ParallelDataset:
                 src_score='src_hist',
                 tgt_score='tgt_hist',
                 score_type=int,
+            ),
+            JointScoreFilter(
+                COMETQualityEstimationFilter(gpu=gpu),
             )
         ]
     )
@@ -66,7 +71,7 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
     )
     curation_steps = Sequential(
         [
-            filter_dataset,
+            partial(filter_dataset, gpu=(args.device == "gpu")),
         ]
     )
 
