@@ -306,10 +306,33 @@ def read_single_simple_bitext_file_pair(
     backend: str = "cudf",
     add_filename: bool = False,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+    """
+    This function reads a pair of "simple bitext" files into a pandas DataFrame.
+    A simple bitext is a commonly data format in machine translation.
+    It consists of two plain text files with the same number of lines, each line pair being translations of each other. For example:
+
+    data.de:
+
+    ```
+    Wir besitzen keine Reisetaschen aus Leder.
+    Die Firma produziert Computer für den deutschen Markt.
+    ...
+    ```
+
+    data.en:
+
+    ```
+    We don't own duffel bags made of leather.
+    The company produces computers for the German market.
+    ...
+    ```
+
+    For simplicity, we also assume that the names of the two text files have the same prefix, except for different language code at the end as file extensions.
+    """
 
     src_input_file, tgt_input_file = input_file_pair
     assert remove_path_extension(src_input_file) == remove_path_extension(tgt_input_file), \
-        f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}"
+        f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
 
     # TODO: it seems like cudf.read_csv can only take one file max
     # so maybe we shouldn't pass more than one
@@ -320,6 +343,8 @@ def read_single_simple_bitext_file_pair(
 
     df_src = df.read_table(src_input_file, names=["src"], quoting=csv.QUOTE_NONE)
     df_tgt = df.read_table(tgt_input_file, names=["tgt"], quoting=csv.QUOTE_NONE)
+    assert len(df_src) == len(df_tgt), \
+        f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
     df_combined = df.concat([df_src, df_tgt], axis=1)
     df_combined["src_lang"] = src_lang
     df_combined["tgt_lang"] = tgt_lang
@@ -502,7 +527,7 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         num_files = len(filenames)
         for filename in filenames:
             out_df = df[df.filename == filename] if num_files > 1 else df
-            filename = Path(filename).stem
+            filename = Path(filename).stem if output_type != "bitext" else Path(filename).name
             output_file_path = os.path.join(output_file_dir, filename)
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
