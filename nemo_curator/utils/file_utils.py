@@ -23,8 +23,6 @@ import numpy as np
 import pandas as pd
 from dask import delayed
 
-from nemo_curator.utils.distributed_utils import single_partition_write_with_filename
-
 
 def mkdir(d):
     pathlib.Path(d).mkdir(parents=True, exist_ok=True)
@@ -255,3 +253,8 @@ def reshard_jsonl(
 
     # Save to balanced files
     _save_jsonl(b, output_dir, start_index=start_index, prefix=file_prefix)
+
+
+def remove_path_extension(path: str):
+    end = path.rfind(".")
+    return path[:end]

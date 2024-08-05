@@ -262,6 +262,9 @@ class ParallelDataset(DocumentDataset):
     and use interfaces defined in `DocumentDataset`.
     """
 
+    def persist(self):
+        return ParallelDataset(self.df.persist())
+
     @classmethod
     def read_simple_bitext(
         cls,
@@ -270,13 +273,45 @@ class ParallelDataset(DocumentDataset):
         src_lang: str,
         tgt_lang: str,
         backend: str = "pandas",
+        add_filename: bool = False,
     ):
-        return cls(
-            read_simple_bitext_data(
-                src_input_files,
-                tgt_input_files,
-                src_lang,
-                tgt_lang,
-                backend,
+        if isinstance(src_input_files, list) and isinstance(tgt_input_files, list):
+            return cls(
+                read_simple_bitext_data(
+                    src_input_files,
+                    tgt_input_files,
+                    src_lang,
+                    tgt_lang,
+                    backend,
+                    add_filename,
+                )
             )
+        elif isinstance(src_input_files, str) and isinstance(tgt_input_files, str):
+            return cls(
+                read_simple_bitext_data(
+                    [src_input_files],
+                    [tgt_input_files],
+                    src_lang,
+                    tgt_lang,
+                    backend,
+                    add_filename,
+                )
+            )
+        else:
+            raise TypeError("Both file inputs must be strings or lists.")
+
+    def to_bitext(
+        self,
+        output_file_dir,
+        write_to_filename=False,
+    ):
+        """
+        See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
+
+        """
+        write_to_disk(
+            df=self.df,
+            output_file_dir=output_file_dir,
+            write_to_filename=write_to_filename,
+            output_type="bitext",
         )

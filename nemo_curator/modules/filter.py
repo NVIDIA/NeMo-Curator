@@ -18,7 +18,7 @@ from dask.dataframe.extensions import make_array_nonempty
 from dask.typing import no_default
 from dask.array import logical_and
 
-from nemo_curator.datasets import DocumentDataset
+from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import DocumentFilter
 from nemo_curator.utils.module_utils import is_batched
 
@@ -218,6 +218,8 @@ class JointScoreFilter:
         invert=False,
     ):
         """
+        A filter object wrapper class for applying bilingual filter objects (such as length ratio, QE filter) on bitext.
+
         Args:
           filter_obj: Needs to be a filter that applies to 2 text columns, as is the case in bitext.
           score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
@@ -229,7 +231,7 @@ class JointScoreFilter:
         self.score_type = score_type
         self.invert = invert
         
-    def __call__(self, dataset):
+    def __call__(self, dataset: ParallelDataset):
         # Set the metadata for the function calls if provided
         if self.score_type:
             meta = (None, self.score_type)
@@ -256,8 +258,7 @@ class JointScoreFilter:
         if self.invert:
             bool_mask = ~bool_mask
 
-
-        return DocumentDataset(dataset.df[bool_mask])
+        return ParallelDataset(dataset.df[bool_mask])
 
 
 class ParallelScoreFilter:
@@ -273,6 +274,9 @@ class ParallelScoreFilter:
         invert=False,
     ):
         """
+        A filter object wrapper class for applying monolingual filter objects on bitext.
+        If either side of the bitext is discarded, the whole bitext pair is discarded.
+
         Args:
           score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
         """
@@ -285,7 +289,7 @@ class ParallelScoreFilter:
         self.score_type = score_type
         self.invert = invert
 
-    def __call__(self, dataset):
+    def __call__(self, dataset: ParallelDataset):
         # Set the metadata for the function calls if provided
         if self.score_type:
             meta = (None, self.score_type)
@@ -336,4 +340,4 @@ class ParallelScoreFilter:
         # remove lines together if one of them is filtered
         bool_mask_joint = logical_and(bool_masks[self.src_field], bool_masks[self.tgt_field])
         
-        return DocumentDataset(dataset.df[bool_mask_joint])
+        return ParallelDataset(dataset.df[bool_mask_joint])

@@ -57,9 +57,13 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
 
     print("Reading the data...")
     
-    bitext_dataset = ParallelDataset.read_simple_bitext([src_file], [tgt_file],
-                                                        SRC_LANG, TGT_LANG
-                                                        )
+    bitext_dataset = ParallelDataset.read_simple_bitext(
+        src_file,
+        tgt_file,
+        SRC_LANG,
+        TGT_LANG,
+        add_filename=True
+    )
     curation_steps = Sequential(
         [
             filter_dataset,
@@ -83,7 +87,7 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
         shutil.rmtree(out_path)
 
     os.makedirs(out_path)
-    dataset.to_json(out_path, write_to_filename=False)
+    dataset.to_bitext(out_path, write_to_filename=True)
     client.close()
 
 

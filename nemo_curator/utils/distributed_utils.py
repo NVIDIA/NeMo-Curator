@@ -31,6 +31,7 @@ import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
+from nemo_curator.utils.file_utils import remove_path_extension
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -303,9 +304,12 @@ def read_single_simple_bitext_file_pair(
     tgt_lang: str,
     doc_id: str = None,
     backend: str = "cudf",
+    add_filename: bool = False,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
 
     src_input_file, tgt_input_file = input_file_pair
+    assert remove_path_extension(src_input_file) == remove_path_extension(tgt_input_file), \
+        f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}"
 
     # TODO: it seems like cudf.read_csv can only take one file max
     # so maybe we shouldn't pass more than one
@@ -322,8 +326,11 @@ def read_single_simple_bitext_file_pair(
     df_combined['seg_id'] = pd.Series(range(len(df_combined))).astype(str)
 
     if not doc_id:
-        doc_id = '__'.join([str(src_input_file), str(tgt_input_file)])
+        doc_id = '▁'.join([src_input_file, tgt_input_file])
     df_combined["doc_id"] = doc_id
+
+    if add_filename:
+        df_combined["filename"] = remove_path_extension(src_input_file)
 
     return df_combined
 
@@ -334,6 +341,7 @@ def read_simple_bitext_data(
     src_lang,
     tgt_lang,
     backend: str = "cudf",
+    add_filename: bool = False,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
 
     # TODO: use default doc id for now
@@ -344,6 +352,7 @@ def read_simple_bitext_data(
         src_lang=src_lang,
         tgt_lang=tgt_lang,
         backend=backend,
+        add_filename=add_filename,
     )
 
 
@@ -518,6 +527,13 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
             elif output_type == "parquet":
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
+            elif output_type == "bitext":
+                src_output_file_path = output_file_path + f".{out_df['src_lang'][0]}"
+                tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'][0]}"
+                with open(src_output_file_path, 'w') as src_out, open(tgt_output_file_path, 'w') as tgt_out:
+                    for src, tgt in zip(out_df['src'], out_df['tgt']):
+                        src_out.write(src + os.linesep)
+                        tgt_out.write(tgt + os.linesep)
             else:
                 raise ValueError(f"Unknown output type: {output_type}")
 
@@ -573,6 +589,13 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
                 )
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
+        elif output_type == "bitext":
+            src_output_file_path = output_file_dir + "records" + f".{df['src_lang'][0]}"
+            tgt_output_file_path = output_file_dir + "records" + f".{df['tgt_lang'][0]}"
+            with open(src_output_file_path, 'w') as src_out, open(tgt_output_file_path, 'w') as tgt_out:
+                for src, tgt in zip(df['src'], df['tgt']):
+                    src_out.write(src + os.linesep)
+                    tgt_out.write(tgt + os.linesep)
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 
