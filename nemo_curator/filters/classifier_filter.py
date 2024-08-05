@@ -124,7 +124,6 @@ class COMETQualityEstimationFilter(DocumentFilter):
         return pd.Series(model_output.scores, index=df.index)
 
     def keep_document(self, score):
-        print(f"this sentence has score {score}")
         return score >= self._cutoff
 
     def _load_model(self):
