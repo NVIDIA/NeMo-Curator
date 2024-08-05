@@ -78,20 +78,22 @@ NeMo Curator provides an easy way to annotate and filter your data using the saf
   result_dataset.to_json("safe_documents/")
 
 This example filters out all documents except those that AEGIS classifies as safe or O13 (the category for "Needs caution").
-The possible labels are as follows: "safe", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9", "O10", "O11", "O12", "O13", "unknown".
-"safe" means that the document is considered safe by the model.
-"O1" through "O13" mean the document is unsafe according to the model, and each number corresponds to the safety taxonomy defined in the `paper <https://arxiv.org/pdf/2404.05993>`_ and listed on the `model cards <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0>`_.
-"unknown" means that the LLM output a non-standard response. To view the raw response of the LLM, you can set ``keep_raw_pred=True`` and ``raw_pred_column="raw_predictions"`` like this:
+The possible labels are as follows: ``"safe", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9", "O10", "O11", "O12", "O13", "unknown"``.
 
-.. code-block:: python
-  safety_classifier = AegisClassifier(
-    aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
-    filter_by=["safe", "O13"],
-    keep_raw_pred=True,
-    raw_pred_column="raw_predictions",
-  )
+* "safe" means that the document is considered safe by the model.
+* "O1" through "O13" mean the document is unsafe according to the model, and each number corresponds to the safety taxonomy defined in the `paper <https://arxiv.org/pdf/2404.05993>`_ and listed on the `model cards <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0>`_.
+* "unknown" means that the LLM output a non-standard response. To view the raw response of the LLM, you can set ``keep_raw_pred=True`` and ``raw_pred_column="raw_predictions"`` like this:
 
-This will create a column in the dataframe with the raw output of the LLM. You can choose to parse this response however you want.
+  .. code-block:: python
+
+    safety_classifier = AegisClassifier(
+      aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
+      filter_by=["safe", "O13"],
+      keep_raw_pred=True,
+      raw_pred_column="raw_predictions",
+    )
+
+  This will create a column in the dataframe with the raw output of the LLM. You can choose to parse this response however you want.
 
 
 CrossFit Integration
