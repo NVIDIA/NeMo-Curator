@@ -27,8 +27,8 @@ from crossfit.backend.torch.hf.model import HFModel
 from peft import PeftModel
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
+from nemo_curator.classifiers.base import DistributedDataClassifier
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.distributed_data_classifier import DistributedDataClassifier
 from nemo_curator.utils.aegis_utils import format_aegis
 
 
@@ -38,7 +38,6 @@ class AegisConfig:
     token: Optional[Union[str, bool]] = None
     pretrained_model_name_or_path: str = "meta-llama/LlamaGuard-7b"
     dtype: torch.dtype = torch.bfloat16
-    autocast: bool = False
     max_length: int = 4096
 
 
@@ -68,31 +67,21 @@ class AegisModel(nn.Module):
         peft_model_name_or_path: str,
         dtype: torch.dtype,
         token: str,
-        autocast: bool = False,
     ):
         super().__init__()
         base_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path, torch_dtype=dtype, token=token
         )
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
-        self.autocast = autocast
 
     @torch.no_grad()
-    def _forward(self, batch):
+    def forward(self, batch):
         response = self.model.generate(
             **batch,
             max_new_tokens=100,
             pad_token_id=0,
         )
         return response
-
-    def forward(self, batch):
-        if self.autocast:
-            with torch.autocast(device_type="cuda"):
-                outputs = self._forward(batch)
-        else:
-            outputs = self._forward(batch)
-        return outputs
 
 
 class AegisHFModel(HFModel):
@@ -114,7 +103,6 @@ class AegisHFModel(HFModel):
             self.config.peft_model_name_or_path,
             self.config.dtype,
             self.config.token,
-            self.config.autocast,
         )
         model = model.to(device)
         model.eval()
@@ -161,11 +149,8 @@ class AegisClassifier(DistributedDataClassifier):
         keep_raw_pred=False,
         max_chars=6000,
         device_type="cuda",
-        autocast=True,
     ):
-        config = AegisConfig(
-            peft_model_name_or_path=aegis_variant, token=token, autocast=autocast
-        )
+        config = AegisConfig(peft_model_name_or_path=aegis_variant, token=token)
 
         self.text_field = text_field
         self.labels = AEGIS_LABELS
@@ -184,7 +169,7 @@ class AegisClassifier(DistributedDataClassifier):
             pred_column=pred_column,
             max_chars=max_chars,
             device_type=device_type,
-            autocast=autocast,
+            autocast=False,
         )
 
     def _wrap_in_prompt(self, df):

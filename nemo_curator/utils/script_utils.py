@@ -289,12 +289,20 @@ class ArgumentHelper:
             required=False,
         )
 
-    def add_arg_autocaset(self, help="Whether to use autocast or not"):
+    def add_arg_autocast(self, help="Whether to use autocast or not"):
         ArgumentHelper.attach_bool_arg(
             parser=self.parser,
             flag_name="autocast",
             default=True,
             help=help,
+        )
+
+    def add_arg_max_chars(self, default=2000):
+        self.parser.add_argument(
+            "--max-chars",
+            type=int,
+            default=default,
+            help="Truncates all documents in the dataset to this number of characters before running model inference on them",
         )
 
     def add_distributed_args(self) -> argparse.ArgumentParser:
@@ -399,6 +407,7 @@ class ArgumentHelper:
     @staticmethod
     def parse_distributed_classifier_args(
         description="Default distributed classifier argument parser",
+        max_chars_default=2000,
     ) -> argparse.ArgumentParser:
         """
         Adds default set of arguments that are common to multiple stages
@@ -422,7 +431,8 @@ class ArgumentHelper:
             help="The batch size to be used for inference"
         )
         argumentHelper.add_arg_model_path()
-        argumentHelper.add_arg_autocaset()
+        argumentHelper.add_arg_autocast()
+        argumentHelper.add_arg_max_chars(default=max_chars_default)
 
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
