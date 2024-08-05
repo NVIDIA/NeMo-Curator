@@ -8,7 +8,7 @@ from typing import Any
 from docbuilder import TedTalksDownloader
 
 from nemo_curator import ParallelScoreFilter, JointScoreFilter, Sequential
-from nemo_curator.filters import LengthRatioFilter, HistogramFilter, COMETQualityEstimationFilter
+from nemo_curator.filters import LengthRatioFilter, HistogramFilter, QualityEstimationFilter
 from nemo_curator.datasets import ParallelDataset
 from nemo_curator.utils.script_utils import ArgumentHelper
 from nemo_curator.utils.distributed_utils import get_client
@@ -48,7 +48,10 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
                 score_type=int,
             ),
             JointScoreFilter(
-                COMETQualityEstimationFilter(gpu=gpu),
+                QualityEstimationFilter("comet-qe", cutoff=-0.25, gpu=gpu),
+                src_field = ['src', 'src_lang'],
+                tgt_field = ['tgt', 'tgt_lang'],
+                score_type=float,
             )
         ]
     )
