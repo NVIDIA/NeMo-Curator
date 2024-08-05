@@ -970,10 +970,10 @@ class TestClassifierFilters:
             ]
         )
 
-        from nemo_curator.filters import COMETQualityEstimationFilter
+        from nemo_curator.filters import QualityEstimationFilter
         from nemo_curator.utils.distributed_utils import get_client
         client = get_client(n_workers=1)  # enable GPU by cluster_type="gpu"
-        filter_ = JointScoreFilter(COMETQualityEstimationFilter(), score_type=float)  # enable GPU by gpu=True
+        filter_ = JointScoreFilter(QualityEstimationFilter("comet-qe", cutoff=-0.25, mode="bidi"), score_type=float)  # enable GPU by gpu=True
         filtered_data = filter_(dataset)
 
         expected_indices = [0]

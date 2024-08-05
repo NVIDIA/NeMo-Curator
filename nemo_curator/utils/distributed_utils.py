@@ -334,7 +334,7 @@ def read_single_simple_bitext_file_pair(
     assert remove_path_extension(src_input_file) == remove_path_extension(tgt_input_file), \
         f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
 
-    # TODO: it seems like cudf.read_csv can only take one file max
+    # TODO: it seems like cudf.read_table can only take one file max
     # so maybe we shouldn't pass more than one
     if backend == "cudf":
         df = cudf

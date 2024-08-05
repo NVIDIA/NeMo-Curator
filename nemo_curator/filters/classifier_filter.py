@@ -16,9 +16,10 @@ import dask
 import fasttext
 import numpy as np
 import pandas as pd
+from typing import List
 
-from comet import download_model, load_from_checkpoint
 from nemo_curator.filters.doc_filter import DocumentFilter
+from nemo_curator.filters.models.qe_models import COMETQEModel
 from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
@@ -102,29 +103,64 @@ class FastTextLangId(DocumentFilter):
         return fasttext.load_model(self._model_path)
 
 
-class COMETQualityEstimationFilter(DocumentFilter):
+class QualityEstimationFilter(DocumentFilter):
 
-    def __init__(self, cutoff=-0.25, gpu=False):
-        self._name = "comet_qe"
-        self._model_path = download_model("Unbabel/wmt20-comet-qe-da")
+    # a mapping from supported model names to their corresponding model class
+    SUPPORTED_MODELS = {"comet-qe": COMETQEModel}
+
+    def __init__(self, model_name, cutoff, mode="always_en_x", gpu=False):
+        if model_name in self.SUPPORTED_MODELS:
+            self._name = model_name
+        else:
+            raise NotImplementedError(f"Only the following models are currently supported: {str(self.SUPPORTED_MODELS)}")
+
+        self._model_path = None
+        self._mode = mode
         self._cutoff = cutoff
         self._gpu = gpu
 
+    def _score_document_with_qe(self, model, df: pd.Series, mode="always_en_x") -> List[float]:
+
+        def _is_en_x(src_lang: str, tgt_lang: str):
+            return src_lang == "en" and tgt_lang != "en"
+
+        def _has_en(src_lang: str, tgt_lang: str):
+            return src_lang == "en" and tgt_lang == "en"
+
+        if mode == "simple":
+            input = [model.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]
+            return model.predict(input)
+        elif mode == "always_en_x":
+            # if English is included but it's on the target side, flip to make sure we are scoring with en-x
+            # this strategy was proposed in: https://aclanthology.org/2023.wmt-1.50.pdf
+            input = [
+                model.wrap_qe_input(src, tgt, reverse=(_has_en(src_lang, tgt_lang) and not _is_en_x(src_lang, tgt_lang)))
+                for src, tgt, src_lang, tgt_lang in zip(df['src'], df['tgt'], df['src_lang'], df['tgt_lang'])
+            ]
+            return model.predict(input)  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
+        elif mode == "bidi":
+            # score twice -- once forward and once backward
+            fwd_input = [model.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]
+            rev_input = [model.wrap_qe_input(src, tgt, reverse=True) for src, tgt in zip(df['src'], df['tgt'])]
+            scores = model.predict(fwd_input + rev_input)  # making one call to take advantage of batching
+            # first half is forward score, second half is reverse score -- now we unpack and average
+            fwd_scores = scores[:len(df)]
+            rev_scores = scores[len(df):]
+            return [ (fs + rs) / 2 for fs, rs in zip(fwd_scores, rev_scores) ]
+        else:
+            raise NotImplementedError
+    
     @batched
     def score_document(self, df: pd.Series):
         model_attr = f"{self._name}_{self._model_path}"
         try:
-            model = load_object_on_worker(model_attr, self._load_model, {})
+            model = load_object_on_worker(model_attr, self.SUPPORTED_MODELS[self._name].load_model, {"model_name": self._name, "gpu": self._gpu})
         except NoWorkerError:
             return pd.Series([-1.0 for _ in range(len(df))])
 
-        comet_input = [ {"src": src, "mt": tgt} for src, tgt in zip(df['src'], df['tgt']) ]
-        model_output = model.predict(comet_input, gpus=int(self._gpu), num_workers=0)
+        scores = self._score_document_with_qe(model, df, self._mode)
 
-        return pd.Series(model_output.scores, index=df.index)
+        return pd.Series(scores, index=df.index)
 
     def keep_document(self, score):
         return score >= self._cutoff
-
-    def _load_model(self):
-        return load_from_checkpoint(self._model_path)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .classifier_filter import FastTextLangId, FastTextQualityFilter, COMETQualityEstimationFilter
+from .classifier_filter import FastTextLangId, FastTextQualityFilter, QualityEstimationFilter
 from .code import (
     AlphaFilter,
     GeneralCommentToCodeFilter,

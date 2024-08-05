@@ -17,6 +17,7 @@ import pandas as pd
 from dask.dataframe.extensions import make_array_nonempty
 from dask.typing import no_default
 from dask.array import logical_and
+from typing import List, Union
 
 from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import DocumentFilter
@@ -211,8 +212,8 @@ class JointScoreFilter:
     def __init__(
         self,
         filter_obj,
-        src_field="src",
-        tgt_field="tgt",
+        src_field: Union[List[str], str] = "src",
+        tgt_field: Union[List[str], str] = "tgt",
         score_field=None,
         score_type=None,
         invert=False,
@@ -225,24 +226,45 @@ class JointScoreFilter:
           score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
         """
         self.filter_obj = filter_obj
-        self.src_field = src_field
-        self.tgt_field = tgt_field
         self.score_field = score_field
         self.score_type = score_type
         self.invert = invert
-        
+
+        if type(src_field) == list and type(tgt_field) == list:
+            assert len(self.src_field) == len(self.tgt_field), \
+                "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. " + \
+                f"Got {len(src_field)} and {len(tgt_field)}, which means you are doing something unintended."
+        elif not (type(src_field) == str and type(tgt_field) == str):
+            raise ValueError(
+                "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. " + \
+                "Got two objects of different types, which means you are doing something unintended."
+            )
+        self.src_field = src_field
+        self.tgt_field = tgt_field
+
     def __call__(self, dataset: ParallelDataset):
         # Set the metadata for the function calls if provided
         if self.score_type:
             meta = (None, self.score_type)
         else:
             meta = no_default
+        
+        # support multiple fields if supplied
+        fields = []
+        if type(self.src_field) == list and type(self.tgt_field) == list:
+            fields.extend(self.src_field)
+            fields.extend(self.tgt_field)
+        # constructor made sure that both are strings
+        else:
+            fields.append(self.src_field)
+            fields.append(self.tgt_field)
+
         if is_batched(self.filter_obj.score_document):
-            scores = dataset.df[[self.src_field, self.tgt_field]].map_partitions(
+            scores = dataset.df[fields].map_partitions(
                 self.filter_obj.score_document, meta=meta
             )
         else:
-            scores = dataset.df[[self.src_field, self.tgt_field]].apply(
+            scores = dataset.df[fields].apply(
                 self.filter_obj.score_document, axis=1, meta=meta
             )
 
