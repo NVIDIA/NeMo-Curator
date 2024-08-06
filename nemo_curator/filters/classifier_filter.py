@@ -139,7 +139,7 @@ class QualityEstimationFilter(DocumentFilter):
                 model_class.wrap_qe_input(src, tgt, reverse=(_has_en(src_lang, tgt_lang) and not _is_en_x(src_lang, tgt_lang)))
                 for src, tgt, src_lang, tgt_lang in zip(df['src'], df['tgt'], df['src_lang'], df['tgt_lang'])
             ]
-            return model.predict(input)  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
+            return model.predict(input)
         elif mode == "bidi":
             # score twice -- once forward and once backward
             fwd_input = [model_class.wrap_qe_input(src, tgt) for src, tgt in zip(df['src'], df['tgt'])]

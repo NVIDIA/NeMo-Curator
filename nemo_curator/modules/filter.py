@@ -236,8 +236,8 @@ class JointScoreFilter:
                 f"Got {len(src_field)} and {len(tgt_field)}, which means you are doing something unintended."
         elif not (type(src_field) == str and type(tgt_field) == str):
             raise ValueError(
-                "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. " + \
-                "Got two objects of different types, which means you are doing something unintended."
+                'The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. '
+                'Got two objects of different types, which means you are doing something unintended.'
             )
         self.src_field = src_field
         self.tgt_field = tgt_field
