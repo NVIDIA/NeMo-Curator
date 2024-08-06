@@ -30,8 +30,8 @@
 :ref:`NeMo Curator on Kubernetes <data-curator-kubernetes>`
    Demonstration of how to run the NeMo Curator on a Dask Cluster deployed on top of Kubernetes
 
-:ref:`NeMo Curator with NeMo SDK <data-curator-nemo-sdk>`
-   Example of how to use NeMo Curator with NeMo SDK to run on various platforms
+:ref:`NeMo Curator with NeMo Run <data-curator-nemo-run>`
+   Example of how to use NeMo Curator with NeMo Run to run on various platforms
 
 `Tutorials <https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials>`__
    To get started, you can explore the NeMo Curator GitHub repository and follow the available tutorials and notebooks. These resources cover various aspects of data curation, including training from scratch and Parameter-Efficient Fine-Tuning (PEFT).
@@ -52,4 +52,4 @@
    personalidentifiableinformationidentificationandremoval.rst
    distributeddataclassification.rst
    kubernetescurator.rst
-   nemosdk.rst
+   nemorun.rst
