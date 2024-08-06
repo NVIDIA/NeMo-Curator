@@ -59,7 +59,7 @@ def main():
     else:
         add_filename = True
 
-    domain_classifier = AegisClassifier(
+    aegis_classifier = AegisClassifier(
         aegis_variant=args.aegis_variant,
         token=args.token,
         max_chars=args.max_chars,
@@ -78,7 +78,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = domain_classifier(DocumentDataset(df)).df
+        df = aegis_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(
