@@ -116,10 +116,7 @@ class AegisHFModel(HFModel):
 
     @lru_cache(maxsize=1)
     def load_cfg(self):
-        return AutoConfig.from_pretrained(
-            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
-            token=self.config.token,
-        )
+        return self.load_config()
 
     @lru_cache(maxsize=1)
     def load_tokenizer(self):
