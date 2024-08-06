@@ -97,7 +97,7 @@ def _run_classifier_helper(
     columns_to_keep_list.remove("sliced_text")
 
     classifier_pipe = op.Sequential(
-        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="sentencepiece"),
+        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="default"),
         op.Predictor(
             model,
             sorted_data_loader=True,

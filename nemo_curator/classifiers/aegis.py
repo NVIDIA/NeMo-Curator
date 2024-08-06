@@ -253,9 +253,7 @@ class AegisClassifier(DistributedDataClassifier):
         ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
         columns = ddf.columns.tolist()
         pipe = op.Sequential(
-            op.Tokenizer(
-                self.model, cols=["_hidden_text"], tokenizer_type="sentencepiece"
-            ),
+            op.Tokenizer(self.model, cols=["_hidden_text"], tokenizer_type="default"),
             op.Predictor(
                 self.model,
                 sorted_data_loader=True,

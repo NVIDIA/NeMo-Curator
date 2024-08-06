@@ -61,16 +61,9 @@ def attach_args(
     ),
 ):
     argumentHelper = ArgumentHelper(parser)
+    argumentHelper.add_distributed_classifier_cluster_args()
 
-    argumentHelper.add_arg_enable_spilling()
-    argumentHelper.add_arg_nvlink_only()
-    argumentHelper.add_arg_protocol()
-    argumentHelper.add_arg_rmm_pool_size()
-    argumentHelper.add_arg_scheduler_address()
-    argumentHelper.add_arg_scheduler_file()
-    argumentHelper.add_arg_set_torch_to_use_rmm()
-
-    return argumentHelper.parser
+    return argumentHelper.parser.parse_args()
 
 
 if __name__ == "__main__":
