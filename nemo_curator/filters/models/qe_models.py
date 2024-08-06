@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
+from huggingface_hub import hf_hub_download
 from typing import List
 
 try:
@@ -21,10 +22,17 @@ try:
 except ImportError:
     use_comet = False
 
+try:
+    from pymarian import Evaluator
+    use_pymarian = True
+except ImportError:
+    use_pymarian = False
+
 
 class QEModel(ABC):
 
-    def __init__(self, model, gpu=False):
+    def __init__(self, name, model, gpu=False):
+        self._name = name
         self._model = model
         self._gpu = gpu
 
@@ -58,7 +66,7 @@ class COMETQEModel(QEModel):
             )
 
         path = download_model(cls.MODEL_NAME_TO_HF_PATH[model_name])
-        return cls(load_from_checkpoint(path), gpu)
+        return cls(model_name, load_from_checkpoint(path), gpu)
 
     @staticmethod
     def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
@@ -66,3 +74,43 @@ class COMETQEModel(QEModel):
 
     def predict(self, input: List, **kwargs) -> List[float]:
         return self._model.predict(input, gpus=int(self._gpu), num_workers=0).scores  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
+
+
+class PyMarianQEModel(QEModel):
+
+    MODEL_NAME_TO_HF_PATH = {
+        "cometoid-wmt23": "marian-nmt/cometoid22-wmt23",
+        "cometoid-wmt23-mqm": "marian-nmt/cometoid22-wmt23",
+    }
+
+    @classmethod
+    def load_model(cls, model_name: str, gpu: bool = False):
+        if not use_pymarian:
+            raise RuntimeError(
+                'To run QE filtering with Cometoid/PyMarian, you need to install PyMarian. '
+                'More information at https://github.com/marian-nmt/wmt23-metrics.'
+            )
+
+        repo_id = cls.MODEL_NAME_TO_HF_PATH[model_name]
+        model_path = hf_hub_download(repo_id, filename="checkpoints/marian.model.bin")
+        vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
+        marian_args = f'-m {model_path} -v {vocab_path} {vocab_path} --like comet-qe'
+        return cls(model_name, Evaluator(marian_args), gpu)
+
+    @staticmethod
+    def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
+        return [src, tgt] if not reverse else [tgt, src]
+
+    def predict(self, input: List, **kwargs) -> List[float]:
+        bs = kwargs.get("batch_size", 16)
+        scores = []
+        for start_idx in range(0, len(input), bs):
+            batch = input[start_idx:start_idx+bs]
+            scores.extend(self._model.evaluate(input))
+
+        if not self._name.endswith("mqm"):
+            # using DA+SQM score by default
+            # choice made based on paper: https://aclanthology.org/2023.wmt-1.62.pdf
+            return [score[1] for score in scores] 
+        else:
+            return [score[0] for score in scores]

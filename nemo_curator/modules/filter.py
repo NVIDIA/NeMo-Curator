@@ -231,7 +231,7 @@ class JointScoreFilter:
         self.invert = invert
 
         if type(src_field) == list and type(tgt_field) == list:
-            assert len(self.src_field) == len(self.tgt_field), \
+            assert len(src_field) == len(tgt_field), \
                 "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. " + \
                 f"Got {len(src_field)} and {len(tgt_field)}, which means you are doing something unintended."
         elif not (type(src_field) == str and type(tgt_field) == str):

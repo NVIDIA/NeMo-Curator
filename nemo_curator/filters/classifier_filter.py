@@ -19,7 +19,7 @@ import pandas as pd
 from typing import List
 
 from nemo_curator.filters.doc_filter import DocumentFilter
-from nemo_curator.filters.models.qe_models import COMETQEModel
+from nemo_curator.filters.models.qe_models import COMETQEModel, PyMarianQEModel
 from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
@@ -106,13 +106,17 @@ class FastTextLangId(DocumentFilter):
 class QualityEstimationFilter(DocumentFilter):
 
     # a mapping from supported model names to their corresponding model class
-    SUPPORTED_MODELS = {"comet-qe": COMETQEModel}
+    SUPPORTED_MODELS = {
+        "comet-qe": COMETQEModel,
+        "cometoid-wmt23": PyMarianQEModel,
+        "cometoid-wmt23-mqm": PyMarianQEModel,
+    }
 
     def __init__(self, model_name, cutoff, mode="always_en_x", gpu=False):
         if model_name in self.SUPPORTED_MODELS:
             self._name = model_name
         else:
-            raise NotImplementedError(f"Only the following models are currently supported: {str(self.SUPPORTED_MODELS)}")
+            raise NotImplementedError(f"Only the following models are currently supported: {str(self.SUPPORTED_MODELS.keys())}")
 
         self._model_path = None
         self._mode = mode
