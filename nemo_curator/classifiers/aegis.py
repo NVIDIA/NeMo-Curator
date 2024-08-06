@@ -41,6 +41,13 @@ class AegisConfig:
     max_length: int = 4096
 
 
+ACCESS_ERROR_MESSAGE = """Cannot access meta-llama/LlamaGuard-7b on HuggingFace.
+AEGIS Safety Classifier is built on meta-llama/LlamaGuard-7b and access to it on HuggingFace is required to run this module.
+You must be authenticated (using a user access token) to access it.
+You can request access to Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b.
+Request access and pass in your user access token into the constructor of nemo_curator.classifiers.AegisClassifier in order to use AEGIS.
+"""
+
 AEGIS_LABELS = [
     "unknown",
     "safe",
@@ -140,6 +147,11 @@ class AegisClassifier(DistributedDataClassifier):
     Llama2-7B trained on Nvidia's content safety dataset Aegis Content Safety
     Dataset covering Nvidia's broad taxonomy of 13 critical safety risk
     categories. See the paper for more information: https://arxiv.org/abs/2404.05993
+
+    In order to use this AEGIS classifiers, users must get access to
+    Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
+    Afterwards, they should set up a user access token and pass that token into
+    the constructor of this classifier.
     """
 
     def __init__(
@@ -163,7 +175,8 @@ class AegisClassifier(DistributedDataClassifier):
                 the AEGIS model. Can be either 'nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0'
                 or 'nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0'
             token (Optional[Union[str, bool]]): A HuggingFace user access token. A user access token is
-                usually needed to access the base model for AEGIS (meta-llama/LlamaGuard-7b).
+                needed to access the base model for AEGIS (meta-llama/LlamaGuard-7b). You can get access to
+                Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
             filter_by (Optional[List[str]]): If specified, the resulting dataset will remove all values
                 expect those specified in this list.
             batch_size (int): The batch size to use when running the classifier.
@@ -185,7 +198,13 @@ class AegisClassifier(DistributedDataClassifier):
         self.raw_pred_column = raw_pred_column
         self.keep_raw_pred = keep_raw_pred
 
-        model = AegisHFModel(config=config)
+        try:
+            model = AegisHFModel(config=config)
+        except OSError as e:
+            if "meta-llama/LlamaGuard-7b" in str(e):
+                raise PermissionError(ACCESS_ERROR_MESSAGE)
+            else:
+                raise e
 
         super().__init__(
             model=model,
