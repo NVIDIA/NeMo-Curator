@@ -63,14 +63,21 @@ There are two variants, `defensive <https://huggingface.co/nvidia/Aegis-AI-Conte
 The models are parameter efficient instruction tuned versions of Llama Guard based on Llama2-7B trained on Nvidia's content safety dataset `Aegis Content Safety Dataset <https://huggingface.co/datasets/nvidia/Aegis-AI-Content-Safety-Dataset-1.0>`_.
 More details on training and the model can be found `here <https://arxiv.org/abs/2404.05993>`_.
 
+In order to use this AEGIS classifiers, you must get access to
+Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
+Afterwards, you should set up a user access token and pass that token into
+the constructor of this classifier.
+
 NeMo Curator provides an easy way to annotate and filter your data using the safety models through our distributed data classfication framework.
 
 .. code-block:: python
   files = get_all_files_paths_under("unsafe_documents/")
   input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
+  token = "hf_1234"  # Replace with your user access token
   safety_classifier = AegisClassifier(
     aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
+    token=token,
     filter_by=["safe", "O13"]
   )
   result_dataset = safety_classifier(dataset=input_dataset)
