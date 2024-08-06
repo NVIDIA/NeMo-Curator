@@ -46,8 +46,8 @@ def main():
         script_command=curator_command,
     )
 
-    executor = sdk.resolve(SlurmExecutor, "nemo_curator_slurm_executor")
-    with sdk.Experiment("example_nemo_curator_exp", executor=executor) as exp:
+    executor = run.resolve(SlurmExecutor, "nemo_curator_slurm_executor")
+    with run.Experiment("example_nemo_curator_exp", executor=executor) as exp:
         exp.add(curator_job.to_script(), tail_logs=True)
         exp.run(detach=False)
 
