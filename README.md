@@ -64,6 +64,7 @@ These modules offer flexibility and permit reordering, with only a few exception
   - [Curating Trillion-Token Datasets: Introducing NVIDIA NeMo Data Curator](https://developer.nvidia.com/blog/curating-trillion-token-datasets-introducing-nemo-data-curator/)
   - [Scale and Curate High-Quality Datasets for LLM Training with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/scale-and-curate-high-quality-datasets-for-llm-training-with-nemo-curator/)
   - [Curating Custom Datasets for LLM Training with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/curating-custom-datasets-for-llm-training-with-nvidia-nemo-curator/)
+  - [Curating Custom Datasets for LLM Parameter-Efficient Fine-Tuning with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/curating-custom-datasets-for-llm-parameter-efficient-fine-tuning-with-nvidia-nemo-curator/)
 
 ## Get Started
 
@@ -122,10 +123,13 @@ pip install --extra-index-url https://pypi.nvidia.com nemo-curator[cuda12x]
 
 #### From the NeMo Framework Container
 
-The latest release of NeMo Curator comes preinstalled in the [NeMo Framework Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo/tags). If you want the latest commit inside the container, uninstall the existing version using:
+The latest release of NeMo Curator comes preinstalled in the [NeMo Framework Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo/tags). If you want the latest commit inside the container, you can reinstall NeMo Curator using:
 
 ```bash
 pip uninstall nemo-curator
+rm -r /opt/NeMo-Curator
+git clone https://github.com/NVIDIA/NeMo-Curator.git /opt/NeMo-Curator
+pip install --extra-index-url https://pypi.nvidia.com /opt/NeMo-Curator[cuda12x]
 ```
 And follow the instructions for installing from source from [above](#from-source).
 
