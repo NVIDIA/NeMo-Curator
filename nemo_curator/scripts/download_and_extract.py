@@ -15,18 +15,14 @@
 import argparse
 import os
 
-from nemo_curator.download import batch_download, download_and_extract
+from nemo_curator.download.doc_builder import batch_download, download_and_extract
 from nemo_curator.utils.config_utils import build_downloader
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import (
     expand_outdir_and_mkdir,
     get_all_files_paths_under,
 )
-from nemo_curator.utils.script_utils import (
-    add_distributed_args,
-    attach_bool_arg,
-    parse_client_args,
-)
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def read_urls(file_path):
@@ -36,7 +32,7 @@ def read_urls(file_path):
 
 
 def main(args):
-    client = get_client(**parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))
 
     if args.input_url_file:
         urls = read_urls(args.input_url_file)
@@ -77,6 +73,7 @@ def main(args):
         output_format,
         keep_raw_download=args.keep_downloaded_files,
         force_download=args.overwrite_existing_json,
+        input_meta=args.input_meta,
     )
 
     # Sample to trigger the dask computation
@@ -106,6 +103,25 @@ such that it simply returns the pre-downloaded file
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
+    argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.add_arg_input_data_dir(help="Path to input data directory.")
+    argumentHelper.add_arg_input_meta()
+    argumentHelper.add_distributed_args()
+    parser.add_argument(
+        "--builder-config-file",
+        type=str,
+        required=True,
+        help="YAML file that contains paths to implementations of a downloader, "
+        "iterator and extractor that will be used in this program "
+        "to build the documents that make up the output dataset",
+    )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "download-only",
+        help="Specify this flag if you desire to only download the data"
+        "files and not extract text from the downloaded files",
+    )
     parser.add_argument(
         "--input-url-file",
         type=str,
@@ -113,12 +129,19 @@ such that it simply returns the pre-downloaded file
         help="Input directory consisting of .jsonl files that are accessible "
         "to all nodes. Use this for a distributed file system",
     )
+    ArgumentHelper.attach_bool_arg(
+        parser,
+        "keep-downloaded-files",
+        help="If this flag is set to true, the downloaded data files "
+        "will be kept on disk and not removed after extraction",
+    )
     parser.add_argument(
-        "--input-data-dir",
+        "--output-download-dir",
         type=str,
         default=None,
-        required=False,
-        help="Path to input data directory",
+        help="The directory to where data files will be written "
+        "in 'download-only' mode. Specify this argument only when "
+        "the '--download-only flag is specified'.",
     )
     parser.add_argument(
         "--output-json-dir",
@@ -126,44 +149,12 @@ such that it simply returns the pre-downloaded file
         default=None,
         help="Output directory to store the extracted text in jsonl files",
     )
-    attach_bool_arg(
-        parser,
-        "download-only",
-        help_str="Specify this flag if you desire to only download the data"
-        "files and not extract text from the downloaded files",
-    )
-    parser.add_argument(
-        "--builder-config-file",
-        type=str,
-        default=None,
-        required=True,
-        help="YAML file that contains paths to implementations of a downloader, "
-        "iterator and extractor that will be used in this program "
-        "to build the documents that make up the output dataset",
-    )
-    attach_bool_arg(
-        parser,
-        "keep-downloaded-files",
-        help_str="If this flag is set to true, the downloaded data files "
-        "will be kept on disk and not removed after extraction",
-    )
-    parser.add_argument(
-        "--output-download-dir",
-        type=str,
-        default=None,
-        required=False,
-        help="The directory to where data files will be written "
-        "in 'download-only' mode. Specify this argument only when "
-        "the '--download-only flag is specified'.",
-    )
-    attach_bool_arg(
+    ArgumentHelper.attach_bool_arg(
         parser,
         "overwrite-existing-json",
-        help_str="If this flag is specified, then the json data will be "
+        help="If this flag is specified, then the json data will be "
         "overwritten if downloading from the the same file.",
     )
-
-    parser = add_distributed_args(parser)
 
     return parser
 

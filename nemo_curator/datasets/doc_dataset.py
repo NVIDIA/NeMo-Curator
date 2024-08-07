@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Optional, Union
+
 import dask.dataframe as dd
 
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk
@@ -36,10 +38,11 @@ class DocumentDataset:
     @classmethod
     def read_json(
         cls,
-        input_files,
-        backend="pandas",
-        files_per_partition=1,
-        add_filename=False,
+        input_files: Union[str, List[str]],
+        backend: str = "pandas",
+        files_per_partition: int = 1,
+        add_filename: bool = False,
+        input_meta: Union[str, dict] = None,
     ):
         return cls(
             _read_json_or_parquet(
@@ -48,6 +51,7 @@ class DocumentDataset:
                 backend=backend,
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                input_meta=input_meta,
             )
         )
 
@@ -77,15 +81,15 @@ class DocumentDataset:
         files_per_partition=1,
         add_filename=False,
     ):
-        raw_data = read_data(
-            input_files=input_files,
-            file_type="pickle",
-            backend=backend,
-            files_per_partition=files_per_partition,
-            add_filename=add_filename,
+        return cls(
+            read_data(
+                input_files=input_files,
+                file_type="pickle",
+                backend=backend,
+                files_per_partition=files_per_partition,
+                add_filename=add_filename,
+            )
         )
-
-        return cls(raw_data)
 
     def to_json(
         self,
@@ -126,13 +130,52 @@ class DocumentDataset:
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
 
+    @classmethod
+    def from_pandas(
+        cls,
+        data,
+        npartitions: Optional[int] = 1,
+        chunksize: Optional[int] = None,
+        sort: Optional[bool] = True,
+        name: Optional[str] = None,
+    ):
+        """
+        Creates a document dataset from a pandas data frame.
+        For more information on the arguments see Dask's from_pandas documentation
+        https://docs.dask.org/en/stable/generated/dask.dataframe.from_pandas.html
+
+        Args:
+            data: A pandas dataframe
+        Returns:
+            A document dataset with a pandas backend (on the CPU).
+        """
+        return cls(
+            dd.from_pandas(
+                data=data,
+                npartitions=npartitions,
+                chunksize=chunksize,
+                sort=sort,
+                name=name,
+            )
+        )
+
+    def to_pandas(self):
+        """
+        Creates a pandas dataframe from a DocumentDataset
+
+        Returns:
+            A pandas dataframe (on the CPU)
+        """
+        return self.df.to_backend("pandas").compute()
+
 
 def _read_json_or_parquet(
-    input_files,
-    file_type,
-    backend,
-    files_per_partition,
-    add_filename,
+    input_files: Union[str, List[str]],
+    file_type: str,
+    backend: str,
+    files_per_partition: int,
+    add_filename: bool,
+    input_meta: Union[str, dict] = None,
 ):
     """
     `input_files` may be a list or a string type.
@@ -162,6 +205,7 @@ def _read_json_or_parquet(
                 backend=backend,
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                input_meta=input_meta,
             )
 
         # List of directories
@@ -178,6 +222,7 @@ def _read_json_or_parquet(
                     backend=backend,
                     files_per_partition=files_per_partition,
                     add_filename=add_filename,
+                    input_meta=input_meta,
                 )
                 dfs.append(df)
 
@@ -200,6 +245,7 @@ def _read_json_or_parquet(
             backend=backend,
             files_per_partition=files_per_partition,
             add_filename=add_filename,
+            input_meta=input_meta,
         )
 
     else:
