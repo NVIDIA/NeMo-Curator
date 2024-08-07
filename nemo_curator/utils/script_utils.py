@@ -289,6 +289,14 @@ class ArgumentHelper:
             required=False,
         )
 
+    def add_arg_max_mem_gb_classifier(self):
+        self.parser.add_argument(
+            "--max-mem-gb-classifier",
+            default=16,
+            type=int,
+            help="Maximum memory to use in GB",
+        )
+
     def add_arg_autocaset(self, help="Whether to use autocast or not"):
         ArgumentHelper.attach_bool_arg(
             parser=self.parser,
