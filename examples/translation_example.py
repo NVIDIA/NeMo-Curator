@@ -57,6 +57,7 @@ class CustomModel(nn.Module):
             pretrained_model_name_or_path=config.pretrained_model_name_or_path,
             trust_remote_code=True,
         )
+        self.autocast = autocast
         
     @torch.no_grad()
     def _forward(self, batch):
@@ -71,7 +72,11 @@ class CustomModel(nn.Module):
         )
 
     def forward(self, batch):
-        outputs = self._forward(batch)
+        if self.autocast:
+            with torch.autocast(device_type="cuda"):
+                outputs = self._forward(batch)
+        else:
+            outputs = self._forward(batch)
         return outputs
 
 
