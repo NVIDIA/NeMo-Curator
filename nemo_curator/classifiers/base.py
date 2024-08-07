@@ -20,8 +20,8 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from huggingface_hub import PyTorchModelHubMixin
 from crossfit import op
+from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoModel
 
 from nemo_curator.datasets import DocumentDataset
