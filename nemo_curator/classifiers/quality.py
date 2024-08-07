@@ -20,6 +20,7 @@ import torch
 import torch.nn as nn
 from crossfit.backend.torch.hf.model import HFModel
 from transformers import AutoConfig, AutoModel
+from transformers.models.deberta_v2 import DebertaV2TokenizerFast
 
 from nemo_curator.classifiers.base import (
     DistributedDataClassifier,

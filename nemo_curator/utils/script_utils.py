@@ -418,15 +418,13 @@ class ArgumentHelper:
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
         argumentHelper = ArgumentHelper(parser)
-        argumentHelper.add_distributed_args()
+        argumentHelper.add_distributed_classifier_cluster_args()
         argumentHelper.add_arg_input_data_dir(required=True)
         argumentHelper.add_arg_output_data_dir(help="The path of the output files")
         argumentHelper.add_arg_input_file_type()
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_output_file_type()
         argumentHelper.add_arg_input_text_field()
-        argumentHelper.add_arg_enable_spilling()
-        argumentHelper.add_arg_set_torch_to_use_rmm()
         argumentHelper.add_arg_batch_size(
             help="The batch size to be used for inference"
         )
@@ -434,14 +432,23 @@ class ArgumentHelper:
         argumentHelper.add_arg_autocast()
         argumentHelper.add_arg_max_chars(default=max_chars_default)
 
+        return argumentHelper.parser
+
+    def add_distributed_classifier_cluster_args(self):
+        """
+        Adds Dask cluster args needed for the distributed data classifiers
+        """
+        self.add_distributed_args()
+        self.add_arg_enable_spilling()
+        self.add_arg_set_torch_to_use_rmm()
+
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
         # by default
-        argumentHelper.parser.set_defaults(rmm_pool_size="512MB")
+        self.parser.set_defaults(rmm_pool_size="512MB")
         # Setting to False makes it more stable for long running jobs
         # possibly because of memory fragmentation
-        argumentHelper.parser.set_defaults(set_torch_to_use_rmm=False)
-        return argumentHelper.parser
+        self.parser.set_defaults(set_torch_to_use_rmm=False)
 
     @staticmethod
     def parse_gpu_dedup_args(description: str) -> argparse.ArgumentParser:

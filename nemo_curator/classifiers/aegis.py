@@ -17,7 +17,7 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import cudf
 import torch
@@ -40,6 +40,13 @@ class AegisConfig:
     dtype: torch.dtype = torch.bfloat16
     max_length: int = 4096
 
+
+ACCESS_ERROR_MESSAGE = """Cannot access meta-llama/LlamaGuard-7b on HuggingFace.
+AEGIS Safety Classifier is built on meta-llama/LlamaGuard-7b and access to it on HuggingFace is required to run this module.
+You must be authenticated (using a user access token) to access it.
+You can request access to Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b.
+Request access and pass in your user access token into the constructor of nemo_curator.classifiers.AegisClassifier in order to use AEGIS.
+"""
 
 AEGIS_LABELS = [
     "unknown",
@@ -116,10 +123,7 @@ class AegisHFModel(HFModel):
 
     @lru_cache(maxsize=1)
     def load_cfg(self):
-        return AutoConfig.from_pretrained(
-            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
-            token=self.config.token,
-        )
+        return self.load_config()
 
     @lru_cache(maxsize=1)
     def load_tokenizer(self):
@@ -137,19 +141,55 @@ class AegisHFModel(HFModel):
 
 
 class AegisClassifier(DistributedDataClassifier):
+    """
+    NVIDIA's AEGIS safety classifier is a LLM content safety model.
+    It is a parameter efficient instruction tuned version of Llama Guard based on
+    Llama2-7B trained on Nvidia's content safety dataset Aegis Content Safety
+    Dataset covering Nvidia's broad taxonomy of 13 critical safety risk
+    categories. See the paper for more information: https://arxiv.org/abs/2404.05993
+
+    In order to use this AEGIS classifiers, users must get access to
+    Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
+    Afterwards, they should set up a user access token and pass that token into
+    the constructor of this classifier.
+    """
+
     def __init__(
         self,
-        aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
-        token=None,
-        filter_by=None,
-        batch_size=64,
-        text_field="text",
-        pred_column="aegis_pred",
-        raw_pred_column="_aegis_raw_pred",
-        keep_raw_pred=False,
-        max_chars=6000,
-        device_type="cuda",
+        aegis_variant: str = "nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
+        token: Optional[Union[str, bool]] = None,
+        filter_by: Optional[List[str]] = None,
+        batch_size: int = 64,
+        text_field: str = "text",
+        pred_column: str = "aegis_pred",
+        raw_pred_column: str = "_aegis_raw_pred",
+        keep_raw_pred: bool = False,
+        max_chars: int = 6000,
+        device_type: str = "cuda",
     ):
+        """
+        Constructs the classifier
+
+        Args:
+            aegis_variant (str): The HuggingFace 'pretrained_model_name_or_path' for
+                the AEGIS model. Can be either 'nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0'
+                or 'nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0'
+            token (Optional[Union[str, bool]]): A HuggingFace user access token. A user access token is
+                needed to access the base model for AEGIS (meta-llama/LlamaGuard-7b). You can get access to
+                Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
+            filter_by (Optional[List[str]]): If specified, the resulting dataset will remove all values
+                expect those specified in this list.
+            batch_size (int): The batch size to use when running the classifier.
+            text_field (str): The field in the dataset that should be classified.
+            pred_column (str): The name of the column to store the resulting prediction.
+            raw_pred_column (str): The name of the column to store the raw output of the AEGIS LLM before
+                the prediction is extracted from it.
+            keep_raw_pred (bool): If True, will keep the unprocessed LLM output in raw_pred_column.
+                Useful for debugging when "unknown" shows up a lot in your dataset.
+            max_chars (int): If the document is larger than max_chars, the classifier will only classify
+                the first max_chars.
+            device_type (str): The device to run the classifier on. Currently, it can only be "cuda".
+        """
         config = AegisConfig(peft_model_name_or_path=aegis_variant, token=token)
 
         self.text_field = text_field
@@ -158,7 +198,13 @@ class AegisClassifier(DistributedDataClassifier):
         self.raw_pred_column = raw_pred_column
         self.keep_raw_pred = keep_raw_pred
 
-        model = AegisHFModel(config=config)
+        try:
+            model = AegisHFModel(config=config)
+        except OSError as e:
+            if "meta-llama/LlamaGuard-7b" in str(e):
+                raise PermissionError(ACCESS_ERROR_MESSAGE)
+            else:
+                raise e
 
         super().__init__(
             model=model,
@@ -223,9 +269,7 @@ class AegisClassifier(DistributedDataClassifier):
         ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
         columns = ddf.columns.tolist()
         pipe = op.Sequential(
-            op.Tokenizer(
-                self.model, cols=["_hidden_text"], tokenizer_type="sentencepiece"
-            ),
+            op.Tokenizer(self.model, cols=["_hidden_text"], tokenizer_type="default"),
             op.Predictor(
                 self.model,
                 sorted_data_loader=True,
