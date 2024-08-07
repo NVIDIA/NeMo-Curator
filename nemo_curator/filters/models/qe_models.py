@@ -96,9 +96,9 @@ class PyMarianQEModel(QEModel):
         vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
         marian_args = f'-m {model_path} -v {vocab_path} {vocab_path} --like comet-qe'
         if gpu:
-            marian_args += " -d 0"  # one gpu per worker
+            marian_args += " -w 8000"  # one gpu per worker
         else:
-            marian_args += " --cpu-threads 1"  # one cpu? TODO
+            marian_args += " --cpu-threads 1 -w 2000"  # one cpu per worker
         return cls(model_name, Evaluator(marian_args), gpu)
 
     @staticmethod
@@ -110,7 +110,7 @@ class PyMarianQEModel(QEModel):
         scores = []
         for start_idx in range(0, len(input), bs):
             batch = input[start_idx:start_idx+bs]
-            scores.extend(self._model.evaluate(input))
+            scores.extend(self._model.evaluate(batch))
 
         if not self._name.endswith("mqm"):
             # using DA+SQM score by default
