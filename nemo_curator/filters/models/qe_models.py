@@ -106,11 +106,7 @@ class PyMarianQEModel(QEModel):
         return [src, tgt] if not reverse else [tgt, src]
 
     def predict(self, input: List, **kwargs) -> List[float]:
-        bs = kwargs.get("batch_size", 16)
-        scores = []
-        for start_idx in range(0, len(input), bs):
-            batch = input[start_idx:start_idx+bs]
-            scores.extend(self._model.evaluate(batch))
+        scores = self._model.evaluate(input)
 
         if not self._name.endswith("mqm"):
             # using DA+SQM score by default
