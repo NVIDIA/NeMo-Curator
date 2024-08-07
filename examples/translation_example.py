@@ -11,11 +11,6 @@ import torch
 import torch.nn as nn
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
-import multiprocessing
-import pickle
-import dask_cudf
-import dask.dataframe 
-from numba import cuda
 from nltk.tokenize import sent_tokenize
 import re
 
@@ -42,7 +37,8 @@ from nemo_curator.utils.script_utils import (
 )
 from dask.distributed import get_worker
 MAX_OUT_LEN= 256
-MAX_TOKEN_LEN=200
+TERMINAL_PUNCTUATIONS = (".", "!", "?", ":", ",", ";", ")", "}", "]", '"', "'", "”", "’")
+START_PUNCTUATIONS = ("(", "{", "[", "'", '"', "“", "‘")
 
 @dataclass
 class TranslationConfig:
@@ -50,6 +46,7 @@ class TranslationConfig:
     max_length: int = 50
     num_beams: int = 5
     autocast: bool = False
+    max_words_per_sen: int = 200
 
 
 class CustomModel(nn.Module):
@@ -122,7 +119,7 @@ class ModelForSeq2SeqModel(HFModel):
 
 def preprocess_df(df):
     ip = load_object_on_worker("IndicProcessor", IndicProcessor, {"inference": True})
-    indices = df['indic_proc_text'].index.to_arrow().to_pylist()
+    indices = df['indic_proc_text'].index
     sentences = df["indic_proc_text"].to_arrow().to_pylist()
     sentences = ip.preprocess_batch(
         sentences, src_lang="eng_Latn", tgt_lang="hin_Deva"
@@ -137,7 +134,7 @@ def translate_tokens(df, model):
     else:
         ip = load_object_on_worker("IndicProcessor", IndicProcessor, {"inference": True})
     tokenizer = model.load_tokenizer()
-    indices = df["translation"].index.to_arrow().to_pylist()
+    indices = df["translation"].index
     generated_tokens = df["translation"].to_arrow().to_pylist()
     with tokenizer.as_target_tokenizer():
         generated_tokens = tokenizer.batch_decode(
@@ -161,9 +158,6 @@ def parse_arguments():
     )
     return parser.parse_args()
 
-
-TERMINAL_PUNCTUATIONS = (".", "!", "?", ":", ",", ";", ")", "}", "]", '"', "'", "”", "’")
-START_PUNCTUATIONS = ("(", "{", "[", "'", '"', "“", "‘")
 def truncate_start_end_symbols(input_string):
     start = ""
     mid = ""
@@ -240,10 +234,11 @@ def custom_tokenize(text):
             tokenized_sentences.append(line)
 
     tokenized_sentence_len = []
+    tc = TranslationConfig(pretrained_model_name_or_path="")
     for sentence in tokenized_sentences:
         sent = sentence.split()
         # removing the sentences with word length greater than threshold as the model may not be able translate it due to constraint on output token size
-        if len(sent) <= MAX_TOKEN_LEN:
+        if len(sent) <= tc.max_words_per_sen:
             tokenized_sentence_len.append(sentence)
         else:
             pass
@@ -330,7 +325,7 @@ def main_func(args):
     ddf['word_count'] = ddf['indic_proc_text'].str.split().list.len()
     ddf['word_count'] = ddf['word_count'].astype('int64')
 
-    ddf_true = ddf[(ddf['word_count'] <= MAX_TOKEN_LEN)]
+    ddf_true = ddf[(ddf['word_count'] <= translation_config.max_words_per_sen)]
     ddf_trans = ddf_true[ddf_true['indic_proc_text'].str.contains('[a-zA-Z]',regex=True)]
     ddf_false=ddf_true[~(ddf_true['indic_proc_text'].str.contains('[a-zA-Z]',regex=True))]
 
@@ -381,14 +376,10 @@ def main_func(args):
 
     print(f"Total time taken for translation: {time.time()-st} seconds", flush=True)
 
-def main():
+if __name__ == "__main__":
     args = parse_arguments()
     print(f"Arguments parsed = {args}")
     client = get_client(**parse_client_args(args))
     print(client.dashboard_link)
     main_func(args)
     client.close()
-
-
-if __name__ == "__main__":
-    main()
