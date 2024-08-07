@@ -95,6 +95,10 @@ class PyMarianQEModel(QEModel):
         model_path = hf_hub_download(repo_id, filename="checkpoints/marian.model.bin")
         vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
         marian_args = f'-m {model_path} -v {vocab_path} {vocab_path} --like comet-qe'
+        if gpu:
+            marian_args += " -d 0"  # one gpu per worker
+        else:
+            marian_args += " --cpu-threads 1"  # one cpu? TODO
         return cls(model_name, Evaluator(marian_args), gpu)
 
     @staticmethod

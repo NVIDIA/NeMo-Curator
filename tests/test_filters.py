@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-from comet import download_model, load_from_checkpoint
+# from comet import download_model, load_from_checkpoint
 from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import (
     AlphaFilter,
