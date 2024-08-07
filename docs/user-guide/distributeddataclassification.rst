@@ -33,7 +33,7 @@ Usage
 NeMo Curator provides a base class ``DistributedDataClassifier`` that can be extended to fit your specific model.
 The only requirement is that the model can fit on a single GPU.
 We have also provided two subclasses that focus on domain and quality classification.
-Let's see how ``DomainClassifier`` works in a small excerpt taken from ``examples/domain_classifier_example.py``:
+Let's see how ``DomainClassifier`` works in a small excerpt taken from ``examples/classifiers/domain_example.py``:
 
 .. code-block:: python
 
@@ -50,7 +50,7 @@ In the above excerpt, the domain classifier is obtained directly from `Hugging F
 This module functions similarly to the ``ScoreFilter`` module.
 The key differences is that it operates on the GPU instead of the CPU.
 Therefore, the Dask cluster must be started as a GPU cluster.
-Additionally, ``DomainClassifier`` requires ``DocumentDataset`` to be on the GPU with ``backend=cudf``.
+Additionally, ``DomainClassifier`` requires ``DocumentDataset`` to be on the GPU with ``backend="cudf"``.
 It is easy to extend ``DistributedDataClassifier`` to your own model.
 Check out ``nemo_curator.classifiers.base.py`` for reference.
 
@@ -63,7 +63,7 @@ More details on training and the model can be found `here <https://arxiv.org/abs
 
 To use this AEGIS classifiers, you must get access to
 Llama Guard on Hugging Face here: https://huggingface.co/meta-llama/LlamaGuard-7b
-Afterwards, you should set up a user access token and pass that token into
+Afterwards, you should set up a `user access token <https://huggingface.co/docs/hub/en/security-tokens>`_ and pass that token into
 the constructor of this classifier.
 
 NeMo Curator provides an easy way to annotate and filter your data using the safety models through our distributed data classfication framework.
@@ -86,7 +86,7 @@ This example filters out all documents except those that AEGIS classifies as saf
 The possible labels are as follows: ``"safe", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9", "O10", "O11", "O12", "O13", or "unknown"``.
 
 * "safe" means that the document is considered safe by the model.
-* "O1" through "O13" mean the document is unsafe according to the model. Each number corresponds to the safety taxonomy defined in the `paper <https://arxiv.org/pdf/2404.05993>`_ and listed on the `model cards <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0>`_.
+* "O1" through "O13" mean the document is unsafe according to the model. Each number corresponds to a different category of safety from the safety taxonomy defined in the `paper <https://arxiv.org/pdf/2404.05993>`_ and listed on the `model cards <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0>`_.
 * "unknown" means that the LLM output a non-standard response. To view the raw response of the LLM, you can set ``keep_raw_pred=True`` and ``raw_pred_column="raw_predictions"`` like this:
 
   .. code-block:: python
