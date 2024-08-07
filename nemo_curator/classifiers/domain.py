@@ -20,7 +20,7 @@ from transformers import AutoConfig, AutoTokenizer
 
 from nemo_curator.classifiers.base import (
     DistributedDataClassifier,
-    HFCustomModel,
+    HFDeberta,
     _run_classifier_helper,
 )
 from nemo_curator.datasets import DocumentDataset
@@ -36,13 +36,13 @@ class DomainModelConfig:
 
 
 class DomainModel(HFModel):
-    def __init__(self, config: dataclass, autocast: bool = False):
+    def __init__(self, config: DomainModelConfig, autocast: bool = False):
         self.config = config
         self.autocast = autocast
         super().__init__(self.config.model)
 
     def load_model(self, device="cuda"):
-        model = HFCustomModel.from_pretrained(DOMAIN_IDENTIFIER)
+        model = HFDeberta.from_pretrained(DOMAIN_IDENTIFIER)
         model.set_autocast(self.autocast)
         model = model.to(device)
         return model.eval()

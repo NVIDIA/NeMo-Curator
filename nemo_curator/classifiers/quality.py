@@ -20,7 +20,7 @@ from transformers import AutoConfig, AutoTokenizer
 
 from nemo_curator.classifiers.base import (
     DistributedDataClassifier,
-    HFCustomModel,
+    HFDeberta,
     _run_classifier_helper,
 )
 from nemo_curator.datasets import DocumentDataset
@@ -32,17 +32,17 @@ QUALITY_IDENTIFIER = "nvidia/quality-classifier-deberta"
 class QualityModelConfig:
     model = "microsoft/deberta-v3-base"
     fc_dropout = 0.2
-    max_len = 512
+    max_len = 1024
 
 
 class QualityModel(HFModel):
-    def __init__(self, config: dataclass, autocast: bool = False):
+    def __init__(self, config: QualityModelConfig, autocast: bool = False):
         self.config = config
         self.autocast = autocast
         super().__init__(self.config.model)
 
     def load_model(self, device="cuda"):
-        model = HFCustomModel.from_pretrained(QUALITY_IDENTIFIER)
+        model = HFDeberta.from_pretrained(QUALITY_IDENTIFIER)
         model.set_autocast(self.autocast)
         model = model.to(device)
         return model.eval()

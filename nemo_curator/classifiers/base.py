@@ -83,9 +83,9 @@ class DistributedDataClassifier(ABC):
         return self.labels
 
 
-class HFCustomModel(nn.Module, PyTorchModelHubMixin):
+class HFDeberta(nn.Module, PyTorchModelHubMixin):
     def __init__(self, config: dataclass):
-        super(HFCustomModel, self).__init__()
+        super(HFDeberta, self).__init__()
         self.model = AutoModel.from_pretrained(config["base_model"])
         self.dropout = nn.Dropout(config["fc_dropout"])
         self.fc = nn.Linear(self.model.config.hidden_size, len(config["id2label"]))
