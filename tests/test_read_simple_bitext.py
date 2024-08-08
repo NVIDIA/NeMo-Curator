@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nemo_curator.datasets.doc_dataset import ParallelDataset
 from pathlib import Path
+
 import pytest
+
+from nemo_curator.datasets.doc_dataset import ParallelDataset
 
 
 @pytest.fixture
@@ -33,29 +35,29 @@ class TestReadSimpleBitext:
         ds = ParallelDataset.read_simple_bitext(
             src_input_files=[src_file],
             tgt_input_files=[tgt_file],
-            src_lang = "de",
-            tgt_lang = "en",
+            src_lang="de",
+            tgt_lang="en",
             backend="pandas",
         )
 
         for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
-            assert ds.df['src'].compute()[idx] == src_line.rstrip('\n')
-            assert ds.df['tgt'].compute()[idx] == tgt_line.rstrip('\n')
-            assert ds.df['src_lang'].compute()[idx] == "de"
-            assert ds.df['tgt_lang'].compute()[idx] == "en"
+            assert ds.df["src"].compute()[idx] == src_line.rstrip("\n")
+            assert ds.df["tgt"].compute()[idx] == tgt_line.rstrip("\n")
+            assert ds.df["src_lang"].compute()[idx] == "de"
+            assert ds.df["tgt_lang"].compute()[idx] == "en"
 
     @pytest.mark.gpu
     def test_cudf_read_simple_bitext(self, src_file, tgt_file):
         ds = ParallelDataset.read_simple_bitext(
             src_input_files=[src_file],
             tgt_input_files=[tgt_file],
-            src_lang = "de",
-            tgt_lang = "en",
+            src_lang="de",
+            tgt_lang="en",
             backend="cudf",
         )
 
         for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
-            assert ds.df['src'].compute()[idx] == src_line.rstrip('\n')
-            assert ds.df['tgt'].compute()[idx] == tgt_line.rstrip('\n')
-            assert ds.df['src_lang'][idx].compute()[idx] == "de"
-            assert ds.df['tgt_lang'][idx].compute()[idx] == "en"
+            assert ds.df["src"].compute()[idx] == src_line.rstrip("\n")
+            assert ds.df["tgt"].compute()[idx] == tgt_line.rstrip("\n")
+            assert ds.df["src_lang"][idx].compute()[idx] == "de"
+            assert ds.df["tgt_lang"][idx].compute()[idx] == "en"

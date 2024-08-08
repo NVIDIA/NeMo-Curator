@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional, Union
+
+from typing import Callable, Optional, List, Union
 
 import pandas as pd
+from dask.array import logical_and
 from dask.dataframe.extensions import make_array_nonempty
 from dask.typing import no_default
-from dask.array import logical_and
-from typing import List, Union
 
 from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import DocumentFilter
@@ -231,13 +231,14 @@ class JointScoreFilter:
         self.invert = invert
 
         if type(src_field) == list and type(tgt_field) == list:
-            assert len(src_field) == len(tgt_field), \
-                "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. " + \
-                f"Got {len(src_field)} and {len(tgt_field)}, which means you are doing something unintended."
+            assert len(src_field) == len(tgt_field), (
+                "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. "
+                + f"Got {len(src_field)} and {len(tgt_field)}, which means you are doing something unintended."
+            )
         elif not (type(src_field) == str and type(tgt_field) == str):
             raise ValueError(
-                'The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. '
-                'Got two objects of different types, which means you are doing something unintended.'
+                "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. "
+                "Got two objects of different types, which means you are doing something unintended."
             )
         self.src_field = src_field
         self.tgt_field = tgt_field
@@ -248,7 +249,7 @@ class JointScoreFilter:
             meta = (None, self.score_type)
         else:
             meta = no_default
-        
+
         # support multiple fields if supplied
         fields = []
         if type(self.src_field) == list and type(self.tgt_field) == list:
@@ -270,7 +271,7 @@ class JointScoreFilter:
 
         if self.score_field is not None:
             dataset.df[self.score_field] = scores
-            
+
         if is_batched(self.filter_obj.keep_document):
             bool_mask = scores.map_partitions(
                 self.filter_obj.keep_document, meta=(None, bool)
@@ -320,8 +321,8 @@ class ParallelScoreFilter:
 
         scores_list = {}
         for filter_obj, field in [
-                (self.src_filter_obj, self.src_field),
-                (self.tgt_filter_obj, self.tgt_field)
+            (self.src_filter_obj, self.src_field),
+            (self.tgt_filter_obj, self.tgt_field),
         ]:
             if is_batched(filter_obj.score_document):
                 scores = dataset.df[field].map_partitions(
@@ -329,9 +330,7 @@ class ParallelScoreFilter:
                 )
                 scores_list[field] = scores
             else:
-                scores = dataset.df[field].apply(
-                    filter_obj.score_document, meta=meta
-                )
+                scores = dataset.df[field].apply(filter_obj.score_document, meta=meta)
                 scores_list[field] = scores
 
         if self.src_score is not None:
@@ -341,8 +340,8 @@ class ParallelScoreFilter:
 
         bool_masks = {}
         for filter_obj, field in [
-                (self.src_filter_obj, self.src_field),
-                (self.tgt_filter_obj, self.tgt_field)
+            (self.src_filter_obj, self.src_field),
+            (self.tgt_filter_obj, self.tgt_field),
         ]:
             if is_batched(filter_obj.keep_document):
                 bool_mask = scores_list[field].map_partitions(
@@ -360,6 +359,8 @@ class ParallelScoreFilter:
             bool_mask = ~bool_mask
 
         # remove lines together if one of them is filtered
-        bool_mask_joint = logical_and(bool_masks[self.src_field], bool_masks[self.tgt_field])
-        
+        bool_mask_joint = logical_and(
+            bool_masks[self.src_field], bool_masks[self.tgt_field]
+        )
+
         return ParallelDataset(dataset.df[bool_mask_joint])

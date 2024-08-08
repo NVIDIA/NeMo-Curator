@@ -13,17 +13,20 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from huggingface_hub import hf_hub_download
 from typing import List
+
+from huggingface_hub import hf_hub_download
 
 from nemo_curator.utils.import_utils import safe_import
 
-COMET_IMPORT_MSG = \
-    'To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. ' + \
-    'More information at https://github.com/Unbabel/COMET.'
-PYMARIAN_IMPORT_MSG = \
-    'To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. ' + \
-    'More information at https://github.com/Unbabel/COMET.'
+COMET_IMPORT_MSG = (
+    "To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. "
+    + "More information at https://github.com/Unbabel/COMET."
+)
+PYMARIAN_IMPORT_MSG = (
+    "To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. "
+    + "More information at https://github.com/Unbabel/COMET."
+)
 comet = safe_import("comet", msg=COMET_IMPORT_MSG)
 pymarian = safe_import("pymarian", msg=PYMARIAN_IMPORT_MSG)
 
@@ -66,7 +69,9 @@ class COMETQEModel(QEModel):
         return {"src": src, "mt": tgt} if not reverse else {"src": tgt, "mt": src}
 
     def predict(self, input: List, **kwargs) -> List[float]:
-        return self._model.predict(input, gpus=int(self._gpu), num_workers=0).scores  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
+        return self._model.predict(
+            input, gpus=int(self._gpu), num_workers=0
+        ).scores  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
 
 
 class PyMarianQEModel(QEModel):
@@ -87,7 +92,7 @@ class PyMarianQEModel(QEModel):
         repo_id = cls.MODEL_NAME_TO_HF_PATH[model_name]
         model_path = hf_hub_download(repo_id, filename="checkpoints/marian.model.bin")
         vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
-        marian_args = f'-m {model_path} -v {vocab_path} {vocab_path} --like comet-qe'
+        marian_args = f"-m {model_path} -v {vocab_path} {vocab_path} --like comet-qe"
         if gpu:
             marian_args += cls.MARIAN_GPU_ARGS
         else:
@@ -104,6 +109,6 @@ class PyMarianQEModel(QEModel):
         if not self._name.endswith("mqm"):
             # using DA+SQM score by default
             # choice made based on paper: https://aclanthology.org/2023.wmt-1.62.pdf
-            return [score[1] for score in scores] 
+            return [score[1] for score in scores]
         else:
             return [score[0] for score in scores]

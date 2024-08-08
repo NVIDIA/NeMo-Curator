@@ -16,7 +16,11 @@ from typing import List, Optional, Union
 
 import dask.dataframe as dd
 
-from nemo_curator.utils.distributed_utils import read_data, read_simple_bitext_data, write_to_disk
+from nemo_curator.utils.distributed_utils import (
+    read_data,
+    read_simple_bitext_data,
+    write_to_disk,
+)
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 

@@ -31,6 +31,7 @@ from nemo_curator.filters import (
     GeneralCommentToCodeFilter,
     HistogramFilter,
     HTMLBoilerplateFilter,
+    LengthRatioFilter,
     LongWordFilter,
     MeanWordLengthFilter,
     NonAlphaNumericFilter,
@@ -54,12 +55,18 @@ from nemo_curator.filters import (
     WordCountFilter,
     WordsWithoutAlphabetsFilter,
     XMLHeaderFilter,
-    LengthRatioFilter,
 )
 from nemo_curator.filters.models.qe_models import COMET_IMPORT_MSG, PYMARIAN_IMPORT_MSG
-from nemo_curator.modules import Filter, Score, ScoreFilter, ParallelScoreFilter, JointScoreFilter, Sequential
+from nemo_curator.modules import (
+    Filter,
+    JointScoreFilter,
+    ParallelScoreFilter,
+    Score,
+    ScoreFilter,
+    Sequential,
+)
 from nemo_curator.utils.decorators import batched
-from nemo_curator.utils.import_utils import safe_import, is_unavailable
+from nemo_curator.utils.import_utils import is_unavailable, safe_import
 
 comet = safe_import("comet", msg=COMET_IMPORT_MSG)
 pymarian = safe_import("pymarian", msg=PYMARIAN_IMPORT_MSG)
@@ -114,7 +121,9 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
     return DocumentDataset(dd.from_pandas(pdf, npartitions=npartitions))
 
 
-def two_lists_to_parallel_dataset(src_documents, tgt_documents, src_col_name="src", tgt_col_name="tgt", npartitions=2):
+def two_lists_to_parallel_dataset(
+    src_documents, tgt_documents, src_col_name="src", tgt_col_name="tgt", npartitions=2
+):
     data = {src_col_name: src_documents, tgt_col_name: tgt_documents}
     pdf = pd.DataFrame(data)
 
@@ -133,8 +142,10 @@ def parallel_letter_count_data():
     return two_lists_to_parallel_dataset(
         ["Einsa", "Zwei aaa", "a Drei a", "Fünf aaa a", "aaaSieben aaaa"],
         ["aOne", "Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"],
-        src_col_name="src", tgt_col_name="tgt"
+        src_col_name="src",
+        tgt_col_name="tgt",
     )
+
 
 @pytest.fixture
 def length_ratio_data():
@@ -332,18 +343,26 @@ class TestFilterModule:
     def test_parallel_score_filter(self, parallel_letter_count_data):
         src_letter_count_filter = LetterCountFilter(min_count=2)
         tgt_letter_count_filter = LetterCountFilter(min_count=3)
-        filter_step = ParallelScoreFilter(src_letter_count_filter, tgt_letter_count_filter)
+        filter_step = ParallelScoreFilter(
+            src_letter_count_filter, tgt_letter_count_filter
+        )
         filtered_data = filter_step(parallel_letter_count_data)
 
         expected_indices = [2, 3, 4]
-        expected_data = ParallelDataset(parallel_letter_count_data.df.loc[expected_indices])
+        expected_data = ParallelDataset(
+            parallel_letter_count_data.df.loc[expected_indices]
+        )
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
 
     def test_joint_score_filter(self, length_ratio_data):
-        length_ratio_filter = LengthRatioFilter(max_ratio=1.5, src_lang="en", tgt_lang="de")
-        filter_step = JointScoreFilter(length_ratio_filter, score_field="ratio", score_type=float)
+        length_ratio_filter = LengthRatioFilter(
+            max_ratio=1.5, src_lang="en", tgt_lang="de"
+        )
+        filter_step = JointScoreFilter(
+            length_ratio_filter, score_field="ratio", score_type=float
+        )
         filtered_data = filter_step(length_ratio_data)
 
         expected_indices = [0, 2]
@@ -925,7 +944,9 @@ class TestClassifierFilters:
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
 
-    @pytest.mark.skipif(is_unavailable(comet), reason="Test depends on COMET but it's not installed.")
+    @pytest.mark.skipif(
+        is_unavailable(comet), reason="Test depends on COMET but it's not installed."
+    )
     def test_comet_qe_filter(self):
         dataset = two_lists_to_parallel_dataset(
             [
@@ -935,13 +956,17 @@ class TestClassifierFilters:
             [
                 "这句话在中文一侧会被翻译。",
                 "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
-            ]
+            ],
         )
 
         from nemo_curator.filters import QualityEstimationFilter
         from nemo_curator.utils.distributed_utils import get_client
+
         client = get_client(n_workers=1)
-        filter_ = JointScoreFilter(QualityEstimationFilter("comet-qe", cutoff=-0.25, mode="bidi"), score_type=float)  # enable GPU by gpu=True
+        filter_ = JointScoreFilter(
+            QualityEstimationFilter("comet-qe", cutoff=-0.25, mode="bidi"),
+            score_type=float,
+        )  # enable GPU by gpu=True
         filtered_data = filter_(dataset)
 
         expected_indices = [0]
@@ -951,7 +976,10 @@ class TestClassifierFilters:
         ), f"Expected {expected_data} but got {filtered_data}"
         client.close()
 
-    @pytest.mark.skipif(is_unavailable(pymarian), reason="Test depends on PyMarian but it's not installed.")
+    @pytest.mark.skipif(
+        is_unavailable(pymarian),
+        reason="Test depends on PyMarian but it's not installed.",
+    )
     def test_cometoid_qe_filter(self):
         dataset = two_lists_to_parallel_dataset(
             [
@@ -961,13 +989,17 @@ class TestClassifierFilters:
             [
                 "这句话在中文一侧会被翻译。",
                 "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
-            ]
+            ],
         )
 
         from nemo_curator.filters import QualityEstimationFilter
         from nemo_curator.utils.distributed_utils import get_client
+
         client = get_client(n_workers=1)
-        filter_ = JointScoreFilter(QualityEstimationFilter("cometoid-wmt23", cutoff=0.75, mode="bidi"), score_type=float)  # enable GPU by gpu=True
+        filter_ = JointScoreFilter(
+            QualityEstimationFilter("cometoid-wmt23", cutoff=0.75, mode="bidi"),
+            score_type=float,
+        )  # enable GPU by gpu=True
         filtered_data = filter_(dataset)
 
         expected_indices = [0]

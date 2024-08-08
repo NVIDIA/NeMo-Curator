@@ -2,11 +2,10 @@ import os
 
 import requests
 
-from nemo_curator.download.doc_builder import (
-    DocumentDownloader,
-)
+from nemo_curator.download.doc_builder import DocumentDownloader
 
-class TedTalksDownloader(DocumentDownloader): 
+
+class TedTalksDownloader(DocumentDownloader):
     def __init__(self, download_dir: str):
         super().__init__()
 
@@ -22,13 +21,14 @@ class TedTalksDownloader(DocumentDownloader):
         tgt_filename = os.path.basename(url_tgt)
         tgt_out = os.path.join(self._download_dir, tgt_filename)
 
-        
-        sides = ['src', 'tgt']
+        sides = ["src", "tgt"]
         urls = [url_src, url_tgt]
-        output_files = {'src': src_out, 'tgt': tgt_out}
+        output_files = {"src": src_out, "tgt": tgt_out}
         for side, url, out_file_key in zip(sides, urls, output_files):
             if os.path.exists(output_files[out_file_key]) and force is False:
-                print(f"File '{output_files[out_file_key]}' already exists, skipping download.")
+                print(
+                    f"File '{output_files[out_file_key]}' already exists, skipping download."
+                )
             else:
                 print(f"Downloading TED Talks dataset from '{url}'...")
                 response = requests.get(url)
@@ -37,5 +37,3 @@ class TedTalksDownloader(DocumentDownloader):
                     file.write(response.content)
 
         return output_files
-
-

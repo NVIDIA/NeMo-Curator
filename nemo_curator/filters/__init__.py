@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .classifier_filter import FastTextLangId, FastTextQualityFilter, QualityEstimationFilter
+from .classifier_filter import (
+    FastTextLangId,
+    FastTextQualityFilter,
+    QualityEstimationFilter,
+)
 from .code import (
     AlphaFilter,
     GeneralCommentToCodeFilter,
@@ -30,6 +34,7 @@ from .heuristic_filter import (
     CommonEnglishWordsFilter,
     EllipsisFilter,
     HistogramFilter,
+    LengthRatioFilter,
     LongWordFilter,
     MeanWordLengthFilter,
     NonAlphaNumericFilter,
@@ -48,7 +53,6 @@ from .heuristic_filter import (
     WhiteSpaceFilter,
     WordCountFilter,
     WordsWithoutAlphabetsFilter,
-    LengthRatioFilter,
 )
 
 __all__ = [
@@ -86,5 +90,5 @@ __all__ = [
     "AlphaFilter",
     "HTMLBoilerplateFilter",
     "PerExtensionFilter",
-    "LengthRatioFilter"
+    "LengthRatioFilter",
 ]

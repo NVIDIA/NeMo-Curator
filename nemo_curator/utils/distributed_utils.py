@@ -23,7 +23,7 @@ import warnings
 from contextlib import nullcontext
 from itertools import zip_longest
 from pathlib import Path
-from typing import Optional, List, Union, Tuple
+from typing import List, Optional, Tuple, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -331,8 +331,9 @@ def read_single_simple_bitext_file_pair(
     """
 
     src_input_file, tgt_input_file = input_file_pair
-    assert remove_path_extension(src_input_file) == remove_path_extension(tgt_input_file), \
-        f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
+    assert remove_path_extension(src_input_file) == remove_path_extension(
+        tgt_input_file
+    ), f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
 
     # TODO: it seems like cudf.read_table can only take one file max
     # so maybe we shouldn't pass more than one
@@ -343,15 +344,16 @@ def read_single_simple_bitext_file_pair(
 
     df_src = df.read_table(src_input_file, names=["src"], quoting=csv.QUOTE_NONE)
     df_tgt = df.read_table(tgt_input_file, names=["tgt"], quoting=csv.QUOTE_NONE)
-    assert len(df_src) == len(df_tgt), \
-        f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
+    assert len(df_src) == len(
+        df_tgt
+    ), f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
     df_combined = df.concat([df_src, df_tgt], axis=1)
     df_combined["src_lang"] = src_lang
     df_combined["tgt_lang"] = tgt_lang
-    df_combined['seg_id'] = pd.Series(range(len(df_combined))).astype(str)
+    df_combined["seg_id"] = pd.Series(range(len(df_combined))).astype(str)
 
     if not doc_id:
-        doc_id = '▁'.join([src_input_file, tgt_input_file])
+        doc_id = "▁".join([src_input_file, tgt_input_file])
     df_combined["doc_id"] = doc_id
 
     if add_filename:
@@ -527,7 +529,9 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         num_files = len(filenames)
         for filename in filenames:
             out_df = df[df.filename == filename] if num_files > 1 else df
-            filename = Path(filename).stem if output_type != "bitext" else Path(filename).name
+            filename = (
+                Path(filename).stem if output_type != "bitext" else Path(filename).name
+            )
             output_file_path = os.path.join(output_file_dir, filename)
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
@@ -555,8 +559,10 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
             elif output_type == "bitext":
                 src_output_file_path = output_file_path + f".{out_df['src_lang'][0]}"
                 tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'][0]}"
-                with open(src_output_file_path, 'w') as src_out, open(tgt_output_file_path, 'w') as tgt_out:
-                    for src, tgt in zip(out_df['src'], out_df['tgt']):
+                with open(src_output_file_path, "w") as src_out, open(
+                    tgt_output_file_path, "w"
+                ) as tgt_out:
+                    for src, tgt in zip(out_df["src"], out_df["tgt"]):
                         src_out.write(src + os.linesep)
                         tgt_out.write(tgt + os.linesep)
             else:
@@ -617,8 +623,10 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         elif output_type == "bitext":
             src_output_file_path = output_file_dir + "records" + f".{df['src_lang'][0]}"
             tgt_output_file_path = output_file_dir + "records" + f".{df['tgt_lang'][0]}"
-            with open(src_output_file_path, 'w') as src_out, open(tgt_output_file_path, 'w') as tgt_out:
-                for src, tgt in zip(df['src'], df['tgt']):
+            with open(src_output_file_path, "w") as src_out, open(
+                tgt_output_file_path, "w"
+            ) as tgt_out:
+                for src, tgt in zip(df["src"], df["tgt"]):
                     src_out.write(src + os.linesep)
                     tgt_out.write(tgt + os.linesep)
         else:
