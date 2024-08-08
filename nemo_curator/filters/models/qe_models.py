@@ -82,6 +82,12 @@ class PyMarianQEModel(QEModel):
         "cometoid-wmt23": "marian-nmt/cometoid22-wmt23",
         "cometoid-wmt23-mqm": "marian-nmt/cometoid22-wmt23",
     }
+    # Because PyMarian depends on its own deep learning library rather than PyTorch/Huggingface
+    # there is unfortunately no model configuration interface that can automatically adapt to
+    # individual systems (like hf `AutoConfig`).
+    # Those should work on most systems, but if not please adjust as needed.
+    MARIAN_GPU_ARGS = " -w 8000 --mini-batch 32"
+    MARIAN_CPU_ARGS = " --cpu-threads 1 -w 2000"
 
     @classmethod
     def load_model(cls, model_name: str, gpu: bool = False):
@@ -96,9 +102,9 @@ class PyMarianQEModel(QEModel):
         vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
         marian_args = f'-m {model_path} -v {vocab_path} {vocab_path} --like comet-qe'
         if gpu:
-            marian_args += " -w 8000"  # one gpu per worker
+            marian_args += cls.MARIAN_GPU_ARGS
         else:
-            marian_args += " --cpu-threads 1 -w 2000"  # one cpu per worker
+            marian_args += cls.MARIAN_CPU_ARGS
         return cls(model_name, Evaluator(marian_args), gpu)
 
     @staticmethod
