@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask
-from packaging.version import parse as parseVersion
+import os
 
-try:
-    _dask_version = parseVersion(dask.__version__)
-except TypeError:
-    # When mocking with autodoc the dask version is not there
-    _dask_version = parseVersion("2024.06.0")
+os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+from .aegis import AegisClassifier
+from .domain import DomainClassifier
+from .quality import QualityClassifier
 
-# TODO: remove when dask min version gets bumped
-DASK_SHUFFLE_METHOD_ARG = _dask_version > parseVersion("2024.1.0")
-DASK_P2P_ERROR = _dask_version < parseVersion("2023.10.0")
-DASK_SHUFFLE_CAST_DTYPE = _dask_version > parseVersion("2023.12.0")
+__all__ = ["DomainClassifier", "QualityClassifier", "AegisClassifier"]
