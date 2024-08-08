@@ -67,7 +67,7 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
     if gpu:
         filters.modules.append(
             JointScoreFilter(
-                QualityEstimationFilter("cometoid-wmt23", cutoff=0.75, gpu=gpu),
+                QualityEstimationFilter("comet-qe", cutoff=-0.25, gpu=gpu),
                 src_field = ['src', 'src_lang'],
                 tgt_field = ['tgt', 'tgt_lang'],
                 score_type=float,

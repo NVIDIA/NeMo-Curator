@@ -6,12 +6,11 @@ The dataset contains a small training set of ~150k sentences, and ~2k dev and te
 
 ## Walkthrough
 
-[WIP] 
-
 This tutorial highlights several bitext-specific functionalities within NeMo Curator's API, including:
 1. The ParallelDataset Class
 2. Length Ratio Filtering via the LengthRatioFilter and the JointScoreFilter classes
 3. Histogram-based Language ID Filtering via the HistogramFilter and the ParallelScoreFilter class. 
+4. (Optional and only on GPU) Model-based filtering using quality estimation model (`Unbabel/wmt20-comet-qe-da`) and the JointScoreFiletr class.
 
 ## Usage
 
