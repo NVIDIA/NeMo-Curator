@@ -1,4 +1,3 @@
-# +
 # Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# -
 
 import os
 from typing import Optional
 
-import pandas as pd  # FIXME
-from docbuilder import (  # For Wikipedia sources; For GitHub sources; For arXiv sources
+import pandas as pd
+from docbuilder import (
     ArxivDownloader,
     ArxivExtractor,
     ArxivIterator,
@@ -43,9 +41,9 @@ def download_wikipedia_sources(
 
     Args:
         source_links_file: Path to the file containing the source links. If not provided,
-            a default file path will be used.
+            a default file path (./sources/wikipedia_urls.jsonl) will be used.
         output_dir: Directory where the downloaded sources will be saved. If not provided,
-            a default directory path will be used.
+            a default directory path (./data/raw/wikipedia) will be used.
         limit: Maximum number of sources to download. If provided, only the first `limit`
             sources will be downloaded.
 
@@ -210,7 +208,6 @@ def download_pdf_sources(
             os.path.dirname(__file__), "data", "raw", "arxiv_pdfs"
         )
 
-    print(urls)
     os.makedirs(output_dir, exist_ok=True)
     output_jsonl_dir = os.path.join(output_dir, "jsonl")
     os.makedirs(output_jsonl_dir, exist_ok=True)

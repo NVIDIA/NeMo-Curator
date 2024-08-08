@@ -1,4 +1,3 @@
-# +
 # Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# -
 
 import json
 import re
 
 import dask.dataframe as dd
 import pandas as pd
-from modifiers import QuotationUnifier
 
 from nemo_curator import ExactDuplicates, Modify, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
@@ -208,7 +205,6 @@ def filter_code_dataset(dataset: DocumentDataset) -> DocumentDataset:
     return filtered_dataset
 
 
-# +
 def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
     """
     Redacts personally identifiable information (PII) from extracted comment lines in a given dataset.
@@ -263,9 +259,6 @@ def redact_code(dataset: DocumentDataset) -> DocumentDataset:
     return redacted_dataset
 
 
-# -
-
-
 def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     """
     Remove exact duplicates from the given DocumentDataset.
@@ -289,7 +282,6 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     return DocumentDataset(deduped)
 
 
-# +
 def filter_text_lines(dataset: DocumentDataset) -> DocumentDataset:
     """
     Discard text files based on lines.

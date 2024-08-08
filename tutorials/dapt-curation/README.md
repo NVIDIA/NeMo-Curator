@@ -1,19 +1,19 @@
 # Data curation for DAPT (Domain Adaptive Pre-Training)
 
-[ChipNeMo](https://arxiv.org/pdf/2311.00176) is a chip design domain adapted LLM. LLama models are continually pre-trained with 20B plus tokens on domain-specific chip design data, including code, documents, etc., based on NeMo foundation models and then fine-tuned with instruction datasets from design data as well as external sources.
+[ChipNeMo](https://arxiv.org/pdf/2311.00176) is a chip design domain adapted LLM. LLama 2 NIM models are continually pre-trained with 20B plus tokens on domain-specific chip design data, including code, documents, etc., based on NeMo foundation models and then fine-tuned with instruction datasets from design data as well as external sources.
 
-Here, we share a tutotial with best practices on data curation for DAPT (domain-adaptive pre-training) for a ChipNeMo-like code generation use case.
+Here, we share a tutorial with best practices on data curation for DAPT (domain-adaptive pre-training) for a ChipNeMo-like code generation use case.
 
-* In this tutorial, we will leverage chip domain/hardware datasets from open-source GitHub repositories (`.code/sources/github_repos.jsonl`), wiki URLs (`.code/sources/wikipedia_urls.jsonl`), and academic papers(`./sources/arxiv_urls.jsonl`).
+* In this tutorial, we will leverage chip domain/hardware datasets from open-source GitHub repositories (`./code/sources/github_repos.jsonl`), wiki URLs (`./code/sources/wikipedia_urls.jsonl`), and academic papers (`./sources/arxiv_urls.jsonl`).
 
-* `\code\data` contains curated data after processing
+* `./code/data` contains curated data after processing
 
 The small size of this dataset makes it ideal for creating and validating data curation pipelines on a local machine or a cluster.
 This playbook utilizes specific tools and techniques. First, we convert all files to Txt format (if not already in Txt), compress files on disk, add metadata, and convert them to JSON (`./data/raw/`). Then, we leverage [NeMo Curator](https://github.com/NVIDIA/NeMo-Curator/tree/main) to mine high-quality text at scale from a massive code-generation corpus. We use its capabilities to extract text, identify code file types, fix unicode errors, filter quality through heuristics, deduplicate, and redact personal information. We finally also provide steps to blend and shuffle data sources for continued pre-training.
 
 
 ## Hardware Requirements
-* This playbook can run on CPUs or GPUs. For GPUs, this playbook has been tested on minimum 1xA100 80G using nvcr.io/nvidia/nemo:24.03.01.framework container
+* This playbook can run on CPUs or GPUs. This playbook can run entirely on a CPU. If you have GPUs, the PII Redaction will be accelerated using them.
 
 
 ## Walkthrough
@@ -35,20 +35,15 @@ The tutorial follows the steps below:<br>
     - Fix unicode errors via ftfy
     - PII redaction
 - Step 6: Save the filtered and curated data <br>
-- Step 8: Blend datasets and shuffle
+- Step 7: Blend datasets and shuffle
 
 
 ## Usage
 
 After installing the NeMo Curator package, install the dependencies and run:
 
-`pip install -r requirements.txt`
+`pip install -r code/requirements.txt`
 
 `python code/main.py`
 
 This will download chip-design related datasets and begin the data curation pipeline.
-
-
-## TODO
-* Add instructions for apt install tessaract-ocr
-* Add improved PII redaction, classifier based filtering & fuzzy dedupe

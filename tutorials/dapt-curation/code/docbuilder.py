@@ -1,4 +1,3 @@
-# +
 # Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# -
 
 import gzip
 import os
@@ -87,7 +85,7 @@ class WikitxtIterator(DocumentIterator):
     Wiki document iterator. Will go through the files and parse.
     """
 
-    # The token that separates stories in the TinyStories dataset.
+    # The token that separates paragraphs.
     SEPARATOR_TOKEN = "<|endoftext|>"
 
     def __init__(self):
@@ -99,10 +97,8 @@ class WikitxtIterator(DocumentIterator):
         file_name = os.path.basename(file_path)
 
         with gzip.open(file_path, "rt") as file:
-            # file_content = file.read()
             example = []
 
-            #             print(file_content)
             def split_meta(example):
                 if example:
                     self._counter += 1
@@ -110,7 +106,6 @@ class WikitxtIterator(DocumentIterator):
                     line_count = content.count("  ") + 1
                     size_in_bytes = len(content.encode("utf-8"))
                     meta = {
-                        #                         "filename": file_name,
                         "id": f"{file_name}-{self._counter}",
                         "file_extension": ".txt",
                         "file_type": "text",
@@ -212,8 +207,6 @@ class GitHubIterator(DocumentIterator):
     # Mapping from file extensions to categories.
     # Will also be used to to ignore irrelevant files.
     SUPPORTED_EXTENSIONS_TO_CATEGORY = {
-        ".vx": "Viva",
-        ".vxh": "Viva",
         ".v": "VerilogVHDL",
         ".vh": "VerilogVHDL",
         ".vhdl": "VerilogVHDL",
@@ -350,7 +343,6 @@ class GitHubExtractor(DocumentExtractor):
         return {}, content
 
 
-# +
 class ArxivDownloader(DocumentDownloader):
     """
     A class for downloading article PDFs from arXiv.
@@ -475,9 +467,6 @@ class ArxivIterator(DocumentIterator):
         }
 
         yield metadata, content
-
-
-# -
 
 
 class ArxivExtractor(DocumentExtractor):

@@ -1,4 +1,3 @@
-# +
 # Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,6 +58,11 @@ def download_sources(
 ) -> Tuple[str, str]:
     """
     Downloads all the dataset sources and converts them to the JSONL format.
+    Args:
+        wikipedia_limit (int): Maximum number of wiki urls to be downloaded
+        github_limit (int): Maximum number of github repos to be downloaded
+        pdf_limit (int): Maximum number of pdf to be downloaded
+
 
     Returns:
         tuple: the list of text files and the list of code files.
@@ -88,6 +92,8 @@ def plot_data(orig_dataset: DocumentDataset, filename: str):
     Args:
         dataset (DocumentDataset): Dataset
         filename (str): Name of the plot to be saved ('sample.png')
+    Returns:
+        None (saves the plotted file in current directory)
     """
     # visualize file types and sizes
     orig_df = orig_dataset.df.compute()
@@ -119,20 +125,20 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     # Define data curation steps for text and pdf files
     curation_steps_text = Sequential(
         [
-            dedupe,
+            clean_and_unify,
             filter_text_lines,
             filter_text,
-            clean_and_unify,
+            dedupe,
         ]
     )
 
     # Define data curation steps for code files
     curation_steps_code = Sequential(
         [
-            dedupe,
+            clean_and_unify,
             filter_code_lines,
             filter_code,
-            clean_and_unify,
+            dedupe,
             redact_code,
         ]
     )
@@ -212,7 +218,7 @@ def main():
     parser = argparse.ArgumentParser()
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
-    args.n_workers = min(args.n_workers, 4)
+    args.n_workers = min(args.n_workers, 8)
     print("Args: ", args)
 
     # Download all the sources and get the list of text and code files.
