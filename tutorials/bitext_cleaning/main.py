@@ -61,14 +61,21 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
                 tgt_score='tgt_hist',
                 score_type=int,
             ),
+        ]
+    )
+
+    if gpu:
+        filters.modules.append(
             JointScoreFilter(
                 QualityEstimationFilter("cometoid-wmt23", cutoff=0.75, gpu=gpu),
                 src_field = ['src', 'src_lang'],
                 tgt_field = ['tgt', 'tgt_lang'],
                 score_type=float,
             )
-        ]
-    )
+        )
+    else:
+        print("Running on CPU, so skipping QE filtering to save time")
+
     filtered_dataset = filters(dataset) 
     return filtered_dataset
 

@@ -16,17 +16,16 @@ from abc import ABC, abstractmethod
 from huggingface_hub import hf_hub_download
 from typing import List
 
-try:
-    from comet import download_model, load_from_checkpoint
-    use_comet = True
-except ImportError:
-    use_comet = False
+from nemo_curator.utils.import_utils import safe_import
 
-try:
-    from pymarian import Evaluator
-    use_pymarian = True
-except ImportError:
-    use_pymarian = False
+COMET_IMPORT_MSG = \
+    'To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. ' + \
+    'More information at https://github.com/Unbabel/COMET.'
+PYMARIAN_IMPORT_MSG = \
+    'To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. ' + \
+    'More information at https://github.com/Unbabel/COMET.'
+comet = safe_import("comet", msg=COMET_IMPORT_MSG)
+pymarian = safe_import("pymarian", msg=PYMARIAN_IMPORT_MSG)
 
 
 class QEModel(ABC):
@@ -59,14 +58,8 @@ class COMETQEModel(QEModel):
 
     @classmethod
     def load_model(cls, model_name: str, gpu: bool = False):
-        if not use_comet:
-            raise RuntimeError(
-                'To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. '
-                'More information at https://github.com/Unbabel/COMET.'
-            )
-
-        path = download_model(cls.MODEL_NAME_TO_HF_PATH[model_name])
-        return cls(model_name, load_from_checkpoint(path), gpu)
+        path = comet.download_model(cls.MODEL_NAME_TO_HF_PATH[model_name])
+        return cls(model_name, comet.load_from_checkpoint(path), gpu)
 
     @staticmethod
     def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
@@ -91,12 +84,6 @@ class PyMarianQEModel(QEModel):
 
     @classmethod
     def load_model(cls, model_name: str, gpu: bool = False):
-        if not use_pymarian:
-            raise RuntimeError(
-                'To run QE filtering with Cometoid/PyMarian, you need to install PyMarian. '
-                'More information at https://github.com/marian-nmt/wmt23-metrics.'
-            )
-
         repo_id = cls.MODEL_NAME_TO_HF_PATH[model_name]
         model_path = hf_hub_download(repo_id, filename="checkpoints/marian.model.bin")
         vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
@@ -105,7 +92,7 @@ class PyMarianQEModel(QEModel):
             marian_args += cls.MARIAN_GPU_ARGS
         else:
             marian_args += cls.MARIAN_CPU_ARGS
-        return cls(model_name, Evaluator(marian_args), gpu)
+        return cls(model_name, pymarian.Evaluator(marian_args), gpu)
 
     @staticmethod
     def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):

@@ -20,7 +20,6 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-# from comet import download_model, load_from_checkpoint
 from nemo_curator.datasets import DocumentDataset, ParallelDataset
 from nemo_curator.filters import (
     AlphaFilter,
@@ -57,8 +56,13 @@ from nemo_curator.filters import (
     XMLHeaderFilter,
     LengthRatioFilter,
 )
+from nemo_curator.filters.models.qe_models import COMET_IMPORT_MSG, PYMARIAN_IMPORT_MSG
 from nemo_curator.modules import Filter, Score, ScoreFilter, ParallelScoreFilter, JointScoreFilter, Sequential
 from nemo_curator.utils.decorators import batched
+from nemo_curator.utils.import_utils import safe_import, is_unavailable
+
+comet = safe_import("comet", msg=COMET_IMPORT_MSG)
+pymarian = safe_import("pymarian", msg=PYMARIAN_IMPORT_MSG)
 
 
 class LetterCountFilter(DocumentFilter):
@@ -898,22 +902,6 @@ class FakeLangId(DocumentFilter):
         return score[0] >= self._cutoff
 
 
-class COMETQualityEstimationCpuNoBatchFilter(DocumentFilter):
-
-    def __init__(self, cutoff=-0.25):
-        self._name = "comet_qe"
-        self._model_path = download_model("Unbabel/wmt20-comet-qe-da")
-        self._cutoff = cutoff
-        self.model = load_from_checkpoint(self._model_path)
-
-    def score_document(self, bitext_tuple):
-        model_output = self.model.predict([{"src": bitext_tuple['src'], "mt": bitext_tuple['tgt']}], gpus=0)
-        return model_output.scores[0]
-
-    def keep_document(self, score):
-        return score >= self._cutoff
-
-
 class TestClassifierFilters:
     def test_fake_quality_filter(self):
         dataset = list_to_dataset(["a", "b", "c", "d"], npartitions=1)
@@ -937,28 +925,8 @@ class TestClassifierFilters:
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
 
+    @pytest.mark.skipif(is_unavailable(comet), reason="Test depends on COMET but it's not installed.")
     def test_comet_qe_filter(self):
-        dataset = two_lists_to_parallel_dataset(
-            [
-                "This sentence will be translated on the Chinese side.",
-                "This sentence will have something irrelevant on the Chinese side.",
-            ],
-            [
-                "这句话在中文一侧会被翻译。",
-                "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
-            ]
-        )
-
-        filter_ = JointScoreFilter(COMETQualityEstimationCpuNoBatchFilter())
-        filtered_data = filter_(dataset)
-
-        expected_indices = [0]
-        expected_data = ParallelDataset(dataset.df.loc[expected_indices])
-        assert all_equal(
-            expected_data, filtered_data
-        ), f"Expected {expected_data} but got {filtered_data}"
-
-    def test_real_comet_qe_filter(self):
         dataset = two_lists_to_parallel_dataset(
             [
                 "This sentence will be translated on the Chinese side.",
@@ -972,8 +940,34 @@ class TestClassifierFilters:
 
         from nemo_curator.filters import QualityEstimationFilter
         from nemo_curator.utils.distributed_utils import get_client
-        client = get_client(n_workers=1)  # enable GPU by cluster_type="gpu"
+        client = get_client(n_workers=1)
         filter_ = JointScoreFilter(QualityEstimationFilter("comet-qe", cutoff=-0.25, mode="bidi"), score_type=float)  # enable GPU by gpu=True
+        filtered_data = filter_(dataset)
+
+        expected_indices = [0]
+        expected_data = ParallelDataset(dataset.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+        client.close()
+
+    @pytest.mark.skipif(is_unavailable(pymarian), reason="Test depends on PyMarian but it's not installed.")
+    def test_cometoid_qe_filter(self):
+        dataset = two_lists_to_parallel_dataset(
+            [
+                "This sentence will be translated on the Chinese side.",
+                "This sentence will have something irrelevant on the Chinese side.",
+            ],
+            [
+                "这句话在中文一侧会被翻译。",
+                "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
+            ]
+        )
+
+        from nemo_curator.filters import QualityEstimationFilter
+        from nemo_curator.utils.distributed_utils import get_client
+        client = get_client(n_workers=1)
+        filter_ = JointScoreFilter(QualityEstimationFilter("cometoid-wmt23", cutoff=0.75, mode="bidi"), score_type=float)  # enable GPU by gpu=True
         filtered_data = filter_(dataset)
 
         expected_indices = [0]
