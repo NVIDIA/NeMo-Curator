@@ -282,26 +282,44 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     return DocumentDataset(deduped)
 
 
-def filter_text_lines(dataset: DocumentDataset) -> DocumentDataset:
+class LineCountFilter_text(DocumentFilter):
     """
-    Discard text files based on lines.
+    Discard text files based on number of lines.
     """
-    dataset_df = dataset.df
-    dataset_df = dataset_df.loc[
-        ~((dataset_df["file_type"] == "text") & (dataset_df["line_count"] < 10))
-    ]
-    return DocumentDataset(dataset_df)
+
+    def __init__(self, min_lines: int = 10):
+        super().__init__()
+        self._min_lines = min_lines
+
+    def score_document(self, text: str) -> bool:
+        words = text.split()
+        if words[0] == "text" and int(words[2]) < self._min_lines:
+            return False
+        else:
+            return True
+
+    def keep_document(self, score) -> bool:
+        return score
 
 
-def filter_code_lines(dataset: DocumentDataset) -> DocumentDataset:
+class LineCountFilter_code(DocumentFilter):
     """
-    Discard code files based on lines.
+    Discard code files based on number of lines.
     """
-    dataset_df = dataset.df
-    dataset_df = dataset_df.loc[
-        ~(
-            (dataset_df["file_type"] == "code")
-            & ((dataset_df["line_count"] < 10) | (dataset_df["line_count"] > 20000))
-        )
-    ]
-    return DocumentDataset(dataset_df)
+
+    def __init__(self, min_lines: int = 10, max_lines: int = 20000):
+        super().__init__()
+        self._min_lines = min_lines
+        self._max_lines = max_lines
+
+    def score_document(self, text: str) -> bool:
+        words = text.split()
+        if words[0] == "code" and (
+            int(words[2]) < self._min_lines or int(words[2]) > self._max_lines
+        ):
+            return False
+        else:
+            return True
+
+    def keep_document(self, score) -> bool:
+        return score

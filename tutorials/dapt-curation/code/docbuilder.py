@@ -18,7 +18,7 @@ import re
 from typing import Set, Tuple
 from zipfile import ZipFile, ZipInfo
 
-import arxiv
+import arxiv as arxiv
 import cchardet as chardet
 import requests
 from bs4 import BeautifulSoup

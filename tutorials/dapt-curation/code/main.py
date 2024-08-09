@@ -24,13 +24,12 @@ from downloaders import (
     download_wikipedia_sources,
 )
 from utils import (
+    LineCountFilter_code,
+    LineCountFilter_text,
     clean_and_unify,
     dedupe,
     filter_code,
-    filter_code_dataset,
-    filter_code_lines,
     filter_text,
-    filter_text_lines,
     redact_code,
 )
 
@@ -126,7 +125,9 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     curation_steps_text = Sequential(
         [
             clean_and_unify,
-            filter_text_lines,
+            ScoreFilter(
+                LineCountFilter_text(), text_field="file_type_count", score_type=bool
+            ),
             filter_text,
             dedupe,
         ]
@@ -136,7 +137,9 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     curation_steps_code = Sequential(
         [
             clean_and_unify,
-            filter_code_lines,
+            ScoreFilter(
+                LineCountFilter_code(), text_field="file_type_count", score_type=bool
+            ),
             filter_code,
             dedupe,
             redact_code,
@@ -151,6 +154,18 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
 
     # Create a histogram for different file types - code
     plot_data(orig_dataset_code, "file_size_histogram_code.png")
+
+    # create a field combining fields file type and line count
+    orig_dataset_text.df["file_type_count"] = (
+        orig_dataset_text.df["file_type"]
+        + " : "
+        + orig_dataset_text.df["line_count"].astype(str)
+    )
+    orig_dataset_code.df["file_type_count"] = (
+        orig_dataset_code.df["file_type"]
+        + " : "
+        + orig_dataset_code.df["line_count"].astype(str)
+    )
 
     dataset_text = curation_steps_text(orig_dataset_text)
     dataset_text = dataset_text.persist()
