@@ -101,6 +101,7 @@ class ArgumentHelper:
             help=help,
         )
 
+
     def add_arg_input_file_type(
         self,
         choices=None,
