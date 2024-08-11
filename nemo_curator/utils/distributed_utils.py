@@ -557,8 +557,12 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
             elif output_type == "bitext":
-                src_output_file_path = output_file_path + f".{out_df['src_lang'][0]}"
-                tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'][0]}"
+                src_output_file_path = (
+                    output_file_path + f".{out_df['src_lang'].iloc[0]}"
+                )
+                tgt_output_file_path = (
+                    output_file_path + f".{out_df['tgt_lang'].iloc[0]}"
+                )
                 with open(src_output_file_path, "w") as src_out, open(
                     tgt_output_file_path, "w"
                 ) as tgt_out:
