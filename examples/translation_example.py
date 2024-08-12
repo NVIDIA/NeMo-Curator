@@ -247,6 +247,7 @@ def custom_tokenize(text):
             tokenized_sentence_len.append(sentence)
         else:
             pass
+    del tc
     return tokenized_sentence_len
 
 
@@ -286,6 +287,12 @@ def combine_text_false(ddf):
     ddf["translation"]=ddf["start_sym"] + ddf["indic_proc_text"] + ddf["end_sym"]
     ddf["indic_proc_text"] = ddf["translation"]    
     return ddf
+
+def atleast_letter(df):
+    df=df.to_pandas()
+    df['isalpha']=df['indic_proc_text'].apply(has_alphabet_characters)
+    df=cudf.DataFrame(df)
+    return df
 
 def post_output(output):
     import torch.nn.functional as F
@@ -331,8 +338,12 @@ def main_func(args):
     ddf['word_count'] = ddf['word_count'].astype('int64')
 
     ddf_true = ddf[(ddf['word_count'] <= translation_config.max_words_per_sen)]
-    ddf_trans = ddf_true[ddf_true['indic_proc_text'].str.contains('[a-zA-Z]',regex=True)]
-    ddf_false=ddf_true[~(ddf_true['indic_proc_text'].str.contains('[a-zA-Z]',regex=True))]
+    ddf_metaa = ddf_true._meta.copy()
+    ddf_metaa['isalpha']=False
+    has_letter = ddf_true.map_partitions(atleast_letter, meta=ddf_metaa)
+
+    ddf_trans = ddf_true[has_letter['isalpha']]
+    ddf_false = ddf_true[~has_letter['isalpha']]
 
     ddf=ddf_trans.drop(columns='word_count')
 
