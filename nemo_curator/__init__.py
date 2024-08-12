@@ -12,21 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 import dask
 
+# Disable query planning if possible
+# https://github.com/NVIDIA/NeMo-Curator/issues/73
+if dask.config.get("dataframe.query-planning") is True or "dask_expr" in sys.modules:
+    raise NotImplementedError(
+        """
+        NeMo Curator does not support query planning yet.
+        Please disable query planning before importing
+        `dask.dataframe` or `dask_cudf`. This can be done via:
+        `export DASK_DATAFRAME__QUERY_PLANNING=False`, or
+        importing `dask.dataframe/dask_cudf` after importing
+        `nemo_curator`.
+        """
+    )
+else:
+    dask.config.set({"dataframe.query-planning": False})
+
+
 from .modules import *
-from .utils.distributed_utils import get_client
+from .services import (
+    AsyncLLMClient,
+    AsyncOpenAIClient,
+    LLMClient,
+    NemoDeployClient,
+    OpenAIClient,
+)
+from .utils.distributed_utils import get_client, get_network_interfaces
 
 # Dask will automatically convert the list score type
 # to a string without this option.
 # See https://github.com/NVIDIA/NeMo-Curator/issues/33
 # This also happens when reading and writing to files
-
-# Disable query planning
-# https://github.com/NVIDIA/NeMo-Curator/issues/73
-dask.config.set(
-    {
-        "dataframe.convert-string": False,
-        "dataframe.query-planning": False,
-    }
-)
+dask.config.set({"dataframe.convert-string": False})

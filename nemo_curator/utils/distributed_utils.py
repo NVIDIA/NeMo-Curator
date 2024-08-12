@@ -13,16 +13,20 @@
 # limitations under the License.
 from __future__ import annotations
 
+import ast
 import os
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
+import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
@@ -101,22 +105,26 @@ def get_client(
     protocol="tcp",
     rmm_pool_size="1024M",
     enable_spilling=True,
-    set_torch_to_use_rmm=True,
+    set_torch_to_use_rmm=False,
 ) -> Client:
     """
     Initializes or connects to a Dask cluster.
     The Dask cluster can be CPU-based or GPU-based (if GPUs are available).
     The intialization ensures maximum memory efficiency for the GPU by:
-        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool.
-        2. Enabling spilling for cuDF.
+        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool. (If `set_torch_to_use_rmm` is True)
+        2. Enabling spilling for cuDF. (If `enable_spilling` is True)
 
     Args:
-        cluster_type: The type of cluster to set up. Either "cpu" or "gpu". Defaults to "cpu".
-            Many options in get_client only apply to CPU-based or GPU-based clusters. Make sure you check the description of the parameter.
-        scheduler_address: This can be the address of a Scheduler server like a string '127.0.0.1:8786' or a cluster object
-            like LocalCluster(). If specified, all other arguments are ignored and the client is connected to the existing cluster.
+        cluster_type: If scheduler_address and scheduler_file are None, sets up a local (single node) cluster of the specified type.
+            Either "cpu" or "gpu". Defaults to "cpu". Many options in get_client only apply to CPU-based or GPU-based clusters.
+            Make sure you check the description of the parameter.
+        scheduler_address: Address of existing Dask cluster to connect to. This can be the address of a Scheduler server like a
+            string '127.0.0.1:8786' or a cluster object like LocalCluster(). If specified, all other arguments are ignored and
+            the client is connected to the existing cluster. The other configuration options should be done when setting up the
+            Dask cluster.
         scheduler_file: Path to a file with scheduler information if available. If specified, all other arguments are ignored
-            and the client is connected to the existing cluster.
+            and the client is connected to the existing cluster. The other configuration options should be done when setting up the
+            Dask cluster.
         n_workers: For CPU-based clusters only. The number of workers to start. Defaults to os.cpu_count(). For GPU-based clusters,
             the number of workers is locked to the number of GPUs in CUDA_VISIBLE_DEVICES.
         threads_per_worker: For CPU-based clusters only. The number of threads per each worker. Defaults to 1.
@@ -167,10 +175,17 @@ def _set_torch_to_use_rmm():
 
     See article:
     https://medium.com/rapids-ai/pytorch-rapids-rmm-maximize-the-memory-efficiency-of-your-workflows-f475107ba4d4
-
     """
+
     import torch
     from rmm.allocators.torch import rmm_torch_allocator
+
+    if torch.cuda.get_allocator_backend() == "pluggable":
+        warnings.warn(
+            "PyTorch allocator already plugged in, not switching to RMM. "
+            "Please ensure you have not already swapped it."
+        )
+        return
 
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
@@ -188,7 +203,11 @@ def _enable_spilling():
 
 
 def read_single_partition(
-    files, backend="cudf", filetype="jsonl", add_filename=False
+    files,
+    backend="cudf",
+    filetype="jsonl",
+    add_filename=False,
+    input_meta: Union[str, dict] = None,
 ) -> Union[cudf.DataFrame, pd.DataFrame]:
     """
     This function reads a file with cuDF, sorts the columns of the DataFrame
@@ -198,17 +217,31 @@ def read_single_partition(
         files: The path to the jsonl files to read.
         backend: The backend to use for reading the data. Either "cudf" or "pandas".
         add_filename: Whether to add a "filename" column to the DataFrame.
+        input_meta: A dictionary or a string formatted as a dictionary, which outlines
+            the field names and their respective data types within the JSONL input file.
+
     Returns:
         A cudf DataFrame or a pandas DataFrame.
 
     """
-    if filetype == "jsonl":
-        read_kwargs = {"lines": True}
+    if input_meta is not None and filetype != "jsonl":
+        warnings.warn(
+            "input_meta is only valid for JSONL files and will be ignored for other "
+            " file formats.."
+        )
+
+    if filetype in ["jsonl", "json"]:
+        read_kwargs = {"lines": filetype == "jsonl"}
         if backend == "cudf":
             read_f = cudf.read_json
         else:
             read_kwargs["dtype"] = False
             read_f = pd.read_json
+
+        if input_meta is not None:
+            read_kwargs["dtype"] = (
+                ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
+            )
     elif filetype == "parquet":
         read_kwargs = {}
         if backend == "cudf":
@@ -264,10 +297,11 @@ def read_pandas_pickle(file, add_filename=False) -> pd.DataFrame:
 
 def read_data(
     input_files,
-    file_type="pickle",
-    backend="cudf",
-    files_per_partition=1,
-    add_filename=False,
+    file_type: str = "pickle",
+    backend: str = "cudf",
+    files_per_partition: int = 1,
+    add_filename: bool = False,
+    input_meta: Union[str, dict] = None,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
     """
     This function can read multiple data formats and returns a Dask-cuDF DataFrame.
@@ -278,6 +312,8 @@ def read_data(
         backend: The backend to use for reading the data.
         files_per_partition: The number of files to read per partition.
         add_filename: Whether to add a "filename" column to the DataFrame.
+        input_meta: A dictionary or a string formatted as a dictionary, which outlines
+            the field names and their respective data types within the JSONL input file.
 
     Returns:
         A Dask-cuDF or a Dask-pandas DataFrame.
@@ -293,7 +329,7 @@ def read_data(
         if backend == "cudf":
             df = df.to_backend("cudf")
 
-    elif file_type in ["jsonl", "parquet"]:
+    elif file_type in ["json", "jsonl", "parquet"]:
         print(f"Reading {len(input_files)} files", flush=True)
         input_files = sorted(input_files)
         if files_per_partition > 1:
@@ -309,6 +345,7 @@ def read_data(
             filetype=file_type,
             backend=backend,
             add_filename=add_filename,
+            input_meta=input_meta,
             enforce_metadata=False,
         )
     else:
@@ -386,10 +423,10 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
     assert "filename" in df.columns
 
     if len(df) > 0:
-        empty_partition = True
+        empty_partition = False
     else:
         warnings.warn(f"Empty partition found")
-        empty_partition = False
+        empty_partition = True
 
     if is_cudf_type(df):
         import cudf
@@ -398,34 +435,39 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
     else:
         success_ser = pd.Series([empty_partition])
 
-    if empty_partition:
-        filename = df.filename.iloc[0]
-        num_filenames = len(df.filename.unique())
-        if num_filenames > 1:
-            raise ValueError(
-                f"More than one filename found in partition: {num_filenames}"
-            )
-        filename = Path(filename).stem
-        output_file_path = os.path.join(output_file_dir, filename)
-        if output_type == "jsonl":
-            output_file_path = output_file_path + ".jsonl"
-            if isinstance(df, pd.DataFrame):
-                df.to_json(
-                    output_file_path, orient="records", lines=True, force_ascii=False
-                )
+    if not empty_partition:
+        filenames = df.filename.unique()
+        filenames = list(filenames.values_host) if is_cudf_type(df) else list(filenames)
+        num_files = len(filenames)
+        for filename in filenames:
+            out_df = df[df.filename == filename] if num_files > 1 else df
+            filename = Path(filename).stem
+            output_file_path = os.path.join(output_file_dir, filename)
+            if output_type == "jsonl":
+                output_file_path = output_file_path + ".jsonl"
+                if isinstance(df, pd.DataFrame):
+                    out_df.to_json(
+                        output_file_path,
+                        orient="records",
+                        lines=True,
+                        force_ascii=False,
+                    )
+                else:
+                    # See open issue here: https://github.com/rapidsai/cudf/issues/15211
+                    # df.to_json(
+                    #     output_file_path, orient="records", lines=True, engine="cudf", force_ascii=False
+                    # )
+                    out_df.to_json(
+                        output_file_path,
+                        orient="records",
+                        lines=True,
+                        force_ascii=False,
+                    )
+            elif output_type == "parquet":
+                output_file_path = output_file_path + ".parquet"
+                out_df.to_parquet(output_file_path)
             else:
-                # See open issue here: https://github.com/rapidsai/cudf/issues/15211
-                # df.to_json(
-                #     output_file_path, orient="records", lines=True, engine="cudf", force_ascii=False
-                # )
-                df.to_json(
-                    output_file_path, orient="records", lines=True, force_ascii=False
-                )
-        elif output_type == "parquet":
-            output_file_path = output_file_path + ".parquet"
-            df.to_parquet(output_file_path)
-        else:
-            raise ValueError(f"Unknown output type: {output_type}")
+                raise ValueError(f"Unknown output type: {output_type}")
 
     return success_ser
 
@@ -555,3 +597,39 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
         return performance_report(os.path.join(path, report_name))
     else:
         return nullcontext()
+
+
+def seed_all(seed: int = 42):
+    """
+    Function to set seed for random number generators for reproducibility.
+
+    Args:
+        seed: The seed value to use for random number generators. Default is 42.
+
+    Returns:
+        None
+    """
+    ## Imporing torch to help with context issues
+    import torch
+
+    # Set seed values for various random number generators
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        # Ensure deterministic behavior for CUDA algorithms
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+def get_network_interfaces() -> List[str]:
+    """
+    Gets a list of all valid network interfaces on a machine
+
+    Returns:
+        A list of all valid network interfaces on a machine
+    """
+    return list(psutil.net_if_addrs().keys())
