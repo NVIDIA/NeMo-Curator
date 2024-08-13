@@ -36,7 +36,6 @@ from nemo_curator.utils.script_utils import (
     parse_distributed_classifier_args,
 )
 from dask.distributed import get_worker
-MAX_OUT_LEN= 256
 TERMINAL_PUNCTUATIONS = (".", "!", "?", ":", ",", ";", ")", "}", "]", '"', "'", "”", "’")
 START_PUNCTUATIONS = ("(", "{", "[", "'", '"', "“", "‘")
 
@@ -94,7 +93,6 @@ class ModelForSeq2SeqModel(HFModel):
             self.trans_config, self.trans_config.pretrained_model_name_or_path, self.trans_config.autocast
         )
         model = model.to(device)
-        model.half()
         model.eval()
         return model
 
@@ -116,11 +114,7 @@ class ModelForSeq2SeqModel(HFModel):
 
     @lru_cache(maxsize=1)
     def load_cfg(self):
-        config = AutoConfig.from_pretrained(
-            pretrained_model_name_or_path=self.trans_config.pretrained_model_name_or_path,
-            trust_remote_code=True,
-        )
-        return config
+        return self.load_config()
 
 def preprocess_df(df):
     ip = load_object_on_worker("IndicProcessor", IndicProcessor, {"inference": True})
@@ -198,7 +192,7 @@ def has_alphabet_characters(text):
 def sent_tokenizer(line):
     return sent_tokenize(line)
 
-def custom_tokenize(text):
+def custom_tokenize(text, tranlation_obj):
     split_text = re.split(r"(\#{2,}|\_{2,}|\…{2,}|\+{2,}|\.{2,}|\-{3,}|\*{2,}|\~{2,}|\={2,}|\!{2,}|\n|\t|\‣|\⁃|\⁌|\⁍|\●|\○|\•|\·|\◘|\◦|\⦾|\⦿|\|)", text)
     split_text = [s for s in split_text if len(s) > 0]
     tokenized_sentences = []
@@ -239,11 +233,11 @@ def custom_tokenize(text):
             tokenized_sentences.append(line)
 
     tokenized_sentence_len = []
-    tc = TranslationConfig(pretrained_model_name_or_path="")
+    
     for sentence in tokenized_sentences:
         sent = sentence.split()
         # removing the sentences with word length greater than threshold as the model may not be able translate it due to constraint on output token size
-        if len(sent) <= tc.max_words_per_sen:
+        if len(sent) <= tranlation_obj.max_words_per_sen:
             tokenized_sentence_len.append(sentence)
         else:
             pass
@@ -253,7 +247,8 @@ def custom_tokenize(text):
 
 def process_input_text(ddf):
     ddf = ddf.to_pandas()
-    ddf['indic_proc_text'] = ddf['text'].apply(custom_tokenize)
+    tc = TranslationConfig(pretrained_model_name_or_path="")
+    ddf['indic_proc_text'] = ddf['text'].apply(custom_tokenize, args=(tc,))
     ddf['doc_id'] = range(1, len(ddf) + 1)
     ddf = ddf.explode('indic_proc_text')
     ddf = ddf.reset_index(drop=True)
@@ -294,15 +289,7 @@ def atleast_letter(df):
     df=cudf.DataFrame(df)
     return df
 
-def post_output(output):
-    import torch.nn.functional as F
-    padded_tensor = output
-    if output.size(1) <  MAX_OUT_LEN:
-        pad_size = MAX_OUT_LEN - output.size(1)
-        padded_tensor  = F.pad(output, (0, pad_size), "constant", 1)
-    return padded_tensor
-
-def main_func(args):
+def main(args):
     st = time.time()
     translation_config = TranslationConfig(
         pretrained_model_name_or_path=args.pretrained_model_name_or_path,
@@ -310,8 +297,7 @@ def main_func(args):
         num_beams=5,
         autocast=args.autocast,
     )
-    global MAX_OUT_LEN
-    MAX_OUT_LEN = translation_config.max_length
+
     rdst = time.time()
     input_files = [
         os.path.join(args.input_data_dir, x) for x in os.listdir(args.input_data_dir)
@@ -366,7 +352,6 @@ def main_func(args):
             sorted_data_loader=True,
             batch_size=args.batch_size,
             pred_output_col="translation",
-            post=post_output,
         ),
         keep_cols=columns,
     )
@@ -397,5 +382,5 @@ if __name__ == "__main__":
     print(f"Arguments parsed = {args}")
     client = get_client(**parse_client_args(args))
     print(client.dashboard_link)
-    main_func(args)
+    main(parse_args())
     client.close()
