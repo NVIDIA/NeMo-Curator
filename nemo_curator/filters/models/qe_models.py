@@ -86,6 +86,9 @@ class PyMarianQEModel(QEModel):
     # Those should work on most systems, but if not please adjust as needed.
     MARIAN_GPU_ARGS = " -w 8000 --mini-batch 32"
     MARIAN_CPU_ARGS = " --cpu-threads 1 -w 2000"
+    # PyMarian has memory leakage when a very large input is passed.
+    # Hence we limit the size of input passed into PyMarian within one API call.
+    SHARD_SIZE = 5000
 
     @classmethod
     def load_model(cls, model_name: str, gpu: bool = False):
@@ -104,7 +107,11 @@ class PyMarianQEModel(QEModel):
         return [src, tgt] if not reverse else [tgt, src]
 
     def predict(self, input: List, **kwargs) -> List[float]:
-        scores = self._model.evaluate(input)
+        scores = []
+        for start_idx in range(0, len(input), self.SHARD_SIZE):
+            scores.extend(
+                self._model.evaluate(input[start_idx : start_idx + self.SHARD_SIZE])
+            )
 
         if not self._name.endswith("mqm"):
             # using DA+SQM score by default
