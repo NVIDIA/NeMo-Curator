@@ -625,8 +625,12 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
         elif output_type == "bitext":
-            src_output_file_path = output_file_dir + "records" + f".{df['src_lang'][0]}"
-            tgt_output_file_path = output_file_dir + "records" + f".{df['tgt_lang'][0]}"
+            src_output_file_path = (
+                output_file_dir + "records" + f".{df['src_lang'].iloc[0]}"
+            )
+            tgt_output_file_path = (
+                output_file_dir + "records" + f".{df['tgt_lang'].iloc[0]}"
+            )
             with open(src_output_file_path, "w") as src_out, open(
                 tgt_output_file_path, "w"
             ) as tgt_out:
