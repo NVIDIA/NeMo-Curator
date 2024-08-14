@@ -63,7 +63,7 @@ setup(
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
         "Cython",
-        "crossfit @ git+https://github.com/rapidsai/crossfit.git@0.0.2",
+        "crossfit==0.0.4",
         # Numpy 2.0 breaks with spacy https://github.com/explosion/spaCy/issues/13528
         # TODO: Remove when issue is fixed
         "numpy<2",
