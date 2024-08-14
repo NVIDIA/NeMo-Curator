@@ -29,6 +29,7 @@ from dask.distributed import get_worker
 from transformers import AutoConfig, AutoModelForSeq2SeqLM, AutoTokenizer
 
 from nemo_curator.classifiers.base import DistributedDataClassifier
+from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import (
     get_client,
     load_object_on_worker,
@@ -142,35 +143,15 @@ class ModelForSeq2SeqModel(HFModel):
         return self.load_config()
 
 
-def parse_arguments():
-    parser = parse_distributed_classifier_args()
-    parser.add_argument(
-        "--input-column",
-        type=str,
-        required=False,
-        default="text",
-        help="The column name in the input data that contains the text to be translated",
-    )
-    return parser.parse_args()
-
-
 class IndicTranslation(DistributedDataClassifier):
     def __init__(
         self,
-        input_data_dir: str,
-        output_data_dir: str,
         pretrained_model_name_or_path: str = "ai4bharat/indictrans2-en-indic-1B",
-        input_file_type: str = "jsonl",
-        output_file_type: str = "jsonl",
         input_column: str = "indic_proc_text",
         batch_size: int = 128,
         autocast: bool = False,
     ):
         self.pretrained_model_name_or_path = pretrained_model_name_or_path
-        self.input_data_dir = input_data_dir
-        self.output_data_dir = output_data_dir
-        self.input_file_type = input_file_type
-        self.output_file_type = output_file_type
         self.input_column = input_column
         self.batch_size = batch_size
         self.autocast = autocast
@@ -372,20 +353,9 @@ class IndicTranslation(DistributedDataClassifier):
         df = cudf.DataFrame(df)
         return df
 
-    def _run_classifier(self):
-        input_files = [
-            os.path.join(self.input_data_dir, x)
-            for x in os.listdir(self.input_data_dir)
-        ]
-        # read data from files
-        ddf = read_data(
-            input_files,
-            file_type=self.input_file_type,
-            backend="cudf",
-            files_per_partition=1,
-            add_filename=True,
-        )
-
+    def _run_classifier(self, dataset: DocumentDataset):
+        st = time.time()
+        ddf = dataset.df
         ddf_meta = ddf._meta.copy()
         ddf_meta["indic_proc_text"] = ""
         ddf_meta["doc_id"] = ""
@@ -396,7 +366,7 @@ class IndicTranslation(DistributedDataClassifier):
         # 1. nltk tokenization to break doc into sentences
         # 2. craeting a row w.r.t each sentence.
         # 3. Process sentences strip symbols from start and end
-        ddf = ddf.map_partitions(process_input_text, meta=ddf_meta)
+        ddf = ddf.map_partitions(self.process_input_text, meta=ddf_meta)
 
         ddf["word_count"] = ddf["indic_proc_text"].str.split().list.len()
         ddf["word_count"] = ddf["word_count"].astype("int64")
@@ -425,7 +395,7 @@ class IndicTranslation(DistributedDataClassifier):
         columns = ddf.columns.tolist()
         pipe = op.Sequential(
             op.Tokenizer(
-                model, cols=[self.input_column], tokenizer_type="sentencepiece"
+                self.model, cols=[self.input_column], tokenizer_type="sentencepiece"
             ),
             op.Predictor(
                 self.model,
@@ -451,31 +421,41 @@ class IndicTranslation(DistributedDataClassifier):
         )
 
         ddf = ddf_true.map_partitions(self.grouping)
-        write_to_disk(
-            ddf,
-            output_file_dir=self.output_data_dir,
-            write_to_filename=True,
-            output_type=self.output_file_type,
-        )
-
         print(f"Total time taken for translation: {time.time()-st} seconds", flush=True)
+        return DocumentDataset(ddf)
+
+
+def parse_arguments():
+    parser = parse_distributed_classifier_args()
+    parser.add_argument(
+        "--input-column",
+        type=str,
+        required=False,
+        default="text",
+        help="The column name in the input data that contains the text to be translated",
+    )
+    return parser.parse_args()
 
 
 def main(args):
     print(f"Arguments parsed = {args}")
     client = get_client(**parse_client_args(args))
     print(client.dashboard_link)
-    it = IndicTranslation(
-        args.input_data_dir,
-        args.output_data_dir,
+    translator_model = IndicTranslation(
         args.pretrained_model_name_or_path,
-        args.input_file_type,
-        args.output_file_type,
         args.input_column,
         args.batch_size,
         args.autocast,
     )
-    it._run_classifier()
+    input_files = [
+        os.path.join(args.input_data_dir, x) for x in os.listdir(args.input_data_dir)
+    ]
+    input_dataset = DocumentDataset.read_json(
+        input_files, backend="cudf", add_filename=True
+    )
+    result_dataset = translator_model._run_classifier(dataset=input_dataset)
+
+    result_dataset.to_json(output_file_dir=args.output_data_dir, write_to_filename=True)
     client.close()
 
 
