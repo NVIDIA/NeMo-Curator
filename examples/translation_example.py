@@ -72,8 +72,6 @@ class CustomModel(nn.Module):
     def __init__(
         self,
         config: TranslationConfig,
-        pretrained_model_name_or_path: str,
-        autocast: bool = False,
     ):
         super().__init__()
         self.config = config
@@ -81,6 +79,7 @@ class CustomModel(nn.Module):
             pretrained_model_name_or_path=config.pretrained_model_name_or_path,
             trust_remote_code=True,
         )
+        self.autocast = config.autocast
 
     @torch.no_grad()
     def _forward(self, batch):
@@ -106,17 +105,12 @@ class CustomModel(nn.Module):
 class ModelForSeq2SeqModel(HFModel):
     def __init__(self, config):
         self.trans_config = config
-        self.config = AutoConfig.from_pretrained(
-            pretrained_model_name_or_path=self.trans_config.pretrained_model_name_or_path,
-            trust_remote_code=True,
-        )
+        self.config = self.load_config()
         super().__init__(self.trans_config.pretrained_model_name_or_path)
 
     def load_model(self, device="cuda"):
         model = CustomModel(
             self.trans_config,
-            self.trans_config.pretrained_model_name_or_path,
-            self.trans_config.autocast,
         )
         model = model.to(device)
         model.eval()
@@ -162,10 +156,7 @@ class IndicTranslation(DistributedDataClassifier):
             num_beams=5,
             autocast=self.autocast,
         )
-        try:
-            self.model = ModelForSeq2SeqModel(self.translation_config)
-        except Exception as e:
-            raise e
+        self.model = ModelForSeq2SeqModel(self.translation_config)
         super().__init__(
             model=self.model,
             batch_size=self.batch_size,
@@ -405,7 +396,7 @@ def main(args):
     input_dataset = DocumentDataset.read_json(
         input_files, backend="cudf", add_filename=True
     )
-    result_dataset = translator_model._run_classifier(dataset=input_dataset)
+    result_dataset = translator_model(dataset=input_dataset)
 
     result_dataset.to_json(output_file_dir=args.output_data_dir, write_to_filename=True)
     client.close()
