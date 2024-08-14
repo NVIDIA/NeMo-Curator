@@ -177,8 +177,8 @@ class IndicTranslation(DistributedDataClassifier):
         ip = load_object_on_worker(
             "IndicProcessor", IndicProcessor, {"inference": True}
         )
-        indices = df["indic_proc_text"].index.to_arrow().to_pylist()
-        sentences = df["indic_proc_text"].to_arrow().to_pylist()
+        indices = df["text"].index.to_arrow().to_pylist()
+        sentences = df["text"].to_arrow().to_pylist()
         sentences = ip.preprocess_batch(
             sentences, src_lang="eng_Latn", tgt_lang="hin_Deva"
         )
@@ -204,37 +204,6 @@ class IndicTranslation(DistributedDataClassifier):
         generated_tokens = ip.postprocess_batch(generated_tokens, lang="hin_Deva")
         df["translation"] = cudf.Series(data=generated_tokens, index=indices)
         return df
-
-    def truncate_start_end_symbols(self, input_string):
-        start = ""
-        mid = ""
-        end = ""
-        flag = True
-        for char in input_string:
-            if char.isalnum() == False:
-                if flag:
-                    start += char
-                else:
-                    end += char
-            else:
-                flag = False
-                end = ""
-        mid = input_string[len(start) : len(input_string) - len(end)]
-        while len(start):
-            if start[-1] in START_PUNCTUATIONS:
-                mid = start[-1] + mid
-                start = start[: len(start) - 1]
-            else:
-                break
-        while len(end):
-            if end[0] in TERMINAL_PUNCTUATIONS:
-                mid += end[0]
-                end = end[1:]
-            else:
-                break
-        return pd.Series(
-            [start, mid, end], index=["start_sym", "indic_proc_text", "end_sym"]
-        )
 
     def has_alphabet_characters(self, text):
         return any(c.isalpha() for c in text)
@@ -297,14 +266,10 @@ class IndicTranslation(DistributedDataClassifier):
 
     def process_input_text(self, ddf):
         ddf = ddf.to_pandas()
-        ddf["indic_proc_text"] = ddf["text"].apply(self.custom_tokenize)
+        ddf["text"] = ddf["text"].apply(self.custom_tokenize)
         ddf["doc_id"] = range(1, len(ddf) + 1)
-        ddf = ddf.explode("indic_proc_text")
-        ddf = ddf.reset_index(drop=True)
-        ddf = ddf.drop("text", axis=1)
-        ddf[["start_sym", "indic_proc_text", "end_sym"]] = ddf["indic_proc_text"].apply(
-            self.truncate_start_end_symbols
-        )
+        ddf = ddf.explode("text", ignore_index=True)
+        ddf = ddf.reset_index(drop=False)
         ddf = cudf.DataFrame.from_pandas(ddf)
         return ddf
 
@@ -312,24 +277,19 @@ class IndicTranslation(DistributedDataClassifier):
         return "".join(series)
 
     def combine_text(self, ddf):
-        engligh_stop_flag = ddf["indic_proc_text"].str.endswith(".")
+        engligh_stop_flag = ddf["text"].str.endswith(".")
         hindi_stop_flag = ddf["translation"].str.endswith("|")
         ddf["translation"][~engligh_stop_flag & hindi_stop_flag] = ddf[
             "translation"
         ].str.rstrip("|")
-        ddf["translation"] = (
-            ddf["start_sym"] + ddf["translation"].str.strip() + ddf["end_sym"]
-        )
-        ddf["indic_proc_text"] = (
-            ddf["start_sym"] + ddf["indic_proc_text"] + ddf["end_sym"]
-        )
+        ddf["translation"] = ddf["translation"].str.strip()
         return ddf
 
     def grouping(self, ddf):
         ddf = ddf.to_pandas()
         agg_funcs = {
             "translation": self.concat_strings,
-            "indic_proc_text": self.concat_strings,
+            "text": self.concat_strings,
         }
         other_columns = {
             col: "first"
@@ -342,11 +302,6 @@ class IndicTranslation(DistributedDataClassifier):
         ddf = cudf.DataFrame.from_pandas(ddf)
         return ddf
 
-    def combine_text_false(self, ddf):
-        ddf["translation"] = ddf["start_sym"] + ddf["indic_proc_text"] + ddf["end_sym"]
-        ddf["indic_proc_text"] = ddf["translation"]
-        return ddf
-
     def atleast_letter(self, df):
         df = df.to_pandas()
         df["isalpha"] = df["indic_proc_text"].apply(self.has_alphabet_characters)
@@ -357,18 +312,15 @@ class IndicTranslation(DistributedDataClassifier):
         st = time.time()
         ddf = dataset.df
         ddf_meta = ddf._meta.copy()
-        ddf_meta["indic_proc_text"] = ""
         ddf_meta["doc_id"] = ""
-        ddf_meta["start_sym"] = ""
-        ddf_meta["end_sym"] = ""
-        ddf_meta = ddf_meta.drop("text", axis=1)
+        ddf_meta["index"] = ""
         # Applying process_input_text for following :
         # 1. nltk tokenization to break doc into sentences
         # 2. craeting a row w.r.t each sentence.
         # 3. Process sentences strip symbols from start and end
-        ddf = ddf.map_partitions(self.process_input_text, meta=ddf_meta)
+        ddf = ddf.map_partitions(self.process_input_text, enforce_metadata=False)
 
-        ddf["word_count"] = ddf["indic_proc_text"].str.split().list.len()
+        ddf["word_count"] = ddf["text"].str.split().list.len()
         ddf["word_count"] = ddf["word_count"].astype("int64")
         ddf_true = ddf[(ddf["word_count"] <= self.translation_config.max_words_per_sen)]
 
@@ -384,12 +336,12 @@ class IndicTranslation(DistributedDataClassifier):
         ddf_false = ddf_false.drop(columns="word_count")
         ddf_false_meta = ddf_false._meta.copy()
         ddf_false_meta["translation"] = ""
-        ddf_false = ddf_false.map_partitions(
-            self.combine_text_false, meta=ddf_false_meta
-        )
+        ddf_false["translation"] = ddf_false["text"]
 
         # Applying preprocess_df for Indic preprocessing
-        ddf["indic_proc_text"] = ddf["indic_proc_text"].astype("str")
+        ddf["text"] = ddf["text"].astype("str")
+        ddf_meta = ddf._meta.copy()
+        ddf_meta["indic_proc_text"] = ""
         ddf = ddf.map_partitions(self.preprocess_df, meta=ddf_meta)
 
         columns = ddf.columns.tolist()
