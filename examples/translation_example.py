@@ -256,32 +256,33 @@ class IndicTranslation(DistributedDataClassifier):
                 sentences = self.sent_tokenizer(line)
                 i = 0
                 j = 0
-                tokenized_snt_lst = []
-                str = ""
+                curr_tokenized_snt = []
+                non_translation_str = ""
+                # Comparing the list of tokenized sentences (using NLTK) and actual sentence and preserving the spaces, newline and other special characters
                 while i < len(line):
-                    ch = line[i]
                     if j < len(sentences):
                         stripped_sent = sentences[j].strip()
                         if len(stripped_sent) == 0:
                             j += 1
                             continue
-                        if ch == stripped_sent[0]:
-                            if str != "":
-                                tokenized_snt_lst.append(str)
-                            tokenized_snt_lst.append(stripped_sent)
+                        # If tokenized sentence matches then moving to next sentence
+                        if line[i] == stripped_sent[0]:
+                            if non_translation_str != "":
+                                curr_tokenized_snt.append(non_translation_str)
+                            curr_tokenized_snt.append(stripped_sent)
                             i += len(stripped_sent)
                             j += 1
-                            str = ""
+                            non_translation_str = ""
                         else:
-                            str += ch
+                            non_translation_str += line[i]
                             i += 1
                     else:
-                        str += ch
+                        non_translation_str += line[i]
                         i += 1
-                if str != "":
-                    tokenized_snt_lst.append(str)
+                if non_translation_str != "":
+                    curr_tokenized_snt.append(non_translation_str)
                 # Add the tokenized sentences to the list
-                tokenized_sentences.extend(tokenized_snt_lst)
+                tokenized_sentences.extend(curr_tokenized_snt)
             else:
                 tokenized_sentences.append(line)
 
@@ -291,8 +292,7 @@ class IndicTranslation(DistributedDataClassifier):
             # removing the sentences with word length greater than threshold as the model may not be able translate it due to constraint on output token size
             if len(sent) <= self.translation_config.max_words_per_sen:
                 tokenized_sentence_len.append(sentence)
-            else:
-                pass
+
         return tokenized_sentence_len
 
     def process_input_text(self, ddf):
