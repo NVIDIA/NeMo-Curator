@@ -765,9 +765,8 @@ class TestCodeFilters:
                 "code_meta.csv",
             )
         )
-        filters = ScoreFilter(
-            PerExtensionFilter("c++", "cpp", metadata_file=metadata_file)
-        )
+        per_extension_filter = PerExtensionFilter("c++", "cpp", metadata_file=metadata_file)
+        filters = ScoreFilter(per_extension_filter)
         filtered_data = filters(dataset)
 
         expected_indices = [0]
@@ -775,6 +774,16 @@ class TestCodeFilters:
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
+
+        tests = [["", (0, 0.0)],
+                ["\n", (0, 0.0)],
+                ["abc\n",(3, 1.5)],
+                ["Lorem ipsum \ndolor sit amet,", (15, 13.5)]]
+        for test in tests:
+            line_statistics = per_extension_filter._line_statistics(test[0])
+            assert (
+                line_statistics == test[1]
+            ), f"Expected {test[1]} but got {line_statistics}"
 
 
 class FakeQualityFilter(DocumentFilter):
