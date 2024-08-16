@@ -278,31 +278,32 @@ class ParallelDataset(DocumentDataset):
         tgt_lang: str,
         backend: str = "pandas",
         add_filename: bool = False,
+        partition_size: Optional[Union[int, str]] = "100MB",
     ):
         if isinstance(src_input_files, list) and isinstance(tgt_input_files, list):
-            return cls(
-                read_simple_bitext_data(
-                    src_input_files,
-                    tgt_input_files,
-                    src_lang,
-                    tgt_lang,
-                    backend,
-                    add_filename,
-                )
+            df = read_simple_bitext_data(
+                src_input_files,
+                tgt_input_files,
+                src_lang,
+                tgt_lang,
+                backend,
+                add_filename,
             )
         elif isinstance(src_input_files, str) and isinstance(tgt_input_files, str):
-            return cls(
-                read_simple_bitext_data(
-                    [src_input_files],
-                    [tgt_input_files],
-                    src_lang,
-                    tgt_lang,
-                    backend,
-                    add_filename,
-                )
+            df = read_simple_bitext_data(
+                [src_input_files],
+                [tgt_input_files],
+                src_lang,
+                tgt_lang,
+                backend,
+                add_filename,
             )
         else:
             raise TypeError("Both file inputs must be strings or lists.")
+
+        if partition_size:
+            df = df.repartition(partition_size=partition_size)
+        return cls(df)
 
     def to_bitext(
         self,
