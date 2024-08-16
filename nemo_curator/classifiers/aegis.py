@@ -27,10 +27,7 @@ from crossfit.backend.torch.hf.model import HFModel
 from peft import PeftModel
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from nemo_curator.classifiers.base import (
-    DistributedDataClassifier,
-    _get_suggest_memory_for_classifier,
-)
+from nemo_curator.classifiers.base import DistributedDataClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.aegis_utils import format_aegis
 
