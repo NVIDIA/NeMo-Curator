@@ -21,6 +21,7 @@ from transformers import AutoConfig, AutoTokenizer
 from nemo_curator.classifiers.base import (
     DistributedDataClassifier,
     HFDeberta,
+    _get_suggest_memory_for_classifier,
     _run_classifier_helper,
 )
 from nemo_curator.datasets import DocumentDataset
@@ -36,10 +37,15 @@ class DomainModelConfig:
 
 
 class DomainModel(HFModel):
-    def __init__(self, config: DomainModelConfig, autocast: bool = False):
+    def __init__(
+        self, config: DomainModelConfig, autocast: bool = False, max_mem_gb=None
+    ):
         self.config = config
         self.autocast = autocast
-        super().__init__(self.config.model)
+        if max_mem_gb is None:
+            max_mem_gb = _get_suggest_memory_for_classifier()
+
+        super().__init__(self.config.model, max_mem_gb=max_mem_gb)
 
     def load_model(self, device="cuda"):
         model = HFDeberta.from_pretrained(DOMAIN_IDENTIFIER)
@@ -64,6 +70,7 @@ class DomainClassifier(DistributedDataClassifier):
         max_chars=2000,
         device_type="cuda",
         autocast=True,
+        max_mem_gb=None,
     ):
         config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
 
@@ -71,7 +78,9 @@ class DomainClassifier(DistributedDataClassifier):
         self.labels = list(config.label2id.keys())
         self.out_dim = len(self.labels)
 
-        model = DomainModel(config=DomainModelConfig, autocast=autocast)
+        model = DomainModel(
+            config=DomainModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
+        )
 
         super().__init__(
             model=model,

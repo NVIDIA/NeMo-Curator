@@ -27,7 +27,10 @@ from crossfit.backend.torch.hf.model import HFModel
 from peft import PeftModel
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from nemo_curator.classifiers.base import DistributedDataClassifier
+from nemo_curator.classifiers.base import (
+    DistributedDataClassifier,
+    _get_suggest_memory_for_classifier,
+)
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.aegis_utils import format_aegis
 
@@ -92,11 +95,11 @@ class AegisModel(nn.Module):
 
 
 class AegisHFModel(HFModel):
-    def __init__(self, config: AegisConfig):
+    def __init__(self, config: AegisConfig, max_mem_gb=48):
         self.config = config
         super().__init__(
             config.pretrained_model_name_or_path,
-            max_mem_gb=48,
+            max_mem_gb=max_mem_gb,
             start_batch_size=4,
             end_batch_size=32,
             batch_size_increment=4,
@@ -199,7 +202,7 @@ class AegisClassifier(DistributedDataClassifier):
         self.keep_raw_pred = keep_raw_pred
 
         try:
-            model = AegisHFModel(config=config)
+            model = AegisHFModel(config=config, max_mem_gb=48)
         except OSError as e:
             if "meta-llama/LlamaGuard-7b" in str(e):
                 raise PermissionError(ACCESS_ERROR_MESSAGE)

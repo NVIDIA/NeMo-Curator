@@ -21,6 +21,7 @@ from transformers import AutoConfig, AutoTokenizer
 from nemo_curator.classifiers.base import (
     DistributedDataClassifier,
     HFDeberta,
+    _get_suggest_memory_for_classifier,
     _run_classifier_helper,
 )
 from nemo_curator.datasets import DocumentDataset
@@ -36,10 +37,14 @@ class QualityModelConfig:
 
 
 class QualityModel(HFModel):
-    def __init__(self, config: QualityModelConfig, autocast: bool = False):
+    def __init__(
+        self, config: QualityModelConfig, autocast: bool = False, max_mem_gb: int = None
+    ):
         self.config = config
         self.autocast = autocast
-        super().__init__(self.config.model)
+        if max_mem_gb is None:
+            max_mem_gb = _get_suggest_memory_for_classifier()
+        super().__init__(self.config.model, max_mem_gb=max_mem_gb)
 
     def load_model(self, device="cuda"):
         model = HFDeberta.from_pretrained(QUALITY_IDENTIFIER)
@@ -64,6 +69,7 @@ class QualityClassifier(DistributedDataClassifier):
         max_chars=6000,
         device_type="cuda",
         autocast=True,
+        max_mem_gb=None,
     ):
         config = AutoConfig.from_pretrained(QUALITY_IDENTIFIER)
 
@@ -71,7 +77,9 @@ class QualityClassifier(DistributedDataClassifier):
         self.labels = list(config.label2id.keys())
         self.out_dim = len(self.labels)
 
-        model = QualityModel(config=QualityModelConfig, autocast=autocast)
+        model = QualityModel(
+            config=QualityModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
+        )
 
         super().__init__(
             model=model,

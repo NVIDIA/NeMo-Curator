@@ -34,6 +34,9 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 
 cudf = gpu_only_import("cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
+get_device_total_memory = gpu_only_import_from(
+    "dask_cuda.utils", "get_device_total_memory"
+)
 
 
 class NoWorkerError(Exception):
@@ -633,3 +636,16 @@ def get_network_interfaces() -> List[str]:
         A list of all valid network interfaces on a machine
     """
     return list(psutil.net_if_addrs().keys())
+
+
+def get_gpu_memory_info() -> List[dict]:
+    """
+    Gets the total and available memory for each GPU on the machine
+
+    Returns:
+        A list of dictionaries containing the total and available memory for each GPU on the machine
+    """
+    client = get_current_client()
+    if client is None:
+        return {}
+    return client.run(get_device_total_memory)
