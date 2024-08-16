@@ -21,7 +21,7 @@ import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -638,12 +638,16 @@ def get_network_interfaces() -> List[str]:
     return list(psutil.net_if_addrs().keys())
 
 
-def get_gpu_memory_info() -> List[dict]:
+def get_gpu_memory_info() -> Dict[str, int]:
     """
-    Gets the total and available memory for each GPU on the machine
-
+    Get the total GPU memory for each Dask worker.
     Returns:
-        A list of dictionaries containing the total and available memory for each GPU on the machine
+        dict: A dictionary mapping Dask worker addresses ('IP:PORT') to their
+        respective GPU memory (in bytes).
+    Example:
+        {'192.168.0.100:9000': 3.2e+10, '192.168.0.101:9000': 3.2e+10}
+    Note:
+        If there is no active Dask client, an empty dictionary is returned.
     """
     client = get_current_client()
     if client is None:

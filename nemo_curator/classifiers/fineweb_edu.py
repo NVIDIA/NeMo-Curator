@@ -31,7 +31,7 @@ FINEWEB_EDU_IDENTIFIER = "HuggingFaceTB/fineweb-edu-classifier"
 
 
 class FinewebEduModel(HFModel):
-    def __init__(self, path_or_name, max_mem_gb, autocast=False):
+    def __init__(self, path_or_name, max_mem_gb=None, autocast=False):
         self.path_or_name = path_or_name
         self.autocast = autocast
         if max_mem_gb is None:
@@ -62,9 +62,27 @@ class FinewebEduModel(HFModel):
 
 
 class FineWebEduClassifier(DistributedDataClassifier):
+    """
+    FineWebEduClassifier is a specialized classifier designed for educational content assessment, utilizing the
+    Hugging Face FineWeb EDU Classifier model (https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier).
+    This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference
+    on large text datasets.
+
+    Attributes:
+        batch_size (int): The number of samples per batch for inference. Defaults to 256.
+        text_field (str): The column name containing the text data to be classified. Defaults to "text".
+        pred_column (str): The column name where prediction scores will be stored. Defaults to "fineweb-edu-score".
+        int_column (str): The column name where integer-rounded prediction scores will be stored. Defaults to "fineweb-edu-score-int".
+        max_chars (int): The maximum number of characters in each document to consider for classification. If -1, the entire document is considered. Defaults to -1.
+        device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
+        autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
+        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
+                                      it defaults to the available GPU memory minus 4 GB.
+
+    """
+
     def __init__(
         self,
-        filter_by=None,
         batch_size=256,
         text_field: str = "text",
         pred_column="fineweb-edu-score",
@@ -84,7 +102,7 @@ class FineWebEduClassifier(DistributedDataClassifier):
         self.int_column = int_column
         super().__init__(
             model=model,
-            filter_by=filter_by,
+            filter_by=None,  # No filtering as its a numeric score
             batch_size=batch_size,
             pred_column=pred_column,
             max_chars=max_chars,
