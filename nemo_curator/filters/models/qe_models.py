@@ -84,7 +84,7 @@ class PyMarianQEModel(QEModel):
     # there is unfortunately no model configuration interface that can automatically adapt to
     # individual systems (like hf `AutoConfig`).
     # Those should work on most systems, but if not please adjust as needed.
-    MARIAN_GPU_ARGS = " -w 8000 --mini-batch 32"
+    MARIAN_GPU_ARGS = " -w 8000 --mini-batch 32 -d 0"
     MARIAN_CPU_ARGS = " --cpu-threads 1 -w 2000"
     # PyMarian has memory leakage when a very large input is passed.
     # Hence we limit the size of input passed into PyMarian within one API call.
