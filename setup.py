@@ -82,6 +82,10 @@ setup(
             "dask-cuda>=24.2",
             "spacy[cuda12x]>=3.6.0, <4.0.0",
         ],
+        "image": [
+            "nvidia-dali-cuda120",
+            "open_clip_torch",
+        ],
     },
     entry_points={
         "console_scripts": [
