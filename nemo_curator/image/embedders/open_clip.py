@@ -42,7 +42,6 @@ class OpenClipImageEmbedder(ImageEmbedder):
         @pipeline_def(
             batch_size=self.batch_size,
             num_threads=self.num_threads_per_worker,
-            device_id=0,
         )
         def webdataset_pipeline(_tar_path: str):
             img_raw, text, json = fn.readers.webdataset(

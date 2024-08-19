@@ -52,13 +52,9 @@ class ImageEmbedder(ABC):
         final_image_embeddings = []
         while samples_completed < total_samples:
             image, text, meta = pipeline.run()
-
-            print(f"Image: {image}. Text: {text}. Meta: {meta}")
             image = image.as_tensor()
 
-            image_torch = torch.empty(
-                image.shape(), dtype=torch.float32, device=self.device
-            )
+            image_torch = torch.empty(image.shape(), dtype=torch.float32, device="cuda")
             feed_ndarray(image, image_torch)  # COPY !!!
 
             image = image_torch
