@@ -28,7 +28,10 @@ class OpenClipImageEmbedder(ImageEmbedder):
         pretrained: Optional[str] = None,
         batch_size: int = 1,
         num_threads_per_worker=4,
+        image_embedding_column="image_embedding",
     ) -> None:
+        super().__init__(image_embedding_column=image_embedding_column)
+
         self.model_name = model_name
         self.pretrained = pretrained
         self.batch_size = batch_size
