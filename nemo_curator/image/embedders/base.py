@@ -20,21 +20,22 @@ from nemo_curator.utils.distributed_utils import load_object_on_worker
 
 
 class ImageEmbedder(ABC):
-    def __init__(self) -> None:
-        pass
+    def __init__(self, image_embedding_column) -> None:
+        self.image_embedding_column = image_embedding_column
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
-        # First, convert df to delayed
-        delayed_metadata = dataset.metadata.to_delayed()
-
-        # Set the metadata
-        metadata = dd.from_map(self.inference, delayed_metadata, dataset.tar_files)
-
-        return ImageTextPairDataset(
-            dataset.path, metadata=metadata, tar_files=dataset.tar_files
+        meta_df = dataset.metadata._meta.copy()
+        meta_df[self.image_embedding_column] = [1.0, 2.0]
+        embedding_df = dataset.metadata.map_partitions(
+            self.inference, dataset.tar_files, meta=meta_df
         )
 
-    def inference(self, partition, tar_path):
+        return ImageTextPairDataset(
+            dataset.path, metadata=embedding_df, tar_files=dataset.tar_files
+        )
+
+    def inference(self, partition, tar_paths, partition_info=None):
+        tar_path = tar_paths[partition_info["number"]]
         pipeline = self.load_data_pipline(tar_path)
         pipeline.build()
         model = load_object_on_worker(
@@ -50,6 +51,7 @@ class ImageEmbedder(ABC):
             break
             embeddings = model(image)
 
+        partition[self.image_embedding_column] = [[1.234]] * len(partition)
         return partition
 
     @abstractmethod
