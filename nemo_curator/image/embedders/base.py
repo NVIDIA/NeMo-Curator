@@ -39,7 +39,7 @@ class ImageEmbedder(ABC):
         pipeline = self.load_data_pipline(tar_path)
         pipeline.build()
         model = load_object_on_worker(
-            "image_embedding_model", self.load_embedding_model
+            "image_embedding_model", self.load_embedding_model, {}
         )
 
         total_samples = pipeline.epoch_size()
