@@ -43,6 +43,7 @@ class ImageEmbedder(ABC):
         )
 
         total_samples = pipeline.epoch_size()
+        total_samples = total_samples[list(total_samples.keys())[0]]
         samples_completed = 0
         while samples_completed < total_samples:
             image, text, meta = pipeline.run()
