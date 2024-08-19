@@ -296,14 +296,11 @@ class IndicTranslation(DistributedDataClassifier):
         ddf_true = ddf[(ddf["word_count"] <= self.translation_config.max_words_per_sen)]
         # To filter for atleast one unicode letter in text
         has_letter = ddf_true.map_partitions(self.atleast_letter, column_name="text")
-        # has_letter = ddf_true.map_partitions(self.atleast_letter, meta=ddf_metaa)
         ddf_trans = ddf_true[has_letter["isalpha"]]
         ddf = ddf_trans.drop(columns="word_count")
         ## ddf false operations
         ddf_false = ddf_true[~has_letter["isalpha"]]
         ddf_false = ddf_false.drop(columns="word_count")
-        # ddf_false_meta = ddf_false._meta.copy()
-        # ddf_false_meta["translation"] = ""
         ddf_false["translation"] = ddf_false["text"]
         # Applying preprocess_df for Indic preprocessing
         ddf["text"] = ddf["text"].astype("str")
