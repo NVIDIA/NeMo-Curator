@@ -25,10 +25,10 @@ class ImageEmbedder(ABC):
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         # First, convert df to delayed
-        delayed_dfs = dataset.df.to_delayed()
+        delayed_metadata = dataset.metadata.to_delayed()
 
-        # Set the metadata using dd.from_map(self.inference, delayed_dfs, tar_files)
-        metadata = dd.from_map(self.inference, delayed_dfs, dataset.tar_files)
+        # Set the metadata
+        metadata = dd.from_map(self.inference, delayed_metadata, dataset.tar_files)
 
         return ImageTextPairDataset(
             dataset.path, metadata=metadata, tar_files=dataset.tar_files
