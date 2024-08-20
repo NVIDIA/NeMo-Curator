@@ -450,6 +450,7 @@ class ArgumentHelper:
         self.add_distributed_args()
         self.add_arg_enable_spilling()
         self.add_arg_set_torch_to_use_rmm()
+        self.add_arg_max_mem_gb_classifier()
 
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
