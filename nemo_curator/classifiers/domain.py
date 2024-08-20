@@ -75,7 +75,7 @@ class DomainClassifier(DistributedDataClassifier):
         max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 2000.
         device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
         autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
-        max_mem_gb (float, optional): The maximum amount of memory in GB to allocate for the model. If None,
+        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
                                       it defaults to the available GPU memory minus 4 GB.
 
     """
