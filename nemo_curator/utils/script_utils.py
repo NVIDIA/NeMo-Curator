@@ -294,8 +294,8 @@ class ArgumentHelper:
             "--max-mem-gb-classifier",
             default=None,
             type=int,
-            help="Maximum GPU memory to use in GB for the classifier",
-            default="Uses the Total GPU memory - 4GB, for the classifier",
+            help="Specify the maximum GPU memory (in GB) for the classifier. "
+            "Defaults to using the total GPU memory minus 4 GB if not specified.",
         )
 
     def add_arg_autocast(self, help="Whether to use autocast or not"):
