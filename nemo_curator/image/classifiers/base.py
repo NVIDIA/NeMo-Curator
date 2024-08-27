@@ -45,7 +45,7 @@ class ImageClassifier(ABC):
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         meta = dataset.metadata.dtypes.to_dict()
-        meta[self.pred_column] = self.class_type
+        meta[self.pred_column] = self.pred_type
         embedding_df = dataset.metadata.map_partitions(self._run_inference, meta=meta)
 
         return ImageTextPairDataset(
