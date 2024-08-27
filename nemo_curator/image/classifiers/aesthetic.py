@@ -91,4 +91,7 @@ class AestheticClassifier(ImageClassifier):
         model.load_state_dict(weights)
         model.eval()
 
-        return model
+        def infer(batch):
+            return model(batch).squeeze()
+
+        return infer

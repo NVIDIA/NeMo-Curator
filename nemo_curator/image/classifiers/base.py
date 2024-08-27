@@ -68,9 +68,13 @@ class ImageClassifier(ABC):
             device=device,
         )
 
-        scores = cp.asarray(model(embeddings))
+        with torch.no_grad():
+            scores = model(embeddings)
+        scores = cp.asarray(scores)
 
-        partition[self.pred_column] = create_list_series_from_1d_or_2d_ar(scores)
+        partition[self.pred_column] = create_list_series_from_1d_or_2d_ar(
+            scores, index=partition.index
+        )
 
         return partition
 
