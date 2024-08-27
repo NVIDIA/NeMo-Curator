@@ -18,7 +18,7 @@ import requests
 import torch
 import torch.nn as nn
 
-from nemo_curator.image.classifiers import ImageClassifier
+from nemo_curator.image.classifiers.base import ImageClassifier
 from nemo_curator.utils.file_utils import NEMO_CURATOR_HOME
 
 
@@ -69,6 +69,7 @@ class AestheticClassifier(ImageClassifier):
     def _get_default_model():
         weights_name = "sac+logos+ava1-l14-linearMSE.pth"
         model_path = os.path.join(NEMO_CURATOR_HOME, weights_name)
+        os.makedirs(NEMO_CURATOR_HOME, exist_ok=True)
 
         if not os.path.exists(model_path):
             url = (
