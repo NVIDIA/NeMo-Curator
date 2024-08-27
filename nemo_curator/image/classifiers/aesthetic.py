@@ -57,7 +57,7 @@ class AestheticClassifier(ImageClassifier):
             model_name="aesthetic_model_v2",
             embedding_column=embedding_column,
             pred_column=pred_column,
-            class_type=float,
+            pred_type=float,
             batch_size=batch_size,
         )
 

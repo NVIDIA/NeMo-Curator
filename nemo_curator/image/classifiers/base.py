@@ -86,6 +86,10 @@ class ImageClassifier(ABC):
         postprocessed_series = self.postprocess(series)
         partition[self.pred_column] = postprocessed_series
 
+        print(
+            f"Partition {partition_info['number']} - Classification with {self.model_name} completed for {len(scores)} samples."
+        )
+
         return partition
 
     @abstractmethod
