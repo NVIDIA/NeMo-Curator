@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
+from typing import Union
 
 import cupy as cp
 import torch
@@ -33,13 +34,13 @@ class ImageClassifier(ABC):
         model_name: str,
         embedding_column: str,
         pred_column: str,
-        class_type: str,
+        pred_type: Union[str, type],
         batch_size: int,
     ) -> None:
         self.model_name = model_name
         self.embedding_column = embedding_column
         self.pred_column = pred_column
-        self.class_type = class_type
+        self.pred_type = pred_type
         self.batch_size = batch_size
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
@@ -69,15 +70,27 @@ class ImageClassifier(ABC):
         )
 
         with torch.no_grad():
-            scores = model(embeddings)
+            if self.batch_size > 0:
+                batches = torch.split(embeddings, self.batch_size)
+                model_results = []
+                for batch in batches:
+                    batch_results = model(batch)
+                    model_results.append(batch_results)
+                scores = torch.cat(model_results, dim=0)
+            else:
+                scores = model(embeddings)
+
         scores = cp.asarray(scores)
 
-        partition[self.pred_column] = create_list_series_from_1d_or_2d_ar(
-            scores, index=partition.index
-        )
+        series = create_list_series_from_1d_or_2d_ar(scores, index=partition.index)
+        postprocessed_series = self.postprocess(series)
+        partition[self.pred_column] = postprocessed_series
 
         return partition
 
     @abstractmethod
     def load_model(self, device):
         pass
+
+    def postprocess(self, series):
+        return series

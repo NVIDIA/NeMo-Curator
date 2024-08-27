@@ -53,5 +53,5 @@ class ImageTextPairDataset:
 
         metadata.to_parquet(path)
 
-    def reshard(self, path: str, filter_column: str) -> None:
+    def to_webdataset(self, path: str, filter_column: str) -> None:
         pass

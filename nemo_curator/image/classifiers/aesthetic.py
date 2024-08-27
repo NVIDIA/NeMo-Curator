@@ -95,3 +95,6 @@ class AestheticClassifier(ImageClassifier):
             return model(batch).squeeze()
 
         return infer
+
+    def postprocess(self, series):
+        return series.list.leaves

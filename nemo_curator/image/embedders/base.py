@@ -60,7 +60,9 @@ class ImageEmbedder(ABC):
                 batch_size = len(image_embeddings)
                 samples_completed += batch_size
 
-                print(f"{tar_path} - Samples Completed: {samples_completed}.")
+                print(
+                    f"{tar_path} - Embedding Creation with {self.model_name} Samples Completed: {samples_completed}."
+                )
 
         if samples_completed != len(partition):
             raise RuntimeError(
