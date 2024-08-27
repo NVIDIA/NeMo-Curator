@@ -64,6 +64,7 @@ class AestheticClassifier(ImageClassifier):
             model_path = self._get_default_model()
 
         self.model_path = model_path
+        self.embedding_dim = 768
 
     @staticmethod
     def _get_default_model():
@@ -84,7 +85,7 @@ class AestheticClassifier(ImageClassifier):
         return model_path
 
     def load_model(self, device):
-        model = MLP(768).to(device)
+        model = MLP(self.embedding_dim).to(device)
         weights = torch.load(self.model_path, map_location=torch.device("cpu"))
         model.load_state_dict(weights)
         model.eval()

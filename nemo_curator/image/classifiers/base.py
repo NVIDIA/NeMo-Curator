@@ -29,8 +29,14 @@ class ImageClassifier(ABC):
     """
 
     def __init__(
-        self, embedding_column: str, pred_column: str, class_type: str, batch_size: int
+        self,
+        model_name: str,
+        embedding_column: str,
+        pred_column: str,
+        class_type: str,
+        batch_size: int,
     ) -> None:
+        self.model_name = model_name
         self.embedding_column = embedding_column
         self.pred_column = pred_column
         self.class_type = class_type
@@ -39,18 +45,18 @@ class ImageClassifier(ABC):
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         meta = dataset.metadata.dtypes.to_dict()
         meta[self.pred_column] = self.class_type
-        embedding_df = dataset.metadata.map_partitions(self.inference, meta=meta)
+        embedding_df = dataset.metadata.map_partitions(self._run_inference, meta=meta)
 
         return ImageTextPairDataset(
             dataset.path, metadata=embedding_df, tar_files=dataset.tar_files
         )
 
-    def inference(self, partition, partition_info=None):
+    def _run_inference(self, partition, partition_info=None):
         device_id = int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0])
         device = f"cuda:{device_id}"
 
         model = load_object_on_worker(
-            "image_embedding_model",
+            self.model_name,
             self.load_model,
             {"device": device},
         )
