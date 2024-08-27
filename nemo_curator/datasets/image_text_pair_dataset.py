@@ -15,7 +15,7 @@
 import os
 from typing import List, Optional, Union
 
-import dask.dataframe as dd
+import dask_cudf
 from fsspec.core import open_files
 
 
@@ -27,7 +27,7 @@ class ImageTextPairDataset:
 
     @classmethod
     def from_webdataset(cls, path: str):
-        metadata = dd.read_parquet(path)
+        metadata = dask_cudf.read_parquet(path)
         tar_files = cls._get_tar_files(path)
 
         return cls(path, metadata, tar_files)

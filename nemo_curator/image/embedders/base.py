@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
+import os
 from abc import ABC, abstractmethod
+from typing import Iterable
 
-import dask.dataframe as dd
-import numpy as np
+import cupy as cp
 import torch
-from nvidia.dali.plugin.pytorch import feed_ndarray
 
 from nemo_curator.datasets import ImageTextPairDataset
+from nemo_curator.utils.cudf_utils import create_list_series_from_1d_or_2d_ar
 from nemo_curator.utils.distributed_utils import load_object_on_worker
 
 
@@ -28,10 +28,10 @@ class ImageEmbedder(ABC):
         self.image_embedding_column = image_embedding_column
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
-        meta_df = dataset.metadata._meta.copy()
-        meta_df[self.image_embedding_column] = [[1.0]]
+        meta = dataset.metadata.dtypes.to_dict()
+        meta[self.image_embedding_column] = "object"
         embedding_df = dataset.metadata.map_partitions(
-            self.inference, dataset.tar_files, meta=meta_df
+            self.inference, dataset.tar_files, meta=meta
         )
 
         return ImageTextPairDataset(
@@ -40,52 +40,44 @@ class ImageEmbedder(ABC):
 
     def inference(self, partition, tar_paths, partition_info=None):
         tar_path = tar_paths[partition_info["number"]]
-        pipeline = self.load_data_pipline(tar_path)
-        pipeline.build()
+        device_id = int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0])
+
         model = load_object_on_worker(
-            "image_embedding_model", self.load_embedding_model, {}
+            "image_embedding_model",
+            self.load_embedding_model,
+            {"device": f"cuda:{device_id}"},
         )
 
-        total_samples = pipeline.epoch_size()
-        total_samples = total_samples[list(total_samples.keys())[0]]
-        samples_completed = 0
+        dataset = self.load_dataset_shard(tar_path, device_id=device_id)
         final_image_embeddings = []
-        while samples_completed < total_samples:
-            image, text, meta = pipeline.run()
-            image = image.as_tensor()
+        samples_completed = 0
+        with torch.no_grad():
+            for batch in dataset:
+                image_embeddings = model(batch)
+                final_image_embeddings.append(image_embeddings)
 
-            image_torch = torch.empty(image.shape(), dtype=torch.float32, device="cuda")
-            feed_ndarray(image, image_torch)  # COPY !!!
+                batch_size = len(image_embeddings)
+                samples_completed += batch_size
 
-            image = image_torch
-            captions = [text.at(i).tostring().decode("utf-8") for i in range(len(text))]
-            metadata = [
-                json.loads(meta.at(i).tostring().decode("utf-8"))
-                for i in range(len(meta))
-            ]
+                print(f"{tar_path} - Samples Completed: {samples_completed}.")
 
-            with torch.no_grad():
-                image_features = model(image)
-                batch_image_embeddings = np.asarray(
-                    self.normalized(image_features.detach().cpu())
-                )
+        if samples_completed != len(partition):
+            raise RuntimeError(
+                f"Mismatch in sample count for partition {partition_info['number']}. "
+                f"{len(partition)} samples found in the metadata, but {samples_completed} found in {tar_path}."
+            )
 
-            for embedding in batch_image_embeddings:
-                final_image_embeddings.append(embedding)
+        concat_output = cp.asarray(torch.cat(final_image_embeddings, dim=0))
+        partition[self.image_embedding_column] = create_list_series_from_1d_or_2d_ar(
+            concat_output, index=partition.index
+        )
 
-        partition[self.image_embedding_column] = final_image_embeddings
         return partition
 
-    @staticmethod
-    def normalized(a, axis=-1, order=2):
-        l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
-        l2[l2 == 0] = 1
-        return a / np.expand_dims(l2, axis)
-
     @abstractmethod
-    def load_data_pipline(self, tar_path: str):
+    def load_dataset_shard(self, tar_path: str) -> Iterable:
         pass
 
     @abstractmethod
-    def load_embedding_model(self):
+    def load_embedding_model(self, device):
         pass
