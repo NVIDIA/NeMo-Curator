@@ -54,6 +54,7 @@ class AestheticClassifier(ImageClassifier):
         model_path: Optional[str] = None,
     ) -> None:
         super().__init__(
+            model_name="aesthetic_model_v2",
             embedding_column=embedding_column,
             pred_column=pred_column,
             class_type=float,
