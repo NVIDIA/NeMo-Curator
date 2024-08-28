@@ -24,8 +24,8 @@ from downloaders import (
     download_wikipedia_sources,
 )
 from utils import (
-    LineCountFilter_code,
-    LineCountFilter_text,
+    CodeLineCountFilter,
+    TextLineCountFilter,
     clean_and_unify,
     dedupe,
     filter_code,
@@ -126,7 +126,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         [
             clean_and_unify,
             ScoreFilter(
-                LineCountFilter_text(), text_field="file_type_count", score_type=bool
+                TextLineCountFilter(), text_field="file_type_count", score_type=bool
             ),
             filter_text,
             dedupe,
@@ -138,7 +138,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         [
             clean_and_unify,
             ScoreFilter(
-                LineCountFilter_code(), text_field="file_type_count", score_type=bool
+                CodeLineCountFilter(), text_field="file_type_count", score_type=bool
             ),
             filter_code,
             dedupe,

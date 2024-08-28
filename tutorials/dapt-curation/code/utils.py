@@ -282,7 +282,7 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     return DocumentDataset(deduped)
 
 
-class LineCountFilter_text(DocumentFilter):
+class TextLineCountFilter(DocumentFilter):
     """
     Discard text files based on number of lines.
     """
@@ -302,7 +302,7 @@ class LineCountFilter_text(DocumentFilter):
         return score
 
 
-class LineCountFilter_code(DocumentFilter):
+class CodeLineCountFilter(DocumentFilter):
     """
     Discard code files based on number of lines.
     """
