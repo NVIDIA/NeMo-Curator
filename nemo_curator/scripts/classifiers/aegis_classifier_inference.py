@@ -17,7 +17,7 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
-from nemo_curator import DomainClassifier
+from nemo_curator.classifiers import AegisClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -29,14 +29,13 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    args = ArgumentHelper.parse_distributed_classifier_args().parse_args()
+    args = attach_args().parse_args()
     print(f"Arguments parsed = {args}", flush=True)
-    max_chars = 2000
 
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting domain classifier inference", flush=True)
+    print("Starting AEGIS classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
@@ -60,10 +59,12 @@ def main():
     else:
         add_filename = True
 
-    domain_classifier = DomainClassifier(
-        max_chars=max_chars,
+    aegis_classifier = AegisClassifier(
+        aegis_variant=args.aegis_variant,
+        token=args.token,
+        max_chars=args.max_chars,
         batch_size=args.batch_size,
-        autocast=args.autocast,
+        max_mem_gb=args.max_mem_gb_classifier,
     )
 
     for file_batch_id, i in enumerate(range(0, len(input_files), files_per_run)):
@@ -78,7 +79,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = domain_classifier(DocumentDataset(df)).df
+        df = aegis_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(
@@ -95,10 +96,31 @@ def main():
 
     global_et = time.time()
     print(
-        f"Total time taken for domain classifier inference: {global_et-global_st} s",
+        f"Total time taken for AEGIS classifier inference: {global_et-global_st} s",
         flush=True,
     )
     client.close()
+
+
+def attach_args():
+    parser = ArgumentHelper.parse_distributed_classifier_args(max_chars_default=6000)
+
+    parser.add_argument(
+        "--aegis-variant",
+        type=str,
+        default="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
+        help="The AEGIS model to use. Can be nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0,"
+        "nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0,"
+        " or a path to your own PEFT of LlamaGuard 2",
+    )
+    parser.add_argument(
+        "--token",
+        type=str,
+        default=None,
+        help="HuggingFace token to use when downloading the base Llama Guard model",
+    )
+
+    return parser
 
 
 def console_script():

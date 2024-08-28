@@ -47,6 +47,9 @@ setup(
         "fasttext==0.9.2",
         "pycld2",
         "justext==3.0.1",
+        # lxml_html_clean has difficulty installing in jusText
+        # installing explicitly to prevent errors/lag with jusText
+        "lxml_html_clean",
         "resiliparse",
         "ftfy==6.1.1",
         "warcio==1.7.4",
@@ -63,19 +66,20 @@ setup(
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
         "Cython",
-        "crossfit @ git+https://github.com/rapidsai/crossfit.git@0.0.2",
+        "crossfit @ git+https://github.com/rapidsai/crossfit.git@0cc2993",
         # Numpy 2.0 breaks with spacy https://github.com/explosion/spaCy/issues/13528
         # TODO: Remove when issue is fixed
         "numpy<2",
         "openai",
+        "peft",
     ],
     extras_require={
         "cuda12x": [
-            "cudf-cu12>=24.2",
-            "dask-cudf-cu12>=24.2",
-            "cuml-cu12>=24.2",
-            "cugraph-cu12>=24.2",
-            "dask-cuda>=24.2",
+            "cudf-cu12>=24.8",
+            "dask-cudf-cu12>=24.8",
+            "cuml-cu12>=24.8",
+            "cugraph-cu12>=24.8",
+            "dask-cuda>=24.8",
             "spacy[cuda12x]>=3.6.0, <4.0.0",
         ],
     },
@@ -103,8 +107,9 @@ setup(
             "gpu_connected_component=nemo_curator.scripts.fuzzy_deduplication.connected_components:console_script",
             "gpu_exact_dups=nemo_curator.scripts.find_exact_duplicates:console_script",
             "deidentify=nemo_curator.scripts.find_pii_and_deidentify:console_script",
-            "domain_classifier_inference=nemo_curator.scripts.domain_classifier_inference:console_script",
-            "quality_classifier_inference=nemo_curator.scripts.quality_classifier_inference:console_script",
+            "domain_classifier_inference=nemo_curator.scripts.classifiers.domain_classifier_inference:console_script",
+            "quality_classifier_inference=nemo_curator.scripts.classifiers.quality_classifier_inference:console_script",
+            "aegis_classifier_inference=nemo_curator.scripts.classifiers.aegis_classifier_inference:console_script",
             "verify_classification_results=nemo_curator.scripts.verify_classification_results:console_script",
             "blend_datasets=nemo_curator.scripts.blend_datasets:console_script",
             "semdedup_extract_embeddings=nemo_curator.scripts.semdedup.compute_embeddings:console_script",

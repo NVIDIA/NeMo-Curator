@@ -21,7 +21,7 @@ import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -34,6 +34,9 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 
 cudf = gpu_only_import("cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
+get_device_total_memory = gpu_only_import_from(
+    "dask_cuda.utils", "get_device_total_memory"
+)
 
 
 class NoWorkerError(Exception):
@@ -115,12 +118,16 @@ def get_client(
         2. Enabling spilling for cuDF. (If `enable_spilling` is True)
 
     Args:
-        cluster_type: The type of cluster to set up. Either "cpu" or "gpu". Defaults to "cpu".
-            Many options in get_client only apply to CPU-based or GPU-based clusters. Make sure you check the description of the parameter.
-        scheduler_address: This can be the address of a Scheduler server like a string '127.0.0.1:8786' or a cluster object
-            like LocalCluster(). If specified, all other arguments are ignored and the client is connected to the existing cluster.
+        cluster_type: If scheduler_address and scheduler_file are None, sets up a local (single node) cluster of the specified type.
+            Either "cpu" or "gpu". Defaults to "cpu". Many options in get_client only apply to CPU-based or GPU-based clusters.
+            Make sure you check the description of the parameter.
+        scheduler_address: Address of existing Dask cluster to connect to. This can be the address of a Scheduler server like a
+            string '127.0.0.1:8786' or a cluster object like LocalCluster(). If specified, all other arguments are ignored and
+            the client is connected to the existing cluster. The other configuration options should be done when setting up the
+            Dask cluster.
         scheduler_file: Path to a file with scheduler information if available. If specified, all other arguments are ignored
-            and the client is connected to the existing cluster.
+            and the client is connected to the existing cluster. The other configuration options should be done when setting up the
+            Dask cluster.
         n_workers: For CPU-based clusters only. The number of workers to start. Defaults to os.cpu_count(). For GPU-based clusters,
             the number of workers is locked to the number of GPUs in CUDA_VISIBLE_DEVICES.
         threads_per_worker: For CPU-based clusters only. The number of threads per each worker. Defaults to 1.
@@ -629,3 +636,20 @@ def get_network_interfaces() -> List[str]:
         A list of all valid network interfaces on a machine
     """
     return list(psutil.net_if_addrs().keys())
+
+
+def get_gpu_memory_info() -> Dict[str, int]:
+    """
+    Get the total GPU memory for each Dask worker.
+    Returns:
+        dict: A dictionary mapping Dask worker addresses ('IP:PORT') to their
+        respective GPU memory (in bytes).
+    Example:
+        {'192.168.0.100:9000': 3.2e+10, '192.168.0.101:9000': 3.2e+10}
+    Note:
+        If there is no active Dask client, an empty dictionary is returned.
+    """
+    client = get_current_client()
+    if client is None:
+        return {}
+    return client.run(get_device_total_memory)
