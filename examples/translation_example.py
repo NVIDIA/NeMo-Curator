@@ -291,6 +291,7 @@ class IndicTranslation(DistributedDataClassifier):
         # 2. craeting a row w.r.t each sentence.
         # 3. Process sentences strip symbols from start and end
         ddf = ddf.map_partitions(self.process_input_text, enforce_metadata=False)
+        ddf['text'] = ddf['text'].astype('str')
         ddf["word_count"] = ddf["text"].str.split().list.len()
         ddf["word_count"] = ddf["word_count"].astype("int64")
         ddf_true = ddf[(ddf["word_count"] <= self.translation_config.max_words_per_sen)]
