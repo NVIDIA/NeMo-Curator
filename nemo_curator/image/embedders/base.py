@@ -98,7 +98,9 @@ class ImageEmbedder(ABC):
 
         for classifier, results in zip(self.classifiers, classifier_results):
             concat_output = cp.asarray(torch.cat(results, dim=0))
-            series = create_list_series_from_1d_or_2d_ar(concat_output)
+            series = create_list_series_from_1d_or_2d_ar(
+                concat_output, index=partition.index
+            )
             partition[classifier.pred_column] = classifier.postprocess(series)
 
         return partition
