@@ -13,5 +13,6 @@
 # limitations under the License.
 from .aesthetic import AestheticClassifier
 from .base import ImageClassifier
+from .nsfw import NsfwClassifier
 
-__all__ = ["AestheticClassifier", "ImageClassifier"]
+__all__ = ["AestheticClassifier", "ImageClassifier", "NsfwClassifier"]
