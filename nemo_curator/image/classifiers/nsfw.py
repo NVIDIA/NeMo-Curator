@@ -22,22 +22,29 @@ from nemo_curator.image.classifiers.base import ImageClassifier
 from nemo_curator.utils.file_utils import NEMO_CURATOR_HOME
 
 
-# MLP code taken from LAION Aesthetic V2
-# https://github.com/christophschuhmann/improved-aesthetic-predictor/blob/main/simple_inference.py
-class MLP(nn.Module):
-    def __init__(self, input_size, xcol="emb", ycol="avg_rating"):
+# MLP code taken from LAION's CLIP-based-NSFW-Detector
+# https://github.com/LAION-AI/CLIP-based-NSFW-Detector/blob/main/h14_nsfw_model.py
+class H14_NSFW_Detector(nn.Module):
+    def __init__(self, input_size=1024):
         super().__init__()
         self.input_size = input_size
-        self.xcol = xcol
-        self.ycol = ycol
         self.layers = nn.Sequential(
             nn.Linear(self.input_size, 1024),
+            nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(1024, 128),
+            nn.Linear(1024, 2048),
+            nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(128, 64),
-            nn.Dropout(0.1),
-            nn.Linear(64, 16),
+            nn.Linear(2048, 1024),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(1024, 256),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 16),
             nn.Linear(16, 1),
         )
 
@@ -45,21 +52,21 @@ class MLP(nn.Module):
         return self.layers(x)
 
 
-class AestheticClassifier(ImageClassifier):
+class NsfwClassifier(ImageClassifier):
     def __init__(
         self,
         embedding_column: str = "image_embedding",
-        pred_column: str = "aesthetic_score",
+        pred_column: str = "nsfw_score",
         batch_size: int = -1,
         model_path: Optional[str] = None,
     ) -> None:
         super().__init__(
-            model_name="aesthetic_classifier",
+            model_name="nsfw_classifier",
             embedding_column=embedding_column,
             pred_column=pred_column,
             pred_type=float,
             batch_size=batch_size,
-            embedding_size=768,
+            embedding_size=1024,
         )
 
         if model_path is None:
@@ -69,15 +76,12 @@ class AestheticClassifier(ImageClassifier):
 
     @staticmethod
     def _get_default_model():
-        weights_name = "sac+logos+ava1-l14-linearMSE.pth"
+        weights_name = "h14_nsfw.pth"
         model_path = os.path.join(NEMO_CURATOR_HOME, weights_name)
         os.makedirs(NEMO_CURATOR_HOME, exist_ok=True)
 
         if not os.path.exists(model_path):
-            url = (
-                "https://github.com/christophschuhmann/"
-                f"improved-aesthetic-predictor/blob/main/{weights_name}?raw=true"
-            )
+            url = f"https://github.com/LAION-AI/CLIP-based-NSFW-Detector/blob/main/{weights_name}?raw=true"
             r = requests.get(url)
 
             with open(model_path, "wb") as f:
@@ -86,7 +90,7 @@ class AestheticClassifier(ImageClassifier):
         return model_path
 
     def load_model(self, device):
-        model = MLP(self.embedding_size).to(device)
+        model = H14_NSFW_Detector(input_size=self.embedding_size).to(device)
         weights = torch.load(self.model_path, map_location=torch.device("cpu"))
         model.load_state_dict(weights)
         model.eval()

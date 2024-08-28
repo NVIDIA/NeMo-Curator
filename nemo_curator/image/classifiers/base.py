@@ -36,12 +36,14 @@ class ImageClassifier(ABC):
         pred_column: str,
         pred_type: Union[str, type],
         batch_size: int,
+        embedding_size: int,
     ) -> None:
         self.model_name = model_name
         self.embedding_column = embedding_column
         self.pred_column = pred_column
         self.pred_type = pred_type
         self.batch_size = batch_size
+        self.embedding_size = embedding_size
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         meta = dataset.metadata.dtypes.to_dict()
@@ -68,6 +70,13 @@ class ImageClassifier(ABC):
             ),
             device=device,
         )
+
+        if self.embedding_dim != embeddings.shape[-1]:
+            raise RuntimeError(
+                f"{self.model_name} expects embedding size {self.embedding_size} but column "
+                f"'{self.embedding_column}' has embedding size {embeddings.shape[-1]}. Ensure your "
+                "classifier is compatible with the CLIP model you used to generate the embeddings."
+            )
 
         with torch.no_grad():
             if self.batch_size > 0:
