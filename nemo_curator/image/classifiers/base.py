@@ -71,7 +71,7 @@ class ImageClassifier(ABC):
             device=device,
         )
 
-        if self.embedding_dim != embeddings.shape[-1]:
+        if self.embedding_size != embeddings.shape[-1]:
             raise RuntimeError(
                 f"{self.model_name} expects embedding size {self.embedding_size} but column "
                 f"'{self.embedding_column}' has embedding size {embeddings.shape[-1]}. Ensure your "
