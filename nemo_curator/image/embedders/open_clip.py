@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import Optional
+from typing import Iterable, Optional
 
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
@@ -33,9 +33,12 @@ class OpenClipImageEmbedder(ImageEmbedder):
         num_threads_per_worker: int = 4,
         image_embedding_column: str = "image_embedding",
         normalize_embeddings: bool = True,
+        classifiers: Iterable = [],
     ) -> None:
         super().__init__(
-            model_name=model_name, image_embedding_column=image_embedding_column
+            model_name=model_name,
+            image_embedding_column=image_embedding_column,
+            classifiers=classifiers,
         )
         self.pretrained = pretrained
         self.batch_size = batch_size

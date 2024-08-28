@@ -19,14 +19,21 @@ import cupy as cp
 import torch
 
 from nemo_curator.datasets import ImageTextPairDataset
+from nemo_curator.image.classifiers import ImageClassifier
 from nemo_curator.utils.cudf_utils import create_list_series_from_1d_or_2d_ar
 from nemo_curator.utils.distributed_utils import load_object_on_worker
 
 
 class ImageEmbedder(ABC):
-    def __init__(self, model_name: str, image_embedding_column: str) -> None:
+    def __init__(
+        self,
+        model_name: str,
+        image_embedding_column: str,
+        classifiers: Iterable[ImageClassifier],
+    ) -> None:
         self.model_name = model_name
         self.image_embedding_column = image_embedding_column
+        self.classifiers = classifiers
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         meta = dataset.metadata.dtypes.to_dict()
@@ -42,20 +49,34 @@ class ImageEmbedder(ABC):
     def _run_inference(self, partition, tar_paths, partition_info=None):
         tar_path = tar_paths[partition_info["number"]]
         device_id = int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0])
+        device = f"cuda:{device_id}"
 
         model = load_object_on_worker(
             self.model_name,
             self.load_embedding_model,
-            {"device": f"cuda:{device_id}"},
+            {"device": device},
         )
+        classifier_models = []
+        for classifier in self.classifiers:
+            loaded_classifier = load_object_on_worker(
+                classifier.model_name, classifier.load_model, {"device": device}
+            )
+            classifier_models.append(loaded_classifier)
 
         dataset = self.load_dataset_shard(tar_path, device_id=device_id)
         final_image_embeddings = []
+        classifier_results = [[] for _ in self.classifiers]
         samples_completed = 0
         with torch.no_grad():
             for batch in dataset:
                 image_embeddings = model(batch)
                 final_image_embeddings.append(image_embeddings)
+
+                for classifier_model, results in zip(
+                    classifier_models, classifier_results
+                ):
+                    classifier_result = classifier_model(image_embeddings)
+                    results.append(classifier_result)
 
                 batch_size = len(image_embeddings)
                 samples_completed += batch_size
@@ -70,10 +91,15 @@ class ImageEmbedder(ABC):
                 f"{len(partition)} samples found in the metadata, but {samples_completed} found in {tar_path}."
             )
 
-        concat_output = cp.asarray(torch.cat(final_image_embeddings, dim=0))
+        concat_embedding_output = cp.asarray(torch.cat(final_image_embeddings, dim=0))
         partition[self.image_embedding_column] = create_list_series_from_1d_or_2d_ar(
-            concat_output, index=partition.index
+            concat_embedding_output, index=partition.index
         )
+
+        for classifier, results in zip(self.classifiers, classifier_results):
+            concat_output = cp.asarray(torch.cat(results, dim=0))
+            series = create_list_series_from_1d_or_2d_ar(concat_output)
+            partition[classifier.pred_column] = classifier.postprocess(series)
 
         return partition
 
