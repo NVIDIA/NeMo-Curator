@@ -38,6 +38,9 @@ class ImageEmbedder(ABC):
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         meta = dataset.metadata.dtypes.to_dict()
         meta[self.image_embedding_column] = "object"
+        for classifier in self.classifiers:
+            meta[classifier.pred_column] = classifier.pred_type
+
         embedding_df = dataset.metadata.map_partitions(
             self._run_inference, dataset.tar_files, meta=meta
         )
