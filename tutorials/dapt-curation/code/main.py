@@ -111,7 +111,7 @@ def plot_data(orig_dataset: DocumentDataset, filename: str):
 
 def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     """
-    Run the curation pipeline on the TinyStories dataset.
+    Run the curation pipeline on the Wiki+Arxiv+Github datasets.
 
     Args:
         args (Any): Command-line arguments.
