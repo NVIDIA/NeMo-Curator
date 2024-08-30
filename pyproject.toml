@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[build-system]
-# Minimum requirements for the build system to execute.
-requires = ["Cython", "setuptools"]
-
-
 [tool.isort]
 profile = "black"  # black-compatible
 line_length = 88  # should match black parameters
