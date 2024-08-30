@@ -39,7 +39,6 @@ setup(
     packages=find_packages(),
     python_requires=">=3.10, <3.11",
     install_requires=[
-        # "Cython",
         "dask[complete]>=2021.7.1",
         "distributed>=2021.7.1",
         "dask-mpi>=2021.11.0",
