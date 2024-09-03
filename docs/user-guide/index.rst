@@ -56,6 +56,7 @@
    qualityfiltering.rst
    languageidentificationunicodeformatting.rst
    gpudeduplication.rst
+   semdedup.rst
    taskdecontamination.rst
    personalidentifiableinformationidentificationandremoval.rst
    distributeddataclassification.rst
