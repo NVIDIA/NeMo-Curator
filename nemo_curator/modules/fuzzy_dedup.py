@@ -19,7 +19,7 @@ import os
 import time
 import warnings
 from datetime import datetime
-from itertools import combinations
+from itertools import pairwise
 from typing import List, Tuple, Union
 
 import cudf
@@ -458,7 +458,7 @@ class FuzzyDuplicates:
                 ],
             )
         else:
-            self.buckets_to_edges = _BucketsToEdges(
+            self.buckets_to_edges = BucketsToEdges(
                 cache_dir=self.config.cache_dir,
                 id_fields=self.config.id_field,
                 logger=self._logger,
@@ -565,7 +565,7 @@ class FuzzyDuplicates:
         return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
 
 
-class _BucketsToEdges:
+class BucketsToEdges:
     """
     Maps buckets generated from LSH into an edgelist that
     can be processed further by Connected Components to find duplicate
@@ -606,9 +606,11 @@ class _BucketsToEdges:
                 log_file=os.path.join(logger, "Buckets_to_Edges.log"),
                 name="Buckets_to_Edges",
             )
+        else:
+            self._logger = logger
 
     @staticmethod
-    def combine_multiple_ids(
+    def _combine_multiple_ids(
         input_df: dask_cudf.DataFrame, input_id_fields: list, output_id_field: str
     ) -> dask_cudf.DataFrame:
         if output_id_field in input_df.columns:
@@ -643,10 +645,11 @@ class _BucketsToEdges:
         # Create pairs of all documents within a bucket since they are near duplicates
         # Effectively create a edge list of all near duplicate documents
         for bucket_doc in bucket_docs:
-            edges.extend(combinations(bucket_doc, 2))
+            edges.extend(pairwise(bucket_doc))
         edges = pd.DataFrame(edges, columns=self.output_ids)
         edges = pa.Table.from_pandas(edges)
         result_df = cudf.DataFrame.from_arrow(edges)
+        del edges
         result_df = result_df.drop_duplicates(self.output_ids).reset_index(drop=True)
         result_df["jaccard"] = np.float32(1.0)
         return result_df
@@ -655,7 +658,7 @@ class _BucketsToEdges:
         buckets_df = dataset.df
         if len(self.id_fields) > 1:
             buckets_df = buckets_df.map_partitions(
-                _BucketsToEdges.combine_multiple_ids,
+                BucketsToEdges._combine_multiple_ids,
                 input_id_fields=self.id_fields,
                 output_id_field=self.str_id_name,
             )
@@ -663,11 +666,19 @@ class _BucketsToEdges:
         meta = [(output_id, str) for output_id in self.output_ids]
         meta.append(("jaccard", np.float32))
         edges_df = buckets_df.map_partitions(self.buckets_to_edges, meta=meta)
+
         if self.cache_dir is None:
             return DocumentDataset(edges_df)
 
         write_path = os.path.join(self.cache_dir, "_edges.parquet")
-        edges_df.to_parquet(write_path, write_index=False)
+        if os.path.exists(write_path):
+            warnings.warn(
+                f"Output path {write_path} already exists and will be overwritten"
+            )
+        t0 = time.time()
+        edges_df.to_parquet(write_path, write_index=False, overwrite=True)
+        self._logger.info(f"Converted buckets to edgelist took {time.time() - t0} s")
+
         return DocumentDataset(
             dask_cudf.read_parquet(write_path, split_row_groups=False)
         )
