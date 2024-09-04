@@ -51,7 +51,10 @@ class ImageClassifier(ABC):
         embedding_df = dataset.metadata.map_partitions(self._run_inference, meta=meta)
 
         return ImageTextPairDataset(
-            dataset.path, metadata=embedding_df, tar_files=dataset.tar_files
+            dataset.path,
+            metadata=embedding_df,
+            tar_files=dataset.tar_files,
+            id_col=dataset.id_col,
         )
 
     def _run_inference(self, partition, partition_info=None):
