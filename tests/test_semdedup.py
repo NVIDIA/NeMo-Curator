@@ -49,11 +49,7 @@ def dedup_data():
 
 
 @pytest.mark.gpu
-<<<<<<< HEAD
 class TestSemDuplicates:
-=======
-class TestSemanticDuplicates:
->>>>>>> 48fbd19 (update semdedup test class name)
     @pytest.fixture(autouse=True, scope="class")
     def gpu_client(self, request):
         with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
