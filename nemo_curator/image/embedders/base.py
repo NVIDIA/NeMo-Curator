@@ -42,7 +42,7 @@ class ImageEmbedder(ABC):
             meta[classifier.pred_column] = classifier.pred_type
 
         embedding_df = dataset.metadata.map_partitions(
-            self._run_inference, dataset.tar_files, meta=meta
+            self._run_inference, dataset.tar_files, dataset.id_col, meta=meta
         )
 
         return ImageTextPairDataset(
@@ -52,7 +52,7 @@ class ImageEmbedder(ABC):
             id_col=dataset.id_col,
         )
 
-    def _run_inference(self, partition, tar_paths, partition_info=None):
+    def _run_inference(self, partition, tar_paths, id_col, partition_info=None):
         tar_path = tar_paths[partition_info["number"]]
         device_id = int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0])
         device = f"cuda:{device_id}"
@@ -71,12 +71,14 @@ class ImageEmbedder(ABC):
 
         dataset = self.load_dataset_shard(tar_path, device_id=device_id)
         final_image_embeddings = []
+        image_ids = []
         classifier_results = [[] for _ in self.classifiers]
         samples_completed = 0
         with torch.no_grad():
-            for batch in dataset:
+            for batch, metadata in dataset:
                 image_embeddings = model(batch)
                 final_image_embeddings.append(image_embeddings)
+                image_ids.extend(m[id_col] for m in metadata)
 
                 for classifier_model, results in zip(
                     classifier_models, classifier_results
@@ -97,13 +99,18 @@ class ImageEmbedder(ABC):
                 f"{len(partition)} samples found in the metadata, but {samples_completed} found in {tar_path}."
             )
 
-        concat_embedding_output = cp.asarray(torch.cat(final_image_embeddings, dim=0))
+        # Order the output of the shard
+        sorted_indices = sorted(range(len(image_ids)), key=lambda k: image_ids[k])
+        sorted_embeddings = torch.cat(final_image_embeddings, dim=0)[sorted_indices]
+
+        concat_embedding_output = cp.asarray(sorted_embeddings)
         partition[self.image_embedding_column] = create_list_series_from_1d_or_2d_ar(
             concat_embedding_output, index=partition.index
         )
 
         for classifier, results in zip(self.classifiers, classifier_results):
-            concat_output = cp.asarray(torch.cat(results, dim=0))
+            sorted_results = torch.cat(results, dim=0)[sorted_indices]
+            concat_output = cp.asarray(sorted_results)
             series = create_list_series_from_1d_or_2d_ar(
                 concat_output, index=partition.index
             )

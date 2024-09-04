@@ -44,7 +44,7 @@ class ImageTextPairDataset:
 
     @staticmethod
     def _sort_partition(partition, id_col):
-        return partition.sort_values(id_col)
+        return partition.sort_values(id_col).reset_index(drop=True)
 
     @staticmethod
     def _get_tar_files(path: str) -> List[str]:

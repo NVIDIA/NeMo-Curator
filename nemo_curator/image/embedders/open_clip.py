@@ -107,7 +107,7 @@ class OpenClipImageEmbedder(ImageEmbedder):
 
             samples_completed += min(image.shape[0], remaining_samples)
 
-            yield image
+            yield image, metadata
 
     def load_embedding_model(self, device="cuda"):
         model = open_clip.create_model(
