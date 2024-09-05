@@ -16,6 +16,7 @@ from functools import partial
 from typing import List
 
 import nvidia.dali.fn as fn
+from nvidia.dali.types import DALIInterpType
 from timm.data.transforms import MaybeToTensor
 from torchvision.transforms.transforms import (
     CenterCrop,
@@ -28,7 +29,7 @@ from torchvision.transforms.transforms import (
 ERROR_MESSAGE = """Transforms do not conform to expected style and cannot be automatically converted.
 Expected:
     Compose(
-        Resize(interpolation=bicubic, max_size=None, antialias=True),
+        Resize(interpolation=bicubic or linear, max_size=None, antialias=True),
         CenterCrop(),
         MaybeToTensor(),
         Normalize(),
@@ -39,6 +40,13 @@ Got: {}
 Please manually convert the image transformations to use DALI
 """
 
+# Linear = Bilinear and Cubic = Bicubic
+# https://docs.nvidia.com/deeplearning/dali/user-guide/docs/data_types.html#nvidia.dali.types.DALIInterpType
+SUPPORTED_INTERPOLATIONS = {
+    InterpolationMode.BICUBIC: DALIInterpType.INTERP_CUBIC,
+    InterpolationMode.BILINEAR: DALIInterpType.INTERP_LINEAR,
+}
+
 
 def convert_transforms_to_dali(torch_transform: Compose) -> List:
     """
@@ -46,7 +54,7 @@ def convert_transforms_to_dali(torch_transform: Compose) -> List:
     Only works with transformations that follow this pattern:
 
     Compose(
-        Resize(interpolation=bicubic, max_size=None, antialias=True),
+        Resize(interpolation=bicubic or bilinear, max_size=None, antialias=True),
         CenterCrop(),
         MaybeToTensor(),
         Normalize(),
@@ -61,13 +69,14 @@ def convert_transforms_to_dali(torch_transform: Compose) -> List:
     mean = [0.0]
     std = [1.0]
     resize_shorter = 0.0
-    interp_type = "bicubic"
+    interp_type = DALIInterpType.INTERP_LINEAR
 
     # Loop over all transforms and extract relevant parameters
     for transform in torch_transform.transforms:
         if isinstance(transform, Resize):
-            if transform.interpolation != InterpolationMode.BICUBIC:
+            if transform.interpolation not in SUPPORTED_INTERPOLATIONS:
                 raise ValueError(ERROR_MESSAGE.format(torch_transform))
+            interp_type = SUPPORTED_INTERPOLATIONS[transform.interpolation]
             resize_shorter = transform.size
         elif isinstance(transform, CenterCrop):
             crop = transform.size
