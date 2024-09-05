@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from setuptools import setup, find_packages
 import pathlib
+
+from distutils.util import strtobool
 
 here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
+
+RAPIDS_VERSION = "24.10.0a0" if strtobool(os.getenv("IS_NIGHTLY", "False")) else "24.8"
 
 setup(
     name="nemo_curator",
@@ -74,12 +79,12 @@ setup(
     ],
     extras_require={
         "cuda12x": [
-            "cudf-cu12>=24.8",
-            "dask-cudf-cu12>=24.8",
-            "cuml-cu12>=24.8",
-            "cugraph-cu12>=24.8",
-            "dask-cuda>=24.8",
-            "spacy[cuda12x]>=3.6.0, <4.0.0",
+            f"cudf-cu12>={RAPIDS_VERSION}",
+            f"dask-cudf-cu12>={RAPIDS_VERSION}",
+            f"cuml-cu12>={RAPIDS_VERSION}",
+            f"cugraph-cu12>={RAPIDS_VERSION}",
+            f"dask-cuda>={RAPIDS_VERSION}",
+            f"spacy[cuda12x]>=3.6.0, <4.0.0",
         ],
     },
     entry_points={
