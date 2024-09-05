@@ -13,5 +13,6 @@
 # limitations under the License.
 from .base import ImageEmbedder
 from .open_clip import OpenClipImageEmbedder
+from .timm import TimmImageEmbedder
 
-__all__ = ["ImageEmbedder", "OpenClipImageEmbedder"]
+__all__ = ["ImageEmbedder", "OpenClipImageEmbedder", "TimmImageEmbedder"]
