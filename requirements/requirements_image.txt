@@ -1,4 +1,4 @@
 nvidia-dali-cuda120
 nvidia-nvjpeg2k-cu12
 open_clip_torch
-timm
+timm>=1.0.8

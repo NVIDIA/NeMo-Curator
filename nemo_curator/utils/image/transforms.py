@@ -17,7 +17,13 @@ from typing import List
 
 import nvidia.dali.fn as fn
 from timm.data.transforms import MaybeToTensor
-from torchvision.transforms.transforms import CenterCrop, Compose, Normalize, Resize
+from torchvision.transforms.transforms import (
+    CenterCrop,
+    Compose,
+    InterpolationMode,
+    Normalize,
+    Resize,
+)
 
 ERROR_MESSAGE = """Transforms do not conform to expected style and cannot be automatically converted.
 Expected:
@@ -60,7 +66,7 @@ def convert_transforms_to_dali(torch_transform: Compose) -> List:
     # Loop over all transforms and extract relevant parameters
     for transform in torch_transform.transforms:
         if isinstance(transform, Resize):
-            if transform.interpolation != "bicubic":
+            if transform.interpolation != InterpolationMode.BICUBIC:
                 raise ValueError(ERROR_MESSAGE.format(torch_transform))
             resize_shorter = transform.size
         elif isinstance(transform, CenterCrop):
