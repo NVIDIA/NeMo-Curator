@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import Iterable, Optional
+from typing import Iterable
 
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
