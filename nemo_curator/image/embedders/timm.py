@@ -35,6 +35,7 @@ class TimmImageEmbedder(ImageEmbedder):
         image_embedding_column: str = "image_embedding",
         normalize_embeddings: bool = True,
         classifiers: Iterable = [],
+        autocast: bool = True,
     ) -> None:
         super().__init__(
             model_name=model_name,
@@ -45,6 +46,7 @@ class TimmImageEmbedder(ImageEmbedder):
         self.batch_size = batch_size
         self.num_threads_per_worker = num_threads_per_worker
         self.normalize_embeddings = normalize_embeddings
+        self.autocast = autocast
 
         # Load the model to get the transforms
         model = timm.create_model(self.model_name, pretrained=self.pretrained)
@@ -111,11 +113,17 @@ class TimmImageEmbedder(ImageEmbedder):
         model = model.to(device)
 
         def infer(batch):
-            image_features = model(batch)
+            if self.autocast:
+                with torch.autocast(device_type="cuda"):
+                    image_features = model(batch)
+            else:
+                image_features = model(batch)
+
             if self.normalize_embeddings:
                 image_features = self.torch_normalized(image_features)
 
-            return image_features
+            # Inference can be done in lower precision, but cuDF can only handle fp32
+            return image_features.to(torch.float32)
 
         return infer
 
