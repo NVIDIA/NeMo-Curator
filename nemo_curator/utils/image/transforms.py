@@ -16,7 +16,7 @@ from functools import partial
 from typing import List
 
 import nvidia.dali.fn as fn
-from nvidia.dali.types import DALIInterpType
+from nvidia.dali.types import FLOAT, DALIInterpType
 from timm.data.transforms import MaybeToTensor
 from torchvision.transforms.transforms import (
     CenterCrop,
@@ -95,6 +95,14 @@ def convert_transforms_to_dali(torch_transform: Compose) -> List:
             interp_type=interp_type,
             resize_shorter=resize_shorter,
         ),
-        partial(fn.crop_mirror_normalize, device="gpu", crop=crop, mean=mean, std=std),
+        # We need to multiply by 255 because DALI deals entirely in pixel values
+        partial(
+            fn.crop_mirror_normalize,
+            device="gpu",
+            crop=crop,
+            dtype=FLOAT,
+            mean=mean * 255,
+            std=std * 255,
+        ),
     ]
     return dali_transforms
