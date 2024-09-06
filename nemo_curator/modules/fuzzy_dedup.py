@@ -611,8 +611,8 @@ class BucketsToEdges:
 
     @staticmethod
     def _combine_multiple_ids(
-        input_df: dask_cudf.DataFrame, input_id_fields: list, output_id_field: str
-    ) -> dask_cudf.DataFrame:
+        input_df: cudf.DataFrame, input_id_fields: list, output_id_field: str
+    ) -> cudf.DataFrame:
         if output_id_field in input_df.columns:
             raise ValueError(
                 f"Input df already contains column named: {output_id_field}"
@@ -633,7 +633,7 @@ class BucketsToEdges:
     def buckets_to_edges(
         self,
         buckets_df: cudf.DataFrame,
-    ) -> dask_cudf.DataFrame:
+    ) -> cudf.DataFrame:
 
         grouped_buckets = (
             buckets_df.groupby(self.bucket_field)[self.str_id_name]
