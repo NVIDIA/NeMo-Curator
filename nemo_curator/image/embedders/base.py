@@ -17,6 +17,7 @@ from typing import Iterable
 
 import cupy as cp
 import torch
+from tqdm import tqdm
 
 from nemo_curator.datasets import ImageTextPairDataset
 from nemo_curator.image.classifiers import ImageClassifier
@@ -74,6 +75,10 @@ class ImageEmbedder(ABC):
         image_ids = []
         classifier_results = [[] for _ in self.classifiers]
         samples_completed = 0
+        progress_bar = tqdm(
+            total=len(partition),
+            desc=f"{tar_path} - Embedding creation with {self.model_name}",
+        )
         with torch.no_grad():
             for batch, metadata in dataset:
                 image_embeddings = model(batch)
@@ -88,10 +93,8 @@ class ImageEmbedder(ABC):
 
                 batch_size = len(image_embeddings)
                 samples_completed += batch_size
-
-                print(
-                    f"{tar_path} - Embedding Creation with {self.model_name} Samples Completed: {samples_completed}."
-                )
+                progress_bar.update(batch_size)
+        progress_bar.close()
 
         if samples_completed != len(partition):
             raise RuntimeError(

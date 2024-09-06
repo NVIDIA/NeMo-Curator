@@ -19,6 +19,7 @@ import tarfile
 from functools import partial
 from typing import List, Optional
 
+import dask.dataframe as dd
 import dask_cudf
 import fsspec
 import numpy as np
@@ -27,7 +28,9 @@ from fsspec.core import open_files
 
 
 class ImageTextPairDataset:
-    def __init__(self, path: str, metadata, tar_files: List[str], id_col: str) -> None:
+    def __init__(
+        self, path: str, metadata: dd.DataFrame, tar_files: List[str], id_col: str
+    ) -> None:
         self.path = path
         self.metadata = metadata
         self.tar_files = tar_files

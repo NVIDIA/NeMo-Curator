@@ -90,11 +90,18 @@ class AestheticClassifier(ImageClassifier):
         weights = torch.load(self.model_path, map_location=torch.device("cpu"))
         model.load_state_dict(weights)
         model.eval()
+        model = self.configure_forward(model)
 
-        def infer(batch):
-            return model(batch).squeeze()
+        return model
 
-        return infer
+    def configure_forward(self, model):
+        original_forward = model.forward
+
+        def custom_forward(*args, **kwargs):
+            return original_forward(*args, **kwargs).squeeze()
+
+        model.forward = custom_forward
+        return model
 
     def postprocess(self, series):
         return series.list.leaves

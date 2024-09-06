@@ -119,21 +119,28 @@ class TimmImageEmbedder(ImageEmbedder):
     def load_embedding_model(self, device="cuda"):
         model = timm.create_model(self.model_name, pretrained=self.pretrained).eval()
         model = model.to(device)
+        model = self.configure_forward(model)
 
-        def infer(batch):
+        return model
+
+    def configure_forward(self, model):
+        original_forward = model.forward
+
+        def custom_forward(*args, **kwargs):
             if self.autocast:
                 with torch.autocast(device_type="cuda"):
-                    image_features = model(batch)
+                    image_features = original_forward(*args, **kwargs)
             else:
-                image_features = model(batch)
+                image_features = original_forward(*args, **kwargs)
 
             if self.normalize_embeddings:
-                image_features = self.torch_normalized(image_features)
+                image_features = torch.nn.functional.normalize(image_features, dim=-1)
 
             # Inference can be done in lower precision, but cuDF can only handle fp32
             return image_features.to(torch.float32)
 
-        return infer
+        model.forward = custom_forward
+        return model
 
     @staticmethod
     def torch_normalized(a, dim=-1):
