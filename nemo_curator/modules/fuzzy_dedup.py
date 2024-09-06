@@ -499,7 +499,7 @@ class FuzzyDuplicates:
 
         if self.config.false_positive_check:
             # Map buckets to lower cardinality distribution
-            print(f"Stage{stage_num} (False Postive Check): Starting Map_Buckets")
+            print(f"Stage{stage_num} (False Positive Check): Starting Map_Buckets")
             ddf_mapped_buckets_w_anchors = self.map_buckets.map_buckets_with_anchors(
                 documents_df=dataset.df, buckets_df=buckets_df.df
             )
@@ -556,10 +556,10 @@ class FuzzyDuplicates:
             stage_num += 1
 
         # Connected components across buckets
-        print("Stage{stage_num}: Connected Components across buckets")
+        print(f"Stage{stage_num}: Connected Components across buckets")
         cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
         self.connected_components.cc_workflow(cc_path)
-        print("Stage{stage_num}: Connected Components across buckets complete!")
+        print(f"Stage{stage_num}: Connected Components across buckets complete!")
         stage_num += 1
 
         return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))

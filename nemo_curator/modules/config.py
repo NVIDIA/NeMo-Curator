@@ -92,7 +92,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
         if not self.false_positive_check and self.char_ngrams < 20:
             warnings.warn(
                 "Using a small char_ngrams value might lead to a large number (~5%) of false positives during deduplication."
-                " Using a value for char_ngrams atleast 20 is recommended."
+                " Using a value of at least 20 for char_ngrams is recommended."
             )
         if self.num_anchors <= 0:
             raise ValueError("Number of anchors must be greater than 0")
