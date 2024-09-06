@@ -396,7 +396,7 @@ class ArgumentHelper:
         cpu_worker_limit = os.cpu_count()
 
         memory_gb = psutil.virtual_memory().total / (1024**3)
-        mem_worker_limit = memory_gb / max_mem_gb_per_worker
+        mem_worker_limit = memory_gb // max_mem_gb_per_worker
 
         n_workers = min(cpu_worker_limit, mem_worker_limit)
         self.parser.set_defaults(n_workers=n_workers)
