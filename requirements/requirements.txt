@@ -3,7 +3,6 @@ beautifulsoup4
 charset_normalizer>=3.1.0
 comment_parser
 crossfit @ git+https://github.com/rapidsai/crossfit.git@0cc2993
-Cython
 dask-mpi>=2021.11.0
 dask[complete]>=2021.7.1
 distributed>=2021.7.1
