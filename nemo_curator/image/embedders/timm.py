@@ -36,6 +36,7 @@ class TimmImageEmbedder(ImageEmbedder):
         normalize_embeddings: bool = True,
         classifiers: Iterable = [],
         autocast: bool = True,
+        use_index_files=False,
     ) -> None:
         super().__init__(
             model_name=model_name,
@@ -47,6 +48,7 @@ class TimmImageEmbedder(ImageEmbedder):
         self.num_threads_per_worker = num_threads_per_worker
         self.normalize_embeddings = normalize_embeddings
         self.autocast = autocast
+        self.use_index_files = use_index_files
 
         # Load the model to get the transforms
         model = timm.create_model(self.model_name, pretrained=self.pretrained)
@@ -63,8 +65,14 @@ class TimmImageEmbedder(ImageEmbedder):
             device_id=device_id,
         )
         def webdataset_pipeline(_tar_path: str):
+            if self.use_index_files:
+                index_paths = [f"{_tar_path.rsplit('.', 1)[0]}.idx"]
+            else:
+                index_paths = []
+
             img_raw, text, json = fn.readers.webdataset(
                 paths=_tar_path,
+                index_paths=index_paths,
                 ext=["jpg", "txt", "json"],
                 missing_component_behavior="error",
             )
