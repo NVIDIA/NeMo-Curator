@@ -69,7 +69,6 @@ def main(args):
             print(f"Processed {args.num_files}... quitting")
             break
 
-        print(args.input_meta)
         files = get_all_files_paths_under(root=data_path, recurse_subdirectories=False)
         files = [f for f in files if f.endswith(".jsonl")]
         df = read_data(
