@@ -182,7 +182,7 @@ class TestLSH:
         )
         buckets = lsh(self.dataset)
         buckets_df = buckets.df
-        docs_list = buckets_df.groupby("_bucket_id").id.collect()
+        docs_list = buckets_df.groupby("_bucket_id").id.agg(list)
         expected_df = cudf.Series([[1, 2], [2, 3], [4, 5]], name="id")
         assert_eq(expected_df, docs_list, check_index=False)
 
@@ -287,7 +287,7 @@ class TestFuzzyDuplicates:
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]
-        result_df = result_df.groupby("group")["col0"].collect()
+        result_df = result_df.groupby("group")["col0"].agg(list)
         # Sort to maintain uniform ordering
         result_df = result_df.list.sort_values()
         result_df = result_df.sort_values()
@@ -339,7 +339,7 @@ class TestFuzzyDuplicates:
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]
-        result_df = result_df.groupby("group").id.collect()
+        result_df = result_df.groupby("group").id.agg(list)
         # Sort to maintain uniform ordering
 
         result_df = result_df.list.sort_values()
@@ -403,7 +403,7 @@ class TestFuzzyDuplicates:
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]
-        result_df = result_df.groupby("group").id.collect()
+        result_df = result_df.groupby("group").id.agg(list)
         # Sort to maintain uniform ordering
 
         result_df = result_df.list.sort_values()
