@@ -55,8 +55,6 @@ class ImageEmbedder(ABC):
 
     def _run_inference(self, partition, tar_paths, id_col, partition_info=None):
         tar_path = tar_paths[partition_info["number"]]
-        # device_id = int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0])
-        # device = f"cuda:{device_id}"
         device = "cuda"
 
         model = load_object_on_worker(
