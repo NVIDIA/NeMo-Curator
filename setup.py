@@ -37,7 +37,7 @@ setup(
         "Programming Language :: Python :: 3.10",
     ],
     packages=find_packages(),
-    python_requires=">=3.10, <3.11",
+    python_requires=">=3.10, <3.12",
     install_requires=[
         "dask[complete]>=2021.7.1",
         "distributed>=2021.7.1",
@@ -65,7 +65,7 @@ setup(
         "presidio-anonymizer==2.2.351",
         "usaddress==0.5.10",
         "nemo_toolkit[nlp]>=1.23.0",
-        "crossfit @ git+https://github.com/rapidsai/crossfit.git@00.0.5",
+        "crossfit @ git+https://github.com/rapidsai/crossfit.git@0.0.5",
         # Numpy 2.0 breaks with spacy https://github.com/explosion/spaCy/issues/13528
         # TODO: Remove when issue is fixed
         "numpy<2",
