@@ -58,8 +58,7 @@ class ImageClassifier(ABC):
         )
 
     def _run_inference(self, partition, partition_info=None):
-        device_id = int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0])
-        device = f"cuda:{device_id}"
+        device = "cuda"
 
         model = load_object_on_worker(
             self.model_name,
