@@ -57,12 +57,12 @@ class TimmImageEmbedder(ImageEmbedder):
         )
         self.dali_transforms = convert_transforms_to_dali(torch_transforms)
 
-    def load_dataset_shard(self, tar_path: str, device_id=0):
+    def load_dataset_shard(self, tar_path: str):
         # Create the DALI pipeline
         @pipeline_def(
             batch_size=self.batch_size,
             num_threads=self.num_threads_per_worker,
-            device_id=device_id,
+            device_id=0,
         )
         def webdataset_pipeline(_tar_path: str):
             if self.use_index_files:
@@ -94,9 +94,7 @@ class TimmImageEmbedder(ImageEmbedder):
             image, text, meta = pipeline.run()
             image = image.as_tensor()
 
-            image_torch = torch.empty(
-                image.shape(), dtype=torch.float32, device=f"cuda:{device_id}"
-            )
+            image_torch = torch.empty(image.shape(), dtype=torch.float32, device="cuda")
             feed_ndarray(image, image_torch)  # COPY !!!
             image = image_torch
 

@@ -69,7 +69,7 @@ class ImageEmbedder(ABC):
             )
             classifier_models.append(loaded_classifier)
 
-        dataset = self.load_dataset_shard(tar_path, device_id=0)
+        dataset = self.load_dataset_shard(tar_path)
         final_image_embeddings = []
         image_ids = []
         classifier_results = [[] for _ in self.classifiers]
