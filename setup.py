@@ -15,6 +15,7 @@ import os
 from setuptools import setup, find_packages
 import pathlib
 from itertools import chain
+from distutils.util import strtobool
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -29,8 +30,15 @@ def req_file(filename, folder="requirements"):
 
 install_requires = req_file("requirements.txt")
 
+cuda12_requirements_filename = (
+    "requirements_rapids_nightly.txt"
+    if strtobool(os.getenv("RAPIDS_NIGHTLY", "False"))
+    else "requirements_cuda12x.txt"
+)
+
+
 extras_require = {
-    "cuda12x": req_file("requirements_cuda12x.txt"),
+    "cuda12x": req_file(cuda12_requirements_filename),
     "image": req_file("requirements_image.txt"),
 }
 
