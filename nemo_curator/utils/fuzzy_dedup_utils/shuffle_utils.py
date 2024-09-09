@@ -66,7 +66,7 @@ def rearange_by_column_direct(
         return rearrange_by_column(
             df,
             col=col,
-            shuffle="tasks",
+            shuffle_method="tasks",
             # Prevent staged shuffling by setting max_branch
             # to the number of input partitions + 1
             max_branch=npartitions + 1,
@@ -83,7 +83,7 @@ def get_shuffle_part_ids_df(
     num_workers=0,
 ):
     sizes = agg_df[size_col].values
-    max_text_bytes_per_part = int(np.iinfo(np.int32).max // 1.2)
+    max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
 
     # Adjust max_text_bytes_per_part if the number of output
     # partitions is small compared to the number of workers.
