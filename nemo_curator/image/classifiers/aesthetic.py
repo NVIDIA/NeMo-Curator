@@ -104,4 +104,6 @@ class AestheticClassifier(ImageClassifier):
         return model
 
     def postprocess(self, series):
-        return series.list.leaves
+        new_series = series.list.leaves
+        new_series.index = series.index
+        return new_series
