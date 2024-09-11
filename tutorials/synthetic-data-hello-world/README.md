@@ -2,7 +2,7 @@
 
 The provided notebook will walk you through the currently available Synthetic Generation tools and pipelines available out-of-the-box through NeMo Curator!
 
-We'll walk through an example of each pipeline, as well as how you could make modifications to the provided pipelines. 
+We'll walk through an example of each pipeline, as well as how you could make modifications to the provided pipelines.
 
 > NOTE: Currently, the `convert_response_to_yaml_list()` method is extremely strict - manual parsing of the intermediate results is recommended in all cases. In the notebook we have wrapped these in `try/except` blocks to ensure you can move through the notebook without being impeded by the error.
 
