@@ -20,11 +20,13 @@ here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
+
 def strtobool(value: str) -> bool:
-  value = value.lower()
-  if value in ("y", "yes", "1", "true"):
-    return True
-  return False
+    value = value.lower()
+    if value in ("y", "yes", "1", "true"):
+        return True
+    return False
+
 
 def req_file(filename, folder="requirements"):
     with open(os.path.join(folder, filename), encoding="utf-8") as f:
@@ -40,7 +42,7 @@ cuda12_requirements_filename = (
     else "requirements_cuda12x.txt"
 )
 
-extras_require : dict = {
+extras_require: dict = {
     "cuda12x": req_file(cuda12_requirements_filename),
     "image": req_file("requirements_image.txt"),
 }
