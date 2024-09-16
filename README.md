@@ -12,7 +12,7 @@
 🚀 **The GPU-Accelerated Open Source Framework for Efficient Large Language Model Data Curation** 🚀
 
 <p align="center">
-  <img src="./docs/user-guide/images/diagram.png" alt="diagram"/>
+  <img src="./docs/user-guide/assets/diagram.png" alt="diagram"/>
 </p>
 
 NeMo Curator is a Python library specifically designed for fast and scalable dataset preparation and curation for [large language model (LLM)](https://www.nvidia.com/en-us/glossary/large-language-models/) use-cases such as foundation model pretraining, domain-adaptive pretraining (DAPT), supervised fine-tuning (SFT) and paramter-efficient fine-tuning (PEFT). It greatly accelerates data curation by leveraging GPUs with [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids), resulting in significant time savings. The library provides a customizable and modular interface, simplifying pipeline expansion and accelerating model convergence through the preparation of high-quality tokens.
@@ -191,7 +191,7 @@ The modules within NeMo Curator were primarily designed to curate high-quality d
 The following figure shows that the use of different data curation modules implemented in NeMo Curator led to improved model zero-shot downstream task performance.
 
 <p align="center">
-  <img src="./docs/user-guide/images/zeroshot_ablations.png" alt="drawing" width="700"/>
+  <img src="./docs/user-guide/assets/zeroshot_ablations.png" alt="drawing" width="700"/>
 </p>
 
 In terms of scalability and compute performance, using the combination of RAPIDS and Dask fuzzy deduplication enabled us to deduplicate the 1.1 Trillion token Red Pajama dataset in 1.8 hours with 64 NVIDIA A100 Tensor Core GPUs.
