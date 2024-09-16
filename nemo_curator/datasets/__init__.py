@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from nemo_curator.utils.import_utils import image_only_import_from
+
 from .doc_dataset import DocumentDataset
 
-__all__ = ["DocumentDataset"]
+ImageTextPairDataset = image_only_import_from(
+    "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
+)
+
+__all__ = ["DocumentDataset", "ImageTextPairDataset"]

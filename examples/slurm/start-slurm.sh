@@ -28,7 +28,8 @@
 export BASE_JOB_DIR=`pwd`/nemo-curator-jobs
 export JOB_DIR=$BASE_JOB_DIR/$SLURM_JOB_ID
 
-# Logging information
+# Directory for Dask cluster communication and logging
+# Must be paths inside the container that are accessible across nodes
 export LOGDIR=$JOB_DIR/logs
 export PROFILESDIR=$JOB_DIR/profiles
 export SCHEDULER_FILE=$LOGDIR/scheduler.json
@@ -72,9 +73,6 @@ export LIBCUDF_CUFILE_POLICY=OFF
 # =================================================================
 # End easy customization
 # =================================================================
-
-mkdir -p $LOGDIR
-mkdir -p $PROFILESDIR
 
 # Start the container
 srun \

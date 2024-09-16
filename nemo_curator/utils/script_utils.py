@@ -14,6 +14,8 @@
 import argparse
 import os
 
+import psutil
+
 
 class ArgumentHelper:
     """
@@ -281,6 +283,39 @@ class ArgumentHelper:
             help="The block size for chunking jsonl files for text ddf in mb",
         )
 
+    def add_arg_model_path(self, help="The path to the model file"):
+        self.parser.add_argument(
+            "--pretrained-model-name-or-path",
+            type=str,
+            help=help,
+            required=False,
+        )
+
+    def add_arg_max_mem_gb_classifier(self):
+        self.parser.add_argument(
+            "--max-mem-gb-classifier",
+            default=None,
+            type=int,
+            help="Specify the maximum GPU memory (in GB) for the classifier. "
+            "Defaults to using the total GPU memory minus 4 GB if not specified.",
+        )
+
+    def add_arg_autocast(self, help="Whether to use autocast or not"):
+        ArgumentHelper.attach_bool_arg(
+            parser=self.parser,
+            flag_name="autocast",
+            default=True,
+            help=help,
+        )
+
+    def add_arg_max_chars(self, default=2000):
+        self.parser.add_argument(
+            "--max-chars",
+            type=int,
+            default=default,
+            help="Truncates all documents in the dataset to this number of characters before running model inference on them",
+        )
+
     def add_distributed_args(self) -> argparse.ArgumentParser:
         """
         Adds default set of arguments that are needed for Dask cluster setup
@@ -356,6 +391,25 @@ class ArgumentHelper:
 
         return self.parser
 
+    def set_default_n_workers(self, max_mem_gb_per_worker: float):
+        """
+        Sets the default --n-workers for a script to maximize parallelization while
+        ensuring we don't trigger an out of memory error. Like --n-workers, this
+        only applies when running the script locally.
+
+        Args:
+            max_mem_per_worker (float): The maximum memory that each worker usually achieves for a script
+                in units of gigabytes. It can be determined by watching the Dask dashboard. This value may
+                change based on the size of each shard, so use a jsonl shard size of about 100 MB.
+        """
+        cpu_worker_limit = os.cpu_count()
+
+        memory_gb = psutil.virtual_memory().total / (1024**3)
+        mem_worker_limit = memory_gb // max_mem_gb_per_worker
+
+        n_workers = min(cpu_worker_limit, mem_worker_limit)
+        self.parser.set_defaults(n_workers=n_workers)
+
     @staticmethod
     def parse_client_args(args: argparse.Namespace):
         """
@@ -383,6 +437,7 @@ class ArgumentHelper:
     @staticmethod
     def parse_distributed_classifier_args(
         description="Default distributed classifier argument parser",
+        max_chars_default=2000,
     ) -> argparse.ArgumentParser:
         """
         Adds default set of arguments that are common to multiple stages
@@ -392,67 +447,39 @@ class ArgumentHelper:
             description,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
-        parser = ArgumentHelper(parser).add_distributed_args()
+        argumentHelper = ArgumentHelper(parser)
+        argumentHelper.add_distributed_classifier_cluster_args()
+        argumentHelper.add_arg_input_data_dir(required=True)
+        argumentHelper.add_arg_output_data_dir(help="The path of the output files")
+        argumentHelper.add_arg_input_file_type()
+        argumentHelper.add_arg_input_file_extension()
+        argumentHelper.add_arg_output_file_type()
+        argumentHelper.add_arg_input_text_field()
+        argumentHelper.add_arg_batch_size(
+            help="The batch size to be used for inference"
+        )
+        argumentHelper.add_arg_model_path()
+        argumentHelper.add_arg_autocast()
+        argumentHelper.add_arg_max_chars(default=max_chars_default)
+
+        return argumentHelper.parser
+
+    def add_distributed_classifier_cluster_args(self):
+        """
+        Adds Dask cluster args needed for the distributed data classifiers
+        """
+        self.add_distributed_args()
+        self.add_arg_enable_spilling()
+        self.add_arg_set_torch_to_use_rmm()
+        self.add_arg_max_mem_gb_classifier()
+
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
         # by default
-        parser.set_defaults(rmm_pool_size="512MB")
-        parser.add_argument(
-            "--input-data-dir",
-            type=str,
-            help="The path of the input files",
-            required=True,
-        )
-        parser.add_argument(
-            "--output-data-dir",
-            type=str,
-            help="The path of the output files",
-            required=True,
-        )
-        parser.add_argument(
-            "--model-path",
-            type=str,
-            help="The path to the model file",
-            required=True,
-        )
-        parser.add_argument(
-            "--input-file-type",
-            type=str,
-            help="The type of the input files",
-            required=True,
-        )
-        parser.add_argument(
-            "--output-file-type",
-            type=str,
-            default="jsonl",
-            help="The type of the output files",
-        )
-        parser.add_argument(
-            "--batch-size",
-            type=int,
-            default=128,
-            help="The batch size to be used for inference",
-        )
-        ArgumentHelper.attach_bool_arg(
-            parser, "autocast", default=True, help="Whether to use autocast or not"
-        )
-        ArgumentHelper.attach_bool_arg(
-            parser,
-            "enable-spilling",
-            default=True,
-            help="Whether to enable spilling or not",
-        )
-
+        self.parser.set_defaults(rmm_pool_size="512MB")
         # Setting to False makes it more stable for long running jobs
         # possibly because of memory fragmentation
-        ArgumentHelper.attach_bool_arg(
-            parser,
-            "set-torch-to-use-rmm",
-            default=False,
-            help="Whether to set torch to use RMM or not",
-        )
-
-        return parser
+        self.parser.set_defaults(set_torch_to_use_rmm=False)
 
     @staticmethod
     def parse_gpu_dedup_args(description: str) -> argparse.ArgumentParser:
@@ -472,6 +499,7 @@ class ArgumentHelper:
 
         # Set default device to GPU for dedup
         argumentHelper.parser.set_defaults(device="gpu")
+        argumentHelper.parser.set_defaults(set_torch_to_use_rmm=False)
         argumentHelper.parser.add_argument(
             "--input-data-dirs",
             type=str,
@@ -490,11 +518,11 @@ class ArgumentHelper:
         argumentHelper.parser.add_argument(
             "--input-json-id-field",
             type=str,
-            default="adlr_id",
+            required=True,
             help="The name of the field within each json object of the jsonl "
             "file that assigns a unqiue ID to each document. "
             "Can be created by running the script "
-            "'./prospector/add_id.py' which adds the field 'adlr_id' "
+            "'../scripts/add_id.py' which adds the field "
             "to the documents in a distributed fashion",
         )
         argumentHelper.parser.add_argument(

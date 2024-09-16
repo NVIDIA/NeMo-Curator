@@ -39,7 +39,6 @@ def main(args):
     logger.info(f"Starting workflow with args:\n {args}")
 
     assert args.device == "gpu"
-    args.set_torch_to_use_rmm = False
     client = get_client(**ArgumentHelper.parse_client_args(args))
     logger.info(f"Client Created {client}")
     client.run(pre_imports)
@@ -55,6 +54,7 @@ def main(args):
             dask_cudf.read_parquet(data_path, blocksize="2GB", aggregate_files=True)
         )
     df = dask_cudf.concat(dfs, ignore_unknown_divisions=True)
+    df = df[~df.id_field.isna()]
     df = df.map_partitions(
         convert_str_id_to_int,
         id_column=id_field,

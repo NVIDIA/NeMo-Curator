@@ -17,7 +17,7 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
-from nemo_curator import DomainClassifier
+from nemo_curator.classifiers import FineWebEduClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -29,51 +29,28 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    labels = [
-        "Adult",
-        "Arts_and_Entertainment",
-        "Autos_and_Vehicles",
-        "Beauty_and_Fitness",
-        "Books_and_Literature",
-        "Business_and_Industrial",
-        "Computers_and_Electronics",
-        "Finance",
-        "Food_and_Drink",
-        "Games",
-        "Health",
-        "Hobbies_and_Leisure",
-        "Home_and_Garden",
-        "Internet_and_Telecom",
-        "Jobs_and_Education",
-        "Law_and_Government",
-        "News",
-        "Online_Communities",
-        "People_and_Society",
-        "Pets_and_Animals",
-        "Real_Estate",
-        "Science",
-        "Sensitive_Subjects",
-        "Shopping",
-        "Sports",
-        "Travel_and_Transportation",
-    ]
-
     args = ArgumentHelper.parse_distributed_classifier_args().parse_args()
     print(f"Arguments parsed = {args}", flush=True)
-    max_chars = 2000
 
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting domain classifier inference", flush=True)
+    print("Starting Fineweb classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
     if not os.path.exists(args.output_data_dir):
         os.makedirs(args.output_data_dir)
 
+    # Some times jsonl files are stored as .json
+    # So to handle that case we can pass the input_file_extension
+    if args.input_file_extension is not None:
+        input_file_extension = args.input_file_extension
+    else:
+        input_file_extension = args.input_file_type
+
     input_files = get_remaining_files(
-        args.input_data_dir, args.output_data_dir, args.input_file_type
+        args.input_data_dir, args.output_data_dir, input_file_extension
     )
     print(f"Total input files {len(input_files)}", flush=True)
 
@@ -82,13 +59,11 @@ def main():
     else:
         add_filename = True
 
-    domain_classifier = DomainClassifier(
-        model_path=args.model_path,
-        labels=labels,
-        max_chars=max_chars,
+    fineweb_edu_classifier = FineWebEduClassifier(
         batch_size=args.batch_size,
-        out_dim=len(labels),
         autocast=args.autocast,
+        max_chars=args.max_chars,
+        max_mem_gb=args.max_mem_gb_classifier,
     )
 
     for file_batch_id, i in enumerate(range(0, len(input_files), files_per_run)):
@@ -103,7 +78,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = domain_classifier(DocumentDataset(df)).df
+        df = fineweb_edu_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(

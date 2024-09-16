@@ -31,7 +31,6 @@ def main(args):
     """
     st = time.time()
     output_path = os.path.join(args.output_dir, "connected_components.parquet")
-    args.set_torch_to_use_rmm = False
     args.enable_spilling = True
 
     client = get_client(**ArgumentHelper.parse_client_args(args))
@@ -68,7 +67,7 @@ def attach_args(parser=None):
     )
     parser.add_argument(
         "--jaccard-threshold",
-        type=int,
+        type=float,
         default=0.8,
         help="Jaccard threshold below which we don't consider documents"
         " to be duplicate",

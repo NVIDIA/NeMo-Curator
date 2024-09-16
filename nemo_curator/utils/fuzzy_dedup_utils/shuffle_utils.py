@@ -24,7 +24,10 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     get_agg_text_bytes_df,
 )
 
-USE_EXCOMMS = Version(dask_cuda.__version__) >= Version("23.10")
+dask_cuda_version = Version(dask_cuda.__version__)
+USE_EXCOMMS = (
+    dask_cuda_version >= Version("23.10") and dask_cuda_version < Version("24.06")
+) or dask_cuda_version >= Version("24.08")
 
 
 def write_partitioned_file(df, output_path, partition_on, batch_id):
@@ -87,7 +90,7 @@ def rearange_by_column_direct(
         return rearrange_by_column(
             df,
             col=col,
-            shuffle="tasks",
+            shuffle_method="tasks",
             # Prevent staged shuffling by setting max_branch
             # to the number of input partitions + 1
             max_branch=npartitions + 1,
@@ -104,7 +107,7 @@ def get_shuffle_part_ids_df(
     num_workers=0,
 ):
     sizes = agg_df[size_col].values
-    max_text_bytes_per_part = int(np.iinfo(np.int32).max // 1.2)
+    max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
 
     # Adjust max_text_bytes_per_part if the number of output
     # partitions is small compared to the number of workers.

@@ -18,6 +18,12 @@
 :ref:`GPU Accelerated Exact and Fuzzy Deduplication <data-curator-gpu-deduplication>`
    Both exact and fuzzy deduplication functionalities are supported in NeMo Curator and accelerated using RAPIDS cuDF.
 
+:ref:`GPU Accelerated Semantic Deduplication <data-curator-semdedup>`
+   NeMo-Curator provides scalable and GPU accelerated semantic deduplication functionality using RAPIDS cuML, cuDF, crossfit and Pytorch.
+
+:ref:`Synthetic Data Generation <data-curator-syntheticdata>`
+   Synthetic data generation tools and example piplines are available within NeMo Curator.
+
 :ref:`Downstream Task Decontamination <data-curator-downstream>`
    After training, large language models are usually evaluated by their performance on downstream tasks consisting of unseen test data. When dealing with large datasets, there is a potential for leakage of this test data into the model’s training dataset. NeMo Curator allows you to remove sections of documents in your dataset that are present in downstream tasks.
 
@@ -27,9 +33,17 @@
 :ref:`NeMo Curator on Kubernetes <data-curator-kubernetes>`
    Demonstration of how to run the NeMo Curator on a Dask Cluster deployed on top of Kubernetes
 
+:ref:`Best Practices <data-curator-best-practices>`
+   A collection of suggestions on how to best use NeMo Curator to curate your dataset
+
+:ref:`Next Steps <data-curator-next-steps>`
+   Now that you've curated your data, let's discuss where to go next in the NeMo Framework to put it to good use.
+
 `Tutorials <https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials>`__
    To get started, you can explore the NeMo Curator GitHub repository and follow the available tutorials and notebooks. These resources cover various aspects of data curation, including training from scratch and Parameter-Efficient Fine-Tuning (PEFT).
 
+:ref:`API Docs <data-curator-api>`
+   API Documentation for all the modules in NeMo Curator
 
 .. toctree::
    :maxdepth: 4
@@ -42,7 +56,12 @@
    qualityfiltering.rst
    languageidentificationunicodeformatting.rst
    gpudeduplication.rst
+   semdedup.rst
+   syntheticdata.rst
    taskdecontamination.rst
    personalidentifiableinformationidentificationandremoval.rst
    distributeddataclassification.rst
    kubernetescurator.rst
+   bestpractices.rst
+   nextsteps.rst
+   api/index.rst

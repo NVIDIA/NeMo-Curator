@@ -21,11 +21,12 @@ import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Union
+from typing import Dict, List, Union
 
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
@@ -33,6 +34,9 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 
 cudf = gpu_only_import("cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
+get_device_total_memory = gpu_only_import_from(
+    "dask_cuda.utils", "get_device_total_memory"
+)
 
 
 class NoWorkerError(Exception):
@@ -104,22 +108,26 @@ def get_client(
     protocol="tcp",
     rmm_pool_size="1024M",
     enable_spilling=True,
-    set_torch_to_use_rmm=True,
+    set_torch_to_use_rmm=False,
 ) -> Client:
     """
     Initializes or connects to a Dask cluster.
     The Dask cluster can be CPU-based or GPU-based (if GPUs are available).
     The intialization ensures maximum memory efficiency for the GPU by:
-        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool.
-        2. Enabling spilling for cuDF.
+        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool. (If `set_torch_to_use_rmm` is True)
+        2. Enabling spilling for cuDF. (If `enable_spilling` is True)
 
     Args:
-        cluster_type: The type of cluster to set up. Either "cpu" or "gpu". Defaults to "cpu".
-            Many options in get_client only apply to CPU-based or GPU-based clusters. Make sure you check the description of the parameter.
-        scheduler_address: This can be the address of a Scheduler server like a string '127.0.0.1:8786' or a cluster object
-            like LocalCluster(). If specified, all other arguments are ignored and the client is connected to the existing cluster.
+        cluster_type: If scheduler_address and scheduler_file are None, sets up a local (single node) cluster of the specified type.
+            Either "cpu" or "gpu". Defaults to "cpu". Many options in get_client only apply to CPU-based or GPU-based clusters.
+            Make sure you check the description of the parameter.
+        scheduler_address: Address of existing Dask cluster to connect to. This can be the address of a Scheduler server like a
+            string '127.0.0.1:8786' or a cluster object like LocalCluster(). If specified, all other arguments are ignored and
+            the client is connected to the existing cluster. The other configuration options should be done when setting up the
+            Dask cluster.
         scheduler_file: Path to a file with scheduler information if available. If specified, all other arguments are ignored
-            and the client is connected to the existing cluster.
+            and the client is connected to the existing cluster. The other configuration options should be done when setting up the
+            Dask cluster.
         n_workers: For CPU-based clusters only. The number of workers to start. Defaults to os.cpu_count(). For GPU-based clusters,
             the number of workers is locked to the number of GPUs in CUDA_VISIBLE_DEVICES.
         threads_per_worker: For CPU-based clusters only. The number of threads per each worker. Defaults to 1.
@@ -170,10 +178,17 @@ def _set_torch_to_use_rmm():
 
     See article:
     https://medium.com/rapids-ai/pytorch-rapids-rmm-maximize-the-memory-efficiency-of-your-workflows-f475107ba4d4
-
     """
+
     import torch
     from rmm.allocators.torch import rmm_torch_allocator
+
+    if torch.cuda.get_allocator_backend() == "pluggable":
+        warnings.warn(
+            "PyTorch allocator already plugged in, not switching to RMM. "
+            "Please ensure you have not already swapped it."
+        )
+        return
 
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
@@ -222,6 +237,8 @@ def read_single_partition(
         read_kwargs = {"lines": filetype == "jsonl"}
         if backend == "cudf":
             read_f = cudf.read_json
+            if input_meta is not None:
+                read_kwargs["prune_columns"] = True
         else:
             read_kwargs["dtype"] = False
             read_f = pd.read_json
@@ -611,3 +628,30 @@ def seed_all(seed: int = 42):
         # Ensure deterministic behavior for CUDA algorithms
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+
+
+def get_network_interfaces() -> List[str]:
+    """
+    Gets a list of all valid network interfaces on a machine
+
+    Returns:
+        A list of all valid network interfaces on a machine
+    """
+    return list(psutil.net_if_addrs().keys())
+
+
+def get_gpu_memory_info() -> Dict[str, int]:
+    """
+    Get the total GPU memory for each Dask worker.
+    Returns:
+        dict: A dictionary mapping Dask worker addresses ('IP:PORT') to their
+        respective GPU memory (in bytes).
+    Example:
+        {'192.168.0.100:9000': 3.2e+10, '192.168.0.101:9000': 3.2e+10}
+    Note:
+        If there is no active Dask client, an empty dictionary is returned.
+    """
+    client = get_current_client()
+    if client is None:
+        return {}
+    return client.run(get_device_total_memory)
