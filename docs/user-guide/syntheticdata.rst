@@ -284,8 +284,8 @@ This function runs all the previous steps together.
 It attempts to automatically convert the LLM responses to Python lists using ``convert_response_to_yaml_list``. Setting 
 ``ignore_conversion_failure=True`` will discard responses that cannot be converted, instead of raising an error. However, an error will still be thrown if the first step of the pipeline cannot be parsed successfully.
 
-Write Prompt Generation
-#######################
+Generate Writing Prompts
+#########################
 
 Writing prompt generation follows these steps:
 
@@ -652,8 +652,8 @@ NeMo Curator provides two simple functions for classifying math and Python entit
     # No ...
 
 
-Generate Requests Asynchronously
-#################################
+Generate Asynchronously
+########################
 
 All of the code so far has been sending requests to the LLM service synchronously. This can be very inefficient since many requests can be sent simultaneously in most pipelines. Therefore, NeMo Curator provides an asynchronous alternative using OpenAI's async API.
 
