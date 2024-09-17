@@ -74,7 +74,7 @@ def rearange_by_column_direct(
         return new_collection(
             RearrangeByColumn(
                 frame=df.expr,
-                partitioning_index=df[col].expr,
+                partitioning_index=col,
                 npartitions_out=npartitions,
                 ignore_index=ignore_index,
                 method="tasks",
