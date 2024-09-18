@@ -14,7 +14,7 @@
 
 import warnings
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 import yaml
 
@@ -61,7 +61,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
 
     # General config
     cache_dir: str
-    profile_dir: str = None
+    profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
 
