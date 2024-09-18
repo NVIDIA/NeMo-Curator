@@ -1,0 +1,41 @@
+name: "GPU CI/CD"
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'r**'
+    types: [ labeled, synchronize ]
+
+jobs:
+  gpu-test:
+    runs-on: self-hosted
+    if: ${{ github.event.label.name == 'gpuci' || github.event_name == 'synchronize' }}
+
+    steps:
+    - name: Run nvidia-smi test
+      run: |
+        whoami
+        nvidia-smi
+
+    - name: Checkout the PR code
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install NeMo-Curator and PyTest
+      run: |
+        pip install wheel cython
+        RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple ".[cuda12x]"
+        pip install pytest
+    
+    - name: Verify installation
+      run: |
+        pip list
+
+    - name: Run PyTests with GPU mark
+      run: |
+        python -m pytest -m gpu
