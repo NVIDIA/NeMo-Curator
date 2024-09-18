@@ -219,8 +219,10 @@ def get_embedding_ar(df: "cudf.DataFrame", embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
-def add_dist_to_cents(df: "cudf.DataFrame", centroids: cp.ndarray) -> "cudf.DataFrame":
-    embed_array = get_embedding_ar(df)
+def add_dist_to_cents(
+    df: "cudf.DataFrame", embedding_col: str, centroids: cp.ndarray
+) -> "cudf.DataFrame":
+    embed_array = get_embedding_ar(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
     dist_to_cents = cp.sqrt(np.sum((embed_array - centroids_ar) ** 2, axis=1))
     df["dist_to_cent"] = dist_to_cents
@@ -325,7 +327,10 @@ class ClusteringModel:
         meta_df = embeddings_df._meta.copy()
         meta_df["dist_to_cent"] = cp.zeros(1)
         embeddings_df = embeddings_df.map_partitions(
-            add_dist_to_cents, centroids=kmeans.cluster_centers_, meta=meta_df
+            add_dist_to_cents,
+            embedding_col=self.embedding_col,
+            centroids=kmeans.cluster_centers_,
+            meta=meta_df,
         )
         centroids = kmeans.cluster_centers_
         embeddings_df = embeddings_df.reset_index(drop=True)
