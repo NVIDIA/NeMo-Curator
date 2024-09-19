@@ -70,6 +70,8 @@ Datasets can be read in using ``ImageTextPairDataset.from_webdataset()``
 * ``path="/path/to/dataset"`` should point to the root directory of the WebDataset.
 * ``id_col="key"`` lets us know that the unique id column in the dataset is named "key"
 
+A more thorough list of parameters can be found in the `API Reference <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/api/datasets.html>`_.
+
 -------
 Writing
 -------
@@ -105,6 +107,8 @@ There are two optional parameters
 ``to_webdataset()`` will reshard the webdataset to only include elements that have a value of ``True`` in the ``filter_column``.
 Resharding can take a while, so this should typically only be done at the end of your curation pipeline when you are ready to export the dataset for training.
 
+
+A more thorough list of parameters can be found in the `API Reference <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/api/datasets.html>`_.
 
 -------------
 Index Files
