@@ -28,7 +28,8 @@ jobs:
 
     - name: Install NeMo-Curator and PyTest
       run: |
-        pip install wheel cython fasttext-wheel
+        sudo apt-get install -y python3-dev
+        pip install wheel cython
         RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple ".[cuda12x]"
         pip install pytest
 
