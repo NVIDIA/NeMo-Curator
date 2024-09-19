@@ -28,10 +28,8 @@ jobs:
 
     - name: Install NeMo-Curator and PyTest
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake g++ python3-dev
         pip install wheel cython setuptools pip --upgrade
-        RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple ".[cuda12x]"
+        pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
         pip install pytest
 
     - name: Verify installation
