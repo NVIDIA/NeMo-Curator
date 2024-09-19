@@ -123,6 +123,7 @@ class EmbeddingCreator:
         embedding_batch_size: int,
         embedding_output_dir: str,
         input_column: str = "text",
+        embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
         write_to_filename: bool = False,
         logger: Union[logging.Logger, str] = "./",
@@ -160,6 +161,7 @@ class EmbeddingCreator:
         self.logger = self._setup_logger(logger)
         self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
+        self.embedding_column = embedding_column
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
@@ -190,7 +192,7 @@ class EmbeddingCreator:
                 self.model,
                 sorted_data_loader=True,
                 batch_size=self.batch_size,
-                pred_output_col="embeddings",
+                pred_output_col=self.embedding_column,
             ),
             keep_cols=ddf.columns.tolist(),
         )
