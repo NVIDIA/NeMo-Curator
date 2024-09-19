@@ -65,6 +65,7 @@ These modules offer flexibility and permit reordering, with only a few exception
   - [Scale and Curate High-Quality Datasets for LLM Training with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/scale-and-curate-high-quality-datasets-for-llm-training-with-nemo-curator/)
   - [Curating Custom Datasets for LLM Training with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/curating-custom-datasets-for-llm-training-with-nvidia-nemo-curator/)
   - [Curating Custom Datasets for LLM Parameter-Efficient Fine-Tuning with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/curating-custom-datasets-for-llm-parameter-efficient-fine-tuning-with-nvidia-nemo-curator/)
+  - [Streamlining Data Processing for Domain Adaptive Pretraining with NVIDIA NeMo Curator](https://developer.nvidia.com/blog/streamlining-data-processing-for-domain-adaptive-pretraining-with-nvidia-nemo-curator/)
 
 ## Get Started
 
@@ -82,7 +83,12 @@ Before installing NeMo Curator, ensure that the following requirements are met:
   - Volta™ or higher ([compute capability 7.0+](https://developer.nvidia.com/cuda-gpus))
   - CUDA 12 (or above)
 
-You can install NeMo-Curator from PyPi, from source or get it through the NeMo Framework container.
+You can install NeMo-Curator
+1. from PyPi
+2. from source
+3. get it through the [NeMo Framework container](https://github.com/NVIDIA/NeMo?tab=readme-ov-file#docker-containers).
+
+
 
 #### From PyPi
 
@@ -124,6 +130,21 @@ pip install --extra-index-url https://pypi.nvidia.com nemo-curator[cuda12x]
     pip install cython
     pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
     ```
+
+#### Using Nightly Dependencies for Rapids
+
+You can also install NeMo Curator using the Rapids nightly, to do so you can set the environment variable `RAPIDS_NIGHTLY=1`.
+
+
+```bash
+# installing from pypi
+RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple "nemo-curator[cuda12x]"
+
+# installing from source
+RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple ".[cuda12x]"
+```
+
+When the environment variable set to 0 or not set (default behavior) it'll use the stable version of Rapids.
 
 #### From the NeMo Framework Container
 
