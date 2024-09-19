@@ -2,6 +2,6 @@
    :maxdepth: 4
    :titlesonly:
 
-
+   datasets.rst
    embedders.rst
    classifiers.rst
