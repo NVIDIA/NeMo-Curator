@@ -91,4 +91,6 @@ __all__ = [
     "HTMLBoilerplateFilter",
     "PerExtensionFilter",
     "LengthRatioFilter",
+    "HistogramFilter",
+    "QualityEstimationFilter",
 ]

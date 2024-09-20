@@ -21,7 +21,7 @@ from typing import Any
 from docbuilder import TedTalksDownloader
 
 from nemo_curator import JointScoreFilter, ParallelScoreFilter, Sequential
-from nemo_curator.datasets import ParallelDataset
+from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import (
     HistogramFilter,
     LengthRatioFilter,
@@ -104,8 +104,6 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
     print(f"Original dataset length: {len(bitext_dataset.df)}")
     print(f"After dataprep: {len(dataset.df)}")
     print("Writing the results to disk...")
-
-    # raise NotImplementedError("writing not finished yet, filters not checked")
 
     # Overwrite existing files in the curated directory.
     out_path = os.path.join(DATA_DIR, "curated")

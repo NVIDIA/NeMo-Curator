@@ -14,7 +14,6 @@
 
 from typing import List
 
-import dask
 import fasttext
 import numpy as np
 import pandas as pd
@@ -105,6 +104,9 @@ class FastTextLangId(DocumentFilter):
 
 
 class QualityEstimationFilter(DocumentFilter):
+    """(Bitext filter) Use a Quality Estimation (QE) model to score individual segments and filter based on estimated quality score.
+    (reference: https://arxiv.org/pdf/2311.05350)
+    """
 
     # a mapping from supported model names to their corresponding model class
     SUPPORTED_MODELS = {
@@ -114,6 +116,15 @@ class QualityEstimationFilter(DocumentFilter):
     }
 
     def __init__(self, model_name, cutoff, mode="always_en_x", gpu=False):
+        """Args:
+            model_name (_type_): Name of the model, as listed in the `SUPPORTED_MODELS` variable.
+            cutoff (_type_): A cut-off threshold for filtering. All segments with scores lower than this threshold will be tossed away.
+            mode (str, optional): See `_score_document_with_qe` for definition. Defaults to "always_en_x".
+            gpu (bool, optional): Whether to use GPU. Defaults to False.
+
+        Raises:
+            NotImplementedError: If a model name outside the supported model list is passed.
+        """
         if model_name in self.SUPPORTED_MODELS:
             self._name = model_name
         else:
@@ -129,6 +140,26 @@ class QualityEstimationFilter(DocumentFilter):
     def _score_document_with_qe(
         self, model, df: pd.Series, mode="always_en_x"
     ) -> List[float]:
+        """Arrange the documents according to the inference mode, call the model to estimate translation quality.
+
+        Args:
+            model (_type_): QE model object to be called.
+            df (pd.Series): Data frame that holds the translation data.
+            mode (str, optional): Currently three inference modes are supported:
+
+                - `simple`: Maintain the translation direction as specified in the data and
+                    simply pass the corresponding fields to the quality estimation model.
+                - `always_en_x`: Always pass the English side as the source and non-English side as the target.
+                    This is the strategy used by the referenced paper: https://arxiv.org/pdf/2311.05350.
+                - `bidi`: Estimate quality on both directions, then average the score. Potentially more accurate
+                    when original translation direction is uncertain (note that "original" translation direction
+                    might have been flipped while building the data), but also twice as expensive computationally.
+
+                Defaults to "always_en_x".
+
+        Returns:
+            List[float]: A list of float scores corresponding to the individual score of each documents.
+        """
 
         def _is_en_x(src_lang: str, tgt_lang: str):
             return src_lang == "en" and tgt_lang != "en"
@@ -181,7 +212,16 @@ class QualityEstimationFilter(DocumentFilter):
             raise NotImplementedError
 
     @batched
-    def score_document(self, df: pd.Series):
+    def score_document(self, df: pd.Series) -> pd.Series:
+        """Wrapper function that scores documents in a data frame. Most work is done in `_score_document_with_qe`.
+
+        Args:
+            df (pd.Series): Data frame that holds the translation data.
+
+        Returns:
+            pd.Series: A list of float scores corresponding to the individual score of each documents.
+        """
+
         model_attr = f"{self._name}_{self._model_path}"
         try:
             model = load_object_on_worker(
@@ -197,4 +237,5 @@ class QualityEstimationFilter(DocumentFilter):
         return pd.Series(scores, index=df.index)
 
     def keep_document(self, score):
+        """Decides whether a single document should be retained according to a threshold of estimated quality score."""
         return score >= self._cutoff

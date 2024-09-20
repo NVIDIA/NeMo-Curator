@@ -16,11 +16,7 @@ from typing import List, Optional, Union
 
 import dask.dataframe as dd
 
-from nemo_curator.utils.distributed_utils import (
-    read_data,
-    read_simple_bitext_data,
-    write_to_disk,
-)
+from nemo_curator.utils.distributed_utils import read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 
@@ -256,67 +252,3 @@ def _read_json_or_parquet(
         raise TypeError("File input must be a string or list.")
 
     return raw_data
-
-
-class ParallelDataset(DocumentDataset):
-    """
-    An extension of the standard `DocumentDataset` with a special method that loads simple bitext.
-
-    For data with more complicated metadata, please convert your data into jsonl/parquet/pickle format
-    and use interfaces defined in `DocumentDataset`.
-    """
-
-    def persist(self):
-        return ParallelDataset(self.df.persist())
-
-    @classmethod
-    def read_simple_bitext(
-        cls,
-        src_input_files: Union[str, List[str]],
-        tgt_input_files: Union[str, List[str]],
-        src_lang: str,
-        tgt_lang: str,
-        backend: str = "pandas",
-        add_filename: bool = False,
-        partition_size: Optional[Union[int, str]] = "100MB",
-    ):
-        if isinstance(src_input_files, list) and isinstance(tgt_input_files, list):
-            df = read_simple_bitext_data(
-                src_input_files,
-                tgt_input_files,
-                src_lang,
-                tgt_lang,
-                backend,
-                add_filename,
-            )
-        elif isinstance(src_input_files, str) and isinstance(tgt_input_files, str):
-            df = read_simple_bitext_data(
-                [src_input_files],
-                [tgt_input_files],
-                src_lang,
-                tgt_lang,
-                backend,
-                add_filename,
-            )
-        else:
-            raise TypeError("Both file inputs must be strings or lists.")
-
-        # if partition_size:
-        #     df = df.repartition(partition_size=partition_size)
-        return cls(df)
-
-    def to_bitext(
-        self,
-        output_file_dir,
-        write_to_filename=False,
-    ):
-        """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
-
-        """
-        write_to_disk(
-            df=self.df,
-            output_file_dir=output_file_dir,
-            write_to_filename=write_to_filename,
-            output_type="bitext",
-        )

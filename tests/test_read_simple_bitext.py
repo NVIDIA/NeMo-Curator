@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from nemo_curator.datasets.doc_dataset import ParallelDataset
+from nemo_curator.datasets.parallel_dataset import ParallelDataset
 
 
 @pytest.fixture
@@ -57,7 +57,8 @@ class TestReadSimpleBitext:
         )
 
         for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
-            assert ds.df["src"].compute()[idx] == src_line.rstrip("\n")
-            assert ds.df["tgt"].compute()[idx] == tgt_line.rstrip("\n")
-            assert ds.df["src_lang"][idx].compute()[idx] == "de"
-            assert ds.df["tgt_lang"][idx].compute()[idx] == "en"
+            ds.df.compute()
+            assert ds.df["src"][idx] == src_line.rstrip("\n")
+            assert ds.df["tgt"][idx] == tgt_line.rstrip("\n")
+            assert ds.df["src_lang"][idx][idx] == "de"
+            assert ds.df["tgt_lang"][idx][idx] == "en"

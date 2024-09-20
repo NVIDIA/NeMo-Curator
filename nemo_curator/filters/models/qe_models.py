@@ -24,16 +24,22 @@ COMET_IMPORT_MSG = (
     + "More information at https://github.com/Unbabel/COMET."
 )
 PYMARIAN_IMPORT_MSG = (
-    "To run QE filtering with COMET, you need to install from PyPI with: `pip install unbabel-comet`. "
-    + "More information at https://github.com/Unbabel/COMET."
+    "To run QE filtering with Cometoid/PyMarian, you need to install PyMarian. "
+    + "More information at https://github.com/marian-nmt/wmt23-metrics?tab=readme-ov-file#setup."
 )
 comet = safe_import("comet", msg=COMET_IMPORT_MSG)
 pymarian = safe_import("pymarian", msg=PYMARIAN_IMPORT_MSG)
 
 
 class QEModel(ABC):
+    """Abstract model for all quality estimation models for bitext."""
 
-    def __init__(self, name, model, gpu=False):
+    def __init__(self, name: str, model, gpu=False):
+        """Args:
+        name (str): A string named of the model. Not directly tied to `MODEL_NAME_TO_HF_PATH` as defined in some subclasses but it is suggested.
+        model: A loaded model object. The type of the object depends on the loaded model type.
+        gpu (bool, optional): Whether inference is on GPU. Defaults to False.
+        """
         self._name = name
         self._model = model
         self._gpu = gpu
@@ -41,19 +47,39 @@ class QEModel(ABC):
     @classmethod
     @abstractmethod
     def load_model(cls, model_name: str):
+        """An abstract method that loads the model according to a model name.
+
+        Args:
+            model_name (str): The name of the model to be loaded.
+                Could be a huggingface model name, a path, or something else, depending on the implementation.
+        """
         pass
 
     @staticmethod
     @abstractmethod
     def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
+        """An abstract method that implements the following: given the individual source and target string of the bitext,
+        wrap them into proper format that can be accepted by the underlying model.
+
+        Args:
+            src (str): Source side string of the bitext.
+            tgt (str): Target side string of the bitext.
+            reverse (bool, optional): Whether to reverse the source and target side of the bitext. Defaults to False.
+        """
         pass
 
     @abstractmethod
-    def predict(self, src: str, tgt: str, **kwargs) -> List[float]:
+    def predict(self, **kwargs) -> List[float]:
+        """An abstract method that calls the underlying model to produce estimated quality scores.
+
+        Returns:
+            List[float]: List of quality scores.
+        """
         pass
 
 
 class COMETQEModel(QEModel):
+    """Wrapper class for any COMET quality estimation models (https://github.com/Unbabel/COMET)."""
 
     MODEL_NAME_TO_HF_PATH = {
         "comet-qe": "Unbabel/wmt20-comet-qe-da",
@@ -61,14 +87,24 @@ class COMETQEModel(QEModel):
 
     @classmethod
     def load_model(cls, model_name: str, gpu: bool = False):
+        """See parent class docstring for details on functionality and arguments."""
         path = comet.download_model(cls.MODEL_NAME_TO_HF_PATH[model_name])
         return cls(model_name, comet.load_from_checkpoint(path), gpu)
 
     @staticmethod
     def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
+        """See parent class docstring for details on functionality and arguments."""
         return {"src": src, "mt": tgt} if not reverse else {"src": tgt, "mt": src}
 
     def predict(self, input: List, **kwargs) -> List[float]:
+        """Implements quality estimation score prediction for COMET model.
+
+        Args:
+            input (List): A list of bitext pairs wrapped as dictionaries.
+
+        Returns:
+            List[float]: List of quality scores.
+        """
         return self._model.predict(
             input, gpus=int(self._gpu), num_workers=0
         ).scores  # it's critical to set num_workers=0 to avoid spawning new processes within a dask worker
@@ -92,6 +128,7 @@ class PyMarianQEModel(QEModel):
 
     @classmethod
     def load_model(cls, model_name: str, gpu: bool = False):
+        """See parent class docstring for details on functionality and arguments."""
         repo_id = cls.MODEL_NAME_TO_HF_PATH[model_name]
         model_path = hf_hub_download(repo_id, filename="checkpoints/marian.model.bin")
         vocab_path = hf_hub_download(repo_id, filename="vocab.spm")
@@ -104,9 +141,18 @@ class PyMarianQEModel(QEModel):
 
     @staticmethod
     def wrap_qe_input(src: str, tgt: str, reverse=False, **kwargs):
+        """See parent class docstring for details on functionality and arguments."""
         return [src, tgt] if not reverse else [tgt, src]
 
     def predict(self, input: List, **kwargs) -> List[float]:
+        """Implements quality estimation score prediction for Cometoid/PyMarian model.
+
+        Args:
+            input (List): A list of bitext pairs wrapped as dictionaries.
+
+        Returns:
+            List[float]: List of quality scores.
+        """
         scores = []
         for start_idx in range(0, len(input), self.SHARD_SIZE):
             scores.extend(

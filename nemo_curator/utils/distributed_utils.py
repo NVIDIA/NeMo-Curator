@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import ast
-import csv
 import os
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
@@ -23,7 +22,7 @@ import warnings
 from contextlib import nullcontext
 from itertools import zip_longest
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -31,7 +30,6 @@ import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
-from nemo_curator.utils.file_utils import remove_path_extension
 from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -298,91 +296,6 @@ def read_pandas_pickle(file, add_filename=False) -> pd.DataFrame:
     return pd.read_pickle(file)
 
 
-def read_single_simple_bitext_file_pair(
-    input_file_pair: Tuple[str],
-    src_lang: str,
-    tgt_lang: str,
-    doc_id: str = None,
-    backend: str = "cudf",
-    add_filename: bool = False,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
-    """
-    This function reads a pair of "simple bitext" files into a pandas DataFrame.
-    A simple bitext is a commonly data format in machine translation.
-    It consists of two plain text files with the same number of lines, each line pair being translations of each other. For example:
-
-    data.de:
-
-    ```
-    Wir besitzen keine Reisetaschen aus Leder.
-    Die Firma produziert Computer für den deutschen Markt.
-    ...
-    ```
-
-    data.en:
-
-    ```
-    We don't own duffel bags made of leather.
-    The company produces computers for the German market.
-    ...
-    ```
-
-    For simplicity, we also assume that the names of the two text files have the same prefix, except for different language code at the end as file extensions.
-    """
-
-    src_input_file, tgt_input_file = input_file_pair
-    assert remove_path_extension(src_input_file) == remove_path_extension(
-        tgt_input_file
-    ), f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
-
-    # TODO: it seems like cudf.read_table can only take one file max
-    # so maybe we shouldn't pass more than one
-    if backend == "cudf":
-        df = cudf
-    else:
-        df = pd
-
-    df_src = df.read_table(src_input_file, names=["src"], quoting=csv.QUOTE_NONE)
-    df_tgt = df.read_table(tgt_input_file, names=["tgt"], quoting=csv.QUOTE_NONE)
-    assert len(df_src) == len(
-        df_tgt
-    ), f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
-    df_combined = df.concat([df_src, df_tgt], axis=1)
-    df_combined["src_lang"] = src_lang
-    df_combined["tgt_lang"] = tgt_lang
-    df_combined["seg_id"] = pd.Series(range(len(df_combined))).astype(str)
-
-    if not doc_id:
-        doc_id = "▁".join([src_input_file, tgt_input_file])
-    df_combined["doc_id"] = doc_id
-
-    if add_filename:
-        df_combined["filename"] = remove_path_extension(src_input_file)
-
-    return df_combined
-
-
-def read_simple_bitext_data(
-    src_input_files,
-    tgt_input_files,
-    src_lang,
-    tgt_lang,
-    backend: str = "cudf",
-    add_filename: bool = False,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
-
-    # TODO: use default doc id for now
-    # but it might be useful to allow customizing doc id by passing a prefix
-    return dd.from_map(
-        read_single_simple_bitext_file_pair,
-        list(zip(src_input_files, tgt_input_files)),
-        src_lang=src_lang,
-        tgt_lang=tgt_lang,
-        backend=backend,
-        add_filename=add_filename,
-    )
-
-
 def read_data(
     input_files,
     file_type: str = "pickle",
@@ -625,8 +538,11 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
         elif output_type == "bitext":
-            df.compute()
-            _single_partition_write_to_simple_bitext(df, output_file_dir)
+            output = df.map_partitions(
+                _single_partition_write_to_simple_bitext,
+                output_file_dir,
+            )
+            output = output.compute()
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 

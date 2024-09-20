@@ -20,7 +20,8 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-from nemo_curator.datasets import DocumentDataset, ParallelDataset
+from nemo_curator.datasets import DocumentDataset
+from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import (
     AlphaFilter,
     BoilerPlateStringFilter,

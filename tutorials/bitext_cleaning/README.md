@@ -10,7 +10,7 @@ This tutorial highlights several bitext-specific functionalities within NeMo Cur
 1. The ParallelDataset Class
 2. Length Ratio Filtering via the LengthRatioFilter and the JointScoreFilter classes
 3. Histogram-based Language ID Filtering via the HistogramFilter and the ParallelScoreFilter class.
-4. (Optional and only on GPU) Model-based filtering using quality estimation model (`Unbabel/wmt20-comet-qe-da`) and the JointScoreFiletr class.
+4. (Optional and only on GPU) Model-based filtering using quality estimation model (`Unbabel/wmt20-comet-qe-da`) and the JointScoreFilter class.
 
 ## Usage
 

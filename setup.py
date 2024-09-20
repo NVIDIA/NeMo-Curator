@@ -42,9 +42,9 @@ setup(
         "dask[complete]>=2021.7.1",
         "distributed>=2021.7.1",
         "dask-mpi>=2021.11.0",
-        "tqdm==4.66.4",
-        "transformers==4.43.1",
-        "huggingface-hub==0.24.1",
+        "tqdm",
+        "transformers",
+        "huggingface-hub",
         "charset_normalizer>=3.1.0",
         "awscli>=1.22.55",
         "fasttext==0.9.2",
@@ -75,7 +75,6 @@ setup(
     ],
     extras_require={
         "cuda12x": [
-            "cudf-cu12==24.4.*",
             "dask-cudf-cu12==24.4.*",
             "cuml-cu12==24.4.*",
             "cugraph-cu12==24.4.*",

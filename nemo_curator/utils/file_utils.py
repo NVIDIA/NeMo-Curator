@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
 import pathlib
 from functools import partial, reduce
@@ -22,6 +21,8 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from dask import delayed
+
+from nemo_curator.utils.distributed_utils import single_partition_write_with_filename
 
 
 def mkdir(d):
@@ -256,5 +257,5 @@ def reshard_jsonl(
 
 
 def remove_path_extension(path: str):
-    end = path.rfind(".")
-    return path[:end]
+    p = pathlib.Path(path)
+    return os.path.join(p.parent, p.stem)

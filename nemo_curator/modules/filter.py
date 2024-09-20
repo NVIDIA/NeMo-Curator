@@ -19,7 +19,8 @@ from dask.array import logical_and
 from dask.dataframe.extensions import make_array_nonempty
 from dask.typing import no_default
 
-from nemo_curator.datasets import DocumentDataset, ParallelDataset
+from nemo_curator.datasets import DocumentDataset
+from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import DocumentFilter
 from nemo_curator.utils.module_utils import is_batched
 
@@ -110,15 +111,14 @@ class Filter:
         self.filter_field = filter_field
         self.invert = invert
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-        """
-        Applies the filtering to a dataset
+    def compute_filter_mask(self, dataset: DocumentDataset):
+        """Compute the bool mask to filter the dataset.
 
         Args:
-            dataset (DocumentDataset): The dataset to apply the module to
+            dataset (DocumentDataset): The dataset to compute filter mask on.
 
         Returns:
-            DocumentDataset: A dataset with entries removed according to the filter
+            Series or DataFrame: A mask corresponding to each data instance indicating whether it will be retained.
         """
         if is_batched(self.filter_fn):
             bool_mask = dataset.df[self.filter_field].map_partitions(
@@ -132,6 +132,19 @@ class Filter:
         if self.invert:
             bool_mask = ~bool_mask
 
+        return bool_mask
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        """
+        Applies the filtering to a dataset
+
+        Args:
+            dataset (DocumentDataset): The dataset to apply the module to
+
+        Returns:
+            DocumentDataset: A dataset with entries removed according to the filter
+        """
+        bool_mask = self.compute_filter_mask(dataset)
         return DocumentDataset(dataset.df[bool_mask])
 
 
@@ -169,15 +182,14 @@ class ScoreFilter:
         self.score_type = score_type
         self.invert = invert
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-        """
-        Scores and filters all records in the dataset
+    def compute_filter_mask(self, dataset: DocumentDataset):
+        """Compute the bool mask to filter the dataset.
 
         Args:
-            dataset (DocumentDataset): The dataset to apply the module to
+            dataset (DocumentDataset): The dataset to compute filter mask on.
 
         Returns:
-            DocumentDataset: A dataset with the score and filter applied
+            Series or DataFrame: A mask corresponding to each data instance indicating whether it will be retained.
         """
         if self.score_type:
             meta = (None, self.score_type)
@@ -205,37 +217,60 @@ class ScoreFilter:
         if self.invert:
             bool_mask = ~bool_mask
 
+        return bool_mask
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        """
+        Scores and filters all records in the dataset
+
+        Args:
+            dataset (DocumentDataset): The dataset to apply the module to
+
+        Returns:
+            DocumentDataset: A dataset with the score and filter applied
+        """
+        bool_mask = self.compute_filter_mask(dataset)
         return DocumentDataset(dataset.df[bool_mask])
 
 
 class JointScoreFilter:
+    """A filter object wrapper class for applying bilingual filter objects (such as length ratio, QE filter) on bitext."""
+
     def __init__(
         self,
         filter_obj,
         src_field: Union[List[str], str] = "src",
         tgt_field: Union[List[str], str] = "tgt",
-        score_field=None,
-        score_type=None,
+        score_field: Optional[str] = None,
+        score_type: Union[type, str] = None,
         invert=False,
     ):
-        """
-        A filter object wrapper class for applying bilingual filter objects (such as length ratio, QE filter) on bitext.
+        """Args:
+            filter_obj (_type_): Needs to be a filter that applies to 2 text columns, as is the case in bitext.
+            src_field (Union[List[str], str], optional): The field the source documents will be read from. Defaults to "src".
+            tgt_field (Union[List[str], str], optional): The field the target documents will be read from. Defaults to "tgt".
+            score_field (str, optional): The field to which the scores will be written. If None, scores will be immediately discarded after use. Defaults to None.
+            score_type (Optional[str]): The datatype of the score that will be made for each document. Defaults to None.
+            invert (bool, optional): If True, will keep all documents that are normally discarded. Defaults to False.
 
-        Args:
-          filter_obj: Needs to be a filter that applies to 2 text columns, as is the case in bitext.
-          score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
+        Raises:
+            ValueError: If length of source and target fields are different.
         """
         self.filter_obj = filter_obj
         self.score_field = score_field
         self.score_type = score_type
         self.invert = invert
 
-        if type(src_field) == list and type(tgt_field) == list:
-            assert len(src_field) == len(tgt_field), (
+        if (
+            isinstance(src_field, list)
+            and isinstance(tgt_field, list)
+            and len(src_field) != len(tgt_field)
+        ):
+            raise ValueError(
                 "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. "
                 + f"Got {len(src_field)} and {len(tgt_field)}, which means you are doing something unintended."
             )
-        elif not (type(src_field) == str and type(tgt_field) == str):
+        elif not (isinstance(src_field, str) and isinstance(tgt_field, str)):
             raise ValueError(
                 "The semantics of JointScoreFilter assumes that the information passed for the source and target side should be the same. "
                 "Got two objects of different types, which means you are doing something unintended."
@@ -243,7 +278,15 @@ class JointScoreFilter:
         self.src_field = src_field
         self.tgt_field = tgt_field
 
-    def __call__(self, dataset: ParallelDataset):
+    def __call__(self, dataset: ParallelDataset) -> ParallelDataset:
+        """Scores and filters all records in the dataset
+
+        Args:
+            dataset (ParallelDataset): The dataset to apply the module to
+
+        Returns:
+            ParallelDataset:  A dataset with the score and filter applied
+        """
         # Set the metadata for the function calls if provided
         if self.score_type:
             meta = (None, self.score_type)
@@ -296,71 +339,36 @@ class ParallelScoreFilter:
         score_type=None,
         invert=False,
     ):
-        """
-        A filter object wrapper class for applying monolingual filter objects on bitext.
+        """A filter object wrapper class for applying *monolingual* filter objects on bitext.
         If either side of the bitext is discarded, the whole bitext pair is discarded.
 
+        Note that the goal of this wrapper class is to group the same/similar filters on bitext thus making the logic clearer,
+        which is why we force the `score_type` and `invert` to be the same among source/target filters.
+        If you need the extra flexibility, you should fall back to applying two filters one after the other.
+
         Args:
-          score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
+            src_filter_obj (_type_): The score function that takes in a document string and outputs a score for the source document.
+            tgt_filter_obj (_type_): The score function that takes in a document string and outputs a score for the target document.
+            src_field (str, optional): The field the source documents will be read from. Defaults to "src".
+            tgt_field (str, optional): The field the target documents will be read from. Defaults to "tgt".
+            src_score (str, optional): The field to which the source scores will be written. If None, scores will be immediately discarded after use. Defaults to None.
+            tgt_score (str, optional): The field to which the target scores will be written. If None, scores will be immediately discarded after use. Defaults to None.
+            score_type (Optional[str]): The datatype of the score that will be made for each document. Defaults to None.
+            invert (bool, optional): If True, will keep all documents that are normally discarded. Defaults to False.
         """
-        self.src_filter_obj = src_filter_obj
-        self.tgt_filter_obj = tgt_filter_obj
-        self.src_field = src_field
-        self.tgt_field = tgt_field
-        self.src_score = src_score
-        self.tgt_score = tgt_score
-        self.score_type = score_type
-        self.invert = invert
 
-    def __call__(self, dataset: ParallelDataset):
-        # Set the metadata for the function calls if provided
-        if self.score_type:
-            meta = (None, self.score_type)
-        else:
-            meta = no_default
-
-        scores_list = {}
-        for filter_obj, field in [
-            (self.src_filter_obj, self.src_field),
-            (self.tgt_filter_obj, self.tgt_field),
-        ]:
-            if is_batched(filter_obj.score_document):
-                scores = dataset.df[field].map_partitions(
-                    filter_obj.score_document, meta=meta
-                )
-                scores_list[field] = scores
-            else:
-                scores = dataset.df[field].apply(filter_obj.score_document, meta=meta)
-                scores_list[field] = scores
-
-        if self.src_score is not None:
-            dataset.df[self.src_score] = scores_list[self.src_field]
-        if self.tgt_score is not None:
-            dataset.df[self.tgt_score] = scores_list[self.tgt_field]
-
-        bool_masks = {}
-        for filter_obj, field in [
-            (self.src_filter_obj, self.src_field),
-            (self.tgt_filter_obj, self.tgt_field),
-        ]:
-            if is_batched(filter_obj.keep_document):
-                bool_mask = scores_list[field].map_partitions(
-                    filter_obj.keep_document, meta=(None, bool)
-                )
-                bool_masks[field] = bool_mask
-            else:
-                bool_mask = scores_list[field].apply(
-                    filter_obj.keep_document, meta=(None, bool)
-                )
-                bool_masks[field] = bool_mask
-        if self.invert:
-            for field in [self.src_field, self.tgt_field]:
-                bool_masks[field] = ~bool_masks[field]
-            bool_mask = ~bool_mask
-
-        # remove lines together if one of them is filtered
-        bool_mask_joint = logical_and(
-            bool_masks[self.src_field], bool_masks[self.tgt_field]
+        self.source_score_filter = ScoreFilter(
+            src_filter_obj, src_field, src_score, score_type, invert
+        )
+        self.target_score_filter = ScoreFilter(
+            tgt_filter_obj, tgt_field, tgt_score, score_type, invert
         )
 
-        return ParallelDataset(dataset.df[bool_mask_joint])
+    def __call__(self, dataset: ParallelDataset):
+        src_bool_mask = self.source_score_filter.compute_filter_mask(dataset)
+        tgt_bool_mask = self.target_score_filter.compute_filter_mask(dataset)
+
+        # remove lines together if one of them is filtered
+        bool_mask = logical_and(src_bool_mask, tgt_bool_mask)
+
+        return ParallelDataset(dataset.df[bool_mask])

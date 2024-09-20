@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .doc_dataset import DocumentDataset, ParallelDataset
+from .doc_dataset import DocumentDataset
+from .parallel_dataset import ParallelDataset
 
-__all__ = ["DocumentDataset"]
+__all__ = ["DocumentDataset", "ParallelDataset"]
