@@ -5,27 +5,92 @@
 GPU Accelerated Exact and Fuzzy Deduplication
 #######################################################
 
------------------------------------------
+=========================================
 Background
------------------------------------------
+=========================================
 
-Training on randomly selected documents for many epochs can be sub-optimal to downstream performance for language models.
+The exact and fuzzy document-level deduplication modules in the NeMo Curator aim at reducing the occurence of duplicate and
+near-duplicate documents in the dataset. Both functionalities are supported in NeMo Curator and accelerated using `RAPIDS <https://rapids.ai>`_.
+
+The main motivation for this is that training on randomly selected documents for many epochs can be sub-optimal to downstream performance for language models.
 For more information on when this is harmful, please see `Muennighoff et al., 2023 <https://arxiv.org/abs/2305.16264>`_ and `Tirumala et al., 2023 <https://arxiv.org/abs/2308.12284>`_.
-The exact and fuzzy document-level deduplication module in the NeMo Curator aims at reducing the occurence of duplicate and
-near-duplicate documents in the dataset. Exact deduplication refers to removing identical (i.e., document strings are equal)
-documents from the dataset, while fuzzy deduplication refers to removing near-identical (e.g., an excerpt of a document is used in another document)
+
+Fuzzy deduplication is more involved and follows the method outlined in `Microsoft Turing NLG 530B <https://arxiv.org/abs/2201.11990>`_.
+, while fuzzy deduplication refers to removing near-identical (e.g., an excerpt of a document is used in another document)
 documents from the dataset.
 
-Both functionalities are supported in NeMo Curator and accelerated using `RAPIDS <https://rapids.ai>`_.
+=========================================
+Exact Deduplication
+=========================================
+
+Exact deduplication refers to removing identical documents (i.e. document string are equal) from the dataset.
+
+As exact deduplication requires significantly lesser compute, we typically will first run exact deduplication before fuzzy deduplication.
+Also, from our experience in deduplicating Common Crawl snapshots, a significant portion (as high as ~40%) of the duplicates can be exact duplicates.
+
+-----------------------------------------
+How It Works
+-----------------------------------------
+
 Exact dedpulication works by hashing each document and only keeping one document per hash.
-Fuzzy deduplication is more involved and follows the method outlined in `Microsoft Turing NLG 530B <https://arxiv.org/abs/2201.11990>`_.
+Finding exact duplicates works on both CPU and GPU based backends.
 
 -----------------------------------------
 Usage
 -----------------------------------------
-As exact deduplication is a much less involved procedure and requires significantly less compute,
-we typically will first run exact deduplication before fuzzy deduplication. Also, from our experience in
-deduplicating Common Crawl snapshots, a significant portion of the duplicates are in fact exact duplicates.
+
+.. _exactdup_pyapi:
+""""""""""""
+Python API
+""""""""""""
+
+.. note::
+    Before running Exact Deduplication ensure that the dataset contains a unique ID for each document.
+    If needed, you can use the :code:`add_id` module within the NeMo Curator to accomplish this.
+
+.. code-block:: python
+
+    from nemo_curator import ExactDuplicates
+    from nemo_curator.datasets import DocumentDataset
+
+    # Initialize the deduplication object
+    ExactDups = ExactDuplicates(id_field="my_id", text_field="text")
+
+    dataset = DocumentDataset.read_parquet(
+        input_files="/path/to/parquet/data",
+        backend="cudf",  # or "pandas" for CPU
+    )
+
+    duplicate_docs = ExactDups(dataset)
+
+A more comprehensive example for the above can be found in `examples/exact_deduplication.py <https://github.com/NVIDIA/NeMo-Curator/blob/main/examples/exact_deduplication.py>`_.
+
+""""""""""""
+CLI Utility
+""""""""""""
+Assuming that a unique ID has been added to each document, users can proceed with finding exact duplicates
+as follows:
+
+* Find Exact Duplicates
+    1. Input: Data directories
+    2. Output: _exact_duplicates.parquet. List of exact duplicates and the document hash.
+
+.. code-block:: bash
+
+        # same as `python nemo_curator/scripts/find_exact_duplicates.py`
+         gpu_exact_dups \
+           --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
+           --output-dir /path/to/output_dir \
+           --input-json-text-field text_column_name \
+           --input-json-id-field id_column_name \
+           --log-dir ./
+           # --scheduler-file /path/to/file.json
+
+All CLI scripts are included in the :code:`nemo_curator/scripts/` subdirectory.
+
+.. note::
+    The CLI utilities are limited to Jsonl datasets and only work with GPU based backends.
+    For different dataset formats or backeds use the :ref:`exactdup_pyapi`.
 
 When removing near-duplicates within the corpus we perform fuzzy deduplication at the document level in order to remove documents that
 have high Jaccard similarity. Our approach closely resembles the approach described in `Smith et al., 2020 <https://arxiv.org/abs/2201.11990>`_. This
