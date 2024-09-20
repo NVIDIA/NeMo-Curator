@@ -557,22 +557,22 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
             elif output_type == "bitext":
-                src_output_file_path = (
-                    output_file_path + f".{out_df['src_lang'].iloc[0]}"
-                )
-                tgt_output_file_path = (
-                    output_file_path + f".{out_df['tgt_lang'].iloc[0]}"
-                )
-                with open(src_output_file_path, "w") as src_out, open(
-                    tgt_output_file_path, "w"
-                ) as tgt_out:
-                    for src, tgt in zip(out_df["src"], out_df["tgt"]):
-                        src_out.write(src + os.linesep)
-                        tgt_out.write(tgt + os.linesep)
+                _single_partition_write_to_simple_bitext(out_df, output_file_path)
             else:
                 raise ValueError(f"Unknown output type: {output_type}")
 
     return success_ser
+
+
+def _single_partition_write_to_simple_bitext(out_df, output_file_path):
+    src_output_file_path = output_file_path + f".{out_df['src_lang'].iloc[0]}"
+    tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'].iloc[0]}"
+    with open(src_output_file_path, "w+") as src_out, open(
+        tgt_output_file_path, "w+"
+    ) as tgt_out:
+        for src, tgt in zip(out_df["src"], out_df["tgt"]):
+            src_out.write(src + os.linesep)
+            tgt_out.write(tgt + os.linesep)
 
 
 def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jsonl"):
@@ -625,18 +625,8 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
         elif output_type == "bitext":
-            src_output_file_path = (
-                output_file_dir + "records" + f".{df['src_lang'].iloc[0]}"
-            )
-            tgt_output_file_path = (
-                output_file_dir + "records" + f".{df['tgt_lang'].iloc[0]}"
-            )
-            with open(src_output_file_path, "w") as src_out, open(
-                tgt_output_file_path, "w"
-            ) as tgt_out:
-                for src, tgt in zip(df["src"], df["tgt"]):
-                    src_out.write(src + os.linesep)
-                    tgt_out.write(tgt + os.linesep)
+            df.compute()
+            _single_partition_write_to_simple_bitext(df, output_file_dir)
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 

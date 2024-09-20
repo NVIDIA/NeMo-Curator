@@ -301,8 +301,8 @@ class ParallelDataset(DocumentDataset):
         else:
             raise TypeError("Both file inputs must be strings or lists.")
 
-        if partition_size:
-            df = df.repartition(partition_size=partition_size)
+        # if partition_size:
+        #     df = df.repartition(partition_size=partition_size)
         return cls(df)
 
     def to_bitext(

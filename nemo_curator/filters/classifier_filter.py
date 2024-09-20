@@ -141,7 +141,7 @@ class QualityEstimationFilter(DocumentFilter):
         if mode == "simple":
             input = [
                 model_class.wrap_qe_input(src, tgt)
-                for src, tgt in zip(df["src"], df["tgt"])
+                for src, tgt in zip(df.iloc[:, 0], df.iloc[:, 2])
             ]
             return model.predict(input)
         elif mode == "always_en_x":
@@ -156,7 +156,7 @@ class QualityEstimationFilter(DocumentFilter):
                     ),
                 )
                 for src, tgt, src_lang, tgt_lang in zip(
-                    df["src"], df["tgt"], df["src_lang"], df["tgt_lang"]
+                    df.iloc[:, 0], df.iloc[:, 2], df.iloc[:, 1], df.iloc[:, 3]
                 )
             ]
             return model.predict(input)
@@ -164,11 +164,11 @@ class QualityEstimationFilter(DocumentFilter):
             # score twice -- once forward and once backward
             fwd_input = [
                 model_class.wrap_qe_input(src, tgt)
-                for src, tgt in zip(df["src"], df["tgt"])
+                for src, tgt in zip(df.iloc[:, 0], df.iloc[:, 2])
             ]
             rev_input = [
                 model_class.wrap_qe_input(src, tgt, reverse=True)
-                for src, tgt in zip(df["src"], df["tgt"])
+                for src, tgt in zip(df.iloc[:, 0], df.iloc[:, 2])
             ]
             scores = model.predict(
                 fwd_input + rev_input
