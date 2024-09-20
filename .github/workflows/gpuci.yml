@@ -28,7 +28,7 @@ jobs:
 
     - name: Install NeMo-Curator and PyTest
       run: |
-        pip install wheel cython setuptools pip --upgrade
+        pip install cython setuptools pip --upgrade
         pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
         pip install pytest
 
