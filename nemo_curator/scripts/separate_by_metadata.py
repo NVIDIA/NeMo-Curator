@@ -16,35 +16,25 @@ import argparse
 import json
 import shutil
 
-from nemo_curator.utils.distributed_utils import get_client, read_data
-from nemo_curator.utils.file_utils import (
-    expand_outdir_and_mkdir,
-    get_all_files_paths_under,
-    separate_by_metadata,
-)
+from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.file_utils import separate_by_metadata
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
-    files = get_all_files_paths_under(args.input_data_dir)
-    input_data = read_data(
-        files, file_type=args.input_file_type, backend="pandas", add_filename=True
-    )
-
-    output_dir = expand_outdir_and_mkdir(args.output_data_dir)
-
-    metadata_field = args.input_metadata_field
-    print(f"Beginning metadata separation for {metadata_field}")
+    print(f"Beginning metadata separation for {args.input_metadata_field}")
     metadata_distribution = separate_by_metadata(
-        input_data,
-        output_dir,
-        metadata_field,
+        args.input_data_dir,
+        args.output_data_dir,
+        args.input_metadata_field,
         remove_metadata=args.remove_metadata_field,
         output_type=args.output_file_type,
+        value_selection_filter=args.value_selection_filter,
+        value_exclusion_filter=args.value_exclusion_filter,
     ).compute()
-    print(f"Finished metadata separation for {metadata_field}")
+    print(f"Finished metadata separation for {args.input_metadata_field}")
 
     with open(args.output_metadata_distribution, "w") as fp:
         json.dump(metadata_distribution, fp)
@@ -101,6 +91,22 @@ def attach_args(
         help="Option of whether to remove the metadata field "
         "after filtering. Useful only in the case in which one metadata "
         "is desired to be separated from the others",
+    )
+
+    exclusive_filters_group = parser.add_mutually_exclusive_group(required=False)
+    exclusive_filters_group.add_argument(
+        "--value-selection-filter",
+        nargs="+",
+        type=str,
+        help="A list of strings representing specific values to be selected or included. "
+        "If provided, only the items matching these values should be kept.",
+    )
+    exclusive_filters_group.add_argument(
+        "--value-exclusion-filter",
+        nargs="+",
+        type=str,
+        help="A list of strings representing specific values to be excluded or ignored. "
+        "If provided, any items matching these values should be skipped.",
     )
 
     return parser
