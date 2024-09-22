@@ -24,7 +24,6 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from dask import delayed
-from dask.distributed import wait
 
 from nemo_curator.utils.distributed_utils import (
     read_data,
@@ -286,9 +285,7 @@ def separate_by_metadata(
                     value_selection_filter=value_selection_filter,
                     value_exclusion_filter=value_exclusion_filter,
                 )
-            ).persist()
-            # Wait for completion
-            wait(bag)
+            )
 
             frequencies = dict(bag.frequencies().compute())
             frequencies.pop(None, None)  # Remove None when applying filters
