@@ -22,9 +22,12 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
+    print(f"Beginning metadata separation for {args.input_metadata_field}")
+
+    # Initializes or connects to a Dask cluster.
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
-    print(f"Beginning metadata separation for {args.input_metadata_field}")
+    # Separete corpus by metadata
     metadata_distribution = separate_by_metadata(
         args.input_data_dir,
         args.output_data_dir,
@@ -34,7 +37,6 @@ def main(args):
         value_selection_filter=args.value_selection_filter,
         value_exclusion_filter=args.value_exclusion_filter,
     ).compute()
-    print(f"Finished metadata separation for {args.input_metadata_field}")
 
     with open(args.output_metadata_distribution, "w") as fp:
         json.dump(metadata_distribution, fp)
@@ -43,6 +45,15 @@ def main(args):
         print(f"Removing all files in {args.input_data_dir}")
         shutil.rmtree(args.input_data_dir)
         print(f"Finished removing all files in {args.input_data_dir}")
+
+    print(
+        f"Finished separating {args.input_metadata_field} metadata\n"
+        "Dask messages from here may relate to cluster shutdown.",
+        flush=True,
+    )
+
+    # Shut down the cluster
+    client.shutdown()
 
 
 def attach_args(
