@@ -40,21 +40,27 @@ def main(args):
             output_type=args.output_file_type,
             value_selection_filter=args.value_selection_filter,
             value_exclusion_filter=args.value_exclusion_filter,
-        ).compute()
+        )
 
+        # Save metadata distribution to disk
         with open(args.output_metadata_distribution, "w") as fp:
-            json.dump(metadata_distribution, fp)
+            json.dump(metadata_distribution.compute(), fp)
 
+        # Optionally, remove input directory
         if args.remove_input_dir:
             print(f"Removing all files in {args.input_data_dir}")
             shutil.rmtree(args.input_data_dir)
             print(f"Finished removing all files in {args.input_data_dir}")
 
+        # Warn the user about possible Dask messages
         print(
             f"Finished separating {args.input_metadata_field} metadata\n"
             "Dask messages from here may relate to cluster shutdown.",
             flush=True,
         )
+
+        #  Cancel any remaining futures (if any)
+        client.cancel(metadata_distribution)
 
         # Shut down the cluster
         client.shutdown()
