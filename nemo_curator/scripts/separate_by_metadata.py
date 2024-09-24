@@ -52,13 +52,6 @@ def main(args):
             shutil.rmtree(args.input_data_dir)
             print(f"Finished removing all files in {args.input_data_dir}")
 
-        # Warn the user about possible Dask messages
-        print(
-            f"Finished separating {args.input_metadata_field} metadata\n"
-            "Dask messages from here may relate to cluster shutdown.",
-            flush=True,
-        )
-
         #  Cancel any remaining futures (if any)
         client.cancel(metadata_distribution)
 
