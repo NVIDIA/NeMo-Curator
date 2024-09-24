@@ -9,8 +9,8 @@ GPU Accelerated Exact and Fuzzy Deduplication
 Background
 =========================================
 
-The exact and fuzzy document-level deduplication modules in the NeMo Curator aim at reducing the occurence of duplicate and
-near-duplicate documents in the dataset. Both functionalities are supported in NeMo Curator and accelerated using `RAPIDS <https://rapids.ai>`_.
+The exact and fuzzy document-level deduplication modules in the NeMo Curator aim to reduce the occurrence of duplicate and
+near-duplicate documents in a dataset. Both functionalities are supported in NeMo Curator and accelerated using `RAPIDS <https://rapids.ai>`_.
 
 The main motivation for this is that training on randomly selected documents for many epochs can be sub-optimal to downstream performance for language models.
 For more information on when this is harmful, please see `Muennighoff et al., 2023 <https://arxiv.org/abs/2305.16264>`_ and `Tirumala et al., 2023 <https://arxiv.org/abs/2308.12284>`_.
@@ -19,9 +19,9 @@ For more information on when this is harmful, please see `Muennighoff et al., 20
 Exact Deduplication
 =========================================
 
-Exact deduplication refers to removing identical documents (i.e. document string are equal) from the dataset.
+Exact deduplication refers to removing identical documents (i.e., document strings that are equal) from the dataset.
 
-As exact deduplication requires significantly lesser compute, we typically will first run exact deduplication before fuzzy deduplication.
+As exact deduplication requires significantly less compute, we typically will run exact deduplication before fuzzy deduplication.
 Also, from our experience in deduplicating Common Crawl snapshots, a significant portion (as high as ~40%) of the duplicates can be exact duplicates.
 
 -----------------------------------------
@@ -42,8 +42,8 @@ Python API
 """"""""""""
 
 .. note::
-    Before running Exact Deduplication ensure that the dataset contains a unique ID for each document.
-    If needed, you can use the :code:`add_id` module within the NeMo Curator to accomplish this.
+    Before running exact deduplication, you need to ensure that the dataset contains a unique ID for each document.
+    If needed, you can use the :code:`add_id` module within NeMo Curator to accomplish this.
 
 .. code-block:: python
 
@@ -88,15 +88,15 @@ as follows:
 All CLI scripts are included in the :code:`nemo_curator/scripts/` subdirectory.
 
 .. caution::
-    The CLI utilities are limited to Jsonl datasets and only work with GPU based backends.
+    The CLI utilities are limited to JSONL datasets and only work with GPU-based backends.
     For different dataset formats or backeds use the :ref:`exactdup_pyapi`.
 
 =========================================
 Fuzzy Deduplication
 =========================================
 
-When removing near-duplicates within the corpus we perform fuzzy deduplication at the document level in order to remove documents that
-have high Jaccard similarity. Our approach closely resembles the approach described in `Smith et al., 2020 <https://arxiv.org/abs/2201.11990>`_.
+When removing near-duplicates within the corpus, we perform fuzzy deduplication at the document level in order to remove documents with
+high Jaccard similarity scores. Our approach closely resembles the approach described in `Smith et al., 2020 <https://arxiv.org/abs/2201.11990>`_.
 
 -----------------------------------------
 How It Works
@@ -105,27 +105,27 @@ How It Works
 This approach can essentially be split into the following stages:
 
 1. **Compute Minhashes**: The first stage involves computing `MinHash <https://en.wikipedia.org/wiki/MinHash>`_ Signatures on documents.
-   NeMo-Curator currently only supports character n-grams for MinHashing. An approximate metric of ~4.5 characters per word can be used to determine the n-gram size for users familiar with word based ngrams.
+   NeMo Curator currently only supports character-based n-grams for MinHashing. An approximate metric of ~4.5 characters per word can be used to determine the n-gram size for users familiar with word-based ngrams.
 2. **LSH** *(Locality Sensitive Hashing)*: Perform `LSH <https://en.wikipedia.org/wiki/Locality-sensitive_hashing>`_
-   to find candidate duplucates.
+   to find candidate duplicates.
 
 3. **Buckets to Edgelist**: If not using the false positive check, we directly convert the LSH buckets to edges for the connected components computation.
 
 3. **False Positive Check** *(optional alternative to Buckets to Edgelist)*: Due to the approximate nature of the bucketing via MinHash + LSH
-   (`Leskovec et al., 2020 <http://infolab.stanford.edu/~ullman/mmds/ch3n.pdf>`_), NeMo-Curator provides the option to further
-   process each of the buckets by computing some pariwise jaccard similarity scores between documents in each bucket and filter out false positives that might have been hashed into the same bucket.
+   (`Leskovec et al., 2020 <http://infolab.stanford.edu/~ullman/mmds/ch3n.pdf>`_), NeMo Curator provides the option to further
+   process each of the buckets by computing some pairwise Jaccard similarity scores between documents in each bucket and filter out false positives that might have been hashed into the same bucket.
 
-  a. **Jaccard Map Buckets:** Since buckets generated by LSH can have high cardinality, we map multiple LSH buckets to a larger batches for
+  a. **Jaccard Map Buckets:** Since buckets generated by LSH can have high cardinality, we map multiple LSH buckets to larger batches for
      efficient processing. Aditionally we assign a few documents (controlled via :code:`num_anchor_docs`) for each bucket to be candidate documents
      for pairwise Jaccard similarity computations within that bucket.
   b. **Jaccard Shuffle**: Store documents from the original dataset into new directories and files such that all documents in the same batch (bucket)
-     are stored together. This allows parallelizing pariwise Jaccard similarity computation across different buckets.
+     are stored together. This allows parallelizing pairwise Jaccard similarity computations across different buckets.
   c. **Jaccard Compute**: Compute Jaccard similarity scores between all pairs of documents in each bucket to the candidate anchor docs.
 
-4. **Connected Components**: Due to the approximate nature of LSH documents that are near duplicates may be assigned different buckets with a few overlapping documents.
+4. **Connected Components**: Due to the approximate nature of LSH, documents that are near duplicates may be assigned into different buckets with a few overlapping documents
    between these buckets. We use a GPU accelerated connected components algorithm to find all connected components in the graph formed by the edges between documents in the same bucket.
 
-The result from Connected Components is a list of document ID's and the group they belong to.
+The result from the connected components step is a list of document IDs and the group they belong to.
 All documents in the same group are considered near duplicates.
 These results can be used to remove the near duplicates from the corpus.
 
@@ -140,8 +140,8 @@ Python API
 """"""""""""
 
 .. note::
-    Before running Fuzzy Deduplication ensure that the dataset contains a unique ID for each document.
-    If needed, you can use the ``add_id`` module within the NeMo Curator to accomplish this.
+    Before running fuzzy deduplication, you need to ensure that the dataset contains a unique ID for each document.
+    If needed, you can use the ``add_id`` module within NeMo Curator to accomplish this.
 
 1. Configuration
 
@@ -206,8 +206,8 @@ Python API
 
 .. tip::
 
-  - A more comprehensive example for the above including how to remove documents from a corpus using the list of
-    duplicate IDs generated from fuzzy deduplication can be found in `examples/fuzzy_deduplication.py <https://github.com/NVIDIA/NeMo-Curator/blob/main/examples/fuzzy_deduplication.py>`_.
+  - A more comprehensive example for the above, including how to remove documents from a corpus using the list of
+    duplicate IDs generated from fuzzy deduplication, can be found in `examples/fuzzy_deduplication.py <https://github.com/NVIDIA/NeMo-Curator/blob/main/examples/fuzzy_deduplication.py>`_.
   - The default values of ``num_buckets`` and ``hashes_per_bucket`` are set to find documents with an approximately Jaccard similarity of 0.8 or above.
   - Higher ``buckets_per_shuffle`` values can lead to better performance but might lead to out of memory errors.
   - Setting the ``false_positive_check`` flag to ``False`` is ideal for optimal performance.
@@ -219,7 +219,7 @@ CLI Utility
 
 .. caution::
   Fuzzy deduplication CLI scripts only work with the specific ID format generated by the :code:`add_id` script. If the
-  dataset does not contain ID's in this format it's recommended to create them with the :code:`add_id` script as follows:
+  dataset does not contain IDs in this format, it is recommended to create them with the :code:`add_id` script as follows:
 
   .. code-block:: bash
 
@@ -229,15 +229,15 @@ CLI Utility
       --id-prefix="doc_prefix" \
       --log-dir=./log/add_id
 
-  This will create a new field named :code:`my_id` within each json document which will have the form "doc_prefix-000001".
+  This will create a new field named :code:`my_id` within each JSON document which will have the form "doc_prefix-000001".
   If the dataset already has a unique ID this step can be skipped.
 
-Once a unique ID has been added to each document, users can proceed with fuzzy deduplication which roughly require the following
+Once a unique ID has been added to each document, users can proceed with fuzzy deduplication, which roughly require the following
 steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication <https://github.com/NVIDIA/NeMo-Curator/blob/main/nemo_curator/scripts/fuzzy_deduplication>`_ subdirectory):
 
 1. Compute Minhashes
-  - Input: Data Directories
-  - Output: ``minhashes.parquet`` for each data dir.
+  - Input: Data directories
+  - Output: ``minhashes.parquet`` for each data directory
   - Example call:
 
        .. code-block:: bash
@@ -279,7 +279,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 3. False positive check (optional): If skipping this step, proceed to the :ref:`skip fp check section <fuzzydup_nofp>`.
 
   a. Jaccard Map Buckets
-    - Input: ``_buckets.parquet`` + Data Dir
+    - Input: ``_buckets.parquet`` and data directories
     - Output: ``anchor_docs_with_bk.parquet``
     - Example call:
 
@@ -295,7 +295,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  # --scheduler-file /path/to/file.json
 
   b. Jaccard Shuffle
-    - Input: ``anchor_docs_with_bk.parquet`` + Data Dir
+    - Input: ``anchor_docs_with_bk.parquet`` and data directories
     - Output: ``shuffled_docs.parquet``
     - Example call:
 
@@ -310,7 +310,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-json-id-field id_column_name \
                  # --scheduler-file /path/to/file.json
 
-  c. Jaccard compute
+  c. Jaccard Compute
     - Input: ``shuffled_docs.parquet``
     - Output: ``jaccard_similarity_results.parquet``
     - Example call:
@@ -326,7 +326,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 
 .. _fuzzydup_nofp:
 
-3. Skipping the false positive check (more performant). Not needed if the false positive check was performed.
+3. Skipping the false positive check (more performant). This step is not needed if the false positive check was performed.
 
   a. Buckets to Edgelist
     - Input: ``_buckets.parquet``
@@ -357,15 +357,15 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  # --scheduler-file /path/to/file.json
 
 .. caution::
-  The CLI utilities are limited to Jsonl datasets, only work with specific ID formats.
+  The CLI utilities are limited to JSONL datasets and only work with specific ID formats.
   For different dataset format use the :ref:`fuzzydup_pyapi`.
 
 ------------------------
-Incremental Fuzzy Dedup
+Incremental Fuzzy Deduplication
 ------------------------
 
 * To incrementally perform fuzzy dedup we do not need to recompute minhashes for datasets where minhashes were already computed.
-  Organize your incremental datasets into separate directories and pass a list of all new directories to :code:`gpu_compute_minhashes`.
+  Instead, you can organize your incremental datasets into separate directories and pass a list of all new directories to :code:`gpu_compute_minhashes`.
 
     - Input (assuming incremental snapshots are all under :code:`/input/`):
 
