@@ -44,6 +44,7 @@ jobs:
           file: Dockerfile
           push: true
           build-args: |
+            FORKED_REPO_URL=https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git
             CURATOR_COMMIT=${{ github.event.pull_request.head.sha || github.sha }}
           cache-from: |
             nemoci.azurecr.io/nemo_curator_container:${{ github.event.pull_request.number || 'buildcache' }}
