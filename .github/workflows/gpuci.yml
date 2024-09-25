@@ -24,38 +24,17 @@ jobs:
         whoami
         nvidia-smi
 
-    - name: Checkout the PR code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Pull the Docker image built in the previous step
-      run: docker pull nemoci.azurecr.io/nemo_curator_container:buildcache
-
     - name: Run Docker container with Python 3.10
       run: |
-        docker run --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:buildcache bash -c "sleep infinity"
-
-    - name: Install Python 3.10 inside the container
-      run: |
-        docker exec nemo-curator-container apt-get update
-        docker exec nemo-curator-container apt-get install -y python3.10 python3.10-venv python3.10-dev
-        docker exec nemo-curator-container python3.10 -m venv /opt/py310
-        docker exec nemo-curator-container /opt/py310/bin/pip install --upgrade pip
-
-    - name: Install NeMo-Curator and PyTest dependencies
-      run: |
-        docker exec nemo-curator-container /opt/py310/bin/pip install cython pytest setuptools pip --upgrade
-        docker exec nemo-curator-container /opt/py310/bin/pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
+        docker run --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
 
     - name: Verify installation
       run: |
-        pip list
+        docker exec nemo-curator-container pip list
 
     - name: Run PyTests with GPU mark
       run: |
-        docker exec nemo-curator-container /opt/py310/bin/pytest -m gpu
+        docker exec nemo-curator-container pytest -m gpu
 
     - name: Cleanup
         run: docker stop nemo-curator-container && docker rm nemo-curator-container
