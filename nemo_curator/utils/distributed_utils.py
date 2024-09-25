@@ -29,7 +29,7 @@ import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
-from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
+from nemo_curator.utils.gpu_utils import is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
@@ -49,6 +49,12 @@ def start_dask_gpu_local_cluster(
     rmm_pool_size="1024M",
     enable_spilling=True,
     set_torch_to_use_rmm=True,
+    rmm_async=True,
+    rmm_maximum_pool_size=None,
+    rmm_managed_memory=False,
+    rmm_release_threshold=None,
+    rmm_track_allocations=False,
+    **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
@@ -69,8 +75,13 @@ def start_dask_gpu_local_cluster(
     cluster = LocalCUDACluster(
         rmm_pool_size=rmm_pool_size,
         protocol=protocol,
-        rmm_async=True,
+        rmm_async=rmm_async,
+        rmm_maximum_pool_size=rmm_maximum_pool_size,
+        rmm_managed_memory=rmm_managed_memory,
+        rmm_release_threshold=rmm_release_threshold,
+        rmm_track_allocations=rmm_track_allocations,
         **extra_kwargs,
+        **cluster_kwargs,
     )
     client = Client(cluster)
 
