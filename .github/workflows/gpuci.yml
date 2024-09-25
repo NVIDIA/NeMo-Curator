@@ -37,4 +37,5 @@ jobs:
         docker exec nemo-curator-container pytest -m gpu
 
     - name: Cleanup
-        run: docker stop nemo-curator-container && docker rm nemo-curator-container
+      run: |
+        docker stop nemo-curator-container && docker rm nemo-curator-container
