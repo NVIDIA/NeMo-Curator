@@ -33,13 +33,14 @@ def main(args):
 
         # Separete corpus by metadata
         metadata_distribution = separate_by_metadata(
-            args.input_data_dir,
-            args.output_data_dir,
-            args.input_metadata_field,
+            input_data=args.input_data_dir,
+            output_dir=args.output_data_dir,
+            metadata_field=args.input_metadata_field,
             remove_metadata=args.remove_metadata_field,
             output_type=args.output_file_type,
-            value_selection_filter=args.value_selection_filter,
-            value_exclusion_filter=args.value_exclusion_filter,
+            input_type=args.input_file_type,
+            include_values=args.include_values,
+            exclude_values=args.exclude_values,
         )
 
         # Save metadata distribution to disk
@@ -112,14 +113,14 @@ def attach_args(
 
     exclusive_filters_group = parser.add_mutually_exclusive_group(required=False)
     exclusive_filters_group.add_argument(
-        "--value-selection-filter",
+        "--include-values",
         nargs="+",
         type=str,
         help="A list of strings representing specific values to be selected or included. "
         "If provided, only the items matching these values should be kept.",
     )
     exclusive_filters_group.add_argument(
-        "--value-exclusion-filter",
+        "--exclude-values",
         nargs="+",
         type=str,
         help="A list of strings representing specific values to be excluded or ignored. "
