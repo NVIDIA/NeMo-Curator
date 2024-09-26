@@ -373,6 +373,8 @@ def extract_pruned_data(
     eps: float,
     n_clusters: int,
     output_parquet_path: str,
+    logger: Optional[logging.Logger] = None,
+    profile_dir: Optional[str] = None,
 ) -> Tuple[int, int, int]:
     """
     Extracts pruned data from sorted clusters and saves it to a CSV file.
@@ -385,25 +387,38 @@ def extract_pruned_data(
         eps (float): Epsilon value for pruning.
         n_clusters (int): Number of clusters.
         output_csv_path (str): Path to save the output CSV file.
+        logger (Optional[logging.Logger]): Logger object or path to store logs, defaults to None.
+        profile_dir (str): If specified directory to write dask profile. Default is None.
 
     Returns:
         Tuple[int, int, int]: Number of kept records, removed records, and total records.
     """
 
-    results_df = dd.from_map(
-        prune_single_cluster,
-        range(n_clusters),
-        id_col=id_col,
-        id_col_type=id_col_type,
-        sorted_clusters_dir=sorted_clusters_dir,
-        semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
-        eps=eps,
-    )
-    results_df[id_col] = results_df[id_col].astype(id_col_type)
-    results_df = results_df.persist()
-    progress(results_df)
+    t0 = time.time()
 
-    results_df.to_parquet(output_parquet_path)
+    with performance_report_if(
+        profile_dir,
+        f"extracting-pruned-from-clusters-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+    ):
+        results_df = dd.from_map(
+            prune_single_cluster,
+            range(n_clusters),
+            id_col=id_col,
+            id_col_type=id_col_type,
+            sorted_clusters_dir=sorted_clusters_dir,
+            semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
+            eps=eps,
+        )
+        results_df[id_col] = results_df[id_col].astype(id_col_type)
+        results_df = results_df.persist()
+        progress(results_df)
+
+        results_df.to_parquet(output_parquet_path)
+    if logger:
+        logger.info(
+            f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"
+        )
+
     total_kept = len(results_df)
 
     np_files = [
@@ -425,6 +440,7 @@ def extract_dedup_data(
     output_summary_file,
     output_parquet_path,
     logger: logging.Logger,
+    profile_dir: Optional[str] = None,
 ) -> None:
     """
     Extracts deduplicated data based on provided parameters and logs the process.
@@ -441,6 +457,8 @@ def extract_dedup_data(
         eps=eps,
         n_clusters=n_clusters,
         output_parquet_path=output_parquet_path,
+        logger=logger,
+        profile_dir=profile_dir,
     )
 
     logger.info(

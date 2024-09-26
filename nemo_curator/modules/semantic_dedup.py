@@ -204,13 +204,13 @@ class EmbeddingCreator:
         return pipe(ddf)
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-        embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
         t0 = time.time()
         if self.write_embeddings_to_disk:
             with performance_report_if(
-                self.config.profile_dir,
+                self.profile_dir,
                 f"embedding-creator-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
             ):
+                embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
                 write_to_disk(
                     embedding_ddf,
                     self.embedding_output_dir,
@@ -509,7 +509,7 @@ class SemanticClusterLevelDedup:
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
         t0 = time.time()
         with performance_report_if(
-            self.config.profile_dir,
+            self.profile_dir,
             f"semantic-match-compute-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
         ):
             tasks = db.from_sequence(
