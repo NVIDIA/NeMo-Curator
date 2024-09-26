@@ -97,7 +97,7 @@ class MinHash:
         profile_dir: str, Default None
           If specified directory to write dask profile
         cache_dir: str, Default None
-          If specified, will compute & write id,minhash pairs to directory
+          If specified, will compute & write id, minhash pairs to directory
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams

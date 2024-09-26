@@ -18,7 +18,8 @@ import os
 import random
 import shutil
 import time
-from typing import List, Tuple
+from datetime import datetime
+from typing import List, Optional, Tuple
 
 import cudf
 import dask.bag as db
@@ -28,6 +29,7 @@ import pandas as pd
 import torch
 from dask.distributed import progress
 
+from nemo_curator.utils.distributed_utils import performance_report_if
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
 
@@ -41,7 +43,8 @@ def assign_and_sort_clusters(
     sim_metric: str = "cosine",
     keep_hard: bool = True,
     kmeans_with_cos_dist: bool = True,
-    logger: logging.Logger = None,
+    logger: Optional[logging.Logger] = None,
+    profile_dir: Optional[str] = None,
 ):
     """
     Args:
@@ -55,6 +58,7 @@ def assign_and_sort_clusters(
         sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to an empty string.
         cluster_ids (list): The range of cluster IDs to sort.
         logger (logging.Logger): A logger object to log messages. Defaults to None.
+        profile_dir (str): If specified directory to write dask profile. Default is None.
 
     Returns:
         None
@@ -72,26 +76,30 @@ def assign_and_sort_clusters(
     kmeans_centroids = np.load(kmeans_centroids_file)
     start_time = time.time()
 
-    cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
-    completed_count = cluster_ids_bag.map(
-        lambda cluster_c: rank_within_cluster(
-            id_col=id_col,
-            nearest_cent_dir=nearest_cent_dir,
-            output_sorted_clusters_dir=output_sorted_clusters_dir,
-            centroids=kmeans_centroids,
-            embedding_col=embedding_col,
-            sim_metric=sim_metric,
-            keep_hard=keep_hard,
-            kmeans_with_cos_dist=kmeans_with_cos_dist,
-            cluster_ids=[cluster_c],
-        )
-    ).compute()
+    with performance_report_if(
+        profile_dir,
+        f"ranking-clusters-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+    ):
+        cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
+        completed_count = cluster_ids_bag.map(
+            lambda cluster_c: rank_within_cluster(
+                id_col=id_col,
+                nearest_cent_dir=nearest_cent_dir,
+                output_sorted_clusters_dir=output_sorted_clusters_dir,
+                centroids=kmeans_centroids,
+                embedding_col=embedding_col,
+                sim_metric=sim_metric,
+                keep_hard=keep_hard,
+                kmeans_with_cos_dist=kmeans_with_cos_dist,
+                cluster_ids=[cluster_c],
+            )
+        ).compute()
 
-    missing = len(cluster_ids) - sum(completed_count)
+        missing = len(cluster_ids) - sum(completed_count)
     logger.info(
         f"Completed {sum(completed_count)} clusters. Missing {missing} clusters."
     )
-    logger.info(f"Time for ranking: {(time.time() - start_time) / 60:.2f} mins")
+    logger.info(f"Time taken for Ranking Clusters: {time.time() - start_time}")
     logger.info("DONE!")
 
 
