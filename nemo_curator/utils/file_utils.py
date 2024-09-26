@@ -141,16 +141,16 @@ def write_dataframe_by_meta(
     metadata_field: str,
     remove_metadata: bool = False,
     output_type: str = "jsonl",
-    value_selection_filter: List[str] = None,
-    value_exclusion_filter: List[str] = None,
+    include_values: List[str] = None,
+    exclude_values: List[str] = None,
 ):
     counts = df[metadata_field].value_counts().to_dict()
 
-    # Apply value_selection_filter or value_exclesion_filter if provided
-    if value_selection_filter is not None and value_selection_filter:
-        counts = {k: v for k, v in counts.items() if k in value_selection_filter}
-    elif value_exclusion_filter is not None and value_exclusion_filter:
-        counts = {k: v for k, v in counts.items() if k not in value_exclusion_filter}
+    # Apply include_values or value_exclesion_filter if provided
+    if include_values is not None and include_values:
+        counts = {k: v for k, v in counts.items() if k in include_values}
+    elif exclude_values is not None and exclude_values:
+        counts = {k: v for k, v in counts.items() if k not in exclude_values}
 
     for meta_value in counts:
         meta_output_dir = expand_outdir_and_mkdir(os.path.join(output_dir, meta_value))
@@ -178,8 +178,8 @@ def write_record(
     line: str,
     field: str,
     output_dir: str,
-    value_selection_filter: List[str] = None,
-    value_exclusion_filter: List[str] = None,
+    include_values: List[str] = None,
+    exclude_values: List[str] = None,
 ):
     try:
         # Parse the JSON-encoded string 'line' into a Python dictionary
@@ -188,8 +188,8 @@ def write_record(
         # Select category value
         category = line[field]
 
-        if (value_exclusion_filter and category in value_exclusion_filter) or (
-            value_selection_filter and category not in value_selection_filter
+        if (exclude_values and category in exclude_values) or (
+            include_values and category not in include_values
         ):
             return None
 
@@ -215,8 +215,8 @@ def separate_by_metadata(
     remove_metadata: bool = False,
     output_type: str = "jsonl",
     input_type: str = "jsonl",
-    value_selection_filter: List[str] = None,
-    value_exclusion_filter: List[str] = None,
+    include_values: List[str] = None,
+    exclude_values: List[str] = None,
 ) -> dict:
     """
     Saves the dataframe to subfolders named after a metadata
@@ -229,9 +229,9 @@ def separate_by_metadata(
         remove_metadata: Whether to remove the metadata from the dataframe when saving it
         output_type: File type the dataset will be written to. Supported file formats include 'jsonl' (default),
             'pickle', or 'parquet'. (default: jsonl)
-        value_selection_filter: A list of strings representing specific values to be selected or included.
+        include_values: A list of strings representing specific values to be selected or included.
             If provided, only the items matching these values should be kept.
-        value_exclusion_filter: A list of strings representing specific values to be excluded or ignored.
+        exclude_values: A list of strings representing specific values to be excluded or ignored.
             If provided, any items matching these values should be skipped.
 
 
@@ -239,38 +239,22 @@ def separate_by_metadata(
         A delayed dictionary mapping each metadata to the count of entries with that metadata value.
     """
 
-    if value_selection_filter is not None and value_exclusion_filter is not None:
-        print(
-            "Error: 'value_selection_filter' and 'value_exclusion_filter' are mutually exclusive."
-        )
+    if include_values is not None and exclude_values is not None:
+        print("Error: 'include_values' and 'exclude_values' are mutually exclusive.")
 
         return
 
-    if type(input_data) is dd.DataFrame:
-        delayed_data = input_data.to_delayed()
-        delayed_counts = [
-            delayed(write_dataframe_by_meta)(
-                partition,
-                output_dir,
-                metadata_field,
-                remove_metadata,
-                output_type,
-                value_selection_filter,
-                value_exclusion_filter,
-            )
-            for partition in delayed_data
-        ]
-        merged_counts = delayed(reduce)(merge_counts, delayed_counts)
+    # Create output_dir if needed
+    if output_dir:
+        output_dir = expand_outdir_and_mkdir(output_dir)
 
-        return merged_counts
-    else:
+    if isinstance(input_data, str):
         print(f"Reading {input_type} files from {input_data}", flush=True)
 
-        output_dir = expand_outdir_and_mkdir(output_dir)
         if input_type in ["json", "jsonl"] and output_type in ["json", "jsonl"]:
             # Read JSONL files with streaming (line-by-line), and include file path
             bag = db.read_text(
-                os.path.join(input_data, "**", "*"),
+                os.path.join(input_data, "**", f"*.{input_type}"),
                 include_path=True,
             )
 
@@ -282,8 +266,8 @@ def separate_by_metadata(
                     line=x[0],
                     field=metadata_field,
                     output_dir=output_dir,
-                    value_selection_filter=value_selection_filter,
-                    value_exclusion_filter=value_exclusion_filter,
+                    include_values=include_values,
+                    exclude_values=exclude_values,
                 )
             )
 
@@ -292,19 +276,26 @@ def separate_by_metadata(
 
             return delayed(reduce)(merge_counts, [frequencies])
         else:
-            files = get_all_files_paths_under(input_data)
-            return separate_by_metadata(
-                input_data=read_data(
-                    files, file_type=input_type, backend="pandas", add_filename=True
-                ),
-                output_dir=output_dir,
-                metadata_field=metadata_field,
-                remove_metadata=remove_metadata,
-                output_type=output_type,
-                input_type=input_type,
-                value_selection_filter=value_selection_filter,
-                value_exclusion_filter=value_exclusion_filter,
+            input_data = read_data(
+                get_all_files_paths_under(input_data),
+                file_type=input_type,
+                backend="pandas",
+                add_filename=True,
             )
+    delayed_counts = [
+        delayed(write_dataframe_by_meta)(
+            partition,
+            output_dir,
+            metadata_field,
+            remove_metadata,
+            output_type,
+            include_values,
+            exclude_values,
+        )
+        for partition in input_data.to_delayed()
+    ]
+
+    return delayed(reduce)(merge_counts, delayed_counts)
 
 
 def parse_str_of_num_bytes(s, return_str=False):
