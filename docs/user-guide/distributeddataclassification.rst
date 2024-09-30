@@ -1,3 +1,5 @@
+.. _data-curator-distributeddataclassifer:
+
 ============================================
 Distributed Data Classification
 ============================================
@@ -31,7 +33,6 @@ Educational content classification helps identify and prioritize educational mat
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the MMLU (Massive Multitask Language Understanding) benchmark, with scores increasing from 33% to 37%.
 Similarly, on the ARC (AI2 Reasoning Challenge) benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
-
 For more details on the FineWeb datasets and their creation process, please refer to the paper: `The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale <https://arxiv.org/pdf/2406.17557>`_.
 
 -----------------------------------------
