@@ -15,7 +15,6 @@ import os
 
 import pytest
 
-os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
