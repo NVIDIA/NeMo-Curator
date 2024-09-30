@@ -33,7 +33,6 @@ import pandas as pd
 import pyarrow as pa
 from cugraph import MultiGraph
 from dask import dataframe as dd
-from dask.dataframe.shuffle import shuffle as dd_shuffle
 from dask.utils import M
 from tqdm import tqdm
 
@@ -957,8 +956,7 @@ class _MapBuckets:
             transform_divisions=False,
             align_dataframes=False,
         )
-        ddf_anchor_docs_with_bk = dd_shuffle(
-            ddf_anchor_docs_with_bk,
+        ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.shuffle(
             self.id_fields,
             ignore_index=True,
             shuffle_method=shuffle_type,
@@ -1567,18 +1565,10 @@ class ConnectedComponents:
                 align_dataframes=False,
             )
 
-            ddf = dd_shuffle(
-                ddf,
+            ddf = ddf.shuffle(
                 [self.left_id, self.right_id],
                 ignore_index=True,
                 shuffle_method="tasks",
-            )
-            ddf = ddf.map_partitions(
-                M.drop_duplicates,
-                meta=ddf._meta,
-                enforce_metadata=False,
-                transform_divisions=False,
-                align_dataframes=False,
             )
             ddf.to_parquet(output_path, write_index=False)
         self._logger.info(
@@ -1632,7 +1622,14 @@ class ConnectedComponents:
         self._logger.info(
             f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
-
+        unique_docs = unique_docs.drop_duplicates(
+            # Dask does not guard against split_out=0
+            split_out=max(ddf.npartitions // 4, 1)
+        )
+        unique_docs["uid"] = np.uint64(1)
+        unique_docs["uid"] = unique_docs["uid"].cumsum()
+        unique_docs["uid"] = unique_docs["uid"] - 1
+        unique_docs.to_parquet(dedup_parsed_id_path, write_index=False)
         return dedup_parsed_id_path
 
     def _write_encoded_jaccard_pair(self, dedup_parsed_id_path):
