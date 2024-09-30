@@ -31,7 +31,6 @@ Educational content classification helps identify and prioritize educational mat
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the MMLU (Massive Multitask Language Understanding) benchmark, with scores increasing from 33% to 37%.
 Similarly, on the ARC (AI2 Reasoning Challenge) benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
-These results highlight the value of educational content classification in enhancing an LLM's ability to handle complex, knowledge-intensive tasks and improve its reasoning capabilities.
 
 For more details on the FineWeb datasets and their creation process, please refer to the paper: `The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale <https://arxiv.org/pdf/2406.17557>`_.
 
@@ -148,7 +147,6 @@ For example, to create a dataset with only highly educational content (scores 4 
     high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
 
-By using this classifier, you can effectively identify and extract educational content from large web-based datasets, which is generally valuable for providing high quality dataset for training LLMs
 
 CrossFit Integration
 ####################
