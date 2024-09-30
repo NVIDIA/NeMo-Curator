@@ -114,7 +114,7 @@ The possible labels are as follows: ``"safe", "O1", "O2", "O3", "O4", "O5", "O6"
 FineWeb Educational Content Classifier
 ######################################
 The FineWeb Educational Content Classifier is designed to identify and prioritize educational content within a dataset.
- This classifier is particularly useful for creating specialized datasets like FineWeb-Edu, which can be used to train LLMs with a focus on educational material.
+This classifier is particularly useful for creating specialized datasets like FineWeb-Edu, which can be used to train LLMs with a focus on educational material.
 
 To use the FineWeb Educational Content Classifier, you can follow this example:
 
