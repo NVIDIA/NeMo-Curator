@@ -1570,6 +1570,14 @@ class ConnectedComponents:
                 ignore_index=True,
                 shuffle_method="tasks",
             )
+            ddf = ddf.map_partitions(
+                M.drop_duplicates,
+                meta=ddf._meta,
+                enforce_metadata=False,
+                transform_divisions=False,
+                align_dataframes=False,
+            )
+
             ddf.to_parquet(output_path, write_index=False)
         self._logger.info(
             f"Time taken for Dedup Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
