@@ -13,7 +13,8 @@ NeMo Curator provides a module to help users run inference with pre-trained mode
 This is achieved by chunking the datasets across multiple computing nodes, each equipped with multiple GPUs, to accelerate the classification task in a distributed manner.
 Since the classification of a single text document is independent of other documents within the dataset, we can distribute the workload across multiple nodes and GPUs to perform parallel processing.
 
-Domain classification and quality classification are two tasks we include as examples within our module.
+Domain classification, quality classification, and educational content classification are tasks we include as examples within our module.
+
 Here, we summarize why each is useful for training an LLM.
 
 Domain classification is useful because it helps the LLM understand the context and specific domain of
@@ -25,6 +26,14 @@ Quality classification is useful for filtering out noisy or low quality data. Th
 focus on learning from high quality and informative examples, which contributes to the LLM's robustness
 and enhances its ability to generate reliable and meaningful outputs. Additionally, quality
 classification helps mitigate biases and inaccuracies that may arise from poorly curated training data.
+
+Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like FineWeb-Edu.
+These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
+For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the MMLU (Massive Multitask Language Understanding) benchmark, with scores increasing from 33% to 37%.
+Similarly, on the ARC (AI2 Reasoning Challenge) benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
+These results highlight the value of educational content classification in enhancing an LLM's ability to handle complex, knowledge-intensive tasks and improve its reasoning capabilities.
+
+For more details on the FineWeb datasets and their creation process, please refer to the paper: `The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale <https://arxiv.org/pdf/2406.17557>`_.
 
 -----------------------------------------
 Usage
@@ -102,6 +111,44 @@ The possible labels are as follows: ``"safe", "O1", "O2", "O3", "O4", "O5", "O6"
 
   This will create a column in the dataframe with the raw output of the LLM. You can choose to parse this response however you want.
 
+FineWeb Educational Content Classifier
+######################################
+The FineWeb Educational Content Classifier is designed to identify and prioritize educational content within a dataset.
+ This classifier is particularly useful for creating specialized datasets like FineWeb-Edu, which can be used to train LLMs with a focus on educational material.
+
+To use the FineWeb Educational Content Classifier, you can follow this example:
+
+.. code-block:: python
+
+    from nemo_curator.classifiers import FineWebEduClassifier
+
+    files = get_all_files_paths_under("web_documents/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    edu_classifier = FineWebEduClassifier(
+        batch_size=256,
+        text_field="text",
+        pred_column="fineweb-edu-score",
+        int_column="fineweb-edu-score-int"
+    )
+    result_dataset = edu_classifier(dataset=input_dataset)
+
+    result_dataset.to_json("educational_content/")
+
+This classifier uses a model based on the Snowflake-arctic-embed-m embedding model with a linear regression layer on top.
+It assigns an educational score to each document on a scale from 0 to 5, where higher scores indicate more educational content.
+
+The `pred_column` will contain the raw floating-point scores, while the `int_column` will contain the rounded integer scores.
+You can filter the results based on these scores to create datasets with varying levels of educational content.
+
+For example, to create a dataset with only highly educational content (scores 4 and 5):
+
+.. code-block:: python
+
+    high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
+    high_edu_dataset.to_json("high_educational_content/")
+
+By using this classifier, you can effectively identify and extract educational content from large web-based datasets, which is generally valuable for providing high quality dataset for training LLMs
 
 CrossFit Integration
 ####################
