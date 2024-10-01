@@ -94,14 +94,16 @@ def start_dask_gpu_local_cluster(
 
 
 def start_dask_cpu_local_cluster(
-    n_workers=os.cpu_count(), threads_per_worker=1
+    n_workers=os.cpu_count(), threads_per_worker=1, **cluster_kwargs
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     CPUs present on the machine.
 
     """
-    cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker)
+    cluster = LocalCluster(
+        n_workers=n_workers, threads_per_worker=threads_per_worker, **cluster_kwargs,
+    )
     client = Client(cluster)
     return client
 
@@ -177,8 +179,9 @@ def get_client(
             which tracks the amount of memory allocated.
             Note: This option enables additional diagnostics to be collected and reported by the Dask dashboard.
             However, this is significant overhead associated with this and it should only be used for debugging and memory profiling.
-        cluster_kwargs: For GPU-based clusters only. Additional keyword arguments for the LocalCUDACluster configuration.
-            See API documentation https://docs.rapids.ai/api/dask-cuda/nightly/api/ for all possible parameters.
+        cluster_kwargs: Additional keyword arguments for the LocalCluster or LocalCUDACluster configuration.
+            See API documentation https://docs.dask.org/en/stable/deploying-python.html#distributed.deploy.local.LocalCluster
+            for all LocalCluster parameters, or https://docs.rapids.ai/api/dask-cuda/nightly/api/ for all LocalCUDACluster parameters.
     Returns:
         A Dask client object.
 
@@ -212,7 +215,7 @@ def get_client(
             )
         else:
             return start_dask_cpu_local_cluster(
-                n_workers=n_workers, threads_per_worker=threads_per_worker
+                n_workers=n_workers, threads_per_worker=threads_per_worker, **cluster_kwargs,
             )
 
 
