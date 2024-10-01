@@ -145,8 +145,12 @@ class ParallelDataset(DocumentDataset):
         else:
             df = pd
 
-        df_src = df.read_table(src_input_file, names=["src"], quoting=csv.QUOTE_NONE)
-        df_tgt = df.read_table(tgt_input_file, names=["tgt"], quoting=csv.QUOTE_NONE)
+        df_src = df.read_csv(
+            src_input_file, names=["src"], sep="\t", quoting=csv.QUOTE_NONE
+        )
+        df_tgt = df.read_csv(
+            tgt_input_file, names=["tgt"], sep="\t", quoting=csv.QUOTE_NONE
+        )
         assert len(df_src) == len(
             df_tgt
         ), f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."

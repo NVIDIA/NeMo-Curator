@@ -19,14 +19,15 @@ import pytest
 from nemo_curator.datasets.parallel_dataset import ParallelDataset
 
 
+# The source/target file paths will be concatenated as document ID in `ParallelDataset`, so we can't directly pass a `Path` object.
 @pytest.fixture
 def src_file():
-    return Path("tests/bitext_data/toy.de")
+    return Path("tests/bitext_data/toy.de").absolute().as_posix()
 
 
 @pytest.fixture
 def tgt_file():
-    return Path("tests/bitext_data/toy.en")
+    return Path("tests/bitext_data/toy.en").absolute().as_posix()
 
 
 class TestReadSimpleBitext:
@@ -57,8 +58,7 @@ class TestReadSimpleBitext:
         )
 
         for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
-            ds.df.compute()
-            assert ds.df["src"][idx] == src_line.rstrip("\n")
-            assert ds.df["tgt"][idx] == tgt_line.rstrip("\n")
-            assert ds.df["src_lang"][idx][idx] == "de"
-            assert ds.df["tgt_lang"][idx][idx] == "en"
+            assert ds.df["src"].compute()[idx] == src_line.rstrip("\n")
+            assert ds.df["tgt"].compute()[idx] == tgt_line.rstrip("\n")
+            assert ds.df["src_lang"].compute()[idx] == "de"
+            assert ds.df["tgt_lang"].compute()[idx] == "en"
