@@ -247,6 +247,7 @@ class ParallelScoreFilter:
     ):
         """A filter object wrapper class for applying *monolingual* filter objects on bitext.
         If either side of the bitext is discarded, the whole bitext pair is discarded.
+        If you want to apply a *bitext* filter that takes both the source and target as input, checkout `BitextFilter` class.
 
         Note that the goal of this wrapper class is to group the same/similar filters on bitext thus making the logic clearer,
         which is why we force the `score_type` and `invert` to be the same among source/target filters.

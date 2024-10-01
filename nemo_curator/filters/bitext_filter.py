@@ -23,6 +23,7 @@ from nemo_curator.utils.module_utils import is_batched
 
 class BitextFilter(ABC):
     """A base class for bitext filter objects (such as length ratio, QE filter) on bitext.
+    Different from `ParallelScoreFilter`, these filters require looking at both source AND target side of the bitext to compute a score.
 
     This is roughly equivalent to a `ScoreFilter` wrapping over a `DocumentFilter` object.
     But aside from operating on `ParallelDataset` instead of `DocumentDataset`, it comes with some other differences:
