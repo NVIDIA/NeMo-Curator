@@ -102,7 +102,9 @@ def start_dask_cpu_local_cluster(
 
     """
     cluster = LocalCluster(
-        n_workers=n_workers, threads_per_worker=threads_per_worker, **cluster_kwargs,
+        n_workers=n_workers,
+        threads_per_worker=threads_per_worker,
+        **cluster_kwargs,
     )
     client = Client(cluster)
     return client
@@ -215,7 +217,9 @@ def get_client(
             )
         else:
             return start_dask_cpu_local_cluster(
-                n_workers=n_workers, threads_per_worker=threads_per_worker, **cluster_kwargs,
+                n_workers=n_workers,
+                threads_per_worker=threads_per_worker,
+                **cluster_kwargs,
             )
 
 
