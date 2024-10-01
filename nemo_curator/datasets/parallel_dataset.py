@@ -67,6 +67,10 @@ class ParallelDataset(DocumentDataset):
             add_filename=add_filename,
         )
 
+        # TODO: Currently a pair of simple bitext file will be loaded into a single partition,
+        # which means filtering won't be parallelized.
+        # Presumably, the solution is to repartition the dataset after loading,
+        # but this introduces problems when running with slurm, so we table this for now.
         # if partition_size:
         #     df = df.repartition(partition_size=partition_size)
         return cls(df)
@@ -133,7 +137,6 @@ class ParallelDataset(DocumentDataset):
 
         if not doc_id:
             doc_id = "▁".join([src_input_file, tgt_input_file])
-        df_combined["doc_id"] = doc_id
 
         # TODO: it seems like cudf.read_table can only take one file max
         # so maybe we shouldn't pass more than one
@@ -148,6 +151,7 @@ class ParallelDataset(DocumentDataset):
             df_tgt
         ), f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
         df_combined = df.concat([df_src, df_tgt], axis=1)
+        df_combined["doc_id"] = doc_id
         df_combined["src_lang"] = src_lang
         df_combined["tgt_lang"] = tgt_lang
 

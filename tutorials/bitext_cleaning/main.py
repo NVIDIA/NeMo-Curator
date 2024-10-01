@@ -20,7 +20,7 @@ from typing import Any
 
 from docbuilder import TedTalksDownloader
 
-from nemo_curator import JointScoreFilter, ParallelScoreFilter, Sequential
+from nemo_curator import ParallelScoreFilter, Sequential
 from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import (
     HistogramFilter,
@@ -50,8 +50,10 @@ def download_files() -> str:
 def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDataset:
     filters = Sequential(
         [
-            JointScoreFilter(
-                LengthRatioFilter(max_ratio=2, src_lang=SRC_LANG, tgt_lang=TGT_LANG),
+            LengthRatioFilter(
+                max_ratio=2,
+                src_lang=SRC_LANG,
+                tgt_lang=TGT_LANG,
                 score_field="length_ratio",
                 score_type=float,
             ),
@@ -67,10 +69,11 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
 
     if gpu:
         filters.modules.append(
-            JointScoreFilter(
-                QualityEstimationFilter("comet-qe", cutoff=-0.25, gpu=gpu),
-                src_field=["src", "src_lang"],
-                tgt_field=["tgt", "tgt_lang"],
+            QualityEstimationFilter(
+                "comet-qe",
+                cutoff=-0.25,
+                gpu=gpu,
+                metadata_fields=["src_lang", "tgt_lang"],
                 score_type=float,
             )
         )
