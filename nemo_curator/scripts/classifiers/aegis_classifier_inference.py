@@ -64,6 +64,7 @@ def main():
         token=args.token,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
+        max_mem_gb=args.max_mem_gb_classifier,
     )
 
     for file_batch_id, i in enumerate(range(0, len(input_files), files_per_run)):
