@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .bitext_filter import BitextFilter
 from .classifier_filter import (
     FastTextLangId,
     FastTextQualityFilter,
@@ -56,6 +57,7 @@ from .heuristic_filter import (
 )
 
 __all__ = [
+    "BitextFilter",
     "DocumentFilter",
     "import_filter",
     "FastTextLangId",

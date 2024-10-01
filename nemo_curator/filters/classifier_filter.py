@@ -18,6 +18,7 @@ import fasttext
 import numpy as np
 import pandas as pd
 
+from nemo_curator.filters.bitext_filter import BitextFilter
 from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.filters.models.qe_models import COMETQEModel, PyMarianQEModel
 from nemo_curator.utils.decorators import batched
@@ -103,7 +104,7 @@ class FastTextLangId(DocumentFilter):
         return fasttext.load_model(self._model_path)
 
 
-class QualityEstimationFilter(DocumentFilter):
+class QualityEstimationFilter(BitextFilter):
     """(Bitext filter) Use a Quality Estimation (QE) model to score individual segments and filter based on estimated quality score.
     (reference: https://arxiv.org/pdf/2311.05350)
     """
@@ -115,7 +116,7 @@ class QualityEstimationFilter(DocumentFilter):
         "cometoid-wmt23-mqm": PyMarianQEModel,
     }
 
-    def __init__(self, model_name, cutoff, mode="always_en_x", gpu=False):
+    def __init__(self, model_name, cutoff, mode="always_en_x", gpu=False, **kwargs):
         """Args:
             model_name (_type_): Name of the model, as listed in the `SUPPORTED_MODELS` variable.
             cutoff (_type_): A cut-off threshold for filtering. All segments with scores lower than this threshold will be tossed away.
@@ -125,6 +126,8 @@ class QualityEstimationFilter(DocumentFilter):
         Raises:
             NotImplementedError: If a model name outside the supported model list is passed.
         """
+        super().__init__(**kwargs)
+
         if model_name in self.SUPPORTED_MODELS:
             self._name = model_name
         else:
@@ -137,14 +140,23 @@ class QualityEstimationFilter(DocumentFilter):
         self._cutoff = cutoff
         self._gpu = gpu
 
-    def _score_document_with_qe(
-        self, model, df: pd.Series, mode="always_en_x"
+    def _score_bitext_with_qe(
+        self,
+        model,
+        src: pd.Series,
+        tgt: pd.Series,
+        src_lang: pd.Series,
+        tgt_lang: pd.Series,
+        mode: str = "always_en_x",
     ) -> List[float]:
         """Arrange the documents according to the inference mode, call the model to estimate translation quality.
 
         Args:
             model (_type_): QE model object to be called.
-            df (pd.Series): Data frame that holds the translation data.
+            src (pd.Series): data frame holding the source document.
+            tgt (pd.Series): data frame holding the target document.
+            src_lang (pd.Series): data frame holding the list of source languages.
+            tgt_lang (pd.Series): data frame holding the list of target languages.
             mode (str, optional): Currently three inference modes are supported:
 
                 - `simple`: Maintain the translation direction as specified in the data and
@@ -170,57 +182,54 @@ class QualityEstimationFilter(DocumentFilter):
         model_class = self.SUPPORTED_MODELS[self._name]
 
         if mode == "simple":
-            input = [
-                model_class.wrap_qe_input(src, tgt)
-                for src, tgt in zip(df.iloc[:, 0], df.iloc[:, 2])
-            ]
+            input = [model_class.wrap_qe_input(s, t) for s, t in zip(src, tgt)]
             return model.predict(input)
         elif mode == "always_en_x":
             # if English is included but it's on the target side, flip to make sure we are scoring with en-x
             # this strategy was proposed in: https://aclanthology.org/2023.wmt-1.50.pdf
             input = [
                 model_class.wrap_qe_input(
-                    src,
-                    tgt,
-                    reverse=(
-                        _has_en(src_lang, tgt_lang) and not _is_en_x(src_lang, tgt_lang)
-                    ),
+                    s, t, reverse=(_has_en(sl, tl) and not _is_en_x(sl, tl))
                 )
-                for src, tgt, src_lang, tgt_lang in zip(
-                    df.iloc[:, 0], df.iloc[:, 2], df.iloc[:, 1], df.iloc[:, 3]
-                )
+                for s, t, sl, tl in zip(src, tgt, src_lang, tgt_lang)
             ]
             return model.predict(input)
         elif mode == "bidi":
             # score twice -- once forward and once backward
-            fwd_input = [
-                model_class.wrap_qe_input(src, tgt)
-                for src, tgt in zip(df.iloc[:, 0], df.iloc[:, 2])
-            ]
+            fwd_input = [model_class.wrap_qe_input(s, t) for s, t in zip(src, tgt)]
             rev_input = [
-                model_class.wrap_qe_input(src, tgt, reverse=True)
-                for src, tgt in zip(df.iloc[:, 0], df.iloc[:, 2])
+                model_class.wrap_qe_input(s, t, reverse=True) for s, t in zip(src, tgt)
             ]
             scores = model.predict(
                 fwd_input + rev_input
             )  # making one call to take advantage of batching
             # first half is forward score, second half is reverse score -- now we unpack and average
-            fwd_scores = scores[: len(df)]
-            rev_scores = scores[len(df) :]
+            fwd_scores = scores[: len(src)]
+            rev_scores = scores[len(src) :]
             return [(fs + rs) / 2 for fs, rs in zip(fwd_scores, rev_scores)]
         else:
             raise NotImplementedError
 
     @batched
-    def score_document(self, df: pd.Series) -> pd.Series:
+    def _score_bitext(
+        self, src: pd.Series, tgt: pd.Series, src_lang: pd.Series, tgt_lang: pd.Series
+    ) -> pd.Series:
         """Wrapper function that scores documents in a data frame. Most work is done in `_score_document_with_qe`.
 
         Args:
-            df (pd.Series): Data frame that holds the translation data.
+            Takes two metadata fields: `src_lang` and `tgt_lang`. Refer to `_score_bitext_with_qe` function for details.
+
+        Raises:
+            RuntimeError: If input data frame arguments doesn't have the same length.
 
         Returns:
             pd.Series: A list of float scores corresponding to the individual score of each documents.
         """
+
+        if not len(src) == len(tgt) == len(src_lang) == len(tgt_lang):
+            raise RuntimeError(
+                "Different fields of the data frame should have the same length"
+            )
 
         model_attr = f"{self._name}_{self._model_path}"
         try:
@@ -230,12 +239,14 @@ class QualityEstimationFilter(DocumentFilter):
                 {"model_name": self._name, "gpu": self._gpu},
             )
         except NoWorkerError:
-            return pd.Series([-1.0 for _ in range(len(df))])
+            return pd.Series([-1.0 for _ in range(len(src))])
 
-        scores = self._score_document_with_qe(model, df, self._mode)
+        scores = self._score_bitext_with_qe(
+            model, src, tgt, src_lang, tgt_lang, self._mode
+        )
 
-        return pd.Series(scores, index=df.index)
+        return pd.Series(scores, index=src.index)
 
-    def keep_document(self, score):
+    def _keep_bitext(self, score):
         """Decides whether a single document should be retained according to a threshold of estimated quality score."""
         return score >= self._cutoff

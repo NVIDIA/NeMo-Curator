@@ -60,7 +60,6 @@ from nemo_curator.filters import (
 from nemo_curator.filters.models.qe_models import COMET_IMPORT_MSG, PYMARIAN_IMPORT_MSG
 from nemo_curator.modules import (
     Filter,
-    JointScoreFilter,
     ParallelScoreFilter,
     Score,
     ScoreFilter,
@@ -123,9 +122,22 @@ def list_to_dataset(documents, col_name="text", npartitions=2):
 
 
 def two_lists_to_parallel_dataset(
-    src_documents, tgt_documents, src_col_name="src", tgt_col_name="tgt", npartitions=2
+    src_documents,
+    tgt_documents,
+    src_lang,
+    tgt_lang,
+    src_col_name="src",
+    tgt_col_name="tgt",
+    npartitions=2,
 ):
-    data = {src_col_name: src_documents, tgt_col_name: tgt_documents}
+    src_langs = [src_lang] * len(src_documents)
+    tgt_langs = [tgt_lang] * len(src_documents)
+    data = {
+        src_col_name: src_documents,
+        "src_lang": src_langs,
+        tgt_col_name: tgt_documents,
+        "tgt_lang": tgt_langs,
+    }
     pdf = pd.DataFrame(data)
 
     return ParallelDataset(dd.from_pandas(pdf, npartitions=npartitions))
@@ -143,6 +155,8 @@ def parallel_letter_count_data():
     return two_lists_to_parallel_dataset(
         ["Einsa", "Zwei aaa", "a Drei a", "Fünf aaa a", "aaaSieben aaaa"],
         ["aOne", "Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"],
+        src_lang="de",
+        tgt_lang="en",
         src_col_name="src",
         tgt_col_name="tgt",
     )
@@ -153,6 +167,8 @@ def length_ratio_data():
     return two_lists_to_parallel_dataset(
         ["Test", "test", "Test Test ", "Test Test"],
         ["Prueba", "prueba prueba prueba", "Prueba Prueba", "Prueba Prueba Prueba "],
+        src_lang="en",
+        tgt_lang="es",
     )
 
 
@@ -358,13 +374,14 @@ class TestFilterModule:
         ), f"Expected {expected_data} but got {filtered_data}"
 
     def test_joint_score_filter(self, length_ratio_data):
-        length_ratio_filter = LengthRatioFilter(
-            max_ratio=1.5, src_lang="en", tgt_lang="de"
+        filter_ = LengthRatioFilter(
+            max_ratio=1.5,
+            src_lang="en",
+            tgt_lang="de",
+            score_field="ratio",
+            score_type=float,
         )
-        filter_step = JointScoreFilter(
-            length_ratio_filter, score_field="ratio", score_type=float
-        )
-        filtered_data = filter_step(length_ratio_data)
+        filtered_data = filter_(length_ratio_data)
 
         expected_indices = [0, 2]
         expected_data = ParallelDataset(length_ratio_data.df.loc[expected_indices])
@@ -958,16 +975,21 @@ class TestClassifierFilters:
                 "这句话在中文一侧会被翻译。",
                 "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
             ],
+            "en",
+            "zh",
         )
 
         from nemo_curator.filters import QualityEstimationFilter
         from nemo_curator.utils.distributed_utils import get_client
 
         client = get_client(n_workers=1)
-        filter_ = JointScoreFilter(
-            QualityEstimationFilter("comet-qe", cutoff=-0.25, mode="bidi"),
+        filter_ = QualityEstimationFilter(
+            "comet-qe",
+            cutoff=-0.25,
+            mode="bidi",
             score_type=float,
-        )  # enable GPU by gpu=True
+            metadata_fields=["src_lang", "tgt_lang"],
+        )
         filtered_data = filter_(dataset)
 
         expected_indices = [0]
@@ -991,15 +1013,20 @@ class TestClassifierFilters:
                 "这句话在中文一侧会被翻译。",
                 "至尊戒，驭众戒；至尊戒，寻众戒；魔戒至尊引众戒，禁锢众戒黑暗中。",
             ],
+            "en",
+            "zh",
         )
 
         from nemo_curator.filters import QualityEstimationFilter
         from nemo_curator.utils.distributed_utils import get_client
 
         client = get_client(n_workers=1)
-        filter_ = JointScoreFilter(
-            QualityEstimationFilter("cometoid-wmt23", cutoff=0.75, mode="bidi"),
+        filter_ = QualityEstimationFilter(
+            "cometoid-wmt23",
+            cutoff=0.75,
+            mode="bidi",
             score_type=float,
+            metadata_fields=["src_lang", "tgt_lang"],
         )  # enable GPU by gpu=True
         filtered_data = filter_(dataset)
 

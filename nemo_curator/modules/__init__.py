@@ -25,7 +25,7 @@ from .add_id import AddId
 from .config import FuzzyDuplicatesConfig, SemDedupConfig
 from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
-from .filter import Filter, Score, ScoreFilter, ParallelScoreFilter, JointScoreFilter
+from .filter import Filter, Score, ScoreFilter, ParallelScoreFilter
 from .meta import Sequential
 from .modify import Modify
 from .task import TaskDecontamination
@@ -61,7 +61,6 @@ __all__ = [
     "Score",
     "ScoreFilter",
     "ParallelScoreFilter",
-    "JointScoreFilter",
     "Sequential",
     "TaskDecontamination",
     "AddId",

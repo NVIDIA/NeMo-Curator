@@ -15,10 +15,10 @@
 import os.path
 import tarfile
 
-import regex
 import requests
 from platformdirs import user_cache_dir
 
+from nemo_curator.filters.bitext_filter import BitextFilter
 from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
 from nemo_curator.utils.constants import (
     bullet_list,
@@ -737,37 +737,39 @@ class HistogramFilter(DocumentFilter):
         return score == 1
 
 
-class LengthRatioFilter(DocumentFilter):
+class LengthRatioFilter(BitextFilter):
     """(Bitext filter) Length ratio filter for bitext, similar to the one implemented in Moses toolkit (`https://github.com/moses-smt/mosesdecoder/blob/master/scripts/training/clean-corpus-n.perl`).
 
     If the ratio between source and target tokens is not within a specified range then discard. Either direction (src/tgt, tgt/src) is considered.
     """
 
-    def __init__(self, max_ratio=3.0, src_lang="en", tgt_lang="en"):
+    def __init__(self, max_ratio=3.0, src_lang="en", tgt_lang="en", **kwargs):
         """Args:
         max_ratio (float, optional): Maximum allowed length ratio between either direction of the bitext. Defaults to 3.0.
         src_lang (str, optional): Language of the source data (needed for tokenization). Defaults to "en".
         tgt_lang (str, optional): Language of the target data (needed for tokenization). Defaults to "en".
         """
-        super().__init__()
+
+        super().__init__(**kwargs)
         self._max_ratio = float(max_ratio)
         self._src_word_splitter = get_word_splitter(src_lang)
         self._tgt_word_splitter = get_word_splitter(tgt_lang)
         self._name = "length_ratio"
 
-    def score_document(self, bitext_tuple) -> float:
+    def _score_bitext(self, src: str, tgt: str) -> float:
         """Tokenize the source and target sentences and compute length ratio.
 
         Args:
-            bitext_tuple: The data frame object holding the data instance.
+            src (str): Source document string.
+            tgt (str): Target document string.
 
         Returns:
             float: The maximum ratio among the two translation directions of the bitext.
         """
-        src_len = len(self._src_word_splitter(bitext_tuple.iloc[0].strip()))
-        tgt_len = len(self._tgt_word_splitter(bitext_tuple.iloc[1].strip()))
+        src_len = len(self._src_word_splitter(src.strip()))
+        tgt_len = len(self._tgt_word_splitter(tgt.strip()))
         return max(src_len / tgt_len, tgt_len / src_len)
 
-    def keep_document(self, score):
+    def _keep_bitext(self, score):
         """Decides whether a single document should be retained according to the computed length ratio."""
         return score < self._max_ratio
