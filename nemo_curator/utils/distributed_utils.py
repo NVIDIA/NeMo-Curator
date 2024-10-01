@@ -94,7 +94,6 @@ def start_dask_gpu_local_cluster(
 
     if enable_spilling:
         _enable_spilling()
-        client.run(_enable_spilling)
         print("cuDF Spilling is enabled", flush=True)
 
     return client
