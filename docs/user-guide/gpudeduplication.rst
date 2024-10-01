@@ -29,7 +29,7 @@ How It Works
 -----------------------------------------
 
 Exact dedpulication works by hashing each document and only keeping one document per hash.
-Finding exact duplicates works on both CPU and GPU based backends.
+Running exact deduplication works on both CPU- and GPU-based backends.
 
 -----------------------------------------
 Usage
@@ -44,6 +44,16 @@ Python API
 .. note::
     Before running exact deduplication, you need to ensure that the dataset contains a unique ID for each document.
     If needed, you can use the :code:`add_id` module within NeMo Curator to accomplish this.
+
+    .. code-block:: python
+
+      from nemo_curator import AddId
+      from nemo_curator.datasets import DocumentDataset
+
+      add_id = AddId(id_field="my_id", id_prefix="doc_prefix")
+      dataset = DocumentDataset.read_json("input_file_path")
+      id_dataset = add_id(dataset)
+      id_dataset.to_json("output_file_path")
 
 .. code-block:: python
 
@@ -60,9 +70,19 @@ Python API
 
     duplicate_docs = ExactDups(dataset)
 
+    """
+    Sample output:
+    my_id                  _hashes
+    22   doc_prefix-37820  e7cb1e88a7a30ea101d33e0c4c8857ef
+    70   doc_prefix-56261  bfce4501b9caa93cb3daccd6db1f13af
+    75   doc_prefix-56271  bfce4501b9caa93cb3daccd6db1f13af
+    84   doc_prefix-52261  0f763a2937d57b9d96bf9f220e55f2bd
+    107  doc_prefix-52271  0f763a2937d57b9d96bf9f220e55f2bd
+    """
+
 .. tip::
   A more comprehensive example, including how to remove documents from a corpus using the list of
-  duplicate IDs generated from exact deduplication for the above can be found in `examples/exact_deduplication.py <https://github.com/NVIDIA/NeMo-Curator/blob/main/examples/exact_deduplication.py>`_.
+  duplicate IDs generated from the exact deduplication step above, can be found in `examples/exact_deduplication.py <https://github.com/NVIDIA/NeMo-Curator/blob/main/examples/exact_deduplication.py>`_.
 
 """"""""""""
 CLI Utility
@@ -89,7 +109,7 @@ All CLI scripts are included in the :code:`nemo_curator/scripts/` subdirectory.
 
 .. caution::
     The CLI utilities are limited to JSONL datasets and only work with GPU-based backends.
-    For different dataset formats or backeds use the :ref:`exactdup_pyapi`.
+    For different dataset formats or backends use the :ref:`exactdup_pyapi`.
 
 =========================================
 Fuzzy Deduplication
@@ -142,6 +162,16 @@ Python API
 .. note::
     Before running fuzzy deduplication, you need to ensure that the dataset contains a unique ID for each document.
     If needed, you can use the ``add_id`` module within NeMo Curator to accomplish this.
+
+    .. code-block:: python
+
+      from nemo_curator import AddId
+      from nemo_curator.datasets import DocumentDataset
+
+      add_id = AddId(id_field="my_id", id_prefix="doc_prefix")
+      dataset = DocumentDataset.read_json("input_file_path")
+      id_dataset = add_id(dataset)
+      id_dataset.to_json("output_file_path")
 
 1. Configuration
 
@@ -198,11 +228,19 @@ Python API
 
     dataset = DocumentDataset.read_json(
         input_files="/path/to/parquet/data",
-        backend="cudf",
+        backend="cudf", # FuzzyDuplicates only supports datasets with the cuDF backend.
     )
 
     duplicate_docs = FuzzyDups(dataset)
-
+    """
+    Sample output:
+                  my_id  group
+    0  doc_prefix-56151     32
+    1  doc_prefix-47071    590
+    2  doc_prefix-06840    305
+    3  doc_prefix-20910    305
+    4  doc_prefix-42050    154
+    """
 
 .. tip::
 
@@ -250,7 +288,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-json-id-field id_column_name \
                  --minhash-length number_of_hashes \
                  --char-ngram char_ngram_size \
-                 --hash-bytes 4(or 8 byte hashes) \
+                 --hash-bytes 4 `#or 8 byte hashes` \
                  --seed 42 \
                  --log-dir ./
                  # --scheduler-file /path/to/file.json
@@ -276,7 +314,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --log-dir ./
                  # --scheduler-file /path/to/file.json
 
-3. False positive check (optional): If skipping this step, proceed to the :ref:`skip fp check section <fuzzydup_nofp>`.
+3. False Positive Check (optional): If skipping this step, proceed to the :ref:`skip fp check section <fuzzydup_nofp>`.
 
   a. Jaccard Map Buckets
     - Input: ``_buckets.parquet`` and data directories
@@ -358,13 +396,13 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 
 .. caution::
   The CLI utilities are limited to JSONL datasets and only work with specific ID formats.
-  For different dataset format use the :ref:`fuzzydup_pyapi`.
+  For different dataset or ID formats, use the :ref:`fuzzydup_pyapi`.
 
 ------------------------
 Incremental Fuzzy Deduplication
 ------------------------
 
-* To incrementally perform fuzzy dedup we do not need to recompute minhashes for datasets where minhashes were already computed.
+* To incrementally perform fuzzy deduplication, we do not need to recompute minhashes for datasets where minhashes were already computed.
   Instead, you can organize your incremental datasets into separate directories and pass a list of all new directories to :code:`gpu_compute_minhashes`.
 
     - Input (assuming incremental snapshots are all under :code:`/input/`):
@@ -398,5 +436,5 @@ Incremental Fuzzy Deduplication
                    --log-dir ./
                    # --scheduler-file /path/to/file.json
 
-All subsequent steps starting with :ref:`Buckets <fuzzydup_lsh>` can be executed on all the data
+All subsequent steps starting with :ref:`Buckets <fuzzydup_lsh>`, can be executed on all the data
 (old and incremental) as described above without modification.
