@@ -14,7 +14,6 @@ justext==3.0.1
 lxml_html_clean
 mwparserfromhell==0.6.5
 nemo_toolkit[nlp]>=1.23.0
-numpy<2
 openai
 peft
 presidio-analyzer==2.2.351
