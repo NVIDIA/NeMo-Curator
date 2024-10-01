@@ -27,7 +27,7 @@ jobs:
 
     - name: Run Docker container with Python 3.10
       run: |
-        docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
+        docker run --gpus all --runtime=nvidia --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
 
     - name: Run nvidia-smi test
       run: |
