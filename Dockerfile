@@ -10,6 +10,6 @@ git clone $FORKED_REPO_URL
 cd NeMo-Curator
 git fetch origin $CURATOR_COMMIT --depth=1
 git checkout $CURATOR_COMMIT
-pip install cython pytest setuptools
+pip install cython pytest setuptools pip --upgrade
 pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
 EOF
