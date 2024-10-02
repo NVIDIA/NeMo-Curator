@@ -45,12 +45,17 @@ cuda12_requirements_filename = (
 extras_require: dict = {
     "cuda12x": req_file(cuda12_requirements_filename),
     "image": req_file("requirements_image.txt"),
+    "bitext": req_file("requirements_bitext.txt"),
 }
 
 extras_require["all"] = list(chain(extras_require.values()))
 
 extras_require["image"] = list(
     chain([extras_require["image"], extras_require["cuda12x"]])
+)
+
+extras_require["bitext"] = list(
+    chain([extras_require["bitext"], extras_require["cuda12x"]])
 )
 
 setup(
