@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# SBATCH --job-name=nemo-curator:notebook
+#SBATCH --job-name=nemo-curator:notebook
 #SBATCH --nodes=2
 #SBATCH --exclusive
 #SBATCH --time=04:00:00
