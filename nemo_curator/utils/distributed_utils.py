@@ -29,7 +29,7 @@ import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
-from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
+from nemo_curator.utils.gpu_utils import is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
@@ -41,6 +41,18 @@ get_device_total_memory = gpu_only_import_from(
 
 class NoWorkerError(Exception):
     pass
+
+
+def _enable_spilling():
+    """
+    Setting this environment variable enables automatic spilling (and "unspilling")
+    of buffers from device to host to enable out-of-memory computation,
+    i.e., computing on objects that occupy more memory than is available on the GPU.
+    """
+    # Workaround for below (which is missing in 24.08, but fixed in 24.10)
+    # Remove this when we update to 24.10 or later dask-cuda
+    # https://github.com/rapidsai/dask-cuda/pull/1369/files
+    cudf.set_option("spill", True)
 
 
 def start_dask_gpu_local_cluster(
@@ -70,18 +82,20 @@ def start_dask_gpu_local_cluster(
         rmm_pool_size=rmm_pool_size,
         protocol=protocol,
         rmm_async=True,
+        enable_cudf_spill=enable_spilling,
         **extra_kwargs,
     )
     client = Client(cluster)
-
-    if enable_spilling:
-        _enable_spilling()
-        client.run(_enable_spilling)
 
     if set_torch_to_use_rmm:
         _set_torch_to_use_rmm()
         client.run(_set_torch_to_use_rmm)
         print("Torch is using RMM memory pool", flush=True)
+
+    if enable_spilling:
+        _enable_spilling()
+        print("cuDF Spilling is enabled", flush=True)
+
     return client
 
 
@@ -191,18 +205,6 @@ def _set_torch_to_use_rmm():
         return
 
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
-
-
-def _enable_spilling():
-    """
-    Setting this environment variable enables automatic spilling (and "unspilling")
-    of buffers from device to host to enable out-of-memory computation,
-    i.e., computing on objects that occupy more memory than is available on the GPU.
-
-    """
-    import cudf
-
-    cudf.set_option("spill", True)
 
 
 def read_single_partition(
