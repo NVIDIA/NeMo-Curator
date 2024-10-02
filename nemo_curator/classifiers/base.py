@@ -12,14 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from dataclasses import dataclass
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from abc import ABC, abstractmethod
 from typing import List
 
+import torch
+import torch.nn as nn
 from crossfit import op
+from huggingface_hub import PyTorchModelHubMixin
+from transformers import AutoModel
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.utils.distributed_utils import get_gpu_memory_info
 
 
 class DistributedDataClassifier(ABC):
@@ -78,6 +84,32 @@ class DistributedDataClassifier(ABC):
         return self.labels
 
 
+class HFDeberta(nn.Module, PyTorchModelHubMixin):
+    def __init__(self, config: dataclass):
+        super(HFDeberta, self).__init__()
+        self.model = AutoModel.from_pretrained(config["base_model"])
+        self.dropout = nn.Dropout(config["fc_dropout"])
+        self.fc = nn.Linear(self.model.config.hidden_size, len(config["id2label"]))
+
+    def _forward(self, batch):
+        features = self.model(
+            batch["input_ids"], batch["attention_mask"]
+        ).last_hidden_state
+        dropped = self.dropout(features)
+        outputs = self.fc(dropped)
+        return torch.softmax(outputs[:, 0, :], dim=1)
+
+    def forward(self, batch):
+        if self.autocast:
+            with torch.autocast(device_type="cuda"):
+                return self._forward(batch)
+        else:
+            return self._forward(batch)
+
+    def set_autocast(self, autocast):
+        self.autocast = autocast
+
+
 def _run_classifier_helper(
     df: "dask_cudf.DataFrame",
     model: "HFModel",
@@ -127,3 +159,15 @@ def _run_classifier_helper(
         df = df.drop(columns=[prob_internal_col])
 
     return df
+
+
+def _get_suggest_memory_for_classifier() -> int:
+    gpu_memory_info = get_gpu_memory_info()
+    min_gpu_memory = min(gpu_memory_info.values())
+    # Convert memory from bytes to GB
+    min_gpu_memory_gb = min_gpu_memory / (1024**3)
+    # Subtract 4GB from the minimum
+    # to leave room for other operations
+    # like cuDF operations
+    min_gpu_memory_gb = min_gpu_memory_gb - 4
+    return int(min_gpu_memory_gb)

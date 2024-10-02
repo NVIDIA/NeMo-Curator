@@ -14,6 +14,8 @@
 import argparse
 import os
 
+import psutil
+
 
 class ArgumentHelper:
     """
@@ -289,6 +291,15 @@ class ArgumentHelper:
             required=False,
         )
 
+    def add_arg_max_mem_gb_classifier(self):
+        self.parser.add_argument(
+            "--max-mem-gb-classifier",
+            default=None,
+            type=int,
+            help="Specify the maximum GPU memory (in GB) for the classifier. "
+            "Defaults to using the total GPU memory minus 4 GB if not specified.",
+        )
+
     def add_arg_autocast(self, help="Whether to use autocast or not"):
         ArgumentHelper.attach_bool_arg(
             parser=self.parser,
@@ -380,6 +391,25 @@ class ArgumentHelper:
 
         return self.parser
 
+    def set_default_n_workers(self, max_mem_gb_per_worker: float):
+        """
+        Sets the default --n-workers for a script to maximize parallelization while
+        ensuring we don't trigger an out of memory error. Like --n-workers, this
+        only applies when running the script locally.
+
+        Args:
+            max_mem_per_worker (float): The maximum memory that each worker usually achieves for a script
+                in units of gigabytes. It can be determined by watching the Dask dashboard. This value may
+                change based on the size of each shard, so use a jsonl shard size of about 100 MB.
+        """
+        cpu_worker_limit = os.cpu_count()
+
+        memory_gb = psutil.virtual_memory().total / (1024**3)
+        mem_worker_limit = memory_gb // max_mem_gb_per_worker
+
+        n_workers = min(cpu_worker_limit, mem_worker_limit)
+        self.parser.set_defaults(n_workers=n_workers)
+
     @staticmethod
     def parse_client_args(args: argparse.Namespace):
         """
@@ -441,6 +471,7 @@ class ArgumentHelper:
         self.add_distributed_args()
         self.add_arg_enable_spilling()
         self.add_arg_set_torch_to_use_rmm()
+        self.add_arg_max_mem_gb_classifier()
 
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
@@ -487,11 +518,11 @@ class ArgumentHelper:
         argumentHelper.parser.add_argument(
             "--input-json-id-field",
             type=str,
-            default="adlr_id",
+            required=True,
             help="The name of the field within each json object of the jsonl "
             "file that assigns a unqiue ID to each document. "
             "Can be created by running the script "
-            "'./prospector/add_id.py' which adds the field 'adlr_id' "
+            "'../scripts/add_id.py' which adds the field "
             "to the documents in a distributed fashion",
         )
         argumentHelper.parser.add_argument(

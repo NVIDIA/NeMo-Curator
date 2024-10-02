@@ -21,7 +21,7 @@ import random
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -29,15 +29,30 @@ import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
-from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
+from nemo_curator.utils.gpu_utils import is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
+get_device_total_memory = gpu_only_import_from(
+    "dask_cuda.utils", "get_device_total_memory"
+)
 
 
 class NoWorkerError(Exception):
     pass
+
+
+def _enable_spilling():
+    """
+    Setting this environment variable enables automatic spilling (and "unspilling")
+    of buffers from device to host to enable out-of-memory computation,
+    i.e., computing on objects that occupy more memory than is available on the GPU.
+    """
+    # Workaround for below (which is missing in 24.08, but fixed in 24.10)
+    # Remove this when we update to 24.10 or later dask-cuda
+    # https://github.com/rapidsai/dask-cuda/pull/1369/files
+    cudf.set_option("spill", True)
 
 
 def start_dask_gpu_local_cluster(
@@ -67,18 +82,20 @@ def start_dask_gpu_local_cluster(
         rmm_pool_size=rmm_pool_size,
         protocol=protocol,
         rmm_async=True,
+        enable_cudf_spill=enable_spilling,
         **extra_kwargs,
     )
     client = Client(cluster)
-
-    if enable_spilling:
-        _enable_spilling()
-        client.run(_enable_spilling)
 
     if set_torch_to_use_rmm:
         _set_torch_to_use_rmm()
         client.run(_set_torch_to_use_rmm)
         print("Torch is using RMM memory pool", flush=True)
+
+    if enable_spilling:
+        _enable_spilling()
+        print("cuDF Spilling is enabled", flush=True)
+
     return client
 
 
@@ -190,18 +207,6 @@ def _set_torch_to_use_rmm():
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
 
-def _enable_spilling():
-    """
-    Setting this environment variable enables automatic spilling (and "unspilling")
-    of buffers from device to host to enable out-of-memory computation,
-    i.e., computing on objects that occupy more memory than is available on the GPU.
-
-    """
-    import cudf
-
-    cudf.set_option("spill", True)
-
-
 def read_single_partition(
     files,
     backend="cudf",
@@ -234,6 +239,8 @@ def read_single_partition(
         read_kwargs = {"lines": filetype == "jsonl"}
         if backend == "cudf":
             read_f = cudf.read_json
+            if input_meta is not None:
+                read_kwargs["prune_columns"] = True
         else:
             read_kwargs["dtype"] = False
             read_f = pd.read_json
@@ -633,3 +640,20 @@ def get_network_interfaces() -> List[str]:
         A list of all valid network interfaces on a machine
     """
     return list(psutil.net_if_addrs().keys())
+
+
+def get_gpu_memory_info() -> Dict[str, int]:
+    """
+    Get the total GPU memory for each Dask worker.
+    Returns:
+        dict: A dictionary mapping Dask worker addresses ('IP:PORT') to their
+        respective GPU memory (in bytes).
+    Example:
+        {'192.168.0.100:9000': 3.2e+10, '192.168.0.101:9000': 3.2e+10}
+    Note:
+        If there is no active Dask client, an empty dictionary is returned.
+    """
+    client = get_current_client()
+    if client is None:
+        return {}
+    return client.run(get_device_total_memory)

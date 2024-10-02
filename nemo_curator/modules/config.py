@@ -77,6 +77,9 @@ class FuzzyDuplicatesConfig(BaseConfig):
     # Only required for fp check
     num_anchors: int = 2
     jaccard_threshold: float = 0.8
+    bucket_mapping_blocksize: int = 256
+    parts_per_worker: int = 1
+    bucket_parts_per_worker: int = 8
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
@@ -84,9 +87,15 @@ class FuzzyDuplicatesConfig(BaseConfig):
             raise ValueError(
                 "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
             )
-        if not self.false_positive_check:
-            raise NotImplementedError(
-                "Skipping false positive checks is not supported at the moment"
+        if self.false_positive_check:
+            warnings.warn(
+                "Identifying false positives during the Minhash deduplication is computationally expensive."
+                " For improved performance consider setting this to False"
+            )
+        if not self.false_positive_check and self.char_ngrams < 20:
+            warnings.warn(
+                "Using a small char_ngrams value might lead to a large number (~5%) of false positives during deduplication."
+                " Using a value of at least 20 for char_ngrams is recommended."
             )
         if self.num_anchors <= 0:
             raise ValueError("Number of anchors must be greater than 0")
