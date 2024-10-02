@@ -32,8 +32,8 @@ jobs:
     - name: Check environment
       run: |
         whoami
-        docker exec -it nemo-curator-container nvidia-smi
-        docker exec -it nemo-curator-container pytest --markers
+        docker exec nemo-curator-container nvidia-smi
+        docker exec nemo-curator-container pytest --markers
         docker exec nemo-curator-container nvcc --version
 
     - name: Verify installations
