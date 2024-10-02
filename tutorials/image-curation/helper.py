@@ -100,7 +100,7 @@ def process_parquet_chunk(chunk, output_dir):
     asyncio.run(process_batch(batch, output_dir, batch_num))
 
 
-def parquet_to_webdataset(
+def download_webdataset(
     parquet_path, output_dir, entries_per_tar=10000, num_processes=2
 ):
     os.makedirs(output_dir, exist_ok=True)
