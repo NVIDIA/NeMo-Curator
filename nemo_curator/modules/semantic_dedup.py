@@ -38,7 +38,10 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.utils.distributed_utils import performance_report_if, write_to_disk
+from nemo_curator.utils.distributed_utils import (
+    performance_report_if_with_ts_suffix,
+    write_to_disk,
+)
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
     assign_and_sort_clusters,
@@ -206,9 +209,8 @@ class EmbeddingCreator:
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         t0 = time.time()
         if self.write_embeddings_to_disk:
-            with performance_report_if(
-                self.profile_dir,
-                f"embedding-creator-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+            with performance_report_if_with_ts_suffix(
+                self.profile_dir, "embedding-creator"
             ):
                 embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
                 write_to_disk(
@@ -234,7 +236,7 @@ class EmbeddingCreator:
             )
         )
 
-        return dd
+        return ddf
 
 
 ### Clustering Module
@@ -328,10 +330,7 @@ class ClusteringModel:
                 f" to be in dataset. Only found columns {embeddings_df.columns}"
             )
 
-        with performance_report_if(
-            self.profile_dir,
-            f"clustering-model-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
             embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
 
             embeddings_df = embeddings_df.to_backend("pandas").persist()
@@ -510,9 +509,8 @@ class SemanticClusterLevelDedup:
             shutil.rmtree(self.semdedup_pruning_tables_dir)
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"semantic-match-compute-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "semantic-match-compute"
         ):
             tasks = db.from_sequence(
                 list(range(self.n_clusters)), npartitions=self.n_clusters

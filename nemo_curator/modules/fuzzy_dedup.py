@@ -19,7 +19,6 @@ import math
 import os
 import time
 import warnings
-from datetime import datetime
 from itertools import pairwise
 from typing import List, Optional, Tuple, Union
 
@@ -43,7 +42,7 @@ from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import (
     get_current_client,
     get_num_workers,
-    performance_report_if,
+    performance_report_if_with_ts_suffix,
 )
 from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import int_ids_to_str
 from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
@@ -178,10 +177,7 @@ class MinHash:
             warnings.warn(
                 f"Output path {write_path} already exists and will be overwritten"
             )
-        with performance_report_if(
-            self.profile_dir,
-            f"minhash-profile-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, "minhash-profile"):
             result.to_parquet(write_path, write_index=False, overwrite=True)
         self._logger.info(
             f"Time taken for Minhash signature computation = {time.time() - t0}s and output written at {write_path}"
@@ -375,10 +371,7 @@ class LSH:
 
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"lsh-profile-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, f"lsh-profile"):
             self.lsh(write_path=write_path, df=df)
         self._logger.info(
             f"Time taken for LSH = {time.time() - t0}s and output written at {write_path}"
@@ -510,9 +503,9 @@ class FuzzyDuplicates:
             mapped_buckets_w_anchors_path = os.path.join(
                 self.config.cache_dir, "anchor_docs_with_bk.parquet"
             )
-            with performance_report_if(
+            with performance_report_if_with_ts_suffix(
                 self.config.profile_dir,
-                f"map_buckets-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                f"map_buckets",
             ):
                 ddf_mapped_buckets_w_anchors = (
                     self.map_buckets.map_buckets_with_anchors(
@@ -553,9 +546,9 @@ class FuzzyDuplicates:
                 self.config.cache_dir, "jaccard_similarity_results.parquet"
             )
             t0 = time.time()
-            with performance_report_if(
+            with performance_report_if_with_ts_suffix(
                 self.config.profile_dir,
-                f"jaccard-similarity-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                "jaccard-similarity",
             ):
                 jaccard_pairs_df = self.jaccard_compute.jaccard_compute(
                     shuffled_docs_path=shuffled_docs_path
@@ -704,9 +697,9 @@ class BucketsToEdges:
                 f"Output path {write_path} already exists and will be overwritten"
             )
         t0 = time.time()
-        with performance_report_if(
+        with performance_report_if_with_ts_suffix(
             self.profile_dir,
-            f"bucket-to-edges-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+            "bucket-to-edges",
         ):
             edges_df.to_parquet(write_path, write_index=False, overwrite=True)
         self._logger.info(
@@ -1016,17 +1009,14 @@ class _Shuffle:
         parts_per_bucket_batch = num_workers * bucket_parts_per_worker
         self._logger.debug(f"parts_per_bucket_batch  = {parts_per_bucket_batch}")
 
-        dask_profile_name = "suffle_docs"
-        dask_profile_name = dask_profile_name + f"-parts_per_batch-{parts_per_batch}"
         dask_profile_name = (
-            dask_profile_name + f"-parts_per_bucket_batch-{parts_per_bucket_batch}"
-        )
-        dask_profile_name = (
-            dask_profile_name + f"-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+            "suffle_docs"
+            + f"-parts_per_batch-{parts_per_batch}"
+            + f"-parts_per_bucket_batch-{parts_per_bucket_batch}"
         )
         documents_df = documents_df[self.id_fields + [self.text_field]]
 
-        with performance_report_if(self.profile_dir, dask_profile_name):
+        with performance_report_if_with_ts_suffix(self.profile_dir, dask_profile_name):
             self._batched_merge_and_write(
                 left_df=documents_df,
                 right_df=ddf_anchor_docs_with_bk,
@@ -1457,9 +1447,8 @@ class ConnectedComponents:
         output_path,
     ):
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"connected-components-run-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-run"
         ):
 
             Comms.initialize(p2p=True)
@@ -1534,9 +1523,8 @@ class ConnectedComponents:
     def _write_dedup_encoded_jaccard_pair(self, encoded_jaccard_pair_path):
         output_path = f"{self.cache_dir}/final_dedup_encoded_jaccard_pair.parquet"
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"connected-components-dedup-encoded-jaccard-pair-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-dedup-encoded-jaccard-pair"
         ):
 
             ddf = dask_cudf.read_parquet(
@@ -1595,9 +1583,8 @@ class ConnectedComponents:
     def _write_dedup_parsed_id(self):
         dedup_parsed_id_path = f"{self.cache_dir}/dedup_parsed_id.parquet"
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"connected-components-dedup-parsed-id{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-dedup-parsed-id"
         ):
             ddf = dask_cudf.read_parquet(
                 self.jaccard_pairs_path,
@@ -1637,9 +1624,8 @@ class ConnectedComponents:
     def _write_encoded_jaccard_pair(self, dedup_parsed_id_path):
         output_path = f"{self.cache_dir}/encoded_jaccard_pair/"
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"connected-components-encoded-jaccard-pair-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-encoded-jaccard-pair"
         ):
             ddf_id = dask_cudf.read_parquet(
                 dedup_parsed_id_path, blocksize="2GB", aggregate_files=True

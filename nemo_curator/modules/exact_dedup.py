@@ -29,7 +29,7 @@ from dask import dataframe as dd
 from nemo_curator._compat import DASK_P2P_ERROR
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
-from nemo_curator.utils.distributed_utils import performance_report_if
+from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.gpu_utils import is_cudf_type
 
 
@@ -158,9 +158,9 @@ class ExactDuplicates:
             warnings.warn(
                 f"Output path f{write_path} already exists and will be overwritten"
             )
-        with performance_report_if(
+        with performance_report_if_with_ts_suffix(
             self.profile_dir,
-            f"exact-dedup-profile-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+            "exact-dedup-profile",
         ):
             result.to_parquet(write_path, write_index=False, overwrite=True)
         self._logger.info(
