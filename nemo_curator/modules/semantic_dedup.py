@@ -358,6 +358,7 @@ class ClusteringModel:
             nearest_cents = kmeans.predict(cupy_darr)
             self.logger.info(f"Time taken for KMeans Predict: {time.time() - t0}")
 
+            t0 = time.time()
             embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
             del nearest_cents
             meta_df = embeddings_df._meta.copy()
@@ -391,10 +392,11 @@ class ClusteringModel:
                 index=False,
                 partition_on="nearest_cent",
             )
-            # TODO question for reviewer do we need a logger time here too? if so what "step" would that be for?
             self.logger.info(
-                f"Saved embeddings by nearest center to {clustering_output_dir}"
+                f"Time taken for Assigning distance to each embedding : {time.time() - t0} "
+                "and output written at {clustering_output_dir}"
             )
+
             del embeddings_df
 
         if self.sort_clusters:
