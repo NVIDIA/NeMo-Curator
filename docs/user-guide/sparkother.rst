@@ -92,7 +92,3 @@ The following code snippet demonstrates how to read output from a Spark DataFram
 
 It is worth noting that Spark typically tends to create checksum and other marker files which can vary by Spark distribution, 
 so it is advisable to ignore them when reading data into a NeMo Curator ``DocumentDataset``.
-
-
-
-
