@@ -33,9 +33,7 @@ jobs:
       run: |
         whoami
         docker exec nemo-curator-container nvidia-smi
-        docker exec nemo-curator-container pytest --markers
-        docker exec nemo-curator-container pwd
-        docker exec nemo-curator-container ls -la
+        docker exec nemo-curator-container find / -name "libnvrtc*"
 
     - name: Verify installations
       run: |
