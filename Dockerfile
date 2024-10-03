@@ -13,3 +13,5 @@ git checkout $CURATOR_COMMIT
 pip install cython pytest setuptools pip --upgrade
 pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
 EOF
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-12/compat/lib.real/
