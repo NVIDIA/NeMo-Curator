@@ -1577,7 +1577,6 @@ class ConnectedComponents:
                 transform_divisions=False,
                 align_dataframes=False,
             )
-
             ddf.to_parquet(output_path, write_index=False)
         self._logger.info(
             f"Time taken for Dedup Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
@@ -1605,7 +1604,6 @@ class ConnectedComponents:
                 blocksize="1GB",
                 aggregate_files=True,
             )
-
             id_columns = [self.id_column]
             if self.convert_str_ids:
                 ddf = ddf.map_partitions(
@@ -1622,7 +1620,10 @@ class ConnectedComponents:
             unique_docs = ddf.map_partitions(
                 ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
             )
-            unique_docs = unique_docs.drop_duplicates(split_out=ddf.npartitions // 4)
+            unique_docs = unique_docs.drop_duplicates(
+                # Dask does not guard against split_out=0
+                split_out=max(ddf.npartitions // 4, 1)
+            )
             unique_docs["uid"] = np.uint64(1)
             unique_docs["uid"] = unique_docs["uid"].cumsum()
             unique_docs["uid"] = unique_docs["uid"] - 1
@@ -1630,14 +1631,6 @@ class ConnectedComponents:
         self._logger.info(
             f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
-        unique_docs = unique_docs.drop_duplicates(
-            # Dask does not guard against split_out=0
-            split_out=max(ddf.npartitions // 4, 1)
-        )
-        unique_docs["uid"] = np.uint64(1)
-        unique_docs["uid"] = unique_docs["uid"].cumsum()
-        unique_docs["uid"] = unique_docs["uid"] - 1
-        unique_docs.to_parquet(dedup_parsed_id_path, write_index=False)
         return dedup_parsed_id_path
 
     def _write_encoded_jaccard_pair(self, dedup_parsed_id_path):
