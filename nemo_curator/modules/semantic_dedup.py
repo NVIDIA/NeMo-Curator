@@ -217,13 +217,13 @@ class EmbeddingCreator:
                     write_to_filename=self.write_to_filename,
                     output_type="parquet",
                 )
-            dd = DocumentDataset(
+            ddf = DocumentDataset(
                 dask_cudf.read_parquet(
                     self.embedding_output_dir, blocksize="2GB", aggregate_files=True
                 )
             )
         else:
-            dd = DocumentDataset(embedding_ddf)
+            ddf = DocumentDataset(embedding_ddf)
 
         self.logger.info(
             f"Time taken for Creating Embeddings : {time.time() - t0}"

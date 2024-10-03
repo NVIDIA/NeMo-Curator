@@ -494,9 +494,6 @@ class FuzzyDuplicates:
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
-        if self.config.false_positive_check and not self.config.cache_dir:
-            msg = "cache_dir needs to be specified when false_positive_check is enabled"
-            raise ValueError(msg)
 
         # Minhash + LSH
         stage_num = 1
@@ -1490,8 +1487,6 @@ class ConnectedComponents:
                 result[["labels"]].drop_duplicates(split_out=max_partitions)
             )
             num_labels = len(result)
-            print("# of groups", n_components)
-            print("# of docs removed", num_labels - n_components)
             labels_df = labels_df.merge(
                 result, left_on=["uid"], right_on=["vertex"], how="inner"
             )
@@ -1504,8 +1499,14 @@ class ConnectedComponents:
             # Doing an inner merge above
             # should not change any rows
 
+            self._logger.info(
+                "Result of connected compoinents are "
+                f"# of groups : {n_components}, "
+                f"# of docs removed : {num_labels - n_components}, "
+                f"# nodes = {num_nodes}, "
+                f"# rows in labels_df = {len(labels_df)}"
+            )
             assert num_nodes == len(labels_df)
-            print(f"assert num_nodes:{num_nodes}==labels_df:{len(labels_df)} passed")
             # Ensure all docs in the same group are in the same partition
             labels_df = labels_df.shuffle(on=["group"], ignore_index=True)
             labels_df.to_parquet(output_path, write_index=False)
