@@ -57,7 +57,7 @@ setup(
         "comment_parser",
         "beautifulsoup4",
         "mwparserfromhell==0.6.5",
-        "spacy>=3.6.0, <4.0.0",
+        "spacy>=3.6.0, <3.8",
         "presidio-analyzer==2.2.351",
         "presidio-anonymizer==2.2.351",
         "usaddress==0.5.10",
@@ -76,7 +76,7 @@ setup(
             "cuml-cu12==24.6.*",
             "cugraph-cu12==24.6.*",
             "dask-cuda==24.6.*",
-            "spacy[cuda12x]>=3.6.0, <4.0.0",
+            "spacy[cuda12x]>=3.6.0, <3.8",
         ],
     },
     entry_points={
