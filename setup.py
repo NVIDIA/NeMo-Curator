@@ -21,7 +21,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="nemo_curator",
-    version="0.4.0",
+    version="0.4.1",
     description="Scalable Data Preprocessing Tool for "
     "Training Large Language Models",
     long_description=long_description,
