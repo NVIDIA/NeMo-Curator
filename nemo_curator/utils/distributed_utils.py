@@ -20,8 +20,9 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
 from contextlib import nullcontext
+from itertools import zip_longest
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -448,7 +449,9 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         num_files = len(filenames)
         for filename in filenames:
             out_df = df[df.filename == filename] if num_files > 1 else df
-            filename = Path(filename).stem
+            filename = (
+                Path(filename).stem if output_type != "bitext" else Path(filename).name
+            )
             output_file_path = os.path.join(output_file_dir, filename)
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
@@ -473,10 +476,23 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
             elif output_type == "parquet":
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
+            elif output_type == "bitext":
+                _single_partition_write_to_simple_bitext(out_df, output_file_path)
             else:
                 raise ValueError(f"Unknown output type: {output_type}")
 
     return success_ser
+
+
+def _single_partition_write_to_simple_bitext(out_df, output_file_path):
+    src_output_file_path = output_file_path + f".{out_df['src_lang'].iloc[0]}"
+    tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'].iloc[0]}"
+    with open(src_output_file_path, "w+") as src_out, open(
+        tgt_output_file_path, "w+"
+    ) as tgt_out:
+        for src, tgt in zip(out_df["src"], out_df["tgt"]):
+            src_out.write(src + os.linesep)
+            tgt_out.write(tgt + os.linesep)
 
 
 def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jsonl"):
@@ -528,6 +544,12 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
                 )
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
+        elif output_type == "bitext":
+            output = df.map_partitions(
+                _single_partition_write_to_simple_bitext,
+                output_file_dir,
+            )
+            output = output.compute()
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 
