@@ -29,7 +29,7 @@ import pandas as pd
 import torch
 from dask.distributed import progress
 
-from nemo_curator.utils.distributed_utils import performance_report_if
+from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
 
@@ -76,9 +76,9 @@ def assign_and_sort_clusters(
     kmeans_centroids = np.load(kmeans_centroids_file)
     start_time = time.time()
 
-    with performance_report_if(
+    with performance_report_if_with_ts_suffix(
         profile_dir,
-        f"ranking-clusters-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        "ranking-clusters",
     ):
         cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
         completed_count = cluster_ids_bag.map(
@@ -396,9 +396,9 @@ def extract_pruned_data(
 
     t0 = time.time()
 
-    with performance_report_if(
+    with performance_report_if_with_ts_suffix(
         profile_dir,
-        f"extracting-pruned-from-clusters-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+        f"extracting-pruned-from-clusters",
     ):
         results_df = dd.from_map(
             prune_single_cluster,

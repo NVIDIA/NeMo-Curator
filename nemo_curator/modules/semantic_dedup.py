@@ -393,7 +393,7 @@ class ClusteringModel:
             )
             self.logger.info(
                 f"Time taken for Assigning distance to each embedding : {time.time() - t0} "
-                "and output written at {clustering_output_dir}"
+                f"and output written at {clustering_output_dir}"
             )
 
             del embeddings_df
