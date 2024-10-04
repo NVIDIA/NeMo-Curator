@@ -65,7 +65,6 @@ def start_dask_gpu_local_cluster(
     rmm_maximum_pool_size=None,
     rmm_managed_memory=False,
     rmm_release_threshold=None,
-    rmm_track_allocations=False,
     **cluster_kwargs,
 ) -> Client:
     """
@@ -92,7 +91,6 @@ def start_dask_gpu_local_cluster(
         rmm_maximum_pool_size=rmm_maximum_pool_size,
         rmm_managed_memory=rmm_managed_memory,
         rmm_release_threshold=rmm_release_threshold,
-        rmm_track_allocations=rmm_track_allocations,
         **extra_kwargs,
         **cluster_kwargs,
     )
@@ -142,7 +140,6 @@ def get_client(
     rmm_maximum_pool_size=None,
     rmm_managed_memory=False,
     rmm_release_threshold=None,
-    rmm_track_allocations=False,
     **cluster_kwargs,
 ) -> Client:
     """
@@ -175,11 +172,10 @@ def get_client(
             host to enable out-of-memory computation, i.e., computing on objects that occupy more memory than is available on the GPU.
         set_torch_to_use_rmm: For GPU-based clusters only. Sets up the PyTorch memory pool to be the same as the RAPIDS memory pool.
             This helps avoid OOM errors when using both PyTorch and RAPIDS on the same GPU.
-        rmm_async: For GPU-based clusters only. Initializes each worker with RMM and sets it to use RMM's asynchronous allocator.
-            See rmm.mr.CudaAsyncMemoryResource for more info.
-            Warning: The asynchronous allocator requires CUDA Toolkit 11.2 or newer.
-            It is also incompatible with RMM pools and managed memory.
-            Trying to enable both will result in an exception.
+        rmm_async: For GPU-based clusters only. Initializes each worker with RAPIDS Memory Manager (RMM)
+            (see RMM documentation for more information: https://docs.rapids.ai/api/rmm/stable/)
+            and sets it to use RMM's asynchronous allocator. Warning: The asynchronous allocator requires CUDA Toolkit 11.2 or newer.
+            It is also incompatible with RMM pools and managed memory. Trying to enable both will result in an exception.
         rmm_maximum_pool_size: For GPU-based clusters only. When rmm_pool_size is set, this argument indicates the maximum pool size.
             Can be an integer (bytes), float (fraction of total device memory), string (like "5GB" or "5000M") or None.
             By default, the total available memory on the GPU is used.
@@ -194,10 +190,6 @@ def get_client(
             Can be an integer (bytes), float (fraction of total device memory), string (like "5GB" or "5000M") or None.
             By default, this feature is disabled.
             Note: This size is a per-worker configuration, and not cluster-wide.
-        rmm_track_allocations: For GPU-based clusters only. If True, wraps the memory resource used by each worker with a rmm.mr.TrackingResourceAdaptor,
-            which tracks the amount of memory allocated.
-            Note: This option enables additional diagnostics to be collected and reported by the Dask dashboard.
-            However, this is significant overhead associated with this and it should only be used for debugging and memory profiling.
         cluster_kwargs: Additional keyword arguments for the LocalCluster or LocalCUDACluster configuration.
             See API documentation https://docs.dask.org/en/stable/deploying-python.html#distributed.deploy.local.LocalCluster
             for all LocalCluster parameters, or https://docs.rapids.ai/api/dask-cuda/nightly/api/ for all LocalCUDACluster parameters.
@@ -229,7 +221,6 @@ def get_client(
                 rmm_maximum_pool_size=rmm_maximum_pool_size,
                 rmm_managed_memory=rmm_managed_memory,
                 rmm_release_threshold=rmm_release_threshold,
-                rmm_track_allocations=rmm_track_allocations,
                 **cluster_kwargs,
             )
         else:
