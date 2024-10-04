@@ -25,15 +25,14 @@ jobs:
             docker rm -f nemo-curator-container
         fi
 
-    - name: Run Docker container with Python 3.10
+    - name: Run Docker container
       run: |
         docker run --gpus all --runtime=nvidia --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
 
-    - name: Check environment
+    - name: Check GPUs
       run: |
         whoami
         docker exec nemo-curator-container nvidia-smi
-        docker exec nemo-curator-container find / -name "libnvrtc*"
 
     - name: Verify installations
       run: |
