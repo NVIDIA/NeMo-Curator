@@ -398,7 +398,7 @@ def extract_pruned_data(
 
     with performance_report_if_with_ts_suffix(
         profile_dir,
-        f"extracting-pruned-from-clusters",
+        "extracting-pruned-from-clusters",
     ):
         results_df = dd.from_map(
             prune_single_cluster,
