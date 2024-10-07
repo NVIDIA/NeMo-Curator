@@ -9,7 +9,7 @@ GPU Accelerated Exact and Fuzzy Deduplication
 Background
 =========================================
 
-The exact and fuzzy document-level deduplication modules in the NeMo Curator aim to reduce the occurrence of duplicate and
+The exact and fuzzy document-level deduplication modules in NeMo Curator aim to reduce the occurrence of duplicate and
 near-duplicate documents in a dataset. Both functionalities are supported in NeMo Curator and accelerated using `RAPIDS <https://rapids.ai>`_.
 
 The main motivation for this is that training on randomly selected documents for many epochs can be sub-optimal to downstream performance for language models.
@@ -310,7 +310,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-json-id-field id_column_name \
                  --minhash-length number_of_hashes \
                  --num-bands num_bands \
-                 --buckets-per-shuffle 1 `#Value b/w [1-num_bands]. Higher is better but might lead to oom` \
+                 --buckets-per-shuffle 1 `#Value between [1-num_bands]. Higher is better but might lead to OOM` \
                  --log-dir ./
                  # --scheduler-file /path/to/file.json
 
@@ -402,7 +402,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 Incremental Fuzzy Deduplication
 ------------------------
 
-* To incrementally perform fuzzy deduplication, we do not need to recompute minhashes for datasets where minhashes were already computed.
+* If any new data is added to the corpus, you will need to perform deduplication incrementally. To incrementally perform fuzzy deduplication, we do not need to recompute minhashes for datasets where minhashes were already computed.
   Instead, you can organize your incremental datasets into separate directories and pass a list of all new directories to :code:`gpu_compute_minhashes`.
 
     - Input (assuming incremental snapshots are all under :code:`/input/`):
@@ -436,5 +436,5 @@ Incremental Fuzzy Deduplication
                    --log-dir ./
                    # --scheduler-file /path/to/file.json
 
-All subsequent steps starting with :ref:`Buckets <fuzzydup_lsh>`, can be executed on all the data
-(old and incremental) as described above without modification.
+All subsequent steps, starting with :ref:`Buckets <fuzzydup_lsh>`, can be executed on all the data
+(old and new) as described above without modification.
