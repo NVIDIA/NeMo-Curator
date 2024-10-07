@@ -36,11 +36,11 @@ jobs:
 
     - name: Verify installations
       run: |
-        docker exec nemo-curator-container pip list
+        docker exec nemo-curator-container /bin/bash -c "source activate rapids && pip list"
 
     - name: Run PyTests with GPU mark
       run: |
-        docker exec nemo-curator-container pytest -m gpu --rootdir /opt/NeMo-Curator /opt/NeMo-Curator/tests
+        docker exec nemo-curator-container /bin/bash -c "source activate rapids && pytest -m gpu --rootdir /opt/NeMo-Curator /opt/NeMo-Curator/tests"
 
     - name: Cleanup
       run: |
