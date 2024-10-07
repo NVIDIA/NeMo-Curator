@@ -18,7 +18,6 @@ import os
 import random
 import shutil
 import time
-from datetime import datetime
 from typing import List, Optional, Tuple
 
 import cudf
@@ -441,7 +440,7 @@ def extract_dedup_data(
     output_parquet_path,
     logger: logging.Logger,
     profile_dir: Optional[str] = None,
-) -> None:
+) -> dd.DataFrame:
     """
     Extracts deduplicated data based on provided parameters and logs the process.
 
