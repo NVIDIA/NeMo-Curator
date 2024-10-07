@@ -5,7 +5,7 @@ WORKDIR /opt
 ARG FORKED_REPO_URL
 ARG CURATOR_COMMIT
 
-conda create -y --name rapids -c conda-forge -c nvidia \
+RUN conda create -y --name rapids -c conda-forge -c nvidia \
   python=3.10 \
   cuda-cudart \
   libcufft \
@@ -14,14 +14,13 @@ conda create -y --name rapids -c conda-forge -c nvidia \
   libcusparse \
   libcusolver
 
-RUN <<"EOF" bash -exu
-git clone $FORKED_REPO_URL
-cd NeMo-Curator
-git fetch origin $CURATOR_COMMIT --depth=1
-git checkout $CURATOR_COMMIT
-RUN /bin/bash -c "source activate rapids && \
-    conda install -y -c conda-forge cython pytest setuptools && \
-    pip install --upgrade pip"
-RUN /bin/bash -c "source activate rapids && \
-    pip install --extra-index-url https://pypi.nvidia.com '.[cuda12x]'"
+RUN bash -exu <<EOF
+  git clone $FORKED_REPO_URL
+  cd NeMo-Curator
+  git fetch origin $CURATOR_COMMIT --depth=1
+  git checkout $CURATOR_COMMIT
+  source activate rapids
+  conda install -y -c conda-forge cython pytest setuptools
+  pip install --upgrade pip
+  pip install --extra-index-url https://pypi.nvidia.com ".[cuda12x]"
 EOF
