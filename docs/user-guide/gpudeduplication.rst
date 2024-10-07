@@ -53,7 +53,7 @@ Python API
       add_id = AddId(id_field="my_id", id_prefix="doc_prefix")
       dataset = DocumentDataset.read_json("input_file_path")
       id_dataset = add_id(dataset)
-      id_dataset.to_json("output_file_path")
+      id_dataset.to_parquet("/path/to/parquet/data")
 
 .. code-block:: python
 
@@ -171,7 +171,7 @@ Python API
       add_id = AddId(id_field="my_id", id_prefix="doc_prefix")
       dataset = DocumentDataset.read_json("input_file_path")
       id_dataset = add_id(dataset)
-      id_dataset.to_json("output_file_path")
+      id_dataset.to_json("/path/to/jsonl/data")
 
 1. Configuration
 
@@ -227,7 +227,7 @@ Python API
     FuzzyDups = FuzzyDuplicates(config=config, logger="./")
 
     dataset = DocumentDataset.read_json(
-        input_files="/path/to/parquet/data",
+        input_files="/path/to/jsonl/data",
         backend="cudf", # FuzzyDuplicates only supports datasets with the cuDF backend.
     )
 
