@@ -308,6 +308,7 @@ def read_data(
     file_type: str = "pickle",
     backend: str = "cudf",
     files_per_partition: int = 1,
+    partition_size: str = "2gb",
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
@@ -327,35 +328,60 @@ def read_data(
         A Dask-cuDF or a Dask-pandas DataFrame.
 
     """
-    if backend == "cudf":
-        # Try using cuDF. If not availible will throw an error.
-        test_obj = cudf.Series
-
     if file_type == "pickle":
         df = read_pandas_pickle(input_files[0], add_filename=add_filename)
         df = dd.from_pandas(df, npartitions=16)
         if backend == "cudf":
             df = df.to_backend("cudf")
-
-    elif file_type in ["json", "jsonl", "parquet"]:
+    elif file_type in {"json", "jsonl", "parquet"}:
         print(f"Reading {len(input_files)} files", flush=True)
-        input_files = sorted(input_files)
-        if files_per_partition > 1:
-            input_files = [
-                input_files[i : i + files_per_partition]
-                for i in range(0, len(input_files), files_per_partition)
-            ]
+
+        if backend == "cudf" and (
+            (file_type in {"json", "jsonl"})
+            or (file_type == "parquet" and not add_filename)
+        ):
+            # Try using cuDF. If not availible will throw an error.
+            # test_obj = cudf.Series
+            import dask_cudf
+
+            if file_type in {"json", "jsonl"}:
+                read_func = dask_cudf.read_json
+            elif file_type in {"parquet"}:
+                read_func = dask_cudf.read_parquet
+
+            read_kwargs = dict()
+            if file_type in {"json", "jsonl"}:
+                read_kwargs["lines"] = file_type == "jsonl"
+                if input_meta is not None:
+                    read_kwargs["prune_columns"] = True
+                    read_kwargs["dtype"] = (
+                        ast.literal_eval(input_meta)
+                        if isinstance(input_meta, str)
+                        else input_meta
+                    )
+
+                if add_filename:
+                    read_kwargs["include_path_column"] = add_filename
+            df = read_func(input_files, blocksize=partition_size, **read_kwargs)
+
         else:
-            input_files = [[file] for file in input_files]
-        return dd.from_map(
-            read_single_partition,
-            input_files,
-            filetype=file_type,
-            backend=backend,
-            add_filename=add_filename,
-            input_meta=input_meta,
-            enforce_metadata=False,
-        )
+            input_files = sorted(input_files)
+            if files_per_partition > 1:
+                input_files = [
+                    input_files[i : i + files_per_partition]
+                    for i in range(0, len(input_files), files_per_partition)
+                ]
+            else:
+                input_files = [[file] for file in input_files]
+            return dd.from_map(
+                read_single_partition,
+                input_files,
+                filetype=file_type,
+                backend=backend,
+                add_filename=add_filename,
+                input_meta=input_meta,
+                enforce_metadata=False,
+            )
     else:
         raise RuntimeError("Could not read data, please check file type")
     return df
