@@ -21,9 +21,9 @@ defaults:
 
 jobs:
   main:
-    # This is the tag on our Azure GPU runner found in Actions -> Runners -> Self-hosted runners
-    # It has 2 H100 GPUs
-    runs-on: self-hosted
+    # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
+    # It is designated for build jobs
+    runs-on: self-hosted-azure-builder
     steps:
         # Checks out the repository code using the actions/checkout action,
         # storing it in a directory named after the unique workflow run ID
