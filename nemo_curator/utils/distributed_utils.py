@@ -347,6 +347,9 @@ def read_data(
             ]
         else:
             input_files = [[file] for file in input_files]
+
+        meta_as_kwarg = {"meta": input_meta} if input_meta is not None else dict()
+
         return dd.from_map(
             read_single_partition,
             input_files,
@@ -355,6 +358,7 @@ def read_data(
             add_filename=add_filename,
             input_meta=input_meta,
             enforce_metadata=False,
+            **meta_as_kwarg,
         )
     else:
         raise RuntimeError("Could not read data, please check file type")
