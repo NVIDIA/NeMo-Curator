@@ -7,10 +7,6 @@ FROM rapidsai/ci-conda:cuda${CUDA_VER}-${LINUX_VER}-py${PYTHON_VER}
 
 WORKDIR /opt
 
-# Needed to navigate to and pull the forked repository's changes
-ARG FORKED_REPO_URL
-ARG CURATOR_COMMIT
-
 # Install the minimal libcu* libraries needed by NeMo Curator
 RUN conda create -y --name curator -c conda-forge -c nvidia \
   python=3.10 \
@@ -20,6 +16,10 @@ RUN conda create -y --name curator -c conda-forge -c nvidia \
   libcurand \
   libcusparse \
   libcusolver
+
+# Needed to navigate to and pull the forked repository's changes
+ARG FORKED_REPO_URL
+ARG CURATOR_COMMIT
 
 # Clone the user's repository, find the relevant commit, and install everything we need
 RUN bash -exu <<EOF
