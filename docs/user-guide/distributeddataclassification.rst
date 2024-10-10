@@ -32,7 +32,7 @@ classification helps mitigate biases and inaccuracies that may arise from poorly
 Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like FineWeb-Edu.
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the `MMLU (Massive Multitask Language Understanding) <https://paperswithcode.com/dataset/mmlu>`_ benchmark, with scores increasing from 33% to 37%.
-Similarly, on the ARC (AI2 Reasoning Challenge) benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
+Similarly, on the `ARC (AI2 Reasoning Challenge) <https://huggingface.co/datasets/allenai/ai2_arc>`_ benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
 For more details on the FineWeb datasets and their creation process, please refer to the paper: `The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale <https://arxiv.org/pdf/2406.17557>`_.
 
 -----------------------------------------
@@ -138,7 +138,7 @@ To use the FineWeb Educational Content Classifier, you can follow this example:
 This classifier uses a model based on the Snowflake-arctic-embed-m embedding model with a linear regression layer on top.
 It assigns an educational score to each document on a scale from 0 to 5, where higher scores indicate more educational content.
 
-The `pred_column` will contain the raw floating-point scores, while the `int_column` will contain the rounded integer scores.
+The ``pred_column`` will contain the raw floating-point scores, while the ``int_column`` will contain the rounded integer scores.
 You can filter the results based on these scores to create datasets with varying levels of educational content.
 
 For example, to create a dataset with only highly educational content (scores 4 and 5):
