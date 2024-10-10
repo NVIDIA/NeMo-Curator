@@ -135,7 +135,7 @@ To use the FineWeb Educational Content Classifier, you can follow this example:
 
     result_dataset.to_json("educational_content/")
 
-This classifier uses a model based on the Snowflake-arctic-embed-m embedding model with a linear regression layer on top.
+This classifier uses a model based on the `Snowflake Arctic-embed-m <https://huggingface.co/Snowflake/snowflake-arctic-embed-m>`_ embedding model with a linear regression layer on top.
 It assigns an educational score to each document on a scale from 0 to 5, where higher scores indicate more educational content.
 
 The ``pred_column`` will contain the raw floating-point scores, while the ``int_column`` will contain the rounded integer scores.
