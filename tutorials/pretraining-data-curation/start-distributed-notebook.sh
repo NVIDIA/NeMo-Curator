@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#SBATCH --job-name=nemo-curator:notebook
+#SBATCH --job-name=nemo-curator:pretraining-curation
 #SBATCH --nodes=2
 #SBATCH --exclusive
 #SBATCH --time=04:00:00
@@ -41,8 +41,6 @@ export DONE_MARKER=$LOGDIR/done.txt
 export DEVICE="gpu"
 
 # Container parameters
-
-# Container parameters
 export CONTAINER_IMAGE=/path/to/container
 # Make sure to mount the directories your script references
 export BASE_DIR=`pwd`
@@ -55,8 +53,8 @@ export INTERFACE=eth0
 export PROTOCOL=tcp
 
 # CPU related variables
-# 0 means no memory limit
-export CPU_WORKER_MEMORY_LIMIT=0
+export CPU_WORKER_MEMORY_LIMIT=0  # 0 means no memory limit
+export CPU_WORKER_PER_NODE=128  # number of cpu workers per node
 
 # GPU related variables
 export RAPIDS_NO_INITIALIZE="1"

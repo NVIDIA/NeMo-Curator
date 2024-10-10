@@ -44,7 +44,7 @@ if [[ $DEVICE == 'cpu' ]]; then
     dask worker \
     --scheduler-file $SCHEDULER_FILE \
     --memory-limit $CPU_WORKER_MEMORY_LIMIT \
-    --nworkers 64 \
+    --nworkers $CPU_WORKER_PER_NODE \
     --interface $INTERFACE >> $WORKER_LOG 2>&1 &
 fi
 if [[ $DEVICE == 'gpu' ]]; then
