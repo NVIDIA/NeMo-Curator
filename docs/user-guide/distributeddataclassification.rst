@@ -29,7 +29,7 @@ focus on learning from high quality and informative examples, which contributes 
 and enhances its ability to generate reliable and meaningful outputs. Additionally, quality
 classification helps mitigate biases and inaccuracies that may arise from poorly curated training data.
 
-Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like FineWeb-Edu.
+Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like `FineWeb-Edu <https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu>`_.
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the `MMLU (Massive Multitask Language Understanding) <https://paperswithcode.com/dataset/mmlu>`_ benchmark, with scores increasing from 33% to 37%.
 Similarly, on the `ARC (AI2 Reasoning Challenge) <https://huggingface.co/datasets/allenai/ai2_arc>`_ benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
