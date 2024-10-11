@@ -78,7 +78,7 @@ Here's an example of how to use the ``QualityClassifier``:
     files = get_all_files_paths_under("web_documents/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
-    quality_classifier = QualityClassifier()
+    quality_classifier = QualityClassifier(filter_by=["High", "Medium"])
     result_dataset = quality_classifier(dataset=input_dataset)
 
     result_dataset.to_json("high_quality_documents/")
