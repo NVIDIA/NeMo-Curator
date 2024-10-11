@@ -15,17 +15,17 @@ NeMo Curator provides a module to help users run inference with pre-trained mode
 This is achieved by chunking the datasets across multiple computing nodes, each equipped with multiple GPUs, to accelerate the classification task in a distributed manner.
 Since the classification of a single text document is independent of other documents within the dataset, we can distribute the workload across multiple nodes and GPUs to perform parallel processing.
 
-Domain classification, quality classification, educational content classification, and content safety models are tasks we include as examples within our module.
+Domain, quality, content safety, and educational content models are tasks we include as examples within our module.
 
 Here, we summarize why each is useful for training an LLM:
 
-- **Domain classification** is useful because it helps the LLM understand the context and specific domain of the input text. Because different domains have different linguistic characteristics and terminologies, an LLM's ability to generate contextually relevant responses can be improved by tailoring training data to a specific domain. Overall, this helps provide more accurate and specialized information.
+- The **Domain Classifier** is useful because it helps the LLM understand the context and specific domain of the input text. Because different domains have different linguistic characteristics and terminologies, an LLM's ability to generate contextually relevant responses can be improved by tailoring training data to a specific domain. Overall, this helps provide more accurate and specialized information.
 
-- **Quality classification** is useful for filtering out noisy or low quality data. This allows the model to focus on learning from high quality and informative examples, which contributes to the LLM's robustness and enhances its ability to generate reliable and meaningful outputs. Additionally, quality classification helps mitigate biases and inaccuracies that may arise from poorly curated training data.
+- The **Quality Classifier** is useful for filtering out noisy or low quality data. This allows the model to focus on learning from high quality and informative examples, which contributes to the LLM's robustness and enhances its ability to generate reliable and meaningful outputs. Additionally, quality classification helps mitigate biases and inaccuracies that may arise from poorly curated training data.
 
-- **AEGIS Safety Model** is essential for filtering harmful or risky content, which is critical for training models that should avoid learning from unsafe data. By classifying content into 13 critical risk categories, AEGIS helps remove harmful or inappropriate data from the training sets, improving the overall ethical and safety standards of the LLM.
+- The **AEGIS Safety Models** are essential for filtering harmful or risky content, which is critical for training models that should avoid learning from unsafe data. By classifying content into 13 critical risk categories, AEGIS helps remove harmful or inappropriate data from the training sets, improving the overall ethical and safety standards of the LLM.
 
-- **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-based tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
+- The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-based tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
 -----------------------------------------
 Usage
@@ -33,7 +33,7 @@ Usage
 
 NeMo Curator provides a base class ``DistributedDataClassifier`` that can be extended to fit your specific model.
 The only requirement is that the model can fit on a single GPU.
-We have also provided subclasses that focus on domain, quality, educational content classification and content safety.
+We have also provided subclasses that focus on domain, quality, content safety, and educational content classification.
 
 This module functions similarly to the ``ScoreFilter`` module.
 The key difference is that it operates on the GPU instead of the CPU.
@@ -84,6 +84,7 @@ Here's an example of how to use the ``QualityClassifier``:
     result_dataset.to_json("high_quality_documents/")
 
 The quality classifier is obtained from `Hugging Face <https://huggingface.co/nvidia/quality-classifier-deberta>`_.
+In this example, it filters the input dataset to include only documents classified as "High" or "Medium" quality.
 
 AEGIS Safety Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
