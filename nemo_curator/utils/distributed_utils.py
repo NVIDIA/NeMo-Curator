@@ -20,8 +20,9 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
 from contextlib import nullcontext
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -43,12 +44,29 @@ class NoWorkerError(Exception):
     pass
 
 
+def _enable_spilling():
+    """
+    Setting this environment variable enables automatic spilling (and "unspilling")
+    of buffers from device to host to enable out-of-memory computation,
+    i.e., computing on objects that occupy more memory than is available on the GPU.
+    """
+    # Workaround for below (which is missing in 24.08, but fixed in 24.10)
+    # Remove this when we update to 24.10 or later dask-cuda
+    # https://github.com/rapidsai/dask-cuda/pull/1369/files
+    cudf.set_option("spill", True)
+
+
 def start_dask_gpu_local_cluster(
     nvlink_only=False,
     protocol="tcp",
     rmm_pool_size="1024M",
     enable_spilling=True,
     set_torch_to_use_rmm=True,
+    rmm_async=True,
+    rmm_maximum_pool_size=None,
+    rmm_managed_memory=False,
+    rmm_release_threshold=None,
+    **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
@@ -69,9 +87,13 @@ def start_dask_gpu_local_cluster(
     cluster = LocalCUDACluster(
         rmm_pool_size=rmm_pool_size,
         protocol=protocol,
-        rmm_async=True,
         enable_cudf_spill=enable_spilling,
+        rmm_async=rmm_async,
+        rmm_maximum_pool_size=rmm_maximum_pool_size,
+        rmm_managed_memory=rmm_managed_memory,
+        rmm_release_threshold=rmm_release_threshold,
         **extra_kwargs,
+        **cluster_kwargs,
     )
     client = Client(cluster)
 
@@ -79,18 +101,27 @@ def start_dask_gpu_local_cluster(
         _set_torch_to_use_rmm()
         client.run(_set_torch_to_use_rmm)
         print("Torch is using RMM memory pool", flush=True)
+
+    if enable_spilling:
+        _enable_spilling()
+        print("cuDF Spilling is enabled", flush=True)
+
     return client
 
 
 def start_dask_cpu_local_cluster(
-    n_workers=os.cpu_count(), threads_per_worker=1
+    n_workers=os.cpu_count(), threads_per_worker=1, **cluster_kwargs
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     CPUs present on the machine.
 
     """
-    cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker)
+    cluster = LocalCluster(
+        n_workers=n_workers,
+        threads_per_worker=threads_per_worker,
+        **cluster_kwargs,
+    )
     client = Client(cluster)
     return client
 
@@ -106,6 +137,11 @@ def get_client(
     rmm_pool_size="1024M",
     enable_spilling=True,
     set_torch_to_use_rmm=False,
+    rmm_async=True,
+    rmm_maximum_pool_size=None,
+    rmm_managed_memory=False,
+    rmm_release_threshold=None,
+    **cluster_kwargs,
 ) -> Client:
     """
     Initializes or connects to a Dask cluster.
@@ -137,6 +173,27 @@ def get_client(
             host to enable out-of-memory computation, i.e., computing on objects that occupy more memory than is available on the GPU.
         set_torch_to_use_rmm: For GPU-based clusters only. Sets up the PyTorch memory pool to be the same as the RAPIDS memory pool.
             This helps avoid OOM errors when using both PyTorch and RAPIDS on the same GPU.
+        rmm_async: For GPU-based clusters only. Initializes each worker with RAPIDS Memory Manager (RMM)
+            (see RMM documentation for more information: https://docs.rapids.ai/api/rmm/stable/)
+            and sets it to use RMM's asynchronous allocator. Warning: The asynchronous allocator requires CUDA Toolkit 11.2 or newer.
+            It is also incompatible with RMM pools and managed memory. Trying to enable both will result in an exception.
+        rmm_maximum_pool_size: For GPU-based clusters only. When rmm_pool_size is set, this argument indicates the maximum pool size.
+            Can be an integer (bytes), float (fraction of total device memory), string (like "5GB" or "5000M") or None.
+            By default, the total available memory on the GPU is used.
+            rmm_pool_size must be specified to use RMM pool and to set the maximum pool size.
+            Note: When paired with --enable-rmm-async the maximum size cannot be guaranteed due to fragmentation.
+            Note: This size is a per-worker configuration, and not cluster-wide.
+        rmm_managed_memory: For GPU-based clusters only. Initialize each worker with RMM and set it to use managed memory.
+            If disabled, RMM may still be used by specifying rmm_pool_size.
+            Warning: Managed memory is currently incompatible with NVLink. Trying to enable both will result in an exception.
+        rmm_release_threshold: For GPU-based clusters only. When rmm.async is True and the pool size grows beyond this value,
+            unused memory held by the pool will be released at the next synchronization point.
+            Can be an integer (bytes), float (fraction of total device memory), string (like "5GB" or "5000M") or None.
+            By default, this feature is disabled.
+            Note: This size is a per-worker configuration, and not cluster-wide.
+        cluster_kwargs: Additional keyword arguments for the LocalCluster or LocalCUDACluster configuration.
+            See API documentation https://docs.dask.org/en/stable/deploying-python.html#distributed.deploy.local.LocalCluster
+            for all LocalCluster parameters, or https://docs.rapids.ai/api/dask-cuda/nightly/api/ for all LocalCUDACluster parameters.
     Returns:
         A Dask client object.
 
@@ -161,10 +218,17 @@ def get_client(
                 rmm_pool_size=rmm_pool_size,
                 enable_spilling=enable_spilling,
                 set_torch_to_use_rmm=set_torch_to_use_rmm,
+                rmm_async=rmm_async,
+                rmm_maximum_pool_size=rmm_maximum_pool_size,
+                rmm_managed_memory=rmm_managed_memory,
+                rmm_release_threshold=rmm_release_threshold,
+                **cluster_kwargs,
             )
         else:
             return start_dask_cpu_local_cluster(
-                n_workers=n_workers, threads_per_worker=threads_per_worker
+                n_workers=n_workers,
+                threads_per_worker=threads_per_worker,
+                **cluster_kwargs,
             )
 
 
@@ -587,6 +651,16 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
         return performance_report(os.path.join(path, report_name))
     else:
         return nullcontext()
+
+
+def performance_report_if_with_ts_suffix(
+    path: Optional[str] = None, report_name: str = "dask-profile"
+):
+    """Suffixes the report_name with the timestamp"""
+    return performance_report_if(
+        path=path,
+        report_name=f"{report_name}-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+    )
 
 
 def seed_all(seed: int = 42):
