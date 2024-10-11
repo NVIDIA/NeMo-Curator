@@ -25,7 +25,7 @@ Here, we summarize why each is useful for training an LLM:
 
 - The **AEGIS Safety Models** are essential for filtering harmful or risky content, which is critical for training models that should avoid learning from unsafe data. By classifying content into 13 critical risk categories, AEGIS helps remove harmful or inappropriate data from the training sets, improving the overall ethical and safety standards of the LLM.
 
-- The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-based tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
+- The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
 -----------------------------------------
 Usage
@@ -138,12 +138,12 @@ FineWeb Educational Content Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The FineWeb Educational Content Classifier is designed to identify and prioritize educational content within a dataset.
-This classifier is particularly useful for creating specialized datasets like FineWeb-Edu, which can be used to train LLMs with a focus on educational material.
+This classifier is particularly useful for creating specialized datasets like `FineWeb-Edu <https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu>`_, which can be used to train LLMs with a focus on educational material.
 Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like FineWeb-Edu.
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 
-For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the MMLU (Massive Multitask Language Understanding) benchmark, with scores increasing from 33% to 37%.
-Similarly, on the ARC (AI2 Reasoning Challenge) benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
+For instance, models trained on FineWeb-Edu demonstrated significant improvements on academic benchmarks. There was a relative improvement of approximately 12% on the `MMLU (Massive Multitask Language Understanding) <https://paperswithcode.com/dataset/mmlu>`_ benchmark, with scores increasing from 33% to 37%.
+Similarly, on the `ARC (AI2 Reasoning Challenge) <https://huggingface.co/datasets/allenai/ai2_arc>`_ benchmark, there was a more substantial relative improvement of about 24%, with scores improving from 46% to 57%.
 For more details on the FineWeb datasets and their creation process, please refer to the paper: `The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale <https://arxiv.org/pdf/2406.17557>`_.
 
 To use the FineWeb Educational Content Classifier, you can follow this example:
