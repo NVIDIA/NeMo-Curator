@@ -57,6 +57,8 @@ Python API
 
 .. code-block:: python
 
+After ensuring your dataset has a unique ID field (or creating one with the code above), you can perform exact deduplication as follows:
+
     from nemo_curator import ExactDuplicates
     from nemo_curator.datasets import DocumentDataset
 
@@ -380,7 +382,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  # --scheduler-file /path/to/file.json
 
 4. Connected Components
-  - Input: ``jaccard_similarity_results.parquet``
+  - Input: ``jaccard_similarity_results.parquet`` (if you ran the false positive check) or ``_edges.parquet`` (if you skipped the false positive check)
   - Output: ``connected_components.parquet``
   - Example call:
 
@@ -388,7 +390,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 
                # same as `python connected_components.py`
                gpu_connected_component \
-                 --jaccard-pairs-path /path/to/dedup_output/jaccard_similarity_results.parquet \
+                 --jaccard-pairs-path /path/to/dedup_output/jaccard_similarity_results.parquet `#Or /path/to/dedup_output/_edges.parquet` \
                  --output-dir /path/to/dedup_output \
                  --cache-dir /path/to/cc_cache \
                  --jaccard-threshold 0.8
