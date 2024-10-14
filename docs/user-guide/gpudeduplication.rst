@@ -55,9 +55,9 @@ Python API
       id_dataset = add_id(dataset)
       id_dataset.to_parquet("/path/to/parquet/data")
 
-.. code-block:: python
-
 After ensuring your dataset has a unique ID field (or creating one with the code above), you can perform exact deduplication as follows:
+
+.. code-block:: python
 
     from nemo_curator import ExactDuplicates
     from nemo_curator.datasets import DocumentDataset
