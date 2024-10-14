@@ -331,7 +331,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-bucket-dir /path/to/dedup_output/_buckets.parquet \
                  --output-dir /path/to/dedup_output \
                  --input-json-text-field text_column_name \
-                 --input-json-id-field id_column_name \
+                 --input-json-id-field id_column_name
                  # --scheduler-file /path/to/file.json
 
   b. Jaccard Shuffle
@@ -347,7 +347,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-bucket-mapping-dir /path/to/dedup_output/anchor_docs_with_bk.parquet \
                  --output-dir /path/to/dedup_output \
                  --input-json-text-field text_column_name \
-                 --input-json-id-field id_column_name \
+                 --input-json-id-field id_column_name
                  # --scheduler-file /path/to/file.json
 
   c. Jaccard Compute
@@ -362,6 +362,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --shuffled-docs-path /path/to/dedup_output/shuffled_docs.parquet \
                  --output-dir /path/to/dedup_output \
                  --ngram-size char_ngram_size_for_similarity \
+                 --input-json-id-field id_column_name
                  # --scheduler-file /path/to/file.json
 
 .. _fuzzydup_nofp:
@@ -393,7 +394,8 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --jaccard-pairs-path /path/to/dedup_output/jaccard_similarity_results.parquet `#Or /path/to/dedup_output/_edges.parquet` \
                  --output-dir /path/to/dedup_output \
                  --cache-dir /path/to/cc_cache \
-                 --jaccard-threshold 0.8
+                 --jaccard-threshold 0.8 \
+                 --input-json-id-field id_column_name
                  # --scheduler-file /path/to/file.json
 
 .. caution::
