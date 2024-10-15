@@ -63,7 +63,7 @@ class NsfwClassifier(ImageClassifier):
 
     def __init__(
         self,
-        image_embedding_column: str = "image_embedding",
+        embedding_column: str = "image_embedding",
         pred_column: str = "nsfw_score",
         batch_size: int = -1,
         model_path: Optional[str] = None,
@@ -72,7 +72,7 @@ class NsfwClassifier(ImageClassifier):
         Constructs the classifier.
 
         Args:
-            image_embedding_column (str): The column name that stores the image
+            embedding_column (str): The column name that stores the image
                 embeddings.
             pred_column (str): The column name to be added where the nsfw
                 scores will be stored.
@@ -86,7 +86,7 @@ class NsfwClassifier(ImageClassifier):
         """
         super().__init__(
             model_name="nsfw_classifier",
-            image_embedding_column=image_embedding_column,
+            embedding_column=embedding_column,
             pred_column=pred_column,
             pred_type=float,
             batch_size=batch_size,

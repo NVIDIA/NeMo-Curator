@@ -37,7 +37,7 @@ class ImageClassifier(ABC):
     def __init__(
         self,
         model_name: str,
-        image_embedding_column: str,
+        embedding_column: str,
         pred_column: str,
         pred_type: Union[str, type],
         batch_size: int,
@@ -49,7 +49,7 @@ class ImageClassifier(ABC):
         Args:
             model_name (str): A unqiue name to identify the model on each worker
                 and in the logs.
-            image_embedding_column (str): The column name that stores the image
+            embedding_column (str): The column name that stores the image
                 embeddings.
             pred_column (str): The column name to be added where the classifier's
                 predictions will be stored.
@@ -59,7 +59,7 @@ class ImageClassifier(ABC):
                 all embeddings will be processed at once.
         """
         self.model_name = model_name
-        self.image_embedding_column = image_embedding_column
+        self.embedding_column = embedding_column
         self.pred_column = pred_column
         self.pred_type = pred_type
         self.batch_size = batch_size
@@ -96,7 +96,7 @@ class ImageClassifier(ABC):
         )
 
         embeddings = torch.as_tensor(
-            partition[self.image_embedding_column].list.leaves.values.reshape(
+            partition[self.embedding_column].list.leaves.values.reshape(
                 len(partition), -1
             ),
             device=device,
@@ -105,7 +105,7 @@ class ImageClassifier(ABC):
         if self.embedding_size != embeddings.shape[-1]:
             raise RuntimeError(
                 f"{self.model_name} expects embedding size {self.embedding_size} but column "
-                f"'{self.image_embedding_column}' has embedding size {embeddings.shape[-1]}. Ensure your "
+                f"'{self.embedding_column}' has embedding size {embeddings.shape[-1]}. Ensure your "
                 "classifier is compatible with the CLIP model you used to generate the embeddings."
             )
 
