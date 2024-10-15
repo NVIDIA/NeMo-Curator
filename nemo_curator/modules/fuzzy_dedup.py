@@ -1428,16 +1428,30 @@ class ConnectedComponents:
             self._logger = logger
 
     def cc_workflow(self, output_path):
+        print("Writing deduped parsed id")
+        st = time.time()
         deduped_parsed_id_path = self._write_dedup_parsed_id()
+        print(f"Time taken for writing deduped parsed id = {time.time()-st}s")
+        print("Writing encoded jaccard pair")
+        st = time.time()
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
         )
+        print(f"Time taken for writing encoded jaccard pair = {time.time()-st}s")
+        print("Writing deduped encoded jaccard pair")
+        st = time.time()
         deduped_encoded_jaccard_path = self._write_dedup_encoded_jaccard_pair(
             encoded_jaccard_pair_path
         )
+        print(
+            f"Time taken for writing deduped encoded jaccard pair = {time.time()-st}s"
+        )
+        print("Running connected components")
+        st = time.time()
         cc_path = self._run_connected_components(
             deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path
         )
+        print(f"Time taken for running connected components = {time.time()-st}s")
         return cc_path
 
     def _run_connected_components(
@@ -1634,7 +1648,7 @@ class ConnectedComponents:
             len(ddf_id)
             ddf = dask_cudf.read_parquet(
                 self.jaccard_pairs_path,
-                blocksize="256MB",
+                blocksize="1GB",
                 aggregate_files=True,
             )
             id_columns = [self.id_column]
@@ -1652,17 +1666,51 @@ class ConnectedComponents:
                 id_columns = ["dataset_id", "doc_id"]
 
             num_workers = get_num_workers(get_current_client())
-            self._batched_merge_and_write(
+            self._merge_and_write(
                 ddf=ddf,
                 ddf_id=ddf_id,
                 output_path=output_path,
                 id_columns=id_columns,
-                batch_size=num_workers,
+                # batch_size=num_workers,
             )
         self._logger.info(
             f"Time taken for Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
         )
         return output_path
+
+    def _merge_and_write(self, ddf, ddf_id, output_path, id_columns):
+        import time
+
+        st = time.time()
+
+        # Ensure 'id_columns' is a list
+        if isinstance(id_columns, str):
+            id_columns = [id_columns]
+
+        # Optimize 'ddf_id' by setting 'id_columns' as the index
+        ddf_id = ddf_id.set_index(id_columns)
+
+        # Perform the merge operations for 'x' and 'y' tags
+        for tag in ["x", "y"]:
+            pair_ids = [f"{id_col}_{tag}" for id_col in id_columns]
+
+            # Merge 'ddf' with 'ddf_id' to map ids to uids
+            ddf = ddf.merge(
+                ddf_id,
+                left_on=pair_ids,
+                right_index=True,
+                how="inner",
+                # shuffle="p2p",
+                broadcast=True,
+            )
+
+            ddf = ddf.drop(columns=pair_ids)
+            ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+        ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
+        ddf.to_parquet(output_path, write_index=False)
+
+        et = time.time()
+        print(f"Merge and write completed in {et - st} seconds", flush=True)
 
     def _batched_merge_and_write(
         self, ddf, ddf_id, output_path, id_columns, batch_size=32
@@ -1681,6 +1729,7 @@ class ConnectedComponents:
                     right_on=id_columns,
                     how="inner",
                     broadcast=True,
+                    shuffle_method="p2p",
                 )
                 subset_ddf = subset_ddf.drop(
                     columns=pair_ids,
@@ -1706,11 +1755,11 @@ class ConnectedComponents:
             for id_col in id_columns:
                 cols_to_drop.append(f"{id_col}_{tag}")
 
-            subset_df = df[cols_to_drop].drop_duplicates()
+            subset_df = df[cols_to_drop].drop_duplicates(ignore_index=True)
             subset_df = subset_df.rename(
                 columns={f"{id_col}_{tag}": f"{id_col}" for id_col in id_columns}
             )
             unique_df_ls.append(subset_df)
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)
-        unique_df = unique_df.drop_duplicates()
+        unique_df = unique_df.drop_duplicates(ignore_index=True)
         return unique_df
