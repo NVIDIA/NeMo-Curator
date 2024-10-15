@@ -1,11 +1,13 @@
 import os
+
 os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
+
+import logging
 
 from dask.distributed import Client, LocalCluster
 from helper import process_data
 
-import logging
-logging.basicConfig(format='%(asctime)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format="%(asctime)s: %(message)s", level=logging.INFO)
 
 DATA_BASE = os.environ.get("DATA_BASE")
 INPUT_BASE = os.path.join(DATA_BASE, "raw/dclm-baseline-1.0-parquet/filtered")
@@ -13,15 +15,15 @@ OUTPUT_BASE = os.path.join(DATA_BASE, "processed/dclm-baseline-1.0-parquet")
 CPU_WORKERS = os.environ.get("CPU_WORKERS")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.info("Starting Dask cluster")
-    cluster = LocalCluster(n_workers=CPU_WORKERS, processes=True, memory_limit='48GB')
+    cluster = LocalCluster(n_workers=CPU_WORKERS, processes=True, memory_limit="48GB")
     client = Client(cluster)
     logging.info(client)
 
     components = [
         "global-shard_01_of_10",
-        "global-shard_02_of_10",        
+        "global-shard_02_of_10",
         "global-shard_03_of_10",
         "global-shard_04_of_10",
         "global-shard_05_of_10",
@@ -44,7 +46,6 @@ if __name__ == '__main__':
             prefix=f"dclm-gs{i}",
         )
         logging.info("Done!")
-        
+
     client.cluster.close()
-    client.shutdown()    
-    
+    client.shutdown()

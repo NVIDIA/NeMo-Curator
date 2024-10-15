@@ -1,14 +1,16 @@
-import os
 import json
-os.environ['DASK_DATAFRAME__QUERY_PLANNING'] = "False"
+import os
 
-from nemo_curator.utils.distributed_utils import get_num_workers
+os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
+
+import logging
 
 import dask.dataframe as dd
 from dask.distributed import Client, LocalCluster
 
-import logging
-logging.basicConfig(format='%(asctime)s: %(message)s', level=logging.INFO)
+from nemo_curator.utils.distributed_utils import get_num_workers
+
+logging.basicConfig(format="%(asctime)s: %(message)s", level=logging.INFO)
 
 DATA_BASE = os.environ.get("DATA_BASE")
 CC_BASE = os.path.join(DATA_BASE, "fuzzy/cc/")
@@ -41,13 +43,23 @@ if __name__ == "__main__":
         else:
             print(f"Unknown value {val} for key {key}")
 
-    def convert_cc_ids(cc_df, dataset_id_mapping, global_dataset_id_mapping, doc_id_len=10):
-        cc_df["global_dataset_id"] = cc_df.dataset_id.astype(str).replace(global_dataset_id_mapping)
+    def convert_cc_ids(
+        cc_df, dataset_id_mapping, global_dataset_id_mapping, doc_id_len=10
+    ):
+        cc_df["global_dataset_id"] = cc_df.dataset_id.astype(str).replace(
+            global_dataset_id_mapping
+        )
         cc_df["dataset_id"] = cc_df.dataset_id.astype(str).replace(dataset_id_mapping)
-        cc_df["doc_id"] = cc_df["doc_id"].astype(str).str.pad(width=doc_id_len, side="left", fillchar="0")
+        cc_df["doc_id"] = (
+            cc_df["doc_id"]
+            .astype(str)
+            .str.pad(width=doc_id_len, side="left", fillchar="0")
+        )
         cc_df["original_id"] = cc_df.dataset_id + "-" + cc_df.doc_id
         return cc_df[["global_dataset_id", "dataset_id", "original_id", "group"]]
-    
-    cc_df_converted = convert_cc_ids(cc_df, dataset_id_mapping, global_dataset_id_mapping)
+
+    cc_df_converted = convert_cc_ids(
+        cc_df, dataset_id_mapping, global_dataset_id_mapping
+    )
     cc_df_converted.to_parquet(CC_CONVERTED_FOLDER, overwrite=True, write_index=False)
     logging.info("Done converting!")

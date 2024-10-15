@@ -1,19 +1,21 @@
 import os
 import time
-os.environ['DASK_DATAFRAME__QUERY_PLANNING'] = "False"
 
-from dask.distributed import Client, LocalCluster
-import dask.dataframe as dd
-import pyarrow as pa
+os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 
 import logging
-logging.basicConfig(format='%(asctime)s: %(message)s', level=logging.INFO)
+
+import dask.dataframe as dd
+import pyarrow as pa
+from dask.distributed import Client, LocalCluster
+
+logging.basicConfig(format="%(asctime)s: %(message)s", level=logging.INFO)
 
 DATA_BASE = os.environ.get("DATA_BASE")
 CPU_WORKERS = os.environ.get("CPU_WORKERS")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     t0 = time.time()
     cluster = LocalCluster(n_workers=CPU_WORKERS, threads_per_worker=2, processes=True)
     client = Client(cluster)
@@ -28,5 +30,5 @@ if __name__ == '__main__':
         ddf_filtered = ddf[ddf["int_score"] >= 3].repartition(partition_size="512M")
         out_folder = os.path.join(OUTPUT_BASE, folder)
         print(f"Saving to {out_folder}")
-        ddf_filtered.to_parquet(out_folder, write_index=False, overwrite=True) 
+        ddf_filtered.to_parquet(out_folder, write_index=False, overwrite=True)
     logging.info(f"Done in {time.time() - t0:.2f} sec")

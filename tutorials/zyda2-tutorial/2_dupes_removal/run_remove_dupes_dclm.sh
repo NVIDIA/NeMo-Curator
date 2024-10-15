@@ -16,7 +16,7 @@ if test -d $INPUT; then
         --input $INPUT \
         --output $OUTPUT \
         --n-workers $N_WORKERS
-fi  
+fi
 
 NAME=global-shard_02_of_10
 INPUT=$IN_BASE/$NAME

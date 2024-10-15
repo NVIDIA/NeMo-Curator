@@ -25,7 +25,7 @@ export PROTOCOL=ucx
 2. Set the location of the scheduler file at `SCHEDULER_FILE`
 3. Set the network interface you want to use at `INTERFACE` (if unsure, ask your network administrator for what works with your Infiniband setup)
 3. Start Dask scheduler on your head node with `DASK_DISTRIBUTED__COMM__UCX__CREATE_CUDA_CONTEXT=True DASK_DISTRIBUTED__RMM__POOL_SIZE=$RMM_SCHEDULER_POOL_SIZE dask scheduler --scheduler-file $SCHEDULER_FILE --protocol $PROTOCOL --interface $INTERFACE`
-4. Start Dask workers on every compute node with `dask-cuda-worker --enable-tcp-over-ucx --enable-nvlink --enable-infiniband --enable-rdmacm --scheduler-file /shared/yury/nemo_scheduler.json --interface $INTERFACE`. [Optional] To help with potential out-of-memory memory issues due to fragmentation, one can set flags `--rmm-async --rmm-release-threshold <threshold>`, which will force RMM to release cache when memory usage is higher than specified threshold (this comes with a performance hit). In addition, Dask supports spilling into CPU RAM, it should allow running workloads when there is not enough VRAM, but it comes with a big performance hit; to enable spilling specify `--enable-cudf-spill` flag. 
+4. Start Dask workers on every compute node with `dask-cuda-worker --enable-tcp-over-ucx --enable-nvlink --enable-infiniband --enable-rdmacm --scheduler-file /shared/yury/nemo_scheduler.json --interface $INTERFACE`. [Optional] To help with potential out-of-memory memory issues due to fragmentation, one can set flags `--rmm-async --rmm-release-threshold <threshold>`, which will force RMM to release cache when memory usage is higher than specified threshold (this comes with a performance hit). In addition, Dask supports spilling into CPU RAM, it should allow running workloads when there is not enough VRAM, but it comes with a big performance hit; to enable spilling specify `--enable-cudf-spill` flag.
 
 To comfortably reproduce Zyda2 in 2 days we recommend using a cluster with 8 nodes of H100s (or A100s with 80GB of VRAM, but it will take longer). It could be run with less, but it will run into memory issues and will require spilling into CPU RAM, slowing down processing. Scripts in this tutorial assume that all the data is being stored at a shared storage accessible to all the nodes. However, Dask supports cloud storage (like GCS or AWS S3), so with minor modifications to the scripts one can read and write to the cloud.
 
@@ -89,7 +89,7 @@ The script for computing LSH buckets is located at `1_fuzzy_dedup/1_lsh.py`.
 For building LSH buckets, we split minhash signatures into 8 bands (each having range 16). This gives us a theoretical 85% Jaccard similarity threshold (meaning that documents that have at least 85% similarity are deemed duplicates).
 
 This step performs the following operation:
-1. Splits ID's into dataset_id and doc_id and converts them to integers. This step is no longer necessary, since recent releases of NeMo Curator support long strings on GPUs, but when we started our project this wasn't the default. 
+1. Splits ID's into dataset_id and doc_id and converts them to integers. This step is no longer necessary, since recent releases of NeMo Curator support long strings on GPUs, but when we started our project this wasn't the default.
 2. Splits minhashes of all documents into bands
 3. Groups documents into buckets, that correspond to identical values of bands
 4. Shuffles the resultant dataset by buckets, so that documents within the same bucket are in the same Dask partition
@@ -140,7 +140,7 @@ The deduplicated datasets are saved explicitly in the `$DATA_BASE/deduped` folde
 We ran a quality model classifier on Zyda1 and Dolma-CC v1.7 portions of our dataset. To run the prediction, use bash script `3_quality_model/run_quality_classifier.sh`. It calls the Python script `3_quality_model/run_quality_classifier.py` for all the components. All the results are saved in `$DATA_BASE/deduped-with-quality`. This step must be run on GPUs.
 
 ### 6. Filtering
-As the final step we perform filtering on some components of our dataset. 
+As the final step we perform filtering on some components of our dataset.
 
 We convert Fineweb-edu-score-2 into Fineweb-edu by keeping only the documents with edu score >=3. In principle, this dataset should be the same as the official version of Fineweb-edu. However, to be consistent we performed our own filtering in the script `4_filtering/filter_fwe.py`.
 

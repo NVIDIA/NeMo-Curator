@@ -1,25 +1,40 @@
-import os
-import time
 import argparse
 import json
-os.environ['DASK_DATAFRAME__QUERY_PLANNING'] = "False"
+import os
+import time
 
-from dask.distributed import Client, LocalCluster
-import dask.dataframe as dd
+os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 
 import logging
-logging.basicConfig(format='%(asctime)s: %(message)s', level=logging.INFO)
 
-if __name__ == '__main__':
+import dask.dataframe as dd
+from dask.distributed import Client, LocalCluster
+
+logging.basicConfig(format="%(asctime)s: %(message)s", level=logging.INFO)
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run NeMo quality classifier.")
-    parser.add_argument("--dupes-path", type=str, required=True, help="Path to the folder with dupes indices")
-    parser.add_argument("--input", type=str, required=True, help="Path to the folder with input dataset")
-    parser.add_argument("--output", type=str, required=True, help="Path to where write the result")
-    parser.add_argument("--n-workers", type=int, default=64, help="Number of CPU Dask workers")
+    parser.add_argument(
+        "--dupes-path",
+        type=str,
+        required=True,
+        help="Path to the folder with dupes indices",
+    )
+    parser.add_argument(
+        "--input", type=str, required=True, help="Path to the folder with input dataset"
+    )
+    parser.add_argument(
+        "--output", type=str, required=True, help="Path to where write the result"
+    )
+    parser.add_argument(
+        "--n-workers", type=int, default=64, help="Number of CPU Dask workers"
+    )
     args = parser.parse_args()
 
     t0 = time.time()
-    cluster = LocalCluster(n_workers=args.n_workers, threads_per_worker=2, processes=True)
+    cluster = LocalCluster(
+        n_workers=args.n_workers, threads_per_worker=2, processes=True
+    )
     client = Client(cluster)
     logging.info(f"Dask client: {client}")
     logging.info(f"Dashboard link: {client.dashboard_link}")
@@ -39,7 +54,7 @@ if __name__ == '__main__':
         dupes_file_path = ind_2_fullpath.get(ind, None)
         if not dupes_file_path:
             return partition
-        
+
         with open(dupes_file_path, "r") as f:
             dupe_inds = json.loads(f.read())["rows"]
             partition_deduped = partition.drop(index=dupe_inds)
