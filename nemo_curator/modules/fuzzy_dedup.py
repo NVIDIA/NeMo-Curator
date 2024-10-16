@@ -1668,7 +1668,7 @@ class ConnectedComponents:
         ddf: dask_cudf.DataFrame,
         ddf_id: dask_cudf.DataFrame,
         output_path: str,
-        id_columns: Union[str, List[str]]
+        id_columns: Union[str, List[str]],
     ) -> None:
         st = time.time()
         # Ensure 'id_columns' is a list
@@ -1696,7 +1696,9 @@ class ConnectedComponents:
         ddf.to_parquet(output_path, write_index=False)
 
         et = time.time()
-        self._logger.info(f"Time taken for merge and write = {time.time() - t0}s and output written at {output_path}")
+        self._logger.info(
+            f"Time taken for merge and write = {time.time() - t0}s and output written at {output_path}"
+        )
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
@@ -1714,4 +1716,3 @@ class ConnectedComponents:
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)
         unique_df = unique_df.drop_duplicates(ignore_index=True)
         return unique_df
-
