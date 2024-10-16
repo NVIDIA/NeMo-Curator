@@ -1674,29 +1674,59 @@ class ConnectedComponents:
         if isinstance(id_columns, str):
             id_columns = [id_columns]
 
-        # Optimize 'ddf_id' by setting 'id_columns' as the index
-        ddf_id = ddf_id.set_index(id_columns)
+        # Check if there are multiple id_columns
+        if len(id_columns) == 1:
+            # Single id_column case
+            ddf_id = ddf_id.set_index(id_columns)
+            for tag in ["x", "y"]:
+                pair_ids = [f"{id_columns[0]}_{tag}"]
+                # Merge 'ddf' with 'ddf_id' to map ids to uids
+                ddf = ddf.merge(
+                    ddf_id,
+                    left_on=pair_ids,
+                    right_index=True,
+                    how="inner",
+                    broadcast=True,
+                )
+                ddf = ddf.drop(columns=pair_ids)
+                ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+        else:
+            # Multiple id_columns case
+            # Combine id_columns into a single string column in 'ddf_id'
+            ddf_id["id_combined"] = ""
+            for id_c in id_columns:
+                ddf_id["id_combined"] = (
+                    ddf_id["id_combined"] + "-" + ddf_id[id_c].astype("str")
+                )
 
-        # Perform the merge operations for 'x' and 'y' tags
-        for tag in ["x", "y"]:
-            pair_ids = [f"{id_col}_{tag}" for id_col in id_columns]
+            ddf_id = ddf_id.drop(columns=id_columns)
+            ddf_id = ddf_id.set_index("id_combined")
+            for tag in ["x", "y"]:
+                pair_ids = [f"{id_col}_{tag}" for id_col in id_columns]
+                # Combine pair_ids into a single string column in 'ddf'
+                ddf["pair_id"] = ""
+                for pair_id in pair_ids:
+                    ddf["pair_id"] = ddf["pair_id"] + "-" + ddf[pair_id].astype("str")
 
-            # Merge 'ddf' with 'ddf_id' to map ids to uids
-            ddf = ddf.merge(
-                ddf_id,
-                left_on=pair_ids,
-                right_index=True,
-                how="inner",
-                broadcast=True,
-            )
-            ddf = ddf.drop(columns=pair_ids)
-            ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+                ddf = ddf.drop(columns=pair_ids)
+                # Merge 'ddf' with 'ddf_id' to map ids to uids
+                ddf = ddf.merge(
+                    ddf_id,
+                    left_on="pair_id",
+                    right_index=True,
+                    how="inner",
+                    broadcast=True,
+                )
+                # Drop the used columns
+                ddf = ddf.drop(columns=["pair_id"])
+                ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+        # Select the required columns
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False)
 
         et = time.time()
         self._logger.info(
-            f"Time taken for merge and write = {time.time() - t0}s and output written at {output_path}"
+            f"Time taken for merge and write = {et - st}s and output written at {output_path}"
         )
 
     @staticmethod
