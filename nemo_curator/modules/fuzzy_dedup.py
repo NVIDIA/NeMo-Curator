@@ -1429,29 +1429,16 @@ class ConnectedComponents:
 
     def cc_workflow(self, output_path):
         print("Writing deduped parsed id")
-        st = time.time()
         deduped_parsed_id_path = self._write_dedup_parsed_id()
-        print(f"Time taken for writing deduped parsed id = {time.time()-st}s")
-        print("Writing encoded jaccard pair")
-        st = time.time()
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
         )
-        print(f"Time taken for writing encoded jaccard pair = {time.time()-st}s")
-        print("Writing deduped encoded jaccard pair")
-        st = time.time()
         deduped_encoded_jaccard_path = self._write_dedup_encoded_jaccard_pair(
             encoded_jaccard_pair_path
         )
-        print(
-            f"Time taken for writing deduped encoded jaccard pair = {time.time()-st}s"
-        )
-        print("Running connected components")
-        st = time.time()
         cc_path = self._run_connected_components(
             deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path
         )
-        print(f"Time taken for running connected components = {time.time()-st}s")
         return cc_path
 
     def _run_connected_components(
@@ -1665,24 +1652,25 @@ class ConnectedComponents:
                 )
                 id_columns = ["dataset_id", "doc_id"]
 
-            num_workers = get_num_workers(get_current_client())
             self._merge_and_write(
                 ddf=ddf,
                 ddf_id=ddf_id,
                 output_path=output_path,
                 id_columns=id_columns,
-                # batch_size=num_workers,
             )
         self._logger.info(
             f"Time taken for Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
         )
         return output_path
 
-    def _merge_and_write(self, ddf, ddf_id, output_path, id_columns):
-        import time
-
+    def _merge_and_write(
+        self,
+        ddf: dask_cudf.DataFrame,
+        ddf_id: dask_cudf.DataFrame,
+        output_path: str,
+        id_columns: Union[str, List[str]]
+    ) -> None:
         st = time.time()
-
         # Ensure 'id_columns' is a list
         if isinstance(id_columns, str):
             id_columns = [id_columns]
@@ -1700,17 +1688,15 @@ class ConnectedComponents:
                 left_on=pair_ids,
                 right_index=True,
                 how="inner",
-                # shuffle="p2p",
                 broadcast=True,
             )
-
             ddf = ddf.drop(columns=pair_ids)
             ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False)
 
         et = time.time()
-        print(f"Merge and write completed in {et - st} seconds", flush=True)
+        self._logger.info(f"Time taken for merge and write = {time.time() - t0}s and output written at {output_path}")
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
