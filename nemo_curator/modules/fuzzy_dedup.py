@@ -1428,7 +1428,6 @@ class ConnectedComponents:
             self._logger = logger
 
     def cc_workflow(self, output_path):
-        print("Writing deduped parsed id")
         deduped_parsed_id_path = self._write_dedup_parsed_id()
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
