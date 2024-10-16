@@ -69,7 +69,7 @@ class NsfwClassifier(ImageClassifier):
             pred_column=pred_column,
             pred_type=float,
             batch_size=batch_size,
-            embedding_size=1024,
+            embedding_size=768,
         )
 
         if model_path is None:
