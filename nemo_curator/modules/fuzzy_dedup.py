@@ -1714,3 +1714,4 @@ class ConnectedComponents:
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)
         unique_df = unique_df.drop_duplicates(ignore_index=True)
         return unique_df
+
