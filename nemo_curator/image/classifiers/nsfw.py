@@ -96,7 +96,7 @@ class NsfwClassifier(ImageClassifier):
         return model_path
 
     def load_model(self, device):
-        model = NSFWModel(input_size=self.embedding_size).to(device)
+        model = NSFWModel().to(device)
         weights = torch.load(self.model_path, map_location=torch.device("cpu"))
         model.load_state_dict(weights)
         model.eval()
