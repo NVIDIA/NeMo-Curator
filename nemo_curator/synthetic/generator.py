@@ -38,13 +38,13 @@ class SyntheticDataGenerator(ABC):
         self._name = self.__class__.__name__
 
     @abstractmethod
-    def _generate(self, input_: Union[str, List[str]]) -> Union[str, List[str]]:
+    def generate(self, input_: Union[str, List[str]]) -> Union[str, List[str]]:
         pass
 
     @abstractmethod
-    def _parse_response(self, llm_response: Union[str, List[str]]) -> Any:
+    def parse_response(self, llm_response: Union[str, List[str]]) -> Any:
         pass
 
-    @abstractmethod
-    def run(self, dataset: DocumentDataset) -> DocumentDataset:
-        pass
+    # @abstractmethod
+    # def run(self, dataset: DocumentDataset) -> DocumentDataset:
+    #     pass
