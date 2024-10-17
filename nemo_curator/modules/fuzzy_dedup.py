@@ -1454,7 +1454,7 @@ class ConnectedComponents:
             )
             df = df[df["jaccard"] == 1].reset_index(drop=True)
 
-            labels_df = dask_cudf.read_parquet(deduped_parsed_id_path)
+            labels_df = dask_cudf.read_parquet(deduped_parsed_id_path, blocksize="1GB", aggregate_files=True)
             num_nodes = len(labels_df)
             self_edge_df = labels_df[["uid"]].rename(columns={"uid": self.left_id})
             self_edge_df[self.right_id] = self_edge_df[self.left_id]
