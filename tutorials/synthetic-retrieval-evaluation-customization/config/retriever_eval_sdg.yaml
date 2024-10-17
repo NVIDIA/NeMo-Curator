@@ -1,6 +1,6 @@
 qa_generator:
   model: mistralai/mixtral-8x22b-instruct-v0.1
-  model_config: 
+  model_config:
     temperature: 0.5
     top_p: 1.0
     max_tokens: 2048
@@ -19,19 +19,19 @@ qa_generator:
       - Generate questions that are relevant to the idea expressed in the input document, and the input document contains the complete answer to your question.
       - Generate questions that provide specific context that can lead to the specific answer contained in the input document.
       - Generate questions that are varied and different from each other. You can change up the phrasing, vocabulary, complexity, and the type of questions you ask throughout the task.
-      - DO NOT copy and paste exact phrasing from the test. Formulate questions in your own words. 
+      - DO NOT copy and paste exact phrasing from the test. Formulate questions in your own words.
       - Generate answers to the questions as well.
-      - Provide an explanation as to why the generated question is good. Use the following example questions and answers for reference. 
-      - Generated Questions should start with Question: 
+      - Provide an explanation as to why the generated question is good. Use the following example questions and answers for reference.
+      - Generated Questions should start with Question:
       - Generated Answers should start with Answer:
       - Generated Explanations should start with Explanation:
-      
+
       Examples:
 
       Input document:
       Just have the associate sign the back and then deposit it.  It's called a third party cheque and is perfectly legal.  I wouldn't be surprised if it has a longer hold period and, as always, you don't get the money if the cheque doesn't clear. Now, you may have problems if it's a large amount or you're not very well known at the bank.  In that case you can have the associate go to the bank and endorse it in front of the teller with some ID.  You don't even technically have to be there.  Anybody can deposit money to your account if they have the account number. He could also just deposit it in his account and write a cheque to the business.
       Have the check reissued to the proper payee.
-      
+
       Question:
       How to deposit a cheque issued to an associate in my business into my business account?
 
@@ -47,12 +47,12 @@ qa_generator:
       Question:
       How to account for money earned and spent prior to establishing business bank accounts?
 
-      
+
     user_prompt_template: |
       Generate {n_openlines} questions and corresponding answers based on Input Document.
 
       Input Document:
-      {document}   
+      {document}
 
 easiness_filter:
   filter_cfg:
@@ -74,7 +74,7 @@ answerability_filter:
       Criterion 2 - Is it clear what type of answer or information the question seeks? The question should convey its purpose without ambiguity, allowing for a direct and relevant response.
       Criterion 3 - Does the content in the context contain information that can answer the question or part of the question?
       Criterion 4 - Does the content in the context completely answer the question?
-      
+
       Provide your response in a mandatory dictionary format, and a short explanation of the rating like
       {
       \"criterion_1_explanation\": "<Brief explanation of why criterion_1 was satisfied or not satisfied>",
@@ -86,12 +86,10 @@ answerability_filter:
       \"criterion_4_explanation\": "<Extract spans from the content that help completely answer the question if criterion is satisfied, state what parts are missing if not satisfied>",
       \"criterion_4\": "<Y/N>"
       }
-      Provide only the dictionary response and nothing else.    
-    
+      Provide only the dictionary response and nothing else.
+
     user_prompt_template: |
       Context Passage:
       {context}
       Question:
       {question}
-      
-
