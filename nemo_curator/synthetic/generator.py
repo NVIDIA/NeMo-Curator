@@ -37,4 +37,3 @@ class SyntheticDataGenerator(ABC):
     @abstractmethod
     def parse_response(self, llm_response: Union[str, List[str]]) -> Any:
         pass
-
