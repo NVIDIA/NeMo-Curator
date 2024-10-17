@@ -1436,9 +1436,7 @@ class ConnectedComponents:
         cc_path = self._run_connected_components(
             deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path
         )
-        self._logger.info(
-            f"End to End time in cc_workflow = {time.time() - st}s"
-        )
+        self._logger.info(f"End to End time in cc_workflow = {time.time() - st}s")
         return cc_path
 
     def _run_connected_components(
@@ -1458,7 +1456,9 @@ class ConnectedComponents:
             )
             df = df[df["jaccard"] == 1].reset_index(drop=True)
 
-            labels_df = dask_cudf.read_parquet(deduped_parsed_id_path, blocksize="1GB", aggregate_files=True)
+            labels_df = dask_cudf.read_parquet(
+                deduped_parsed_id_path, blocksize="1GB", aggregate_files=True
+            )
             num_nodes = len(labels_df)
             self_edge_df = labels_df[["uid"]].rename(columns={"uid": self.left_id})
             self_edge_df[self.right_id] = self_edge_df[self.left_id]
@@ -1648,7 +1648,6 @@ class ConnectedComponents:
             ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False)
-
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
