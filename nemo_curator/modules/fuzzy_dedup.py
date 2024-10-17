@@ -1448,7 +1448,7 @@ class ConnectedComponents:
             self.profile_dir, "connected-components-run"
         ):
 
-            Comms.initialize(p2p=True)
+            Comms.initialize(p2p=False)
             df = dask_cudf.read_parquet(
                 deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
             )
@@ -1476,9 +1476,7 @@ class ConnectedComponents:
             labels_df = labels_df.merge(
                 result, left_on=["uid"], right_on=["vertex"], how="inner"
             )
-            id_columns = (
-                ["dataset_id", "doc_id"] if self.convert_str_ids else [self.id_column]
-            )
+            id_columns = [self.id_column]
             labels_df = labels_df[id_columns + ["labels"]]
             labels_df = labels_df.rename(columns={"labels": "group"})
             labels_df = labels_df.persist()
@@ -1578,7 +1576,7 @@ class ConnectedComponents:
             ddf = dask_cudf.read_parquet(
                 self.jaccard_pairs_path,
                 columns=[self.left_id, self.right_id],
-                blocksize="1GB",
+                blocksize="512MB",
                 aggregate_files=True,
             )
             id_columns = [self.id_column]
