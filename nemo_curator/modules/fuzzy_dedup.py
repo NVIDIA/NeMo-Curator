@@ -469,7 +469,6 @@ class FuzzyDuplicates:
             cache_dir=self.config.cache_dir,
             jaccard_pairs_path=os.path.join(self.config.cache_dir, jaccard_pairs_fname),
             id_column=self.config.id_field,
-            convert_str_ids=False,
             jaccard_threshold=self.config.jaccard_threshold,
             logger=self._logger,
             profile_dir=self.config.profile_dir,
@@ -1405,7 +1404,6 @@ class ConnectedComponents:
         cache_dir: str,
         jaccard_pairs_path: str,
         id_column="id",
-        convert_str_ids=False,
         jaccard_threshold: float = 0.8,
         logger: Union[logging.LoggerAdapter, str] = "./",
         profile_dir: Optional[str] = None,
@@ -1415,7 +1413,6 @@ class ConnectedComponents:
         self.id_column = id_column
         self.left_id = f"{id_column}_x"
         self.right_id = f"{id_column}_y"
-        self.convert_str_ids = convert_str_ids
         self.jaccard_threshold = jaccard_threshold
         self.profile_dir = profile_dir
         if isinstance(logger, str):
@@ -1593,18 +1590,6 @@ class ConnectedComponents:
                 aggregate_files=True,
             )
             id_columns = [self.id_column]
-            if self.convert_str_ids:
-                ddf = ddf.map_partitions(
-                    self._convert_str_id_pair_to_int,
-                    meta={
-                        "dataset_id_x": "uint32",
-                        "doc_id_x": "int64",
-                        "dataset_id_y": "uint32",
-                        "doc_id_y": "int64",
-                    },
-                )
-                id_columns = ["dataset_id", "doc_id"]
-
             unique_docs = ddf.map_partitions(
                 ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
             )
@@ -1630,32 +1615,16 @@ class ConnectedComponents:
             ddf_id = dask_cudf.read_parquet(
                 dedup_parsed_id_path, blocksize="2GB", aggregate_files=True
             )
-            ddf_id = ddf_id.persist()
-            len(ddf_id)
             ddf = dask_cudf.read_parquet(
                 self.jaccard_pairs_path,
                 blocksize="1GB",
                 aggregate_files=True,
             )
-            id_columns = [self.id_column]
-            if self.convert_str_ids:
-                ddf = ddf.map_partitions(
-                    self._convert_str_id_pair_to_int,
-                    meta={
-                        "jaccard": "float32",
-                        "dataset_id_x": "uint32",
-                        "doc_id_x": "int64",
-                        "dataset_id_y": "uint32",
-                        "doc_id_y": "int64",
-                    },
-                )
-                id_columns = ["dataset_id", "doc_id"]
-
             self._merge_and_write(
                 ddf=ddf,
                 ddf_id=ddf_id,
                 output_path=output_path,
-                id_columns=id_columns,
+                id_column=self.id_column,
             )
         self._logger.info(
             f"Time taken for Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
@@ -1667,60 +1636,23 @@ class ConnectedComponents:
         ddf: dask_cudf.DataFrame,
         ddf_id: dask_cudf.DataFrame,
         output_path: str,
-        id_columns: Union[str, List[str]],
+        id_column: str,
     ) -> None:
         st = time.time()
         # Ensure 'id_columns' is a list
-        if isinstance(id_columns, str):
-            id_columns = [id_columns]
-
-        # Check if there are multiple id_columns
-        if len(id_columns) == 1:
-            # Single id_column case
-            ddf_id = ddf_id.set_index(id_columns)
-            for tag in ["x", "y"]:
-                pair_ids = [f"{id_columns[0]}_{tag}"]
-                # Merge 'ddf' with 'ddf_id' to map ids to uids
-                ddf = ddf.merge(
-                    ddf_id,
-                    left_on=pair_ids,
-                    right_index=True,
-                    how="inner",
-                    broadcast=True,
-                )
-                ddf = ddf.drop(columns=pair_ids)
-                ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
-        else:
-            # Multiple id_columns case
-            # Combine id_columns into a single string column in 'ddf_id'
-            ddf_id["id_combined"] = ""
-            for id_c in id_columns:
-                ddf_id["id_combined"] = (
-                    ddf_id["id_combined"] + "-" + ddf_id[id_c].astype("str")
-                )
-
-            ddf_id = ddf_id.drop(columns=id_columns)
-            ddf_id = ddf_id.set_index("id_combined")
-            for tag in ["x", "y"]:
-                pair_ids = [f"{id_col}_{tag}" for id_col in id_columns]
-                # Combine pair_ids into a single string column in 'ddf'
-                ddf["pair_id"] = ""
-                for pair_id in pair_ids:
-                    ddf["pair_id"] = ddf["pair_id"] + "-" + ddf[pair_id].astype("str")
-
-                ddf = ddf.drop(columns=pair_ids)
-                # Merge 'ddf' with 'ddf_id' to map ids to uids
-                ddf = ddf.merge(
-                    ddf_id,
-                    left_on="pair_id",
-                    right_index=True,
-                    how="inner",
-                    broadcast=True,
-                )
-                # Drop the used columns
-                ddf = ddf.drop(columns=["pair_id"])
-                ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
-        # Select the required columns
+        ddf_id = ddf_id.set_index(id_column)
+        for tag in ["x", "y"]:
+            pair_id = f"{id_column}_{tag}"
+            # Merge 'ddf' with 'ddf_id' to map ids to uids
+            ddf = ddf.merge(
+                ddf_id,
+                left_on=pair_id,
+                right_index=True,
+                how="inner",
+                broadcast=True,
+            )
+            ddf = ddf.drop(columns=pair_id)
+            ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False)
 

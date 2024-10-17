@@ -38,7 +38,6 @@ def main(args):
         cache_dir=args.cache_dir,
         jaccard_pairs_path=args.jaccard_pairs_path,
         id_column=args.input_json_id_field,
-        convert_str_ids=False,
         jaccard_threshold=args.jaccard_threshold,
         logger=args.log_dir,
     )
