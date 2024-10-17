@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import importlib
 import os
 import re
@@ -19,13 +20,13 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 from tqdm import tqdm
 
-from nemo_curator import OpenAIClient
+from nemo_curator import AsyncOpenAIClient, OpenAIClient
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters.doc_filter import DocumentFilter
-from nemo_curator.synthetic import NemotronGenerator
+from nemo_curator.synthetic import AsyncNemotronGenerator, NemotronGenerator
 from nemo_curator.synthetic.generator import SyntheticDataGenerator
 from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.module_utils import is_batched
@@ -33,7 +34,10 @@ from nemo_curator.utils.module_utils import is_batched
 
 class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
-    def __init__(self, pipeline_config: DictConfig = None):
+    def __init__(
+        self,
+        pipeline_config: DictConfig = None,
+    ):
         super().__init__()
         self._name = self.__class__.__name__
         self.cfg = pipeline_config
@@ -47,16 +51,17 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         self.generator = NemotronGenerator(self.client)
 
         # TODO asynchronous
+        self._init_pipeline_params()
 
     def load_pipeline_config(self, cfg_path: str):
         self.cfg = OmegaConf.load(cfg_path)
 
-    def validate_config(self):
+    def _validate_config(self):
         return True  # TODO complete this
 
-    def init_pipeline_params(self):
+    def _init_pipeline_params(self):
 
-        if self.validate_config:
+        if self._validate_config():
             self.sys_prompt = self.cfg["qa_generator"]["generate_config"][
                 "system_prompt"
             ]
@@ -70,7 +75,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         else:
             raise Exception("Validation Error: incorrect pipeline config file")
 
-    def run(self, dataset: DocumentDataset) -> DocumentDataset:
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
 
         df = dataset.df
         df["llm_response"] = df["text"].apply(
@@ -88,7 +93,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         )
         return DocumentDataset(df[["_id", "text", "title", "question", "answer"]])
 
-    def _parse_response(self, llm_response: str) -> Any:
+    def parse_response(self, llm_response: str) -> Any:
         qa_pairs = []
         qa_list = llm_response.split("Question")[1:]
         try:
@@ -105,7 +110,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             print(f"error: {e}")
         return qa_pairs
 
-    def _generate(self, doc_text):
+    def generate(self, doc_text):
         return self.generator.generate_closed_qa_instructions(
             document=doc_text,
             prompt_template=self.sys_prompt + "\n" + self.user_prompt_template,

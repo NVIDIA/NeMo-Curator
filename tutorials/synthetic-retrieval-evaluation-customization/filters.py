@@ -147,7 +147,23 @@ class AnswerabilityFilter(DocumentFilter):
 
     @batched
     def keep_document(self, scores: pd.Series):
-        return scores
+
+        def _keep_document(score: str):
+            is_keep = True  # default is to keep
+            try:
+                json_ans = json.loads(scores)
+                for i in range(self.num_criteria):
+                    if json_ans[f"criterion_{i+1}"] != "Y":
+                        # filter out data if any of the criteria fails
+                        is_keep = False  # filter out
+                        break
+            except Exception as e:
+                print(f"Parse error {e}")
+                # if there is a parse error, keep the document
+
+            return is_keep
+
+        return scores.apply(_keep_document)
 
     def _llm_as_judge(self, context: str, question: str):
 
@@ -172,22 +188,9 @@ class AnswerabilityFilter(DocumentFilter):
                     generation += chunk.choices[0].delta.content
         except Exception as e:
             print(f"API call error {e}")
-            return None, None  # is_keep, generation
+            return None  # generation
 
-        is_keep = True  # default is to keep
-        try:
-            json_ans = json.loads(generation)
-            for i in range(self.num_criteria):
-                if json_ans[f"criterion_{i+1}"] != "Y":
-                    # filter out data if any of the criteria fails
-                    is_keep = False  # filter out
-                    break
-        except Exception as e:
-            print(f"Parse error {e}")
-            # if there is an error, return None
-            is_keep = None
-
-        return is_keep
+        return generation
 
 
 # ----------------------------------------------------------------------------80
