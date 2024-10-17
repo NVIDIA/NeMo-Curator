@@ -18,6 +18,8 @@ import os
 import re
 from abc import ABC, abstractmethod
 from typing import Any
+import secrets
+import hashlib
 
 from omegaconf import DictConfig, OmegaConf
 from openai import AsyncOpenAI, OpenAI
@@ -79,19 +81,20 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
         df = dataset.df
         df["llm_response"] = df["text"].apply(
-            self._generate, meta=("llm_response", "str")
+            self.generate, meta=("llm_response", "str")
         )
         df["qa_pairs"] = df["llm_response"].apply(
-            self._parse_response, meta=("qa_pairs", "object")
+            self.parse_response, meta=("qa_pairs", "object")
         )
         df = df.explode("qa_pairs").reset_index(drop=True)
         df["question"] = df["qa_pairs"].apply(
             lambda x: x["question"], meta=("question", "str")
         )
+        df["question-id"] = df['question'].apply(self._get_random_hash)
         df["answer"] = df["qa_pairs"].apply(
             lambda x: x["answer"], meta=("answer", "str")
         )
-        return DocumentDataset(df[["_id", "text", "title", "question", "answer"]])
+        return DocumentDataset(df[["_id", "text", "title", "question-id","question", "answer"]])
 
     def parse_response(self, llm_response: str) -> Any:
         qa_pairs = []
@@ -118,3 +121,16 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             model=self.generator_model,
             model_kwargs=self.generator_model_kwargs,
         )[0]
+    
+
+    def _get_random_hash(self, question: str):
+        """Generate random hash for synthetic question IDs
+        """
+        # Generate a random string
+        random_string = secrets.token_hex(16)  # Generates a secure, random string of 16 bytes hex-encoded
+
+        # Hash the random string using SHA-256
+        hash_object = hashlib.sha256(random_string.encode())  # Encode the string to bytes
+        hex_dig = hash_object.hexdigest()
+        return hex_dig
+

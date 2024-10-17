@@ -158,7 +158,8 @@ class AnswerabilityFilter(DocumentFilter):
                         is_keep = False  # filter out
                         break
             except Exception as e:
-                print(f"Parse error {e}")
+                pass # TODO log the errors
+                # print(f"Parse error {e}")
                 # if there is a parse error, keep the document
 
             return is_keep
