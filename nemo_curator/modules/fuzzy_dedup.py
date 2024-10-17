@@ -1425,6 +1425,7 @@ class ConnectedComponents:
             self._logger = logger
 
     def cc_workflow(self, output_path):
+        st = time.time()
         deduped_parsed_id_path = self._write_dedup_parsed_id()
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
@@ -1434,6 +1435,9 @@ class ConnectedComponents:
         )
         cc_path = self._run_connected_components(
             deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path
+        )
+        self._logger.info(
+            f"End to End time in cc_workflow = {time.time() - st}s"
         )
         return cc_path
 
@@ -1628,7 +1632,6 @@ class ConnectedComponents:
         output_path: str,
         id_column: str,
     ) -> None:
-        st = time.time()
         # Ensure 'id_columns' is a list
         ddf_id = ddf_id.set_index(id_column)
         for tag in ["x", "y"]:
@@ -1646,10 +1649,6 @@ class ConnectedComponents:
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False)
 
-        et = time.time()
-        self._logger.info(
-            f"Time taken for merge and write = {et - st}s and output written at {output_path}"
-        )
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
