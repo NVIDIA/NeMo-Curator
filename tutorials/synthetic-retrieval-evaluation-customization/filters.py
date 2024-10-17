@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import itertools
+import json
 from typing import List, Union
 
 import dask
@@ -28,6 +29,9 @@ from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
 
+# ----------------------------------------------------------------------------80
+# ------------------------ EASINESS FILTER -------------------------------------
+# ----------------------------------------------------------------------------80
 class EasinessFilter(DocumentFilter):
 
     def __init__(self, cfg: DictConfig, text_fields: List[str] = ["text", "question"]):
@@ -106,3 +110,84 @@ class EasinessFilter(DocumentFilter):
                 sim = 0.0
 
         return sim
+
+
+# ----------------------------------------------------------------------------80
+# ----------------------- Answerability Filter ---------------------------------
+# ----------------------------------------------------------------------------80
+
+
+class AnswerabilityFilter(DocumentFilter):
+
+    def __init__(self, cfg: DictConfig, text_fields: List[str] = ["text", "question"]):
+
+        self._name = "answerability_filter"
+        if "answerability_filter" in cfg:
+            self.filter_cfg = cfg["answerability_filter"]["filter_cfg"]
+        else:
+            raise Exception("Error: Config doesn't have answerability filter")
+        self.base_url = self.filter_cfg.base_url
+        self.api_key = self.filter_cfg.api_key
+        self.model_name = self.filter_cfg.model_name
+        self.system_prompt = self.filter_cfg.system_prompt
+        self.user_prompt_template = self.filter_cfg.user_prompt_template
+        self.num_criteria = self.filter_cfg.num_criteria
+
+        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        self.text_fields = text_fields
+
+    @batched
+    def score_document(self, df: Union[pd.DataFrame, dd.DataFrame]):
+        return df.apply(
+            lambda row: self._llm_as_judge(
+                row[self.text_fields[0]], row[self.text_fields[1]]
+            ),
+            axis=1,
+        )
+
+    @batched
+    def keep_document(self, scores: pd.Series):
+        return scores
+
+    def _llm_as_judge(self, context: str, question: str):
+
+        user_query = self.system_prompt + "\n\n"
+        user_query += self.user_prompt_template.format(
+            context=context, question=question
+        )
+
+        try:
+            completion = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": user_query}],
+                temperature=0.5,
+                top_p=1,
+                max_tokens=1024,
+                stream=True,
+            )
+
+            generation = ""
+            for chunk in completion:
+                if chunk.choices[0].delta.content is not None:
+                    generation += chunk.choices[0].delta.content
+        except Exception as e:
+            print(f"API call error {e}")
+            return None, None  # is_keep, generation
+
+        is_keep = True  # default is to keep
+        try:
+            json_ans = json.loads(generation)
+            for i in range(self.num_criteria):
+                if json_ans[f"criterion_{i+1}"] != "Y":
+                    # filter out data if any of the criteria fails
+                    is_keep = False  # filter out
+                    break
+        except Exception as e:
+            print(f"Parse error {e}")
+            # if there is an error, return None
+            is_keep = None
+
+        return is_keep
+
+
+# ----------------------------------------------------------------------------80
