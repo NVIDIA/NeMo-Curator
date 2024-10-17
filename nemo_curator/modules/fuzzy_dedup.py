@@ -1569,14 +1569,6 @@ class ConnectedComponents:
         )
         return output_path
 
-    def _convert_str_id_pair_to_int(self, df):
-        for id, tag in zip([self.left_id, self.right_id], ["x", "y"]):
-            dx = df[id].str.rsplit("-", n=1, expand=True)
-            df[f"dataset_id_{tag}"] = dx[0].astype("uint32").values
-            df[f"doc_id_{tag}"] = dx[1].astype("int64").values
-            df = df.drop(columns=[id])
-        return df
-
     def _write_dedup_parsed_id(self):
         dedup_parsed_id_path = f"{self.cache_dir}/dedup_parsed_id.parquet"
         t0 = time.time()
