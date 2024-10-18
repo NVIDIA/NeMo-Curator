@@ -88,6 +88,8 @@ class DocumentDataset:
         backend="pandas",
         files_per_partition=1,
         add_filename=False,
+        columns: List[str] = None,
+        **kwargs,
     ):
         return cls(
             read_data(
@@ -96,6 +98,8 @@ class DocumentDataset:
                 backend=backend,
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                columns=columns,
+                **kwargs,
             )
         )
 

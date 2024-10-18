@@ -344,7 +344,9 @@ def read_single_partition(
     return df
 
 
-def read_pandas_pickle(file, add_filename=False, columns=None, **kwargs) -> pd.DataFrame:
+def read_pandas_pickle(
+    file, add_filename=False, columns=None, **kwargs
+) -> pd.DataFrame:
     """
     This function reads a pickle file with Pandas.
 
@@ -396,7 +398,9 @@ def read_data(
         test_obj = cudf.Series
 
     if file_type == "pickle":
-        df = read_pandas_pickle(input_files[0], add_filename=add_filename, columns=columns, **kwargs)
+        df = read_pandas_pickle(
+            input_files[0], add_filename=add_filename, columns=columns, **kwargs
+        )
         df = dd.from_pandas(df, npartitions=16)
         if backend == "cudf":
             df = df.to_backend("cudf")
