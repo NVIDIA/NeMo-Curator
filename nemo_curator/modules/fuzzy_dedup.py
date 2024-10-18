@@ -99,7 +99,9 @@ class MinHash:
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
-        self.seeds = self.generate_seeds(n_seeds=self.num_hashes, seed=seed)
+        self.seeds = self.generate_hash_permutations(
+            n_permutations=self.num_hashes, seed=seed
+        )
         self.minhash_method = self.minhash64 if use_64bit_hash else self.minhash32
         self.id_field = id_field
         self.text_field = text_field
@@ -120,12 +122,22 @@ class MinHash:
         else:
             self._logger = logger
 
-    def generate_seeds(self, n_seeds: int = 260, seed: int = 0) -> np.ndarray:
+    def generate_hash_permutations(self, n_permutations=260, seed=0):
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
         gen = np.random.RandomState(seed)
-        return gen.randint(0, 1e6, size=n_seeds)
+        MERSENNE_PRIME = np.uint32((1 << 31) - 1)
+        return np.array(
+            [
+                (
+                    gen.randint(1, MERSENNE_PRIME, dtype=np.uint32),
+                    gen.randint(0, MERSENNE_PRIME, dtype=np.uint32),
+                )
+                for _ in range(n_permutations)
+            ],
+            dtype=np.uint32,
+        )
 
     def minhash32(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
@@ -135,8 +147,12 @@ class MinHash:
         """
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
-        seeds = cudf.Series(seeds, dtype="uint32")
-        return ser.str.minhash(seeds=seeds, width=char_ngram)
+        seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
+        seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
+
+        return ser.str.minhash_permuted(
+            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
+        )
 
     def minhash64(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
@@ -144,6 +160,7 @@ class MinHash:
         """
         Compute 64bit minhashes based on the MurmurHash3 algorithm
         """
+        raise NotImplementedError("minhash_permuted not implemented for 64 bit yet")
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
         seeds = cudf.Series(seeds, dtype="uint64")
