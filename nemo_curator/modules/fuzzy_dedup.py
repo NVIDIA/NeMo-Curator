@@ -122,7 +122,7 @@ class MinHash:
         else:
             self._logger = logger
 
-    def generate_hash_permutations(self, n_permutations=260, seed=0):
+    def generate_hash_permutations(self, n_permutations=260, seed=0) -> np.ndarray:
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
