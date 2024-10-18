@@ -18,6 +18,8 @@ from typing import List, Optional
 
 import yaml
 
+import numpy as np
+
 
 @dataclass
 class BaseConfig:
@@ -80,6 +82,9 @@ class FuzzyDuplicatesConfig(BaseConfig):
     bucket_mapping_blocksize: int = 256
     parts_per_worker: int = 1
     bucket_parts_per_worker: int = 8
+    # String bytes limit for cuDF
+    # https://github.com/rapidsai/cudf/issues/13733
+    max_text_bytes_per_part: int = int(np.iinfo(np.int32).max * 3)
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
