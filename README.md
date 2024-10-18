@@ -21,28 +21,21 @@ NeMo Curator provides a collection of scalable data curation modules for text an
 All of our text pipelines have great multilingual support.
 
 - [Download and Extraction](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/download.html)
-
   - Common Crawl, Wikipedia, and ArXiv sources
   - Easily customize and extend to other sources
 
 - [Language Identification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
-
 - [Unicode Fixing](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
-
 - [Heuristic Filtering](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
   - Classifier-based filtering via [fastText](https://fasttext.cc/)
-
 - Classifier Filtering
   - [fastText]((https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html))
   - GPU-based: [Domain, Quality, Safety](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
-
 - **GPU Deduplication**
   - [Exact](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html)
   - [Fuzzy](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html) (Minhash LSH)
   - [Semantic](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/semdedup.html)
-
 - [Downstream-task Decontamination](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/taskdecontamination.html)
-
 - [Personal Identifiable Information (PII) Redaction](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/personalidentifiableinformationidentificationandremoval.html)
 
 ### Image

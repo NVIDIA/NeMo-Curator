@@ -48,15 +48,15 @@ First, we can compute these embeddings, then we can perform the classification.
     safety_classifier = NsfwClassifier()
 
     dataset_with_embeddings = embedding_model(dataset)
-    dataset_with_aesthetic_scores = safety_classifier(dataset_with_embeddings)
+    dataset_with_nsfw_scores = safety_classifier(dataset_with_embeddings)
 
     # Metdata will have a new column named "nsfw_score"
-    dataset_with_aesthetic_scores.save_metadata()
+    dataset_with_nsfw_scores.save_metadata()
 
 --------------------
 Key Parameters
 --------------------
-* ``batch_size=-1`` is the optional batch size parameter. By default, it will process all the embeddings in a shard at once. Since the aesthetic classifier is a samll model, this is usually fine.
+* ``batch_size=-1`` is the optional batch size parameter. By default, it will process all the embeddings in a shard at once. Since the NSFW classifier is a samll model, this is usually fine.
 
 ---------------------------
 Performance Considerations
@@ -84,10 +84,10 @@ Check out this example:
         classifiers=[NsfwClassifier()],
     )
 
-    dataset_with_aesthetic_scores = embedding_model(dataset)
+    dataset_with_nsfw_scores = embedding_model(dataset)
 
-    # Metdata will have a new column named "aesthetic_score"
-    dataset_with_aesthetic_scores.save_metadata()
+    # Metdata will have a new column named "nsfw_score"
+    dataset_with_nsfw_scores.save_metadata()
 
 
 ---------------------------

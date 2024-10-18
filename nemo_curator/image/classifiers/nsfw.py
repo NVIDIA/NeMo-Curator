@@ -55,8 +55,8 @@ class H14_NSFW_Detector(nn.Module):
 class NsfwClassifier(ImageClassifier):
     """
     NSFW Classifier is a small MLP trained on top of
-    Laion's ViT-H image embeddings. It is used to assess the likelihood
-    of images containing sexually explicit materal.
+    OpenAI's ViT-L CLIP image embeddings. It is used to assess the likelihood
+    of images containing sexually explicit material.
     More information on the model can be found here:
     https://github.com/LAION-AI/CLIP-based-NSFW-Detector.
     """

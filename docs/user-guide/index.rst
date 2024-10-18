@@ -38,6 +38,9 @@ Text Curation
 Image Curation
 -------------------
 
+:ref:`Get Started <data-curator-image-getting-started>`
+   Install NeMo Curator's image curation modules.
+
 :ref:`Image-Text Pair Datasets <data-curator-image-datasets>`
    Image-text pair datasets are commonly used as the basis for training multimodal generative models. NeMo Curator interfaces with the standardized Webdataset format for curating such datasets.
 
@@ -47,7 +50,7 @@ Image Curation
 :ref:`Classifiers <data-curator-image-classifiers>`
    NeMo Curator provides several ways to use common classifiers like aesthetic scoring, and not-safe-for-work (NSFW) scoring.
 
-:ref:`Semantic Deduplication <data-curator-image-semdedup>`
+:ref:`Semantic Deduplication <data-curator-semdedup>`
    Semantic deduplication with image datasets has been shown to drastically improve model performance. NeMo Curator has a semnatic deduplication module that can work with any modality.
 
 -------------------
