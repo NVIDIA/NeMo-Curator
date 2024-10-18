@@ -16,9 +16,8 @@ import warnings
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-import yaml
-
 import numpy as np
+import yaml
 
 
 @dataclass
