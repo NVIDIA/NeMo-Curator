@@ -260,7 +260,7 @@ def read_single_partition(
     filetype="jsonl",
     add_filename=False,
     input_meta: Union[str, dict] = None,
-    columns: List[str] = None,
+    columns: Optional[List[str]] = None,
     **kwargs,
 ) -> Union[cudf.DataFrame, pd.DataFrame]:
     """
@@ -373,7 +373,7 @@ def read_data(
     files_per_partition: int = 1,
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
-    columns: List[str] = None,
+    columns: Optional[List[str]] = None,
     **kwargs,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
     """
