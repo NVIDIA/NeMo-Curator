@@ -36,6 +36,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.base import Module
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import (
     performance_report_if_with_ts_suffix,
@@ -573,7 +574,7 @@ class SemanticClusterLevelDedup:
         return DocumentDataset.read_parquet(fps, backend="cudf")
 
 
-class SemDedup:
+class SemDedup(Module):
     def __init__(
         self,
         config: SemDedupConfig,
@@ -624,7 +625,11 @@ class SemDedup:
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    @property
+    def input_backend(self) -> str:
+        return "cudf"
+
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Execute the SemDedup process.
 

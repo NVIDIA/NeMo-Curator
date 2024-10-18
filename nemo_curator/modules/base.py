@@ -12,29 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from abc import ABC, abstractmethod
+
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modifiers import DocumentModifier
-from nemo_curator.modules.base import Module
-from nemo_curator.utils.module_utils import is_batched
 
 
-class Modify(Module):
-    def __init__(self, modifier: DocumentModifier, text_field="text"):
-        self.modifier = modifier
-        self.text_field = text_field
+class Module(ABC):
+    def __init__(self, name=None) -> None:
+        super().__init__()
+        self.name = name or self.__class__.__name__
 
+    @abstractmethod
     @property
     def input_backend(self) -> str:
-        return "pandas"
+        raise NotImplementedError(
+            "input_backend method must be implemented by subclasses"
+        )
 
+    @abstractmethod
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
-        if is_batched(self.modifier.modify_document):
-            dataset.df[self.text_field] = dataset.df[self.text_field].map_partitions(
-                self.modifier.modify_document, meta=(None, str)
-            )
-        else:
-            dataset.df[self.text_field] = dataset.df[self.text_field].apply(
-                self.modifier.modify_document, meta=(None, str)
+        raise NotImplementedError("call method must be implemented by subclasses")
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if self.input_backend != "any" and dataset.df.backend != self.input_backend:
+            raise ValueError(
+                f"Module {self.name} requires dataset to have backend {self.input_backend} but got backend {dataset.df.backend}"
             )
 
-        return dataset
+        return self.call(dataset)

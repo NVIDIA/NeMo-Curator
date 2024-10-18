@@ -5,13 +5,14 @@ import dask.dataframe as dd
 import numpy as np
 
 from nemo_curator.datasets.doc_dataset import DocumentDataset
+from nemo_curator.modules.base import Module
 
 
 def default_filename(partition_num: int) -> str:
     return f"file_{partition_num:010d}.jsonl"
 
 
-class Shuffle:
+class Shuffle(Module):
     def __init__(
         self,
         seed: Optional[int] = None,
@@ -36,7 +37,11 @@ class Shuffle:
         self.partition_to_filename = partition_to_filename
         self.rand_col = "_shuffle_rand"
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    @property
+    def input_backend(self) -> str:
+        return "pandas"
+
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.seed is None:
             return self.shuffle_nondeterministic(dataset)
         else:

@@ -37,6 +37,7 @@ from tqdm import tqdm
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.base import Module
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
 from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import (
@@ -65,7 +66,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
 )
 
 
-class MinHash:
+class MinHash(Module):
     """
     Computes minhash signatures of a document corpus
     """
@@ -120,6 +121,10 @@ class MinHash:
         else:
             self._logger = logger
 
+    @property
+    def input_backend(self) -> str:
+        return "cudf"
+
     def generate_seeds(self, n_seeds: int = 260, seed: int = 0) -> np.ndarray:
         """
         Generate seeds for all minhash permutations based on the given seed.
@@ -149,7 +154,7 @@ class MinHash:
         seeds = cudf.Series(seeds, dtype="uint64")
         return ser.str.minhash64(seeds=seeds, width=char_ngram)
 
-    def __call__(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
+    def call(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
         """
         Computes the MinHash Signatures for a given dataset.
         Parameters
@@ -187,7 +192,7 @@ class MinHash:
         )
 
 
-class LSH:
+class LSH(Module):
     """
     Performs LSH on a MinhashSignatures
     """
@@ -244,6 +249,10 @@ class LSH:
             )
         else:
             self._logger = logger
+
+    @property
+    def input_backend(self) -> str:
+        return "cudf"
 
     def _generate_bucket_ranges(
         self, num_buckets: int, num_hashes: int
@@ -366,7 +375,7 @@ class LSH:
 
             self._logger.info(f"Wrote data for buckets: {value_vars}")
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
 
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")
@@ -381,7 +390,7 @@ class LSH:
         return DocumentDataset(buckets_df)
 
 
-class FuzzyDuplicates:
+class FuzzyDuplicates(Module):
     def __init__(
         self,
         config: FuzzyDuplicatesConfig,
@@ -475,7 +484,11 @@ class FuzzyDuplicates:
             profile_dir=self.config.profile_dir,
         )
 
-    def __call__(self, dataset: DocumentDataset):
+    @property
+    def input_backend(self) -> str:
+        return "cudf"
+
+    def call(self, dataset: DocumentDataset):
         """
         Parameters
         ----------

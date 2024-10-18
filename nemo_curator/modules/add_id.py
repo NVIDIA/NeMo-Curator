@@ -19,10 +19,11 @@ import numpy as np
 from dask import delayed
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modules.base import Module
 from nemo_curator.utils.module_utils import count_digits
 
 
-class AddId:
+class AddId(Module):
     def __init__(
         self, id_field, id_prefix: str = "doc_id", start_index: Optional[int] = None
     ) -> None:
@@ -30,7 +31,11 @@ class AddId:
         self.id_prefix = id_prefix
         self.start_index = start_index
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    @property
+    def input_backend(self) -> str:
+        return "pandas"
+
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.start_index is None:
             return self._add_id_fast(dataset)
         else:

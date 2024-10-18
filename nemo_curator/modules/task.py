@@ -20,12 +20,13 @@ import dask.dataframe as dd
 from dask import delayed
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modules.base import Module
 from nemo_curator.tasks.downstream_task import DownstreamTask
 from nemo_curator.utils.distributed_utils import single_partition_write_with_filename
 from nemo_curator.utils.text_utils import get_words
 
 
-class TaskDecontamination:
+class TaskDecontamination(Module):
     def __init__(
         self,
         tasks: Union[DownstreamTask, Iterable[DownstreamTask]],
@@ -58,7 +59,11 @@ class TaskDecontamination:
         self.max_splits = max_splits
         self.removed_dir = removed_dir
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    @property
+    def input_backend(self) -> str:
+        return "pandas"
+
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
 
         # Convert the dataframe to delayed objects for complex operations
         original_meta = dataset.df.dtypes.to_dict()
