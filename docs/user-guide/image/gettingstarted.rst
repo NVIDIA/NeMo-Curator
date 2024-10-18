@@ -16,7 +16,7 @@ To install the image curation modules of NeMo Curator, ensure you meet the follo
 
 Note: While some of the text-based NeMo Curator modules do not require a GPU, all image curation modules require a GPU.
 
-You can install NeMo Curator in 3 ways.
+You can get NeMo Curator in 3 ways.
 1. PyPi
 2. Source
 3. NeMo Framework Container
