@@ -64,12 +64,8 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
     def _init_pipeline_params(self):
 
         if self._validate_config():
-            self.sys_prompt = self.cfg["qa_generator"]["generate_config"][
-                "system_prompt"
-            ]
-            self.user_prompt_template = self.cfg["qa_generator"]["generate_config"][
-                "user_prompt_template"
-            ]
+            self.sys_prompt = self.cfg["qa_generator"]["generate_config"]["system_prompt"]
+            self.user_prompt_template = self.cfg["qa_generator"]["generate_config"]["user_prompt_template"]
             self.generator_model = self.cfg["qa_generator"]["model"]
             self.generator_model_kwargs = self.cfg["qa_generator"]["model_config"]
             self.num_qs = self.cfg["qa_generator"]["generate_config"]["num_questions"]
