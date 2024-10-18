@@ -43,6 +43,8 @@ class DocumentDataset:
         files_per_partition: int = 1,
         add_filename: bool = False,
         input_meta: Union[str, dict] = None,
+        columns: List[str] = None,
+        **kwargs,
     ):
         return cls(
             _read_json_or_parquet(
@@ -52,6 +54,8 @@ class DocumentDataset:
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
                 input_meta=input_meta,
+                columns=columns,
+                **kwargs,
             )
         )
 
@@ -62,6 +66,8 @@ class DocumentDataset:
         backend="pandas",
         files_per_partition=1,
         add_filename=False,
+        columns: List[str] = None,
+        **kwargs,
     ):
         return cls(
             _read_json_or_parquet(
@@ -70,6 +76,8 @@ class DocumentDataset:
                 backend=backend,
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                columns=columns,
+                **kwargs,
             )
         )
 
@@ -175,6 +183,8 @@ def _read_json_or_parquet(
     files_per_partition: int,
     add_filename: bool,
     input_meta: Union[str, dict] = None,
+    columns: List[str] = None,
+    **kwargs,
 ):
     """
     `input_files` may be a list or a string type.
@@ -205,6 +215,8 @@ def _read_json_or_parquet(
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
                 input_meta=input_meta,
+                columns=columns,
+                **kwargs,
             )
 
         # List of directories
@@ -222,6 +234,8 @@ def _read_json_or_parquet(
                     files_per_partition=files_per_partition,
                     add_filename=add_filename,
                     input_meta=input_meta,
+                    columns=columns,
+                    **kwargs,
                 )
                 dfs.append(df)
 
@@ -245,6 +259,8 @@ def _read_json_or_parquet(
             files_per_partition=files_per_partition,
             add_filename=add_filename,
             input_meta=input_meta,
+            columns=columns,
+            **kwargs,
         )
 
     else:
