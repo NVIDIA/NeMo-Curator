@@ -23,7 +23,6 @@ All of our text pipelines have great multilingual support.
 - [Download and Extraction](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/download.html)
   - Common Crawl, Wikipedia, and ArXiv sources
   - Easily customize and extend to other sources
-
 - [Language Identification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
 - [Unicode Fixing](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
 - [Heuristic Filtering](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
