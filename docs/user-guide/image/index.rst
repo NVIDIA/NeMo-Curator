@@ -4,4 +4,4 @@
 
    datasets.rst
    embedders.rst
-   classifiers.rst
+   classifiers/index.rst
