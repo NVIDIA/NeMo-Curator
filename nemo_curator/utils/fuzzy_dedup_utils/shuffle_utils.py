@@ -105,9 +105,9 @@ def get_shuffle_part_ids_df(
     output_col,
     size_col,
     num_workers=0,
+    max_text_bytes_per_part=int(np.iinfo(np.int32).max * 3),
 ):
     sizes = agg_df[size_col].values
-    max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
 
     # Adjust max_text_bytes_per_part if the number of output
     # partitions is small compared to the number of workers.
@@ -133,6 +133,7 @@ def get_shuffle_partition_info(
     text_column,
     bytes_column="_text_bytes",
     num_workers=None,
+    max_text_bytes_per_part=int(np.iinfo(np.int32).max * 3),
 ):
     df[bytes_column] = df[text_column].map_partitions(lambda s: s.str.byte_count())
     agg_df, _ = get_agg_text_bytes_df(
@@ -147,11 +148,18 @@ def get_shuffle_partition_info(
         size_col=bytes_column,
         num_workers=num_workers,
         output_col=output_column,
+        max_text_bytes_per_part=max_text_bytes_per_part,
     ).persist()
     return shuffle_part_ids
 
 
-def text_bytes_aware_shuffle(df, partition_on, text_column, num_workers=None):
+def text_bytes_aware_shuffle(
+    df,
+    partition_on,
+    text_column,
+    num_workers=None,
+    max_text_bytes_per_part=int(np.iinfo(np.int32).max * 3),
+):
     """
     This shuffle takes into account the text bytes of each partition
     and tries to make sure that the output partitions do not exceed
@@ -175,6 +183,7 @@ def text_bytes_aware_shuffle(df, partition_on, text_column, num_workers=None):
         num_workers=num_workers,
         output_column=output_col,
         text_column=text_column,
+        max_text_bytes_per_part=max_text_bytes_per_part,
     )
     n_output_partitions = shuffle_part_ids[output_col].max().compute() + 1
     n_output_partitions = int(n_output_partitions)
