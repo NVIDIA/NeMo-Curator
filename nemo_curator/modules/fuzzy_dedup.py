@@ -1047,6 +1047,7 @@ class _Shuffle:
     ):
         total_text_partitions = left_df.npartitions
         total_bucket_partitions = right_df.npartitions
+
         # Extract global partitioning index
         left_df, global_partitioning_index = extract_partitioning_index(
             left_df,
@@ -1055,10 +1056,12 @@ class _Shuffle:
             parts_per_bucket_batch,
             total_bucket_partitions,
         )
+
         # Set start offsets
         bucket_part_start_offset, text_part_start_offset = get_restart_offsets(
             output_path
         )
+
         # Set end offsets
         # NOTE: These end offsets are always set to the end
         # of the data. However, we may want to be able to set
@@ -1066,6 +1069,7 @@ class _Shuffle:
         # in the future.
         bucket_part_end_offset = total_bucket_partitions
         text_part_end_offset = total_text_partitions
+
         # Check that offsets are valid
         assert bucket_part_start_offset % parts_per_bucket_batch == 0
         assert bucket_part_end_offset > bucket_part_start_offset
@@ -1108,6 +1112,7 @@ class _Shuffle:
             # Select our bucket-mapping batch
             subset_bucket_df = right_df.partitions[bucket_part_offset:end_bucket_offset]
             subset_bucket_df = subset_bucket_df.persist()
+
             # Filter out rows of left_df that we know cannot
             # align with any rows of subset_bucket_df
             left_df_use = filter_text_rows_by_bucket_batch(
