@@ -59,10 +59,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     build_partition,
     get_agg_text_bytes_df,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
-    text_bytes_aware_shuffle,
-    write_partitioned_file,
-)
+from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
 
 
 class MinHash:
@@ -100,7 +97,9 @@ class MinHash:
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
         self.seeds = self.generate_hash_permutations(
-            n_permutations=self.num_hashes, seed=seed
+            bit_width=64 if use_64bit_hash else 32,
+            n_permutations=self.num_hashes,
+            seed=seed,
         )
         self.minhash_method = self.minhash64 if use_64bit_hash else self.minhash32
         self.id_field = id_field
@@ -122,21 +121,33 @@ class MinHash:
         else:
             self._logger = logger
 
-    def generate_hash_permutations(self, n_permutations=260, seed=0) -> np.ndarray:
+    def generate_hash_permutations(
+        self, bit_width: int, n_permutations: int = 260, seed: int = 0
+    ) -> np.ndarray:
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
         gen = np.random.RandomState(seed)
-        MERSENNE_PRIME = np.uint32((1 << 31) - 1)
+
+        if bit_width == 32:
+            MERSENNE_PRIME = np.uint32((1 << 31) - 1)
+            dtype = np.uint32
+        elif bit_width == 64:
+            # For 64-bit, use a larger prime number suitable for 64-bit operations
+            MERSENNE_PRIME = np.uint64((1 << 61) - 1)
+            dtype = np.uint64
+        else:
+            raise ValueError("Unsupported bit width. Use either 32 or 64.")
+
         return np.array(
             [
                 (
-                    gen.randint(1, MERSENNE_PRIME, dtype=np.uint32),
-                    gen.randint(0, MERSENNE_PRIME, dtype=np.uint32),
+                    gen.randint(1, MERSENNE_PRIME, dtype=dtype),
+                    gen.randint(0, MERSENNE_PRIME, dtype=dtype),
                 )
                 for _ in range(n_permutations)
             ],
-            dtype=np.uint32,
+            dtype=dtype,
         )
 
     def minhash32(
@@ -145,8 +156,6 @@ class MinHash:
         """
         Compute 32bit minhashes based on the MurmurHash3 algorithm
         """
-        if not isinstance(ser, cudf.Series):
-            raise TypeError("Expected data of type cudf.Series")
         seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
         seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
 
@@ -160,11 +169,14 @@ class MinHash:
         """
         Compute 64bit minhashes based on the MurmurHash3 algorithm
         """
-        raise NotImplementedError("minhash_permuted not implemented for 64 bit yet")
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
-        seeds = cudf.Series(seeds, dtype="uint64")
-        return ser.str.minhash64(seeds=seeds, width=char_ngram)
+        seeds_a = cudf.Series(seeds[:, 0], dtype="uint64")
+        seeds_b = cudf.Series(seeds[:, 1], dtype="uint64")
+
+        return ser.str.minhash64_permuted(
+            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
+        )
 
     def __call__(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
         """
@@ -1011,10 +1023,24 @@ class _Shuffle:
         bucket_parts_per_worker: int = 8,
         partition_on: str = "_output_partition_id",
     ):
+
+        try:
+            print(documents_df.repartition(npartitions=1).head())
+        except Exception as e:
+            print("Failed to show head due to {e}")
+
+        print(f"{bucket_w_anchors_path=}")
+        print(f"{output_shuffled_docs_path=}")
+        print(f"{bucket_mapping_df_blocksize=}")
+        print(f"{parts_per_worker=}")
+        print(f"{bucket_parts_per_worker=}")
+        print(f"{partition_on=}")
+
         ddf_anchor_docs_with_bk, bk_mapping = aggregated_anchor_docs_with_bk_read(
             path=bucket_w_anchors_path,
             blocksize=bucket_mapping_df_blocksize,
         )
+        print(f"bk_mapping=")
         self._logger.info("Getting ddf_anchor_docs_with_bk completed")
         self._logger.debug(
             f"ddf_anchor_docs_with_bk.npartitions = {ddf_anchor_docs_with_bk.npartitions}"
@@ -1026,6 +1052,7 @@ class _Shuffle:
         parts_per_bucket_batch = num_workers * bucket_parts_per_worker
         self._logger.debug(f"parts_per_bucket_batch  = {parts_per_bucket_batch}")
 
+        print(f"{num_workers=}\n{parts_per_batch=}\n{parts_per_bucket_batch=}")
         dask_profile_name = (
             "suffle_docs"
             + f"-parts_per_batch-{parts_per_batch}"
@@ -1061,9 +1088,12 @@ class _Shuffle:
         bk_mapping,
         num_workers: int = None,
     ):
+        print("\n\n=== batched_merge_and_write ===")
+        print(left_df.repartition(npartitions=1).head())
+        print(right_df.repartition(npartitions=1).head())
         total_text_partitions = left_df.npartitions
         total_bucket_partitions = right_df.npartitions
-
+        print(f"\n{total_text_partitions=}\n{total_bucket_partitions=}")
         # Extract global partitioning index
         left_df, global_partitioning_index = extract_partitioning_index(
             left_df,
@@ -1072,11 +1102,15 @@ class _Shuffle:
             parts_per_bucket_batch,
             total_bucket_partitions,
         )
-
+        print(f"left_df=\n{left_df.repartition(npartitions=1).head()}")
+        print(
+            f"global_partitioning_index=\n{global_partitioning_index.repartition(npartitions=1).head()}"
+        )
         # Set start offsets
         bucket_part_start_offset, text_part_start_offset = get_restart_offsets(
             output_path
         )
+        print(f"\n{bucket_part_start_offset=}\n{text_part_start_offset=}")
 
         # Set end offsets
         # NOTE: These end offsets are always set to the end
@@ -1085,7 +1119,7 @@ class _Shuffle:
         # in the future.
         bucket_part_end_offset = total_bucket_partitions
         text_part_end_offset = total_text_partitions
-
+        print(f"\n{bucket_part_end_offset=}\n{text_part_end_offset=}")
         # Check that offsets are valid
         assert bucket_part_start_offset % parts_per_bucket_batch == 0
         assert bucket_part_end_offset > bucket_part_start_offset
@@ -1128,7 +1162,9 @@ class _Shuffle:
             # Select our bucket-mapping batch
             subset_bucket_df = right_df.partitions[bucket_part_offset:end_bucket_offset]
             subset_bucket_df = subset_bucket_df.persist()
-
+            print(
+                f"subset_bucket_df=\n{subset_bucket_df.repartition(npartitions=1).head()}"
+            )
             # Filter out rows of left_df that we know cannot
             # align with any rows of subset_bucket_df
             left_df_use = filter_text_rows_by_bucket_batch(
@@ -1138,6 +1174,7 @@ class _Shuffle:
                 bucket_part_end_offset,
                 total_bucket_partitions,
             )
+            print(f"left_df_use=\n{left_df_use.repartition(npartitions=1).head()}")
 
             text_part_offset = text_part_start_offset
             while text_part_offset < text_part_end_offset:
@@ -1157,33 +1194,16 @@ class _Shuffle:
                 subset_text_df = left_df_use.partitions[
                     text_part_offset:end_text_offset
                 ]
+                print(
+                    f"subset_text_df=\n{subset_text_df.repartition(npartitions=1).head()}"
+                )
 
-                try:
-                    # NOTE: If we have more text-df partitions than bucket-map
-                    # partitions, we are more likely to see an OverflowError
-                    output_df = text_bytes_aware_shuffle(
-                        df=merge_left_to_shuffled_right(
-                            subset_text_df,
-                            subset_bucket_df,
-                            merge_on,
-                        ),
-                        partition_on=partition_on,
-                        text_column=self.text_field,
-                        num_workers=num_workers,
-                    )
-                except OverflowError as err:
-                    # We encountered an overflow error!
-                    # Let's try again with less text data
-                    parts_per_text_batch_retry = int(parts_per_text_batch_use / 2)
-                    if parts_per_text_batch_retry < 1:
-                        raise err
-                    print(
-                        f"\nWe encountered an OverflowError and will retry "
-                        f"the current batch with {parts_per_text_batch_retry} "
-                        f"text partitions instead of {parts_per_text_batch_use}.",
-                        flush=True,
-                    )
-                    continue
+                output_df = merge_left_to_shuffled_right(
+                    subset_text_df,
+                    subset_bucket_df,
+                    merge_on,
+                ).shuffle(on=partition_on)
+                print(f"output_df=\n{output_df.repartition(npartitions=1).head()}")
 
                 if self.int_to_str_id is not None:
                     output_df = output_df.map_partitions(
