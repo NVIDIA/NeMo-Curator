@@ -274,6 +274,7 @@ def read_single_partition(
         input_meta: A dictionary or a string formatted as a dictionary, which outlines
             the field names and their respective data types within the JSONL input file.
         columns: If not None, only these columns will be read from the file.
+            There is a significant performance gain when specifying columns for Parquet files.
 
     Returns:
         A cudf DataFrame or a pandas DataFrame.
@@ -388,6 +389,7 @@ def read_data(
         input_meta: A dictionary or a string formatted as a dictionary, which outlines
             the field names and their respective data types within the JSONL input file.
         columns: If not None, only these columns will be read from the file.
+            There is a significant performance gain when specifying columns for Parquet files.
 
     Returns:
         A Dask-cuDF or a Dask-pandas DataFrame.
