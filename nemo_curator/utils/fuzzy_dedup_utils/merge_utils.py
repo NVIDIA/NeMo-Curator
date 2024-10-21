@@ -20,6 +20,7 @@ import pandas as pd
 from dask.base import tokenize
 from dask.dataframe.shuffle import partitioning_index
 from dask.utils import M
+from sympy import npartitions
 
 from nemo_curator._compat import DASK_SHUFFLE_CAST_DTYPE, query_planning_enabled
 
@@ -153,7 +154,9 @@ def extract_partitioning_index(
         # `cast_dtype` argument doesn't exist yet
         cast_dtype = {}
 
+    print("\n ==== extract_partitioning_index START ====")
     num_bucket_files = bk_mapping.file_id.max() + 1
+    print(f"{num_bucket_files=}")
     global_partitioning_index = left_df[merge_on].map_partitions(
         partitioning_index,
         npartitions=num_bucket_files,
@@ -162,6 +165,9 @@ def extract_partitioning_index(
         transform_divisions=False,
         align_dataframes=False,
         **cast_dtype,
+    )
+    print(
+        f"Before aggregation\n{global_partitioning_index.repartition(npartitions=1).head()}"
     )
 
     if total_bucket_partitions < num_bucket_files:
@@ -177,6 +183,9 @@ def extract_partitioning_index(
             transform_divisions=False,
             align_dataframes=False,
         )
+    print(
+        f"After aggregation\n{global_partitioning_index.repartition(npartitions=1).head()}"
+    )
 
     # Since we are iterating over `right_df`, we do not really
     # want to send the rows of `left_df` to the partition
@@ -184,6 +193,7 @@ def extract_partitioning_index(
     # need to take a modulus with `parts_per_bucket_batch` to
     # define a `"_partitions"` column.
     left_df["_partitions"] = global_partitioning_index % parts_per_bucket_batch
+    print("\n ==== extract_partitioning_index  END ====\n")
 
     return left_df, global_partitioning_index
 

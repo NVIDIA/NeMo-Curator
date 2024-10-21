@@ -59,7 +59,10 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     build_partition,
     get_agg_text_bytes_df,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
+from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
+    text_bytes_aware_shuffle,
+    write_partitioned_file,
+)
 
 
 class MinHash:
@@ -96,11 +99,7 @@ class MinHash:
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
-        self.seeds = self.generate_hash_permutations(
-            bit_width=64 if use_64bit_hash else 32,
-            n_permutations=self.num_hashes,
-            seed=seed,
-        )
+        self.seeds = self.generate_seeds(n_seeds=self.num_hashes, seed=seed)
         self.minhash_method = self.minhash64 if use_64bit_hash else self.minhash32
         self.id_field = id_field
         self.text_field = text_field
@@ -121,34 +120,12 @@ class MinHash:
         else:
             self._logger = logger
 
-    def generate_hash_permutations(
-        self, bit_width: int, n_permutations: int = 260, seed: int = 0
-    ) -> np.ndarray:
+    def generate_seeds(self, n_seeds: int = 260, seed: int = 0) -> np.ndarray:
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
         gen = np.random.RandomState(seed)
-
-        if bit_width == 32:
-            MERSENNE_PRIME = np.uint32((1 << 31) - 1)
-            dtype = np.uint32
-        elif bit_width == 64:
-            # For 64-bit, use a larger prime number suitable for 64-bit operations
-            MERSENNE_PRIME = np.uint64((1 << 61) - 1)
-            dtype = np.uint64
-        else:
-            raise ValueError("Unsupported bit width. Use either 32 or 64.")
-
-        return np.array(
-            [
-                (
-                    gen.randint(1, MERSENNE_PRIME, dtype=dtype),
-                    gen.randint(0, MERSENNE_PRIME, dtype=dtype),
-                )
-                for _ in range(n_permutations)
-            ],
-            dtype=dtype,
-        )
+        return gen.randint(0, 1e6, size=n_seeds)
 
     def minhash32(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
@@ -156,27 +133,18 @@ class MinHash:
         """
         Compute 32bit minhashes based on the MurmurHash3 algorithm
         """
-        seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
-        seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
-
-        return ser.str.minhash_permuted(
-            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-        )
+        if not isinstance(ser, cudf.Series):
+            raise TypeError("Expected data of type cudf.Series")
+        seeds = cudf.Series(seeds, dtype="uint32")
+        return ser.str.minhash(seeds=seeds, width=char_ngram)
 
     def minhash64(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
     ) -> cudf.Series:
-        """
-        Compute 64bit minhashes based on the MurmurHash3 algorithm
-        """
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
-        seeds_a = cudf.Series(seeds[:, 0], dtype="uint64")
-        seeds_b = cudf.Series(seeds[:, 1], dtype="uint64")
-
-        return ser.str.minhash64_permuted(
-            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-        )
+        seeds = cudf.Series(seeds, dtype="uint64")
+        return ser.str.minhash64(seeds=seeds, width=char_ngram)
 
     def __call__(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
         """
