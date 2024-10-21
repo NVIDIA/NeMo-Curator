@@ -98,6 +98,7 @@ class MinHash(Module):
         cache_dir: str, Default None
           If specified, will compute & write id, minhash pairs to directory
         """
+        super().__init__(input_backend="cudf")
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
         self.seeds = self.generate_seeds(n_seeds=self.num_hashes, seed=seed)
@@ -120,10 +121,6 @@ class MinHash(Module):
             )
         else:
             self._logger = logger
-
-    @property
-    def input_backend(self) -> str:
-        return "cudf"
 
     def generate_seeds(self, n_seeds: int = 260, seed: int = 0) -> np.ndarray:
         """
@@ -225,6 +222,7 @@ class LSH(Module):
         profile_dir: str, Default None
           If specified directory to write dask profile
         """
+        super().__init__(input_backend="cudf")
         self.num_hashes = num_hashes
         self.num_buckets = num_buckets
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
@@ -249,10 +247,6 @@ class LSH(Module):
             )
         else:
             self._logger = logger
-
-    @property
-    def input_backend(self) -> str:
-        return "cudf"
 
     def _generate_bucket_ranges(
         self, num_buckets: int, num_hashes: int
@@ -408,6 +402,7 @@ class FuzzyDuplicates(Module):
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
+        super().__init__(input_backend="cudf")
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -483,10 +478,6 @@ class FuzzyDuplicates(Module):
             logger=self._logger,
             profile_dir=self.config.profile_dir,
         )
-
-    @property
-    def input_backend(self) -> str:
-        return "cudf"
 
     def call(self, dataset: DocumentDataset):
         """

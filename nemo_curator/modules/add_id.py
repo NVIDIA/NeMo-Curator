@@ -27,13 +27,10 @@ class AddId(Module):
     def __init__(
         self, id_field, id_prefix: str = "doc_id", start_index: Optional[int] = None
     ) -> None:
+        super().__init__(input_backend="pandas")
         self.id_field = id_field
         self.id_prefix = id_prefix
         self.start_index = start_index
-
-    @property
-    def input_backend(self) -> str:
-        return "pandas"
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.start_index is None:

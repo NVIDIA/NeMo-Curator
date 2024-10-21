@@ -48,6 +48,7 @@ class TaskDecontamination(Module):
             max_splits: The maximum number of times a document may be split before being entirely discarded.
             removed_dir: If not None, the documents split too many times will be written to this directory using the filename in the dataset.
         """
+        super().__init__(input_backend="pandas")
         if isinstance(tasks, DownstreamTask):
             tasks = [tasks]
         self.tasks = tasks
@@ -58,10 +59,6 @@ class TaskDecontamination(Module):
         self.remove_char_each_side = remove_char_each_side
         self.max_splits = max_splits
         self.removed_dir = removed_dir
-
-    @property
-    def input_backend(self) -> str:
-        return "pandas"
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
 

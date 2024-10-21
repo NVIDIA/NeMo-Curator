@@ -60,7 +60,7 @@ class ExactDuplicates(Module):
         cache_dir: str, Default None
           If specified, will compute & write duplicate id's to cache directory.
         """
-
+        super().__init__(input_backend="any")
         if hash_method not in self.SUPPORTED_HASHES:
             raise ValueError(
                 f"{hash_method} not in supported hash_methods. Choose a hash_method from {self.SUPPORTED_HASHES}"
@@ -83,10 +83,6 @@ class ExactDuplicates(Module):
             )
         else:
             self._logger = logger
-
-    @property
-    def input_backend(self) -> str:
-        return "any"
 
     def _exact_dup_ids(self, df: dd.DataFrame):
         """

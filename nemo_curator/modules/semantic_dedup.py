@@ -587,6 +587,7 @@ class SemDedup(Module):
             config (SemDedupConfig): Configuration for SemDedup.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
         """
+        super().__init__(input_backend="cudf")
         self.config = config
         self.logger = logger
         cache_dir = config.cache_dir
@@ -624,10 +625,6 @@ class SemDedup(Module):
         )
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract
-
-    @property
-    def input_backend(self) -> str:
-        return "cudf"
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """

@@ -32,14 +32,11 @@ class Shuffle(Module):
                 will look like given the partition number. The default method names the partition
                 f'file_{partition_num:010d}.jsonl' and should be changed if the user is not using a .jsonl format.
         """
+        super().__init__(input_backend="pandas")
         self.seed = seed
         self.npartitions = npartitions
         self.partition_to_filename = partition_to_filename
         self.rand_col = "_shuffle_rand"
-
-    @property
-    def input_backend(self) -> str:
-        return "pandas"
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.seed is None:

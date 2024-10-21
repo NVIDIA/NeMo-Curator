@@ -18,12 +18,8 @@ from nemo_curator.modules.base import Module
 
 class ToBackend(Module):
     def __init__(self, backend: str) -> None:
-        super().__init__()
+        super().__init__(input_backend="any")
         self.backend = backend
-
-    @property
-    def input_backend(self) -> str:
-        return "any"
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         return DocumentDataset(dataset.df.to_backend(self.backend))

@@ -20,12 +20,9 @@ from nemo_curator.utils.module_utils import is_batched
 
 class Modify(Module):
     def __init__(self, modifier: DocumentModifier, text_field="text"):
+        super().__init__(input_backend="pandas")
         self.modifier = modifier
         self.text_field = text_field
-
-    @property
-    def input_backend(self) -> str:
-        return "pandas"
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if is_batched(self.modifier.modify_document):

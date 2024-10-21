@@ -18,16 +18,17 @@ from nemo_curator.datasets import DocumentDataset
 
 
 class Module(ABC):
-    def __init__(self, name=None) -> None:
+    SUPPORTED_BACKENDS = ["pandas", "cudf", "any"]
+
+    def __init__(self, input_backend: str, name=None) -> None:
         super().__init__()
         self.name = name or self.__class__.__name__
 
-    @abstractmethod
-    @property
-    def input_backend(self) -> str:
-        raise NotImplementedError(
-            "input_backend method must be implemented by subclasses"
-        )
+        if input_backend not in self.SUPPORTED_BACKENDS:
+            raise ValueError(
+                f"{input_backend} not one of the supported backends {self.SUPPORTED_BACKENDS}"
+            )
+        self.input_backend = input_backend
 
     @abstractmethod
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
