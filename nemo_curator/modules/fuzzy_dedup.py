@@ -141,6 +141,9 @@ class MinHash:
     def minhash64(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
     ) -> cudf.Series:
+        """
+        Compute 64bit minhashes based on the MurmurHash3 algorithm
+        """
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
         seeds = cudf.Series(seeds, dtype="uint64")
@@ -992,23 +995,10 @@ class _Shuffle:
         partition_on: str = "_output_partition_id",
     ):
 
-        try:
-            print(documents_df.repartition(npartitions=1).head())
-        except Exception as e:
-            print("Failed to show head due to {e}")
-
-        print(f"{bucket_w_anchors_path=}")
-        print(f"{output_shuffled_docs_path=}")
-        print(f"{bucket_mapping_df_blocksize=}")
-        print(f"{parts_per_worker=}")
-        print(f"{bucket_parts_per_worker=}")
-        print(f"{partition_on=}")
-
         ddf_anchor_docs_with_bk, bk_mapping = aggregated_anchor_docs_with_bk_read(
             path=bucket_w_anchors_path,
             blocksize=bucket_mapping_df_blocksize,
         )
-        print(f"bk_mapping=")
         self._logger.info("Getting ddf_anchor_docs_with_bk completed")
         self._logger.debug(
             f"ddf_anchor_docs_with_bk.npartitions = {ddf_anchor_docs_with_bk.npartitions}"
@@ -1020,7 +1010,6 @@ class _Shuffle:
         parts_per_bucket_batch = num_workers * bucket_parts_per_worker
         self._logger.debug(f"parts_per_bucket_batch  = {parts_per_bucket_batch}")
 
-        print(f"{num_workers=}\n{parts_per_batch=}\n{parts_per_bucket_batch=}")
         dask_profile_name = (
             "suffle_docs"
             + f"-parts_per_batch-{parts_per_batch}"
@@ -1056,12 +1045,8 @@ class _Shuffle:
         bk_mapping,
         num_workers: int = None,
     ):
-        print("\n\n=== batched_merge_and_write ===")
-        print(left_df.repartition(npartitions=1).head())
-        print(right_df.repartition(npartitions=1).head())
         total_text_partitions = left_df.npartitions
         total_bucket_partitions = right_df.npartitions
-        print(f"\n{total_text_partitions=}\n{total_bucket_partitions=}")
         # Extract global partitioning index
         left_df, global_partitioning_index = extract_partitioning_index(
             left_df,
@@ -1070,16 +1055,10 @@ class _Shuffle:
             parts_per_bucket_batch,
             total_bucket_partitions,
         )
-        print(f"left_df=\n{left_df.repartition(npartitions=1).head()}")
-        print(
-            f"global_partitioning_index=\n{global_partitioning_index.repartition(npartitions=1).head()}"
-        )
         # Set start offsets
         bucket_part_start_offset, text_part_start_offset = get_restart_offsets(
             output_path
         )
-        print(f"\n{bucket_part_start_offset=}\n{text_part_start_offset=}")
-
         # Set end offsets
         # NOTE: These end offsets are always set to the end
         # of the data. However, we may want to be able to set
@@ -1087,7 +1066,6 @@ class _Shuffle:
         # in the future.
         bucket_part_end_offset = total_bucket_partitions
         text_part_end_offset = total_text_partitions
-        print(f"\n{bucket_part_end_offset=}\n{text_part_end_offset=}")
         # Check that offsets are valid
         assert bucket_part_start_offset % parts_per_bucket_batch == 0
         assert bucket_part_end_offset > bucket_part_start_offset
@@ -1130,9 +1108,6 @@ class _Shuffle:
             # Select our bucket-mapping batch
             subset_bucket_df = right_df.partitions[bucket_part_offset:end_bucket_offset]
             subset_bucket_df = subset_bucket_df.persist()
-            print(
-                f"subset_bucket_df=\n{subset_bucket_df.repartition(npartitions=1).head()}"
-            )
             # Filter out rows of left_df that we know cannot
             # align with any rows of subset_bucket_df
             left_df_use = filter_text_rows_by_bucket_batch(
@@ -1142,7 +1117,6 @@ class _Shuffle:
                 bucket_part_end_offset,
                 total_bucket_partitions,
             )
-            print(f"left_df_use=\n{left_df_use.repartition(npartitions=1).head()}")
 
             text_part_offset = text_part_start_offset
             while text_part_offset < text_part_end_offset:
@@ -1162,16 +1136,11 @@ class _Shuffle:
                 subset_text_df = left_df_use.partitions[
                     text_part_offset:end_text_offset
                 ]
-                print(
-                    f"subset_text_df=\n{subset_text_df.repartition(npartitions=1).head()}"
-                )
-
                 output_df = merge_left_to_shuffled_right(
                     subset_text_df,
                     subset_bucket_df,
                     merge_on,
                 ).shuffle(on=partition_on)
-                print(f"output_df=\n{output_df.repartition(npartitions=1).head()}")
 
                 if self.int_to_str_id is not None:
                     output_df = output_df.map_partitions(
