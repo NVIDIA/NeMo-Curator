@@ -20,7 +20,6 @@ import pandas as pd
 from dask.base import tokenize
 from dask.dataframe.shuffle import partitioning_index
 from dask.utils import M
-from sympy import npartitions
 
 from nemo_curator._compat import DASK_SHUFFLE_CAST_DTYPE, query_planning_enabled
 
