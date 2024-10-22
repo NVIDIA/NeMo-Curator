@@ -15,7 +15,7 @@
 import importlib
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Type, Union
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.base import Module
@@ -39,24 +39,31 @@ class DocumentFilter(Module, ABC):
 
     def __init__(
         self,
+        score_type: Union[str, Type],
         text_fields: List[str] = ["text"],
         score_fields: List[str] = ["score"],
         filter_mode: FilterMode = FilterMode.SCORE_FILTER,
         removed_path: Optional[str] = None,
         invert: bool = False,
         save_score: bool = True,
+        input_backend: str = "pandas",
     ):
-        super().__init__()
+        """
+        text_fields: If len(text_fields) == 1, then score_document will
+            get a series instead of a dataframe. You may still output
+            multiple scores in the form of a dataframe. Need to verify if that's possible with Dask though.
+        score_fields: If len(score_fields) == 1, then score_document
+            must output a series instead of a dataframe. keep_document
+            must accept a series instead of a dataframe. keep_document must always return a series.
+        """
+        super().__init__(input_backend=input_backend)
+        self.score_type = score_type
         self.text_fields = text_fields
         self.score_fields = score_fields
         self.removed_path = removed_path
         self.invert = invert
         self.filter_mode = filter_mode
         self.save_score = save_score
-
-    @property
-    def input_backend(self) -> str:
-        return "pandas"
 
     @abstractmethod
     def score_document(self, text: str) -> Any:
@@ -104,78 +111,65 @@ class DocumentFilter(Module, ABC):
             "keep_document method must be implemented by subclasses"
         )
 
-    @abstractmethod
-    @property
-    def score_type(self):
-        raise NotImplementedError(
-            "keep_document method must be implemented by subclasses"
+    def _score_dataset(self, dataset: DocumentDataset):
+        meta = (None, self.score_type)
+        # Get the field name directly if there's only one
+        text_fields = (
+            self.text_fields if len(self.text_fields) > 1 else self.text_fields[0]
         )
+
+        if is_batched(self.score_document):
+            scores = dataset.df[text_fields].map_partitions(
+                self.score_document, meta=meta
+            )
+        else:
+            scores = dataset.df[text_fields].apply(self.score_document, meta=meta)
+
+        if self.save_score:
+            score_fields = (
+                self.score_fields
+                if len(self.score_fields) > 1
+                else self.score_fields[0]
+            )
+            dataset.df[score_fields] = scores
+
+        return scores
+
+    def _filter_dataset(self, dataset: DocumentDataset, scores):
+        if is_batched(self.keep_document):
+            bool_mask = scores.map_partitions(self.keep_document, meta=(None, bool))
+        else:
+            bool_mask = scores.apply(self.keep_document, meta=(None, bool))
+        if self.invert:
+            bool_mask = ~bool_mask
+
+        if self.removed_path:
+            removed_docs = DocumentDataset(dataset.df[~bool_mask])
+            removed_docs.to_parquet(output_file_dir=self.removed_path)
+
+        return bool_mask
+
+    def compute_filter_mask(self, dataset: DocumentDataset):
+        scores = self._score_dataset(dataset)
+        return self._filter_dataset(dataset, scores)
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         match self.filter_mode:
             case FilterMode.SCORE:
-                meta = (None, self.score_type)
-
-                if is_batched(self.score_document):
-                    scores = dataset.df[self.text_fields].map_partitions(
-                        self.score_document, meta=meta
-                    )
-                else:
-                    scores = dataset.df[self.text_fields].apply(
-                        self.score_document, meta=meta
-                    )
-
-                if self.save_score:
-                    dataset.df[self.score_fields] = scores
-
+                self._score_dataset(dataset)
                 return dataset
             case FilterMode.FILTER:
-                scores = dataset.df[self.score_fields]
-
-                if is_batched(self.keep_document):
-                    bool_mask = scores.map_partitions(
-                        self.keep_document, meta=(None, bool)
-                    )
-                else:
-                    bool_mask = scores.apply(self.keep_document, meta=(None, bool))
-                if self.invert:
-                    bool_mask = ~bool_mask
-
-                if self.removed_path:
-                    removed_docs = DocumentDataset(dataset.df[~bool_mask])
-                    removed_docs.to_parquet(output_file_dir=self.removed_path)
-
-                return DocumentDataset(dataset.df[bool_mask])
-
+                score_fields = (
+                    self.score_fields
+                    if len(self.score_fields) > 1
+                    else self.score_fields[0]
+                )
+                scores = dataset.df[score_fields]
+                mask = self._filter_dataset(dataset, scores)
+                return DocumentDataset(dataset.df[mask])
             case FilterMode.SCORE_FILTER:
-                meta = (None, self.score_type)
-
-                if is_batched(self.score_document):
-                    scores = dataset.df[self.text_fields].map_partitions(
-                        self.score_document, meta=meta
-                    )
-                else:
-                    scores = dataset.df[self.text_fields].apply(
-                        self.score_document, meta=meta
-                    )
-
-                if self.save_score:
-                    dataset.df[self.score_fields] = scores
-
-                if is_batched(self.keep_document):
-                    bool_mask = scores.map_partitions(
-                        self.keep_document, meta=(None, bool)
-                    )
-                else:
-                    bool_mask = scores.apply(self.keep_document, meta=(None, bool))
-                if self.invert:
-                    bool_mask = ~bool_mask
-
-                if self.removed_path:
-                    removed_docs = DocumentDataset(dataset.df[~bool_mask])
-                    removed_docs.to_parquet(output_file_dir=self.removed_path)
-
-                return DocumentDataset(dataset.df[bool_mask])
+                mask = self.compute_filter_mask(dataset)
+                return DocumentDataset(dataset.df[mask])
 
 
 def import_filter(filter_path: str) -> DocumentFilter:
