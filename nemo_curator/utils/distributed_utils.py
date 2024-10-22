@@ -356,6 +356,16 @@ def read_pandas_pickle(file, add_filename=False) -> pd.DataFrame:
     return pd.read_pickle(file)
 
 
+def filter_files_by_extension(files_list, file_ext):
+    filtered_files = []
+    for file in files_list:
+        if file.endswith(file_ext):
+            filtered_files.append(file)
+        else:
+            warnings.warn(f"Skipping read for file: {file}")
+    return filtered_files
+
+
 def read_data(
     input_files,
     file_type: str = "pickle",
@@ -391,15 +401,20 @@ def read_data(
             df = df.to_backend("cudf")
 
     elif file_type in ["json", "jsonl", "parquet"]:
+        file_ext = "." + file_type
+        input_files = filter_files_by_extension(input_files, file_ext)
         print(f"Reading {len(input_files)} files", flush=True)
         input_files = sorted(input_files)
+
         if files_per_partition > 1:
             input_files = [
                 input_files[i : i + files_per_partition]
                 for i in range(0, len(input_files), files_per_partition)
             ]
+
         else:
             input_files = [[file] for file in input_files]
+
         return dd.from_map(
             read_single_partition,
             input_files,
@@ -409,8 +424,10 @@ def read_data(
             input_meta=input_meta,
             enforce_metadata=False,
         )
+
     else:
         raise RuntimeError("Could not read data, please check file type")
+
     return df
 
 

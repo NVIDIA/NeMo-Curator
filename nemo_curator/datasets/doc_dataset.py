@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from typing import List, Optional, Union
 
 import dask.dataframe as dd
@@ -196,8 +197,8 @@ def _read_json_or_parquet(
     file_ext = "." + file_type
 
     if isinstance(input_files, list):
-        # List of jsonl or parquet files
-        if all(f.endswith(file_ext) for f in input_files):
+        # List of files
+        if all(os.path.isfile(f) for f in input_files):
             raw_data = read_data(
                 input_files,
                 file_type=file_type,
