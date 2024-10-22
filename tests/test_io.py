@@ -152,7 +152,10 @@ class TestWriteWithFilename:
     @pytest.mark.parametrize("keep_filename_column", [True, False])
     @pytest.mark.parametrize("file_ext", ["jsonl", "parquet"])
     def test_multifile_single_partition(
-        self, tmp_path, keep_filename_column, file_ext,
+        self,
+        tmp_path,
+        keep_filename_column,
+        file_ext,
     ):
         df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
 
@@ -160,7 +163,7 @@ class TestWriteWithFilename:
             df=df,
             output_file_dir=tmp_path,
             keep_filename_column=keep_filename_column,
-            output_type=file_ext
+            output_type=file_ext,
         )
         assert os.path.exists(tmp_path / f"file0.{file_ext}")
         assert os.path.exists(tmp_path / f"file1.{file_ext}")
@@ -181,7 +184,10 @@ class TestWriteWithFilename:
     @pytest.mark.parametrize("keep_filename_column", [True, False])
     @pytest.mark.parametrize("file_ext", ["jsonl", "parquet"])
     def test_singlefile_single_partition(
-        self, tmp_path, keep_filename_column, file_ext,
+        self,
+        tmp_path,
+        keep_filename_column,
+        file_ext,
     ):
         df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file2", "file2", "file2"]})
 
