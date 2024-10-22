@@ -15,7 +15,7 @@ Removing unsafe content is common in most data processing pipelines to prevent y
 For example, `Data Comp <https://arxiv.org/abs/2304.14108>`_ filter out NSFW content before conducting their experiments.
 
 --------------------
-Prerequisities
+Prerequisites
 --------------------
 Make sure you check out the `image curation getting started page <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/image/gettingstarted.html>`_ to install everything you will need.
 
@@ -23,7 +23,7 @@ Make sure you check out the `image curation getting started page <https://docs.n
 Usage
 --------------------
 
-The NSFW classifier is a small MLP classifier that takes as input OpenAI CLIP ViT-L/14 image embeddings as input.
+The NSFW classifier is a small MLP classifier that takes OpenAI CLIP ViT-L/14 image embeddings as input.
 This model is available through the ``vit_large_patch14_clip_quickgelu_224.openai`` identifier in ``TimmImageEmbedder``.
 First, we can compute these embeddings, then we can perform the classification.
 
@@ -50,13 +50,13 @@ First, we can compute these embeddings, then we can perform the classification.
     dataset_with_embeddings = embedding_model(dataset)
     dataset_with_nsfw_scores = safety_classifier(dataset_with_embeddings)
 
-    # Metdata will have a new column named "nsfw_score"
+    # Metadata will have a new column named "nsfw_score"
     dataset_with_nsfw_scores.save_metadata()
 
 --------------------
 Key Parameters
 --------------------
-* ``batch_size=-1`` is the optional batch size parameter. By default, it will process all the embeddings in a shard at once. Since the NSFW classifier is a samll model, this is usually fine.
+* ``batch_size=-1`` is the optional batch size parameter. By default, it will process all the embeddings in a shard at once. Since the NSFW classifier is a small model, this is usually fine.
 
 ---------------------------
 Performance Considerations
@@ -86,7 +86,7 @@ Check out this example:
 
     dataset_with_nsfw_scores = embedding_model(dataset)
 
-    # Metdata will have a new column named "nsfw_score"
+    # Metadata will have a new column named "nsfw_score"
     dataset_with_nsfw_scores.save_metadata()
 
 

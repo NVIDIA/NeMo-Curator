@@ -68,7 +68,7 @@ class AestheticClassifier(ImageClassifier):
                 embeddings.
             pred_column (str): The column name to be added where the aesthetic
                 scores will be stored.
-            pred_type (Union[str, type]): The datatype of the pred_column
+            pred_type (Union[str, type]): The datatype of the pred_column.
             batch_size (int): If greater than 0, the image embeddings
                 will be processed in batches of at most this size. If less than 0,
                 all embeddings will be processed at once.

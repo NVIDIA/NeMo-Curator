@@ -41,7 +41,7 @@ class ImageEmbedder(ABC):
         classifiers: Iterable[ImageClassifier],
     ) -> None:
         """
-        Constructs an image embedder
+        Constructs an image embedder.
 
         Args:
             model_name (str): A unqiue name to identify the model on each worker
@@ -59,10 +59,10 @@ class ImageEmbedder(ABC):
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         """
-        Generates image embeddings for all images in the dataset
+        Generates image embeddings for all images in the dataset.
 
         Args:
-            dataset (ImageTextPairDataset): The dataset to create image embeddings for
+            dataset (ImageTextPairDataset): The dataset to create image embeddings for.
 
         Returns:
             ImageTextPairDataset: A dataset with image embeddings and potentially
@@ -154,27 +154,27 @@ class ImageEmbedder(ABC):
     @abstractmethod
     def load_dataset_shard(self, tar_path: str) -> Iterable:
         """
-        Loads images and metadata from a tarfile in the dataset
+        Loads images and metadata from a tarfile in the dataset.
 
         Args:
-            tar_path (str): The path to a tar file shard in the input webdataset.
+            tar_path (str): The path to a tar file shard in the input WebDataset.
 
         Returns:
             Iterable: An iterator over the dataset. Each iteration should produce
-                A tuple of (image, metadata) pairs. The batch of images will be passed
+                a tuple of (image, metadata) pairs. The batch of images will be passed
                 directly to the model created by ImageEmbedder.load_embedding_model.
                 The metadata must be a list of dictionaries. Each element of the list
                 must correspond to the image in the batch at the same position.
                 Each dictionary must contain a field that is the same as
-                id_field in the dataset. This id field in the metadata will be used
-                to match the image to the its record in the metadata (parquet) files.
+                id_field in the dataset. This ID field in the metadata will be used
+                to match the image to the its record in the metadata (Parquet) files.
         """
         pass
 
     @abstractmethod
     def load_embedding_model(self, device: str) -> Callable:
         """
-        Loads the model used to generate image embeddings
+        Loads the model used to generate image embeddings.
 
         Args:
             device (str): A PyTorch device identifier that specifies what GPU

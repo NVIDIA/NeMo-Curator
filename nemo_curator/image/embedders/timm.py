@@ -47,7 +47,7 @@ class TimmImageEmbedder(ImageEmbedder):
         use_index_files: bool = False,
     ) -> None:
         """
-        Constructs the embedder
+        Constructs the embedder.
 
         Args:
             model_name (str): The timm model to use. A list of available models
@@ -93,18 +93,18 @@ class TimmImageEmbedder(ImageEmbedder):
 
     def load_dataset_shard(self, tar_path: str):
         """
-        Loads a webdataset tar shard using DALI
+        Loads a WebDataset tar shard using DALI.
 
         Args:
-            tar_path (str): The path of the tar shard to load
+            tar_path (str): The path of the tar shard to load.
 
         Returns:
             Iterable: An iterator over the dataset. Each tar file
-            must have 3 files per record. A jpg file, a txt file,
-            and a json file. The jpg file must contain the image, the
-            txt file must contain the associated caption, and the
-            json must contain the metadata for the record (including
-            its id). Images will be loaded using DALI.
+            must have 3 files per record: a .jpg file, a .txt file,
+            and a .json file. The .jpg file must contain the image, the
+            .txt file must contain the associated caption, and the
+            .json must contain the metadata for the record (including
+            its ID). Images will be loaded using DALI.
         """
 
         # Create the DALI pipeline
@@ -165,7 +165,7 @@ class TimmImageEmbedder(ImageEmbedder):
 
     def load_embedding_model(self, device="cuda"):
         """
-        Loads the model used to generate image embeddings
+        Loads the model used to generate image embeddings.
 
         Args:
             device (str): A PyTorch device identifier that specifies what GPU

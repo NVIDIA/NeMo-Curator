@@ -44,7 +44,7 @@ class ImageClassifier(ABC):
         embedding_size: int,
     ) -> None:
         """
-        Constructs an image classifier
+        Constructs an image classifier.
 
         Args:
             model_name (str): A unqiue name to identify the model on each worker
@@ -53,7 +53,7 @@ class ImageClassifier(ABC):
                 embeddings.
             pred_column (str): The column name to be added where the classifier's
                 predictions will be stored.
-            pred_type (Union[str, type]): The datatype of the pred_column
+            pred_type (Union[str, type]): The datatype of the pred_column.
             batch_size (int): If greater than 0, the image embeddings
                 will be processed in batches of at most this size. If less than 0,
                 all embeddings will be processed at once.
@@ -67,7 +67,7 @@ class ImageClassifier(ABC):
 
     def __call__(self, dataset: ImageTextPairDataset) -> ImageTextPairDataset:
         """
-        Classifies all embeddings in the dataset
+        Classifies all embeddings in the dataset.
 
         Args:
             dataset (ImageTextPairDataset): The dataset to classify.
@@ -135,7 +135,7 @@ class ImageClassifier(ABC):
     @abstractmethod
     def load_model(self, device: str) -> Callable:
         """
-        Loads the classifier model
+        Loads the classifier model.
 
         Args:
             device (str): A PyTorch device identifier that specifies what GPU
@@ -154,7 +154,7 @@ class ImageClassifier(ABC):
         them to the metadata.
 
         Args:
-            series (cudf.Series): The cudf series of raw model predictions.
+            series (cudf.Series): The cuDF series of raw model predictions.
 
         Returns:
             cudf.Series: The same series unmodified. Override in your classifier

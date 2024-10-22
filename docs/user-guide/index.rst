@@ -23,7 +23,7 @@ Text Curation
    Both exact and fuzzy deduplication functionalities are supported in NeMo Curator and accelerated using RAPIDS cuDF.
 
 :ref:`GPU Accelerated Semantic Deduplication <data-curator-semdedup>`
-   NeMo Curator provides scalable and GPU accelerated semantic deduplication functionality using RAPIDS cuML, cuDF, crossfit and Pytorch.
+   NeMo Curator provides scalable and GPU accelerated semantic deduplication functionality using RAPIDS cuML, cuDF, crossfit and PyTorch.
 
 :ref:`Synthetic Data Generation <data-curator-syntheticdata>`
    Synthetic data generation tools and example piplines are available within NeMo Curator.
@@ -42,16 +42,16 @@ Image Curation
    Install NeMo Curator's image curation modules.
 
 :ref:`Image-Text Pair Datasets <data-curator-image-datasets>`
-   Image-text pair datasets are commonly used as the basis for training multimodal generative models. NeMo Curator interfaces with the standardized Webdataset format for curating such datasets.
+   Image-text pair datasets are commonly used as the basis for training multimodal generative models. NeMo Curator interfaces with the standardized WebDataset format for curating such datasets.
 
 :ref:`Image Embedding Creation <data-curator-image-embedding>`
    Image embeddings are the backbone to many data curation operations in NeMo Curator. This section describes how to efficiently create embeddings for massive datasets.
 
 :ref:`Classifiers <data-curator-image-classifiers>`
-   NeMo Curator provides several ways to use common classifiers like aesthetic scoring, and not-safe-for-work (NSFW) scoring.
+   NeMo Curator provides several ways to use common classifiers like aesthetic scoring and not-safe-for-work (NSFW) scoring.
 
 :ref:`Semantic Deduplication <data-curator-semdedup>`
-   Semantic deduplication with image datasets has been shown to drastically improve model performance. NeMo Curator has a semnatic deduplication module that can work with any modality.
+   Semantic deduplication with image datasets has been shown to drastically improve model performance. NeMo Curator has a semantic deduplication module that can work with any modality.
 
 -------------------
 Reference

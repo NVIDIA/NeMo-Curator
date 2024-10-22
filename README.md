@@ -11,37 +11,36 @@
 # NeMo Curator
 🚀 **The GPU-Accelerated Open Source Framework for Efficient Generative AI Model Data Curation** 🚀
 
-NeMo Curator is a Python library specifically designed for fast and scalable dataset preparation and curation for generative AI use-cases such as foundation language model pretraining, text to image model training, domain-adaptive pretraining (DAPT), supervised fine-tuning (SFT) and paramter-efficient fine-tuning (PEFT). It greatly accelerates data curation by leveraging GPUs with [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids), resulting in significant time savings. The library provides a customizable and modular interface, simplifying pipeline expansion and accelerating model convergence through the preparation of high-quality tokens.
+NeMo Curator is a Python library specifically designed for fast and scalable dataset preparation and curation for generative AI use cases such as foundation language model pretraining, text-to-image model training, domain-adaptive pretraining (DAPT), supervised fine-tuning (SFT) and parameter-efficient fine-tuning (PEFT). It greatly accelerates data curation by leveraging GPUs with [Dask](https://www.dask.org/) and [RAPIDS](https://developer.nvidia.com/rapids), resulting in significant time savings. The library provides a customizable and modular interface, simplifying pipeline expansion and accelerating model convergence through the preparation of high-quality tokens.
 
 ## Key Features
 
 NeMo Curator provides a collection of scalable data curation modules for text and image curation.
 
-### Text
+### Text Curation
 All of our text pipelines have great multilingual support.
 
 - [Download and Extraction](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/download.html)
-  - Common Crawl, Wikipedia, and ArXiv sources
+  - Default implementations Common Crawl, Wikipedia, and ArXiv sources
   - Easily customize and extend to other sources
 - [Language Identification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
-- [Unicode Fixing](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
+- [Unicode Reformatting](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
 - [Heuristic Filtering](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
-  - Classifier-based filtering via [fastText](https://fasttext.cc/)
 - Classifier Filtering
   - [fastText]((https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html))
-  - GPU-based: [Domain, Quality, Safety](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
+  - GPU-based models: [Domain, Quality, and Safety Classification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
 - **GPU Deduplication**
-  - [Exact](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html)
-  - [Fuzzy](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html) (Minhash LSH)
-  - [Semantic](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/semdedup.html)
+  - [Exact Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html)
+  - [Fuzzy Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html) via MinHash Locality Sensitive Hashing
+  - [Semantic Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/semdedup.html)
 - [Downstream-task Decontamination](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/taskdecontamination.html)
 - [Personal Identifiable Information (PII) Redaction](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/personalidentifiableinformationidentificationandremoval.html)
 
-### Image
+### Image Curation
 
 - [Embedding Creation](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/image/classifiers/embedders.html)
 - Classifier Filtering
-  - [Aesthetic](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/image/classifiers/aesthetic.html), [NSFW](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/image/classifiers/nsfw.html)
+  - [Aesthetic](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/image/classifiers/aesthetic.html) and [NSFW](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/image/classifiers/nsfw.html) Classification
 - GPU Deduplication
   - [Semantic](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/semdedup.html)
 
@@ -92,7 +91,7 @@ pip install cython
 pip install ./NeMo-Curator[all]
 ```
 
-#### From the NeMo Framework Container
+#### NeMo Framework Container
 
 The latest release of NeMo Curator comes preinstalled in the [NeMo Framework Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo/tags). If you want the latest commit inside the container, you can reinstall NeMo Curator using:
 
@@ -127,7 +126,7 @@ RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsa
 RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple ".[cuda12x]"
 ```
 
-When the environment variable set to 0 or not set (default behavior) it'll use the stable version of Rapids.
+When the `RAPIDS_NIGHTLY` variable is set to 0 (which is the default), it will use the stable version of RAPIDS.
 
 ## Use NeMo Curator
 ### Python API Quick Example

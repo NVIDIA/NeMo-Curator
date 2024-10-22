@@ -29,21 +29,21 @@ from fsspec.core import open_files
 
 class ImageTextPairDataset:
     """
-    A collection of image text pairs stored in webdataset-like format on disk or in cloud storage.
+    A collection of image text pairs stored in WebDataset-like format on disk or in cloud storage.
 
     The exact format assumes a single directory with sharded .tar, .parquet, and (optionally)
-    .idx files. Each tar file should have a unique integer id as it's name (00000.tar,
+    .idx files. Each tar file should have a unique integer ID as its name (00000.tar,
     00001.tar, 00002.tar, etc.). The tar files should contain images in .jpg files, text captions
     in .txt files, and metadata in .json files. Each record of the dataset is identified by
-    a unique id that is a mix of the shard id along with the offset of the record within a shard.
-    For example, the 32rd record of the 43rd shard would be in 00042.tar and have image 000420031.jpg,
+    a unique ID that is a mix of the shard ID along with the offset of the record within a shard.
+    For example, the 32nd record of the 43rd shard would be in 00042.tar and have image 000420031.jpg,
     caption 000420031.txt, and metadata 000420031.json (assuming zero indexing).
 
     In addition to the collection of tar files, ImageTextPairDataset expects there to be .parquet files
     in the root directory that follow the same naming convention as the shards (00042.tar -> 00042.parquet).
-    Each parquet file should contain an aggregated tabular form of the metadata for each record, with
-    each row in the parquet file corresponding to a record in that shard. The metadata, both in the parquet
-    files and the json files, must contain a unique id column that is the same as its record id (000420031
+    Each Parquet file should contain an aggregated tabular form of the metadata for each record, with
+    each row in the Parquet file corresponding to a record in that shard. The metadata, both in the Parquet
+    files and the JSON files, must contain a unique ID column that is the same as its record ID (000420031
     in our examples).
 
     Index files may also be in the directory to speed up dataloading with DALI.
@@ -57,11 +57,11 @@ class ImageTextPairDataset:
         self, path: str, metadata: dd.DataFrame, tar_files: List[str], id_col: str
     ) -> None:
         """
-        Constructs an image text pair dataset.
+        Constructs an image-text pair dataset.
 
         Args:
             path (str): The root directory of the files.
-            metadata (dd.DataFrame): A dask cudf dataframe of the metadata.
+            metadata (dd.DataFrame): A Dask-cuDF DataFrame of the metadata.
             tar_files (List[str]): A list of paths to the tar files.
             id_col (str): The column storing the unique identifier for each record.
         """
@@ -73,10 +73,10 @@ class ImageTextPairDataset:
     @classmethod
     def from_webdataset(cls, path: str, id_col: str):
         """
-        Loads an ImageTextPairDataset from a webdataset
+        Loads an ImageTextPairDataset from a WebDataset
 
         Args:
-            path (str): The path to the webdataset-like format on disk or cloud storage.
+            path (str): The path to the WebDataset-like format on disk or cloud storage.
             id_col (str): The column storing the unique identifier for each record.
         """
         metadata = dask_cudf.read_parquet(path)
@@ -118,7 +118,7 @@ class ImageTextPairDataset:
     ) -> None:
         """
         Saves the metadata of the dataset to the specified path as a collection
-        of parquet files.
+        of Parquet files.
 
         Args:
             path (Optional[str]): The path to save the metadata to. If None,
@@ -217,9 +217,9 @@ class ImageTextPairDataset:
         old_id_col: Optional[str] = None,
     ) -> None:
         """
-        Saves the dataset to a webdataset format with parquet files.
+        Saves the dataset to a WebDataset format with Parquet files.
         Will reshard the tar files to the specified number of samples per shard.
-        The id value in ImageTextPairDataset.id_col will be overwritten with a new id.
+        The ID value in ImageTextPairDataset.id_col will be overwritten with a new ID.
 
         Args:
             path (str): The output path where the dataset should be written.
@@ -229,9 +229,9 @@ class ImageTextPairDataset:
             samples_per_shard (int): The number of samples to include in each tar file.
             max_shards (int): The order of magnitude of the maximum number of shards
                 that will be created from the dataset. Will be used to determine the
-                number of leading zeros in the shard/sample ids.
+                number of leading zeros in the shard/sample IDs.
             old_id_col (Optional[str]): If specified, will preserve the previous
-                id value in the given column.
+                ID value in the given column.
         """
         max_samples_per_shard = math.ceil(math.log10(samples_per_shard))
         filtered_metadata = self.metadata[self.metadata[filter_column]]
