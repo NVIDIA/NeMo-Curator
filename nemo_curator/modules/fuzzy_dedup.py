@@ -59,10 +59,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     build_partition,
     get_agg_text_bytes_df,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
-    text_bytes_aware_shuffle,
-    write_partitioned_file,
-)
+from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
 
 
 class MinHash:
@@ -371,7 +368,7 @@ class LSH:
 
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")
         t0 = time.time()
-        with performance_report_if_with_ts_suffix(self.profile_dir, f"lsh-profile"):
+        with performance_report_if_with_ts_suffix(self.profile_dir, "lsh-profile"):
             self.lsh(write_path=write_path, df=df)
         self._logger.info(
             f"Time taken for LSH = {time.time() - t0}s and output written at {write_path}"
@@ -505,7 +502,7 @@ class FuzzyDuplicates:
             )
             with performance_report_if_with_ts_suffix(
                 self.config.profile_dir,
-                f"map_buckets",
+                "map_buckets",
             ):
                 ddf_mapped_buckets_w_anchors = (
                     self.map_buckets.map_buckets_with_anchors(

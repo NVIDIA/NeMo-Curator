@@ -14,15 +14,10 @@
 
 import cudf
 import dask_cuda
-import numpy as np
 from dask import config
 from packaging.version import Version
 
 from nemo_curator._compat import query_planning_enabled
-from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
-    build_partition,
-    get_agg_text_bytes_df,
-)
 
 dask_cuda_version = Version(dask_cuda.__version__)
 USE_EXCOMMS = (
