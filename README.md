@@ -44,6 +44,9 @@ All of our text pipelines have great multilingual support.
 - GPU Deduplication
   - [Semantic](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/semdedup.html)
 
+These modules offer flexibility and permit reordering, with only a few exceptions.
+All the modules automatically scale to multiple nodes to increase throughput.
+
 ## Resources
 
 - [Documentation](docs/)
