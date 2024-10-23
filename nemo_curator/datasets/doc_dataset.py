@@ -36,7 +36,7 @@ class DocumentDataset:
     def persist(self):
         return DocumentDataset(self.df.persist())
 
-    def head(self, n=5):
+    def head(self, n: int = 5):
         return self.df.head(n)
 
     @classmethod
@@ -66,10 +66,10 @@ class DocumentDataset:
     @classmethod
     def read_parquet(
         cls,
-        input_files,
-        backend="pandas",
-        files_per_partition=1,
-        add_filename=False,
+        input_files: Union[str, List[str]],
+        backend: str = "pandas",
+        files_per_partition: int = 1,
+        add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ):
@@ -88,10 +88,10 @@ class DocumentDataset:
     @classmethod
     def read_pickle(
         cls,
-        input_files,
-        backend="pandas",
-        files_per_partition=1,
-        add_filename=False,
+        input_files: Union[str, List[str]],
+        backend: str = "pandas",
+        files_per_partition: int = 1,
+        add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ):
@@ -109,9 +109,9 @@ class DocumentDataset:
 
     def to_json(
         self,
-        output_file_dir,
-        write_to_filename=False,
-        keep_filename_column=False,
+        output_file_dir: str,
+        write_to_filename: bool = False,
+        keep_filename_column: bool = False,
     ):
         """
         See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
@@ -127,9 +127,9 @@ class DocumentDataset:
 
     def to_parquet(
         self,
-        output_file_dir,
-        write_to_filename=False,
-        keep_filename_column=False,
+        output_file_dir: str,
+        write_to_filename: bool = False,
+        keep_filename_column: bool = False,
     ):
         """
         See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
@@ -145,8 +145,8 @@ class DocumentDataset:
 
     def to_pickle(
         self,
-        output_file_dir,
-        write_to_filename=False,
+        output_file_dir: str,
+        write_to_filename: bool = False,
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
 

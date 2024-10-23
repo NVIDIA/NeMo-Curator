@@ -353,7 +353,10 @@ def read_single_partition(
 
 
 def read_pandas_pickle(
-    file, add_filename=False, columns=None, **kwargs
+    file: str,
+    add_filename: bool = False,
+    columns: Optional[List[str]] = None,
+    **kwargs,
 ) -> pd.DataFrame:
     """
     This function reads a pickle file with Pandas.
@@ -513,9 +516,9 @@ def process_all_batches(
 
 def single_partition_write_with_filename(
     df,
-    output_file_dir,
-    keep_filename_column=False,
-    output_type="jsonl",
+    output_file_dir: str,
+    keep_filename_column: bool = False,
+    output_type: str = "jsonl",
 ):
     """
     This function processes a DataFrame and writes it to disk
@@ -523,8 +526,8 @@ def single_partition_write_with_filename(
     Args:
         df: A DataFrame.
         output_file_dir: The output file path.
-        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
-        output_type="jsonl": The type of output file to write.
+        keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
+        output_type: The type of output file to write. Can be "jsonl" or "parquet".
     Returns:
         If the DataFrame is non-empty, return a Series containing a single element, True.
         If the DataFrame is empty, return a Series containing a single element, False.
@@ -592,10 +595,10 @@ def single_partition_write_with_filename(
 
 def write_to_disk(
     df,
-    output_file_dir,
-    write_to_filename=False,
-    keep_filename_column=False,
-    output_type="jsonl",
+    output_file_dir: str,
+    write_to_filename: bool = False,
+    keep_filename_column: bool = False,
+    output_type: str = "jsonl",
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -605,9 +608,9 @@ def write_to_disk(
     Args:
         df: A Dask DataFrame.
         output_file_dir: The output file path.
-        write_to_filename: Whether to write the filename using the "filename" column.
-        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
-        output_type="jsonl": The type of output file to write.
+        write_to_filename: Boolean representing whether to write the filename using the "filename" column.
+        keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
+        output_type: The type of output file to write. Can be "jsonl" or "parquet".
 
     """
     if write_to_filename and "filename" not in df.columns:
