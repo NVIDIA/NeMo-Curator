@@ -17,6 +17,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, List, Optional, Type, Union
 
+import dask.dataframe as dd
+
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.base import Module
 from nemo_curator.utils.module_utils import is_batched
@@ -123,6 +125,7 @@ class DocumentFilter(Module, ABC):
                 self.score_document, meta=meta
             )
         else:
+            axis = 1 if len(self.text_fields) > 1 else 0
             scores = dataset.df[text_fields].apply(
                 self.score_document, axis=1, meta=meta
             )
@@ -141,7 +144,8 @@ class DocumentFilter(Module, ABC):
         if is_batched(self.keep_document):
             bool_mask = scores.map_partitions(self.keep_document, meta=(None, bool))
         else:
-            bool_mask = scores.apply(self.keep_document, axis=1, meta=(None, bool))
+            axis = 1 if isinstance(scores, dd.DataFrame) else 0
+            bool_mask = scores.apply(self.keep_document, axis=axis, meta=(None, bool))
         if self.invert:
             bool_mask = ~bool_mask
 
