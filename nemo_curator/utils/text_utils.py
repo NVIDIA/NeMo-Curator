@@ -23,16 +23,32 @@ from itertools import groupby
 
 def get_word_splitter(language):
     language = language.lower()
+
     if language == "zh":
         import jieba
 
-        return jieba.cut
+        def jieba_splitter(text):
+            return list(jieba.cut(text))
+
+        return jieba_splitter
+
+    elif language == "ja":
+        import MeCab
+
+        def mecab_splitter(text):
+            mecab = MeCab.Tagger()
+            parsed = mecab.parse(text)
+            lines = parsed.strip().split("\n")
+            tokens = [line.split("\t")[0] for line in lines if line and line != "EOS"]
+            return tokens
+
+        return mecab_splitter
+
     else:
+        def default_splitter(text):
+            return text.split()
+
         return default_splitter
-
-
-def default_splitter(document):
-    return document.split()
 
 
 def get_paragraphs(document):
