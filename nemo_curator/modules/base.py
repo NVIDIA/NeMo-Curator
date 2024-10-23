@@ -34,10 +34,18 @@ class Module(ABC):
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         raise NotImplementedError("call method must be implemented by subclasses")
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-        if self.input_backend != "any" and dataset.df.backend != self.input_backend:
+    def _check_backend(self, partition, partition_info=None):
+        if partition_info is None:
+            return
+
+        backend = type(partition).__module__.split(".")[0]
+        if backend != self.input_backend:
             raise ValueError(
-                f"Module {self.name} requires dataset to have backend {self.input_backend} but got backend {dataset.df.backend}"
+                f"Module {self.name} requires dataset to have backend {self.input_backend} but got backend {backend}"
             )
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if self.input_backend != "any":
+            dataset.df.map_partitions(self._check_backend)
 
         return self.call(dataset)
