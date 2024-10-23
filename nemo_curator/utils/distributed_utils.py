@@ -377,18 +377,8 @@ def read_pandas_pickle(
         return pd.read_pickle(file, **kwargs)
 
 
-def filter_files_by_extension(files_list, file_ext):
-    filtered_files = []
-    for file in files_list:
-        if file.endswith(file_ext):
-            filtered_files.append(file)
-        else:
-            warnings.warn(f"Skipping read for file: {file}")
-    return filtered_files
-
-
 def read_data(
-    input_files,
+    input_files: Union[str, List[str]],
     file_type: str = "pickle",
     backend: str = "cudf",
     files_per_partition: int = 1,
@@ -419,6 +409,9 @@ def read_data(
         # Try using cuDF. If not availible will throw an error.
         test_obj = cudf.Series
 
+    if isinstance(input_files, str):
+        input_files = [input_files]
+
     if file_type == "pickle":
         df = read_pandas_pickle(
             input_files[0], add_filename=add_filename, columns=columns, **kwargs
@@ -428,8 +421,18 @@ def read_data(
             df = df.to_backend("cudf")
 
     elif file_type in ["json", "jsonl", "parquet"]:
-        file_ext = "." + file_type
-        input_files = filter_files_by_extension(input_files, file_ext)
+        assert len(input_files) > 0
+
+        input_extensions = {os.path.splitext(f)[-1] for f in input_files}
+        if len(input_extensions) != 1:
+            raise RuntimeError(
+                "All files being read must have the same file type. "
+                "Please check your input directory or list of files to ensure this. "
+                "To generate a list of files with a given file type in your directory, "
+                "please use the nemo_curator.utils.file_utils.get_all_files_paths_under "
+                "function with the filter_by parameter."
+            )
+
         print(f"Reading {len(input_files)} files", flush=True)
         input_files = sorted(input_files)
 

@@ -17,7 +17,8 @@ import json
 import os
 import pathlib
 from functools import partial, reduce
-from typing import List, Union
+from typing import List, Optional, Union
+import warnings
 
 import dask.bag as db
 import dask.dataframe as dd
@@ -45,7 +46,32 @@ def expand_outdir_and_mkdir(outdir):
     return outdir
 
 
-def get_all_files_paths_under(root, recurse_subdirectories=True, followlinks=False):
+def filter_files_by_extension(
+    files_list: str,
+    filter_by: Union[str, List[str]],
+):
+    filtered_files = []
+
+    if isinstance(filter_by, str):
+        filter_by = [filter_by]
+
+    file_extensions = [s if s.startswith(".") else "." + s for s in filter_by]
+
+    for file in files_list:
+        if file.endswith(tuple(file_extensions)):
+            filtered_files.append(file)
+        else:
+            warnings.warn(f"Skipping read for file: {file}")
+
+    return filtered_files
+
+
+def get_all_files_paths_under(
+    root: str,
+    recurse_subdirectories: bool = True,
+    followlinks: bool = False,
+    filter_by: Optional[Union[str, List[str]]] = None,
+):
     """
     This function returns a list of all the files under a specified directory.
     Args:
@@ -54,6 +80,9 @@ def get_all_files_paths_under(root, recurse_subdirectories=True, followlinks=Fal
                               Please note that this can be slow for large
                               number of files.
         followlinks: Whether to follow symbolic links.
+        filter_by: A string or list of strings representing a file type
+                   or multiple file types to include in the output, e.g.,
+                   "jsonl" or ["jsonl", "parquet"].
     """
     if recurse_subdirectories:
         file_ls = [
@@ -65,6 +94,10 @@ def get_all_files_paths_under(root, recurse_subdirectories=True, followlinks=Fal
         file_ls = [entry.path for entry in os.scandir(root)]
 
     file_ls.sort()
+
+    if filter_by is not None:
+        file_ls = filter_files_by_extension(file_ls, filter_by)
+
     return file_ls
 
 
