@@ -123,7 +123,9 @@ class DocumentFilter(Module, ABC):
                 self.score_document, meta=meta
             )
         else:
-            scores = dataset.df[text_fields].apply(self.score_document, meta=meta)
+            scores = dataset.df[text_fields].apply(
+                self.score_document, axis=1, meta=meta
+            )
 
         if self.save_score:
             score_fields = (
@@ -139,7 +141,7 @@ class DocumentFilter(Module, ABC):
         if is_batched(self.keep_document):
             bool_mask = scores.map_partitions(self.keep_document, meta=(None, bool))
         else:
-            bool_mask = scores.apply(self.keep_document, meta=(None, bool))
+            bool_mask = scores.apply(self.keep_document, axis=1, meta=(None, bool))
         if self.invert:
             bool_mask = ~bool_mask
 
