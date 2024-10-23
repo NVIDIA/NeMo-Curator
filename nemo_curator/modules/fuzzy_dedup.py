@@ -1164,6 +1164,7 @@ class _Shuffle:
                     st_text = time.time()
                     parts_per_text_batch_use = parts_per_text_batch
                 print(f"Using {parts_per_text_batch_use} text partitions.", flush=True)
+
                 # Select partitions for our text batch
                 end_text_offset = min(
                     text_part_offset + parts_per_text_batch_use, text_part_end_offset
