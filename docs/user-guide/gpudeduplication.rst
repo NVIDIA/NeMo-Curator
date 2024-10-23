@@ -184,7 +184,7 @@ Python API
     from nemo_curator import FuzzyDuplicatesConfig
 
     config = FuzzyDuplicatesConfig(
-        cache_dir="/path/to/dedup_outputs",
+        cache_dir="/path/to/dedup_outputs", # must be cleared between runs
         id_field="my_id",
         text_field="text",
         seed=42,
