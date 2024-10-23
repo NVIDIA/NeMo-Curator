@@ -16,9 +16,9 @@
 import json
 import os
 import pathlib
+import warnings
 from functools import partial, reduce
 from typing import List, Optional, Union
-import warnings
 
 import dask.bag as db
 import dask.dataframe as dd
