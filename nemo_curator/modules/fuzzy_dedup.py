@@ -1026,7 +1026,6 @@ class _Shuffle:
         bucket_parts_per_worker: int = 8,
         partition_on: str = "_output_partition_id",
     ):
-
         ddf_anchor_docs_with_bk, bk_mapping = aggregated_anchor_docs_with_bk_read(
             path=bucket_w_anchors_path,
             blocksize=bucket_mapping_df_blocksize,
@@ -1079,6 +1078,7 @@ class _Shuffle:
     ):
         total_text_partitions = left_df.npartitions
         total_bucket_partitions = right_df.npartitions
+
         # Extract global partitioning index
         left_df, global_partitioning_index = extract_partitioning_index(
             left_df,
@@ -1087,6 +1087,7 @@ class _Shuffle:
             parts_per_bucket_batch,
             total_bucket_partitions,
         )
+
         # Set start offsets
         bucket_part_start_offset, text_part_start_offset = get_restart_offsets(
             output_path
@@ -1099,6 +1100,7 @@ class _Shuffle:
         # in the future.
         bucket_part_end_offset = total_bucket_partitions
         text_part_end_offset = total_text_partitions
+
         # Check that offsets are valid
         assert bucket_part_start_offset % parts_per_bucket_batch == 0
         assert bucket_part_end_offset > bucket_part_start_offset
@@ -1141,6 +1143,7 @@ class _Shuffle:
             # Select our bucket-mapping batch
             subset_bucket_df = right_df.partitions[bucket_part_offset:end_bucket_offset]
             subset_bucket_df = subset_bucket_df.persist()
+
             # Filter out rows of left_df that we know cannot
             # align with any rows of subset_bucket_df
             left_df_use = filter_text_rows_by_bucket_batch(
@@ -1160,7 +1163,7 @@ class _Shuffle:
                 else:
                     st_text = time.time()
                     parts_per_text_batch_use = parts_per_text_batch
-
+                print(f"Using {parts_per_text_batch_use} text partitions.", flush=True)
                 # Select partitions for our text batch
                 end_text_offset = min(
                     text_part_offset + parts_per_text_batch_use, text_part_end_offset
