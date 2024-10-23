@@ -431,9 +431,7 @@ class TestHeuristicFilters:
         ), f"Expected {expected_data} but got {filtered_data}"
 
     def test_wordcount_zh(self):
-        dataset = list_to_dataset(
-            ["", "你好。", "我喜欢学习中文。"]
-        )
+        dataset = list_to_dataset(["", "你好。", "我喜欢学习中文。"])
         filters = ScoreFilter(WordCountFilter(min_words=2, max_words=5, lang="zh"))
         filtered_data = filters(dataset)
 

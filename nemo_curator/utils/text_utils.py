@@ -45,6 +45,7 @@ def get_word_splitter(language):
         return mecab_splitter
 
     else:
+
         def default_splitter(text):
             return text.split()
 
