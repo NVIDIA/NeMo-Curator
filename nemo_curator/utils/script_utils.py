@@ -16,6 +16,8 @@ import os
 
 import psutil
 
+from nemo_curator import __version__
+
 
 class ArgumentHelper:
     """
@@ -24,6 +26,15 @@ class ArgumentHelper:
 
     def __init__(self, parser: argparse.ArgumentParser):
         self.parser = parser
+        self.attach_version_arg()
+
+    def attach_version_arg(self):
+        self.parser.add_argument(
+            "--version", "-v",
+            action="version",
+            version=f"NVIDIA NeMo Curator -- v{__version__}",
+            help="Show the version and exit."
+    )
 
     @staticmethod
     def attach_bool_arg(
