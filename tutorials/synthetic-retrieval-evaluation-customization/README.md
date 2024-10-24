@@ -41,7 +41,7 @@ $ docker run -it --rm --gpus all --ipc host --network host -v $(pwd):/workspace 
 
 ### Run Pipeline (iPython notebook)
 
-Navigate to the [quick start notebook](tutorials/synthetic-retrieval-evaluation-customization/notebooks/quickstart.ipynb) and follow the instructions.
+Navigate to the [quick start notebook](notebooks/quickstart.ipynb) and follow the instructions.
 
 ### Run Pipeline (CLI)
 
@@ -80,18 +80,18 @@ PYTHONPATH=. python tutorials/synthetic-retrieval-evaluation-customization/main.
 
 ### Using Custom Configuration
 
-Edit [config.yaml](tutorials/synthetic-retrieval-evaluation-customization/config/config.yaml) to update the configuration. Predefined configuration files can be found in [scripts/conf](scripts/conf).
+Edit [config.yaml](config/config.yaml) to update the configuration. Predefined configuration files can be found in [scripts/conf](config/config.yaml).
 
 
 ## Quality Improvement Playbook (for Advanced Users)
 
 
-The default config file [config.yaml](tutorials/synthetic-retrieval-evaluation-customization/config/config.yaml) should work best to generate synthetic data for the IT Helpdesk domain. In case you'd like to improve the quality of synthetic data and/or apply the SDG pipeline for other domains, consider applying the recipes described below.
+The default config file [config.yaml](config/config.yaml) should work best to generate synthetic data for the IT Helpdesk domain. In case you'd like to improve the quality of synthetic data and/or apply the SDG pipeline for other domains, consider applying the recipes described below.
 
 
 ### Prompt templates
 
-We recommend engineering the prompt templates for better synthetic data generations. Specifically, we have observed Chain-of-Thought prompting to result in the better generations as well. We have provided additional config files ([config-nq.yaml](tutorials/synthetic-retrieval-evaluation-customization/config/config-nq.yaml) and [config-fiqa.yaml](tutorials/synthetic-retrieval-evaluation-customization/config/config-fiqa.yaml)) that showcase Chain-of-Thought prompting.
+We recommend engineering the prompt templates for better synthetic data generations. Specifically, we have observed Chain-of-Thought prompting to result in the better generations as well. We have provided additional config files ([config-nq.yaml](config/config-nq.yaml) and [config-fiqa.yaml](config/config-fiqa.yaml)) that showcase Chain-of-Thought prompting.
 
 Furthermore, they also showcase the use of in-context learning, wherein passage, query pairs were picked from datasets to be used as few-shot examples. Both methods yields good quality results.
 
