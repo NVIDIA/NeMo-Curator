@@ -14,6 +14,7 @@
 
 import argparse
 
+from nemo_curator import __version__
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import reshard_jsonl
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -33,7 +34,9 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
+        f"""
+NVIDIA NeMo Curator -- v{__version__}
+
 Makes balanced text files of output size "--block-size" from
 a directory of input files. The output files will be renamed
 as output_dir/000.jsonl, output_dir/001.jsonl, ... etc. Users

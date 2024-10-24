@@ -15,8 +15,7 @@
 import os
 import time
 
-from nemo_curator import __version__
-from nemo_curator import MinHash
+from nemo_curator import MinHash, __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import (

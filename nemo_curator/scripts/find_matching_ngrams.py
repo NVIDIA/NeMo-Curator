@@ -16,6 +16,7 @@ import argparse
 import pickle
 
 import nemo_curator
+from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import get_all_files_paths_under
@@ -53,7 +54,9 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
+        f"""
+    NVIDIA NeMo Curator -- v{__version__}
+
     Searches for matching task n-grams in the input dataset
     and writes out a list of n-grams that were found.
 """,

@@ -19,6 +19,7 @@ import shutil
 
 from dask.distributed.utils import silence_logging_cmgr
 
+from nemo_curator import __version__
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import separate_by_metadata
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -65,8 +66,10 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
-    Spits a dataset into subdirectories based on metadata values
+        f"""
+    NVIDIA NeMo Curator -- v{__version__}
+
+    Spits a dataset into subdirectories based on metadata values.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )

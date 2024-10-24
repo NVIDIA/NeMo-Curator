@@ -17,6 +17,7 @@ import logging
 import time
 from pathlib import Path
 
+from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modules.modify import Modify
@@ -83,7 +84,9 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
+        f"""
+        NVIDIA NeMo Curator -- v{__version__}
+
         Main driver script for applying PII redaction on documents. Inputs are in the input-data-dir directory.
         This script will then perform PII detection and de-identification on each document within the corpus.
         """,

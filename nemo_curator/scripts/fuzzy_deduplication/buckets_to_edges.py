@@ -17,8 +17,7 @@ import time
 
 import dask_cudf
 
-from nemo_curator import __version__
-from nemo_curator import BucketsToEdges
+from nemo_curator import BucketsToEdges, __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers

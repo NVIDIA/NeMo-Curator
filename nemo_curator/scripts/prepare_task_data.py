@@ -18,6 +18,7 @@ import pickle
 import yaml
 
 import nemo_curator
+from nemo_curator import __version__
 from nemo_curator.tasks.downstream_task import import_task
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -46,7 +47,9 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
+        f"""
+    NVIDIA NeMo Curator -- v{__version__}
+
     Computes N-grams from input downstream task validation datasets.
     Takes in an input configuration file (defaults can be found under the
     config directory under the root directory of the repository) and
