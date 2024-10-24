@@ -30,11 +30,12 @@ class ArgumentHelper:
 
     def attach_version_arg(self):
         self.parser.add_argument(
-            "--version", "-v",
+            "--version",
+            "-v",
             action="version",
             version=f"NVIDIA NeMo Curator -- v{__version__}",
-            help="Show the version and exit."
-    )
+            help="Show the version and exit.",
+        )
 
     @staticmethod
     def attach_bool_arg(
