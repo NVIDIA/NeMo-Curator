@@ -45,7 +45,13 @@ from nemo_curator.utils.module_utils import is_batched
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
+# ----------------------------------------------------------------------------80
 class RetrieverEvalSetGenerator(SyntheticDataGenerator):
+    """
+    Main class that generates annotated datasets for retriever evaluation
+    Question, Answers are generated for a given document chunk as input
+    Datasets are annotated in format of (passage, question, answer) triplets
+    """
 
     def __init__(
         self,
@@ -64,7 +70,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         return True  # TODO complete this
 
     def _init_pipeline_params(self):
-
         # synchronous
         self.openai_client = OpenAI(
             base_url=self.cfg.base_url,
@@ -94,17 +99,15 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         else:
             raise Exception("Validation Error: incorrect pipeline config file")
 
+    # ----------------------------------------------------------------------------80
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-
         df = dataset.df
-
         df["llm_response"] = df["text"].apply(
             self.generate, meta=("llm_response", "str")
         )
         df["qa_pairs"] = df["llm_response"].apply(
             self.parse_response, meta=("qa_pairs", "object")
         )
-
         df = df.explode("qa_pairs").reset_index(drop=True)
         df["question"] = df["qa_pairs"].apply(
             lambda x: x["question"], meta=("question", "str")
@@ -121,6 +124,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             df[["_id", "text", "title", "question-id", "question", "answer", "score"]]
         )
 
+    # ----------------------------------------------------------------------------80
     def parse_response(self, llm_response: str) -> Any:
         qa_pairs = []
         qa_list = llm_response.split("Question")[1:]
@@ -130,7 +134,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
                 q = qas[0].split(":")[1].strip()
                 if re.search("Explanation", qas[1]):
                     a = qas[1].split("Explanation")[0].split(":")[1].strip()
-                    explanation = qas[1].split("Explanation")[1].strip()  # Not used
+                    explanation = qas[1].split("Explanation")[1].strip()
                 else:
                     a = qas[1].split(":")[1].strip()
                 qa_pairs.append({"question": q, "answer": a})
@@ -138,8 +142,8 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             print(f"error: {e}")
         return qa_pairs
 
+    # ----------------------------------------------------------------------------80
     def generate(self, doc_text):
-
         response = self.generator.generate_closed_qa_instructions(
             document=doc_text,
             prompt_template=self.sys_prompt + "\n" + self.user_prompt_template,
@@ -149,6 +153,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         )
         return response[0]
 
+    # ----------------------------------------------------------------------------80
     def _get_random_hash(self, question: str):
         """Generate random hash for synthetic question IDs"""
         # Generate a random string
@@ -162,3 +167,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         )  # Encode the string to bytes
         hex_dig = hash_object.hexdigest()
         return hex_dig
+
+
+# ----------------------------------------------------------------------------80
