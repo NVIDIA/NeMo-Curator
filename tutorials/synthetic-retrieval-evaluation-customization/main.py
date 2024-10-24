@@ -13,6 +13,7 @@ from tqdm.dask import TqdmCallback
 
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from nemo_curator.modules.filter import Score, ScoreFilter
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
@@ -21,7 +22,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 def get_pipeline(args: Any) -> Any:
 
-    cfg = OmegaConf.load(args.pipeline_config)
+    cfg = RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
 
     sdg_pipeline = Sequential(
         [
@@ -92,7 +93,7 @@ def main():
         "--pipeline_config",
         type=str,
         default="",
-        help="Pipeline configuartion yaml file",
+        help="Pipeline configuartion yaml file path",
     )
     parser.add_argument(
         "--output_dir",
