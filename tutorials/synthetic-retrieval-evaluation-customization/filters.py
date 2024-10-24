@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
 import json
 from typing import List, Union
 
 import dask
 import dask.dataframe as dd
-import fasttext
 import numpy as np
 import pandas as pd
-from omegaconf import DictConfig
 from openai import OpenAI
 
 from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from nemo_curator.utils.decorators import batched
-from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
 
 # ----------------------------------------------------------------------------80
@@ -55,11 +51,11 @@ class EasinessFilter(DocumentFilter):
         self.text_fields = text_fields
 
     @batched
-    def score_document(self, df: Union[pd.DataFrame, dd.DataFrame]):
+    def score_document(self, df: pd.DataFrame):
         document_score = self._calc_similarity_nim(
             df[self.text_fields[0]].to_list(), df[self.text_fields[1]].to_list()
         )
-        return pd.Series(document_score)
+        return pd.Series(document_score, index=df.index)
 
     @batched
     def keep_document(self, scores: pd.Series):
