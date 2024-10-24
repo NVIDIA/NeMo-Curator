@@ -16,6 +16,7 @@
 import logging
 import os
 import shutil
+import time
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -36,10 +37,13 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.utils.distributed_utils import write_to_disk
+from nemo_curator.utils.distributed_utils import (
+    performance_report_if_with_ts_suffix,
+    write_to_disk,
+)
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
-    _assign_and_sort_clusters,
+    assign_and_sort_clusters,
     extract_dedup_data,
     get_semantic_matches_per_cluster,
 )
@@ -123,9 +127,11 @@ class EmbeddingCreator:
         embedding_batch_size: int,
         embedding_output_dir: str,
         input_column: str = "text",
+        embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
         write_to_filename: bool = False,
         logger: Union[logging.Logger, str] = "./",
+        profile_dir: Optional[str] = None,
     ):
         """
         Initializes an EmbeddingCreator for generating embeddings using the specified model configurations.
@@ -141,6 +147,7 @@ class EmbeddingCreator:
                                 Setting it to False can lead to more memory overhead.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
             logger (Union[logging.Logger, str]): Logger object or path to store logs, defaults to "./".
+            profile_dir (str): If specified directory to write dask profile. Default is None.
 
         Attributes:
             embeddings_config (EmbeddingConfig): Configuration for embeddings.
@@ -160,9 +167,11 @@ class EmbeddingCreator:
         self.logger = self._setup_logger(logger)
         self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
+        self.embedding_column = embedding_column
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
+        self.profile_dir = profile_dir
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):
@@ -190,37 +199,54 @@ class EmbeddingCreator:
                 self.model,
                 sorted_data_loader=True,
                 batch_size=self.batch_size,
-                pred_output_col="embeddings",
+                pred_output_col=self.embedding_column,
             ),
             keep_cols=ddf.columns.tolist(),
         )
         return pipe(ddf)
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-        embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
+        t0 = time.time()
         if self.write_embeddings_to_disk:
-            write_to_disk(
-                embedding_ddf,
-                self.embedding_output_dir,
-                write_to_filename=self.write_to_filename,
-                output_type="parquet",
-            )
-            return DocumentDataset(
+            with performance_report_if_with_ts_suffix(
+                self.profile_dir, "embedding-creator"
+            ):
+                embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
+                write_to_disk(
+                    embedding_ddf,
+                    self.embedding_output_dir,
+                    write_to_filename=self.write_to_filename,
+                    output_type="parquet",
+                )
+            ddf = DocumentDataset(
                 dask_cudf.read_parquet(
                     self.embedding_output_dir, blocksize="2GB", aggregate_files=True
                 )
             )
         else:
-            return DocumentDataset(embedding_ddf)
+            ddf = DocumentDataset(embedding_ddf)
+
+        self.logger.info(
+            f"Time taken for Creating Embeddings : {time.time() - t0}"
+            + (
+                f" and output written at {self.embedding_output_dir}"
+                if self.write_embeddings_to_disk
+                else ""
+            )
+        )
+
+        return ddf
 
 
 ### Clustering Module
-def get_embedding_ar(df: "cudf.DataFrame") -> cp.ndarray:
-    return df["embeddings"].list.leaves.values.reshape(len(df), -1)
+def get_embedding_ar(df: "cudf.DataFrame", embedding_col: str) -> cp.ndarray:
+    return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
-def add_dist_to_cents(df: "cudf.DataFrame", centroids: cp.ndarray) -> "cudf.DataFrame":
-    embed_array = get_embedding_ar(df)
+def add_dist_to_cents(
+    df: "cudf.DataFrame", embedding_col: str, centroids: cp.ndarray
+) -> "cudf.DataFrame":
+    embed_array = get_embedding_ar(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
     dist_to_cents = cp.sqrt(np.sum((embed_array - centroids_ar) ** 2, axis=1))
     df["dist_to_cent"] = dist_to_cents
@@ -234,12 +260,14 @@ class ClusteringModel:
         max_iter: int,
         n_clusters: int,
         clustering_output_dir: str,
+        embedding_col: str = "embeddings",
         sim_metric: str = "cosine",
         which_to_keep: str = "hard",
         sort_clusters: bool = True,
         kmeans_with_cos_dist: bool = False,
         partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
+        profile_dir: Optional[str] = None,
     ):
         """
         Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
@@ -249,12 +277,14 @@ class ClusteringModel:
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
             clustering_output_dir (str): Directory path where clustering results will be saved.
+            embedding_col (str): Column name where the embeddings are stored.
             sim_metric (str): Similarity metric to use for clustering, default is "cosine".
             which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
             sort_clusters (bool): Whether to sort clusters, default is True.
             kmeans_with_cos_dist (bool): Whether to use KMeans with cosine distance, default is False.
             partition_size (str): The size of data partition to run kmeans with, default is "2gb".
             logger (Union[logging.Logger, str]): Logger object or directory path to save logs; default is "./".
+            profile_dir (str): If specified directory to write dask profile. Default is None.
 
         This constructor sets up the parameters required for clustering operations.
         """
@@ -262,12 +292,14 @@ class ClusteringModel:
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
+        self.embedding_col = embedding_col
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
         self.kmeans_with_cos_dist = kmeans_with_cos_dist
         self.partition_size = partition_size
         self.sort_clusters = sort_clusters
         self.logger = self._setup_logger(logger)
+        self.profile_dir = profile_dir
 
         if not os.path.exists(self.clustering_output_dir):
             expand_outdir_and_mkdir(self.clustering_output_dir)
@@ -291,75 +323,95 @@ class ClusteringModel:
     def __call__(self, embeddings_dataset: DocumentDataset):
         embeddings_df = embeddings_dataset.df
 
-        assert "embeddings" in embeddings_df.columns
-        embeddings_df = embeddings_df[[self.id_col, "embeddings"]]
-
-        embeddings_df = embeddings_df.to_backend("pandas").persist()
-        embeddings_df = embeddings_df.repartition(partition_size=self.partition_size)
-        embeddings_df = embeddings_df.to_backend("cudf")
-
-        cupy_darr = embeddings_df.map_partitions(
-            get_embedding_ar, meta=cp.ndarray([1, 1])
-        )
-        cupy_darr.compute_chunk_sizes()
-
-        kmeans = KMeans(n_clusters=self.n_clusters, max_iter=self.max_iter)
-        self.logger.info("KMeans starting fit")
-        kmeans.fit(cupy_darr)
-        self.logger.info("KMeans fit complete")
-
-        self.logger.info(
-            "Computing nearest centroids + distance to centers using kmeans.predict"
-        )
-        nearest_cents = kmeans.predict(cupy_darr)
-        embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
-        del nearest_cents
-        meta_df = embeddings_df._meta.copy()
-        meta_df["dist_to_cent"] = cp.zeros(1)
-        embeddings_df = embeddings_df.map_partitions(
-            add_dist_to_cents, centroids=kmeans.cluster_centers_, meta=meta_df
-        )
-        centroids = kmeans.cluster_centers_
-        embeddings_df = embeddings_df.reset_index(drop=True)
-        kmeans_centroids_file = os.path.join(
-            self.clustering_output_dir, "kmeans_centroids.npy"
-        )
-        np.save(kmeans_centroids_file, centroids)
-        self.logger.info("Saving centroids complete")
-        del kmeans, cupy_darr, centroids
-
-        clustering_output_dir = os.path.join(
-            self.clustering_output_dir, "embs_by_nearest_center"
-        )
-        if os.path.exists(clustering_output_dir):
-            self.logger.warning(
-                f"Output directory {clustering_output_dir} already exists and will be overwritten"
+        if self.embedding_col not in embeddings_df.columns:
+            raise ValueError(
+                f"Expected embedding column '{self.embedding_col}'"
+                f" to be in dataset. Only found columns {embeddings_df.columns}"
             )
-            shutil.rmtree(clustering_output_dir)
 
-        embeddings_df.to_parquet(
-            clustering_output_dir,
-            index=False,
-            partition_on="nearest_cent",
-        )
-        self.logger.info(
-            f"Saved embeddings by nearest center to {clustering_output_dir}"
-        )
-        del embeddings_df
+        with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
+            embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
+
+            embeddings_df = embeddings_df.to_backend("pandas").persist()
+            embeddings_df = embeddings_df.repartition(
+                partition_size=self.partition_size
+            )
+            embeddings_df = embeddings_df.to_backend("cudf")
+
+            cupy_darr = embeddings_df.map_partitions(
+                get_embedding_ar, self.embedding_col, meta=cp.ndarray([1, 1])
+            )
+            cupy_darr.compute_chunk_sizes()
+            t0 = time.time()
+            kmeans = KMeans(n_clusters=self.n_clusters, max_iter=self.max_iter)
+            self.logger.info("KMeans starting fit")
+            kmeans.fit(cupy_darr)
+            self.logger.info("KMeans fit complete")
+            self.logger.info(f"Time taken for KMeans Fit: {time.time() - t0}")
+
+            self.logger.info(
+                "Computing nearest centroids + distance to centers using kmeans.predict"
+            )
+            t0 = time.time()
+            nearest_cents = kmeans.predict(cupy_darr)
+            self.logger.info(f"Time taken for KMeans Predict: {time.time() - t0}")
+
+            t0 = time.time()
+            embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
+            del nearest_cents
+            meta_df = embeddings_df._meta.copy()
+            meta_df["dist_to_cent"] = cp.zeros(1)
+            embeddings_df = embeddings_df.map_partitions(
+                add_dist_to_cents,
+                embedding_col=self.embedding_col,
+                centroids=kmeans.cluster_centers_,
+                meta=meta_df,
+            )
+            embeddings_df = embeddings_df.reset_index(drop=True)
+            centroids = kmeans.cluster_centers_
+            kmeans_centroids_file = os.path.join(
+                self.clustering_output_dir, "kmeans_centroids.npy"
+            )
+            np.save(kmeans_centroids_file, centroids)
+            self.logger.info("Saving centroids complete")
+            del kmeans, cupy_darr, centroids
+
+            clustering_output_dir = os.path.join(
+                self.clustering_output_dir, "embs_by_nearest_center"
+            )
+            if os.path.exists(clustering_output_dir):
+                self.logger.warning(
+                    f"Output directory {clustering_output_dir} already exists and will be overwritten"
+                )
+                shutil.rmtree(clustering_output_dir)
+
+            embeddings_df.to_parquet(
+                clustering_output_dir,
+                index=False,
+                partition_on="nearest_cent",
+            )
+            self.logger.info(
+                f"Time taken for Assigning distance to each embedding : {time.time() - t0} "
+                f"and output written at {clustering_output_dir}"
+            )
+
+            del embeddings_df
 
         if self.sort_clusters:
-            _assign_and_sort_clusters(
+            assign_and_sort_clusters(
                 id_col=self.id_col,
                 kmeans_centroids_file=kmeans_centroids_file,
                 nearest_cent_dir=clustering_output_dir,
                 output_sorted_clusters_dir=os.path.join(
                     self.clustering_output_dir, "sorted"
                 ),
+                embedding_col=self.embedding_col,
                 sim_metric=self.sim_metric,
                 keep_hard=self.keep_hard,
                 kmeans_with_cos_dist=self.kmeans_with_cos_dist,
                 cluster_ids=range(self.n_clusters),
                 logger=self.logger,
+                profile_dir=self.profile_dir,
             )
 
         fps = [
@@ -380,7 +432,9 @@ class SemanticClusterLevelDedup:
         id_col_type: str,
         which_to_keep: str,
         output_dir: str,
+        embedding_col: str = "embeddings",
         logger: Union[logging.Logger, str] = "./",
+        profile_dir: Optional[str] = None,
     ) -> None:
         """
         Initialize the SemanticClusterLevelDedup class.
@@ -393,7 +447,9 @@ class SemanticClusterLevelDedup:
             id_col_type (str): Data type of the ID column.
             which_to_keep (str): Strategy for which duplicate to keep.
             output_dir (str): Directory to save output files.
+            embedding_col (str): Column where the embeddings are stored.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
+            profile_dir (str): If specified directory to write dask profile. Default is None.
         """
         self.n_clusters = n_clusters
         self.emb_by_clust_dir = emb_by_clust_dir
@@ -406,7 +462,9 @@ class SemanticClusterLevelDedup:
             output_dir, "semdedup_pruning_tables"
         )
         self.computed_semantic_match_dfs = False
+        self.embedding_col = embedding_col
         self.logger = self._setup_logger(logger)
+        self.profile_dir = profile_dir
 
     def _setup_logger(self, logger: Union[logging.Logger, str]) -> logging.Logger:
         """
@@ -449,22 +507,29 @@ class SemanticClusterLevelDedup:
             )
             shutil.rmtree(self.semdedup_pruning_tables_dir)
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
-
-        tasks = db.from_sequence(
-            list(range(self.n_clusters)), npartitions=self.n_clusters
-        ).map(
-            lambda cluster_id: get_semantic_matches_per_cluster(
-                cluster_id=cluster_id,
-                emb_by_clust_dir=self.emb_by_clust_dir,
-                sorted_clusters_dir=self.sorted_clusters_dir,
-                id_col=self.id_col,
-                id_col_type=self.id_col_type,
-                eps_list=eps_list,
-                output_dir=self.semdedup_pruning_tables_dir,
-                which_to_keep=self.which_to_keep,
+        t0 = time.time()
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "semantic-match-compute"
+        ):
+            tasks = db.from_sequence(
+                list(range(self.n_clusters)), npartitions=self.n_clusters
+            ).map(
+                lambda cluster_id: get_semantic_matches_per_cluster(
+                    cluster_id=cluster_id,
+                    emb_by_clust_dir=self.emb_by_clust_dir,
+                    sorted_clusters_dir=self.sorted_clusters_dir,
+                    id_col=self.id_col,
+                    id_col_type=self.id_col_type,
+                    eps_list=eps_list,
+                    output_dir=self.semdedup_pruning_tables_dir,
+                    embedding_col=self.embedding_col,
+                    which_to_keep=self.which_to_keep,
+                )
             )
+            tasks.compute()
+        self.logger.info(
+            f"Time taken for Computing Semantic Matches : {time.time() - t0}"
         )
-        tasks.compute()
         self.computed_semantic_match_dfs = True
 
     def extract_dedup_data(self, eps_to_extract: float) -> DocumentDataset:
@@ -498,6 +563,7 @@ class SemanticClusterLevelDedup:
             output_summary_file=output_summary_file,
             output_parquet_path=output_parquet_path,
             logger=self.logger,
+            profile_dir=self.profile_dir,
         )
 
         fps = [
@@ -530,6 +596,7 @@ class SemDedup:
             input_column=config.input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             logger=logger,
+            profile_dir=self.config.profile_dir,
         )
         self.clustering_model = ClusteringModel(
             id_col=config.id_col_name,
@@ -537,6 +604,7 @@ class SemDedup:
             n_clusters=config.n_clusters,
             clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
+            profile_dir=self.config.profile_dir,
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
@@ -551,6 +619,7 @@ class SemDedup:
             which_to_keep=config.which_to_keep,
             output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
+            profile_dir=self.config.profile_dir,
         )
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract

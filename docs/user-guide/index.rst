@@ -25,6 +25,9 @@ Text Curation
 :ref:`GPU Accelerated Semantic Deduplication <data-curator-semdedup>`
    NeMo Curator provides scalable and GPU accelerated semantic deduplication functionality using RAPIDS cuML, cuDF, crossfit and PyTorch.
 
+:ref:`Distributed Data Classification <data-curator-distributeddataclassifer>`
+   NeMo-Curator provides a scalable and GPU accelerated module to help users run inference with pre-trained models on large volumes of text documents.
+
 :ref:`Synthetic Data Generation <data-curator-syntheticdata>`
    Synthetic data generation tools and example piplines are available within NeMo Curator.
 
@@ -60,6 +63,9 @@ Reference
 :ref:`NeMo Curator on Kubernetes <data-curator-kubernetes>`
    Demonstration of how to run the NeMo Curator on a Dask Cluster deployed on top of Kubernetes
 
+:ref:`NeMo Curator and Apache Spark <data-curator-sparkother>`
+   Demonstration of how to read and write datasets when using Apache Spark and NeMo Curator
+
 :ref:`Best Practices <data-curator-best-practices>`
    A collection of suggestions on how to best use NeMo Curator to curate your dataset
 
@@ -89,6 +95,7 @@ Reference
    personalidentifiableinformationidentificationandremoval.rst
    distributeddataclassification.rst
    kubernetescurator.rst
+   sparkother.rst
    bestpractices.rst
    nextsteps.rst
    api/index.rst

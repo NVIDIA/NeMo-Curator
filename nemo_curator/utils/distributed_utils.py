@@ -20,8 +20,9 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
 from contextlib import nullcontext
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -29,7 +30,7 @@ import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
 
-from nemo_curator.utils.gpu_utils import GPU_INSTALL_STRING, is_cudf_type
+from nemo_curator.utils.gpu_utils import is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
@@ -43,12 +44,29 @@ class NoWorkerError(Exception):
     pass
 
 
+def _enable_spilling():
+    """
+    Setting this environment variable enables automatic spilling (and "unspilling")
+    of buffers from device to host to enable out-of-memory computation,
+    i.e., computing on objects that occupy more memory than is available on the GPU.
+    """
+    # Workaround for below (which is missing in 24.08, but fixed in 24.10)
+    # Remove this when we update to 24.10 or later dask-cuda
+    # https://github.com/rapidsai/dask-cuda/pull/1369/files
+    cudf.set_option("spill", True)
+
+
 def start_dask_gpu_local_cluster(
     nvlink_only=False,
     protocol="tcp",
     rmm_pool_size="1024M",
     enable_spilling=True,
     set_torch_to_use_rmm=True,
+    rmm_async=True,
+    rmm_maximum_pool_size=None,
+    rmm_managed_memory=False,
+    rmm_release_threshold=None,
+    **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
@@ -69,32 +87,45 @@ def start_dask_gpu_local_cluster(
     cluster = LocalCUDACluster(
         rmm_pool_size=rmm_pool_size,
         protocol=protocol,
-        rmm_async=True,
+        enable_cudf_spill=enable_spilling,
+        rmm_async=rmm_async,
+        rmm_maximum_pool_size=rmm_maximum_pool_size,
+        rmm_managed_memory=rmm_managed_memory,
+        rmm_release_threshold=rmm_release_threshold,
         **extra_kwargs,
+        **cluster_kwargs,
     )
     client = Client(cluster)
-
-    if enable_spilling:
-        _enable_spilling()
-        client.run(_enable_spilling)
 
     if set_torch_to_use_rmm:
         _set_torch_to_use_rmm()
         client.run(_set_torch_to_use_rmm)
         print("Torch is using RMM memory pool", flush=True)
+
+    if enable_spilling:
+        _enable_spilling()
+        print("cuDF Spilling is enabled", flush=True)
+
+    assert get_num_workers(client) > 0, "No workers are currently connected."
     return client
 
 
 def start_dask_cpu_local_cluster(
-    n_workers=os.cpu_count(), threads_per_worker=1
+    n_workers=os.cpu_count(), threads_per_worker=1, **cluster_kwargs
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     CPUs present on the machine.
 
     """
-    cluster = LocalCluster(n_workers=n_workers, threads_per_worker=threads_per_worker)
+    cluster = LocalCluster(
+        n_workers=n_workers,
+        threads_per_worker=threads_per_worker,
+        **cluster_kwargs,
+    )
+
     client = Client(cluster)
+    assert get_num_workers(client) > 0, "No workers are currently connected."
     return client
 
 
@@ -109,6 +140,11 @@ def get_client(
     rmm_pool_size="1024M",
     enable_spilling=True,
     set_torch_to_use_rmm=False,
+    rmm_async=True,
+    rmm_maximum_pool_size=None,
+    rmm_managed_memory=False,
+    rmm_release_threshold=None,
+    **cluster_kwargs,
 ) -> Client:
     """
     Initializes or connects to a Dask cluster.
@@ -140,6 +176,27 @@ def get_client(
             host to enable out-of-memory computation, i.e., computing on objects that occupy more memory than is available on the GPU.
         set_torch_to_use_rmm: For GPU-based clusters only. Sets up the PyTorch memory pool to be the same as the RAPIDS memory pool.
             This helps avoid OOM errors when using both PyTorch and RAPIDS on the same GPU.
+        rmm_async: For GPU-based clusters only. Initializes each worker with RAPIDS Memory Manager (RMM)
+            (see RMM documentation for more information: https://docs.rapids.ai/api/rmm/stable/)
+            and sets it to use RMM's asynchronous allocator. Warning: The asynchronous allocator requires CUDA Toolkit 11.2 or newer.
+            It is also incompatible with RMM pools and managed memory. Trying to enable both will result in an exception.
+        rmm_maximum_pool_size: For GPU-based clusters only. When rmm_pool_size is set, this argument indicates the maximum pool size.
+            Can be an integer (bytes), float (fraction of total device memory), string (like "5GB" or "5000M") or None.
+            By default, the total available memory on the GPU is used.
+            rmm_pool_size must be specified to use RMM pool and to set the maximum pool size.
+            Note: When paired with --enable-rmm-async the maximum size cannot be guaranteed due to fragmentation.
+            Note: This size is a per-worker configuration, and not cluster-wide.
+        rmm_managed_memory: For GPU-based clusters only. Initialize each worker with RMM and set it to use managed memory.
+            If disabled, RMM may still be used by specifying rmm_pool_size.
+            Warning: Managed memory is currently incompatible with NVLink. Trying to enable both will result in an exception.
+        rmm_release_threshold: For GPU-based clusters only. When rmm.async is True and the pool size grows beyond this value,
+            unused memory held by the pool will be released at the next synchronization point.
+            Can be an integer (bytes), float (fraction of total device memory), string (like "5GB" or "5000M") or None.
+            By default, this feature is disabled.
+            Note: This size is a per-worker configuration, and not cluster-wide.
+        cluster_kwargs: Additional keyword arguments for the LocalCluster or LocalCUDACluster configuration.
+            See API documentation https://docs.dask.org/en/stable/deploying-python.html#distributed.deploy.local.LocalCluster
+            for all LocalCluster parameters, or https://docs.rapids.ai/api/dask-cuda/nightly/api/ for all LocalCUDACluster parameters.
     Returns:
         A Dask client object.
 
@@ -153,9 +210,13 @@ def get_client(
                 "Only one of scheduler_address or scheduler_file can be provided"
             )
         else:
-            return Client(address=scheduler_address, timeout="30s")
+            client = Client(address=scheduler_address, timeout="30s")
+            assert get_num_workers(client) > 0, "No workers are currently connected."
+            return client
     elif scheduler_file:
-        return Client(scheduler_file=scheduler_file, timeout="30s")
+        client = Client(scheduler_file=scheduler_file, timeout="30s")
+        assert get_num_workers(client) > 0, "No workers are currently connected."
+        return client
     else:
         if cluster_type == "gpu":
             return start_dask_gpu_local_cluster(
@@ -164,10 +225,17 @@ def get_client(
                 rmm_pool_size=rmm_pool_size,
                 enable_spilling=enable_spilling,
                 set_torch_to_use_rmm=set_torch_to_use_rmm,
+                rmm_async=rmm_async,
+                rmm_maximum_pool_size=rmm_maximum_pool_size,
+                rmm_managed_memory=rmm_managed_memory,
+                rmm_release_threshold=rmm_release_threshold,
+                **cluster_kwargs,
             )
         else:
             return start_dask_cpu_local_cluster(
-                n_workers=n_workers, threads_per_worker=threads_per_worker
+                n_workers=n_workers,
+                threads_per_worker=threads_per_worker,
+                **cluster_kwargs,
             )
 
 
@@ -193,24 +261,14 @@ def _set_torch_to_use_rmm():
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
 
-def _enable_spilling():
-    """
-    Setting this environment variable enables automatic spilling (and "unspilling")
-    of buffers from device to host to enable out-of-memory computation,
-    i.e., computing on objects that occupy more memory than is available on the GPU.
-
-    """
-    import cudf
-
-    cudf.set_option("spill", True)
-
-
 def read_single_partition(
     files,
     backend="cudf",
     filetype="jsonl",
     add_filename=False,
     input_meta: Union[str, dict] = None,
+    columns: Optional[List[str]] = None,
+    **kwargs,
 ) -> Union[cudf.DataFrame, pd.DataFrame]:
     """
     This function reads a file with cuDF, sorts the columns of the DataFrame
@@ -222,6 +280,8 @@ def read_single_partition(
         add_filename: Whether to add a "filename" column to the DataFrame.
         input_meta: A dictionary or a string formatted as a dictionary, which outlines
             the field names and their respective data types within the JSONL input file.
+        columns: If not None, only these columns will be read from the file.
+            There is a significant performance gain when specifying columns for Parquet files.
 
     Returns:
         A cudf DataFrame or a pandas DataFrame.
@@ -247,12 +307,14 @@ def read_single_partition(
             read_kwargs["dtype"] = (
                 ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
             )
+
     elif filetype == "parquet":
-        read_kwargs = {}
+        read_kwargs = {"columns": columns}
         if backend == "cudf":
             read_f = cudf.read_parquet
         else:
             read_f = pd.read_parquet
+
     else:
         raise RuntimeError("Could not read data, please check file type")
 
@@ -263,7 +325,7 @@ def read_single_partition(
             # cuDF supports reading multiple files at once
             read_files_one_at_a_time = False
         else:
-            # pandas does not support reading multiple files at once
+            # Pandas does not support reading multiple files at once
             read_files_one_at_a_time = True
 
     if read_files_one_at_a_time:
@@ -273,31 +335,43 @@ def read_single_partition(
             concat_f = pd.concat
         df_ls = []
         for file in files:
-            df = read_f(file, **read_kwargs)
+            df = read_f(file, **read_kwargs, **kwargs)
             if add_filename:
                 df["filename"] = os.path.basename(file)
             df_ls.append(df)
         df = concat_f(df_ls, ignore_index=True)
     else:
-        df = read_f(files, **read_kwargs)
+        df = read_f(files, **read_kwargs, **kwargs)
+
+    if filetype in ["jsonl", "json"] and columns is not None:
+        if add_filename and "filename" not in columns:
+            columns.append("filename")
+        df = df[columns]
+
     df = df[sorted(df.columns)]
     return df
 
 
-def read_pandas_pickle(file, add_filename=False) -> pd.DataFrame:
+def read_pandas_pickle(
+    file, add_filename=False, columns=None, **kwargs
+) -> pd.DataFrame:
     """
-    This function reads a pickle file with pandas and adds a "filename" column.
+    This function reads a pickle file with Pandas.
 
     Args:
         file: The path to the pickle file to read.
         add_filename: Whether to add a "filename" column to the DataFrame.
     Returns:
-        A pandas DataFrame.
+        A Pandas DataFrame.
 
     """
     if add_filename:
         warnings.warn("add_filename is not supported for pickle files")
-    return pd.read_pickle(file)
+
+    if columns is not None:
+        return pd.read_pickle(file, **kwargs)[columns]
+    else:
+        return pd.read_pickle(file, **kwargs)
 
 
 def read_data(
@@ -307,6 +381,8 @@ def read_data(
     files_per_partition: int = 1,
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
+    columns: Optional[List[str]] = None,
+    **kwargs,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
     """
     This function can read multiple data formats and returns a Dask-cuDF DataFrame.
@@ -319,6 +395,8 @@ def read_data(
         add_filename: Whether to add a "filename" column to the DataFrame.
         input_meta: A dictionary or a string formatted as a dictionary, which outlines
             the field names and their respective data types within the JSONL input file.
+        columns: If not None, only these columns will be read from the file.
+            There is a significant performance gain when specifying columns for Parquet files.
 
     Returns:
         A Dask-cuDF or a Dask-pandas DataFrame.
@@ -329,7 +407,9 @@ def read_data(
         test_obj = cudf.Series
 
     if file_type == "pickle":
-        df = read_pandas_pickle(input_files[0], add_filename=add_filename)
+        df = read_pandas_pickle(
+            input_files[0], add_filename=add_filename, columns=columns, **kwargs
+        )
         df = dd.from_pandas(df, npartitions=16)
         if backend == "cudf":
             df = df.to_backend("cudf")
@@ -352,6 +432,8 @@ def read_data(
             add_filename=add_filename,
             input_meta=input_meta,
             enforce_metadata=False,
+            columns=columns,
+            **kwargs,
         )
     else:
         raise RuntimeError("Could not read data, please check file type")
@@ -412,13 +494,19 @@ def process_all_batches(
     )
 
 
-def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl"):
+def single_partition_write_with_filename(
+    df,
+    output_file_dir,
+    keep_filename_column=False,
+    output_type="jsonl",
+):
     """
     This function processes a DataFrame and writes it to disk
 
     Args:
         df: A DataFrame.
         output_file_dir: The output file path.
+        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
         output_type="jsonl": The type of output file to write.
     Returns:
         If the DataFrame is non-empty, return a Series containing a single element, True.
@@ -444,12 +532,18 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
         filenames = df.filename.unique()
         filenames = list(filenames.values_host) if is_cudf_type(df) else list(filenames)
         num_files = len(filenames)
+
         for filename in filenames:
             out_df = df[df.filename == filename] if num_files > 1 else df
+            if not keep_filename_column:
+                out_df = out_df.drop("filename", axis=1)
+
             filename = Path(filename).stem
             output_file_path = os.path.join(output_file_dir, filename)
+
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
+
                 if isinstance(df, pd.DataFrame):
                     out_df.to_json(
                         output_file_path,
@@ -468,16 +562,24 @@ def single_partition_write_with_filename(df, output_file_dir, output_type="jsonl
                         lines=True,
                         force_ascii=False,
                     )
+
             elif output_type == "parquet":
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
+
             else:
                 raise ValueError(f"Unknown output type: {output_type}")
 
     return success_ser
 
 
-def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jsonl"):
+def write_to_disk(
+    df,
+    output_file_dir,
+    write_to_filename=False,
+    keep_filename_column=False,
+    output_type="jsonl",
+):
     """
     This function writes a Dask DataFrame to the specified file path.
     If write_to_filename is True, then it expects the
@@ -487,6 +589,7 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         df: A Dask DataFrame.
         output_file_dir: The output file path.
         write_to_filename: Whether to write the filename using the "filename" column.
+        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
         output_type="jsonl": The type of output file to write.
 
     """
@@ -507,11 +610,13 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         output = df.map_partitions(
             single_partition_write_with_filename,
             output_file_dir,
+            keep_filename_column=keep_filename_column,
             output_type=output_type,
             meta=output_meta,
             enforce_metadata=False,
         )
         output = output.compute()
+
     else:
         if output_type == "jsonl":
             if is_cudf_type(df):
@@ -602,6 +707,16 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
         return performance_report(os.path.join(path, report_name))
     else:
         return nullcontext()
+
+
+def performance_report_if_with_ts_suffix(
+    path: Optional[str] = None, report_name: str = "dask-profile"
+):
+    """Suffixes the report_name with the timestamp"""
+    return performance_report_if(
+        path=path,
+        report_name=f"{report_name}-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+    )
 
 
 def seed_all(seed: int = 42):
