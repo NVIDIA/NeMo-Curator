@@ -353,7 +353,10 @@ def read_single_partition(
 
 
 def read_pandas_pickle(
-    file, add_filename=False, columns=None, **kwargs
+    file: str,
+    add_filename: bool = False,
+    columns: Optional[List[str]] = None,
+    **kwargs,
 ) -> pd.DataFrame:
     """
     This function reads a pickle file with Pandas.
@@ -375,7 +378,7 @@ def read_pandas_pickle(
 
 
 def read_data(
-    input_files,
+    input_files: Union[str, List[str]],
     file_type: str = "pickle",
     backend: str = "cudf",
     files_per_partition: int = 1,
@@ -406,6 +409,9 @@ def read_data(
         # Try using cuDF. If not availible will throw an error.
         test_obj = cudf.Series
 
+    if isinstance(input_files, str):
+        input_files = [input_files]
+
     if file_type == "pickle":
         df = read_pandas_pickle(
             input_files[0], add_filename=add_filename, columns=columns, **kwargs
@@ -415,15 +421,30 @@ def read_data(
             df = df.to_backend("cudf")
 
     elif file_type in ["json", "jsonl", "parquet"]:
+        assert len(input_files) > 0
+
+        input_extensions = {os.path.splitext(f)[-1] for f in input_files}
+        if len(input_extensions) != 1:
+            raise RuntimeError(
+                "All files being read must have the same file type. "
+                "Please check your input directory or list of files to ensure this. "
+                "To generate a list of files with a given file type in your directory, "
+                "please use the nemo_curator.utils.file_utils.get_all_files_paths_under "
+                "function with the filter_by parameter."
+            )
+
         print(f"Reading {len(input_files)} files", flush=True)
         input_files = sorted(input_files)
+
         if files_per_partition > 1:
             input_files = [
                 input_files[i : i + files_per_partition]
                 for i in range(0, len(input_files), files_per_partition)
             ]
+
         else:
             input_files = [[file] for file in input_files]
+
         return dd.from_map(
             read_single_partition,
             input_files,
@@ -435,8 +456,10 @@ def read_data(
             columns=columns,
             **kwargs,
         )
+
     else:
         raise RuntimeError("Could not read data, please check file type")
+
     return df
 
 
@@ -496,9 +519,9 @@ def process_all_batches(
 
 def single_partition_write_with_filename(
     df,
-    output_file_dir,
-    keep_filename_column=False,
-    output_type="jsonl",
+    output_file_dir: str,
+    keep_filename_column: bool = False,
+    output_type: str = "jsonl",
 ):
     """
     This function processes a DataFrame and writes it to disk
@@ -506,8 +529,8 @@ def single_partition_write_with_filename(
     Args:
         df: A DataFrame.
         output_file_dir: The output file path.
-        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
-        output_type="jsonl": The type of output file to write.
+        keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
+        output_type: The type of output file to write. Can be "jsonl" or "parquet".
     Returns:
         If the DataFrame is non-empty, return a Series containing a single element, True.
         If the DataFrame is empty, return a Series containing a single element, False.
@@ -575,10 +598,10 @@ def single_partition_write_with_filename(
 
 def write_to_disk(
     df,
-    output_file_dir,
-    write_to_filename=False,
-    keep_filename_column=False,
-    output_type="jsonl",
+    output_file_dir: str,
+    write_to_filename: bool = False,
+    keep_filename_column: bool = False,
+    output_type: str = "jsonl",
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -588,9 +611,9 @@ def write_to_disk(
     Args:
         df: A Dask DataFrame.
         output_file_dir: The output file path.
-        write_to_filename: Whether to write the filename using the "filename" column.
-        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
-        output_type="jsonl": The type of output file to write.
+        write_to_filename: Boolean representing whether to write the filename using the "filename" column.
+        keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
+        output_type: The type of output file to write. Can be "jsonl" or "parquet".
 
     """
     if write_to_filename and "filename" not in df.columns:
