@@ -436,6 +436,7 @@ class FuzzyDuplicates:
                 text_field=self.config.text_field,
                 logger=self._logger,
                 num_anchors=self.config.num_anchors,
+                max_text_bytes_per_part=self.config.max_text_bytes_per_part,
             )
             self.jaccard_shuffle = _Shuffle(
                 id_fields=[self.config.id_field],
@@ -727,6 +728,7 @@ class _MapBuckets:
         text_field: str = "text",
         bucket_field: str = "_bucket_id",
         num_anchors: int = 2,
+        max_text_bytes_per_part: int = int(np.iinfo(np.int32).max * 3),
         logger: Union[logging.LoggerAdapter, str] = "./",
     ):
         """
@@ -741,6 +743,7 @@ class _MapBuckets:
         self.text_field = text_field
         self.num_anchors = num_anchors
         self.bucket_field = bucket_field
+        self.max_text_bytes_per_part = max_text_bytes_per_part
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -780,11 +783,7 @@ class _MapBuckets:
         bytes_column,
         output_partition_column="_output_partition_id",
     ):
-        # String bytes limit for cuDF
-        # https://github.com/rapidsai/cudf/issues/13733
-        max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
-
-        self._logger.info(f"max_text_bytes_per_part = {max_text_bytes_per_part}")
+        self._logger.info(f"max_text_bytes_per_part = {self.max_text_bytes_per_part}")
         # Increasing in an attempt to prevent hitting
         # ulimits
         output_map_df_meta = cudf.DataFrame(
@@ -796,7 +795,7 @@ class _MapBuckets:
 
         output_map_df = ddf_bk_text_bytes.map_partitions(
             _MapBuckets._get_output_part_ids_with_approx_equal_sum,
-            max_text_bytes_per_part=max_text_bytes_per_part,
+            max_text_bytes_per_part=self.max_text_bytes_per_part,
             buckets_column=self.bucket_field,
             bytes_column=bytes_column,
             output_partition_column=output_partition_column,
@@ -969,6 +968,7 @@ class _Shuffle:
         logger: Union[logging.LoggerAdapter, str] = "./",
         profile_dir: str = None,
         int_to_str_id: str = None,
+        max_text_bytes_per_part: int = int(np.iinfo(np.int32).max * 3),
     ):
         if isinstance(logger, str):
             self._logger = create_logger(
@@ -983,6 +983,7 @@ class _Shuffle:
         self.text_field = text_field
         self.profile_dir = profile_dir
         self.int_to_str_id = int_to_str_id
+        self.max_text_bytes_per_part = max_text_bytes_per_part
 
     def shuffle_docs_on_buckets(
         self,
@@ -1153,6 +1154,7 @@ class _Shuffle:
                         partition_on=partition_on,
                         text_column=self.text_field,
                         num_workers=num_workers,
+                        max_text_bytes_per_part=self.max_text_bytes_per_part,
                     )
                 except OverflowError as err:
                     # We encountered an overflow error!
