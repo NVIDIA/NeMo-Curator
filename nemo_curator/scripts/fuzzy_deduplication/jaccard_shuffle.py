@@ -15,6 +15,7 @@
 import os
 import time
 
+from nemo_curator import __version__
 from nemo_curator.modules.fuzzy_dedup import _Shuffle
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
 from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
@@ -76,9 +77,10 @@ def main(args):
 
 def attach_args(parser=None):
     if not parser:
-        description = """Shuffles input text documents based on the given bucket
+        description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
+        Shuffles input text documents based on the given bucket
         map. The output is a partitioned parquet dataset with the documents
-        shuffled by buckets
+        shuffled by buckets.
         """
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 

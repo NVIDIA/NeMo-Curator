@@ -15,6 +15,7 @@
 import os
 import time
 
+from nemo_curator import __version__
 from nemo_curator import MinHash
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
@@ -107,9 +108,10 @@ def main(args):
 
 def attach_args(parser=None):
     if not parser:
-        description = """Computes minhash signatures from an input directory of documents
+        description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
+        Computes minhash signatures from an input directory of documents
         contained within jsonl files. For each document a dataframe of document-ids
-        -minhash signatures is created. This dataframe is written to file after processing
+        -minhash signatures is created. This dataframe is written to file after processing.
         """
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 

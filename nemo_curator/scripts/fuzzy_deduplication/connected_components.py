@@ -15,6 +15,7 @@
 import os
 import time
 
+from nemo_curator import __version__
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -49,7 +50,9 @@ def main(args):
 
 def attach_args(parser=None):
     if not parser:
-        description = """Computes connected component"""
+        description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
+        Computes connected components.
+        """
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 
     argumentHelper = ArgumentHelper(parser)

@@ -96,6 +96,7 @@ setup(
             "jaccard_shuffle=nemo_curator.scripts.fuzzy_deduplication.jaccard_shuffle:console_script",
             "jaccard_compute=nemo_curator.scripts.fuzzy_deduplication.jaccard_compute:console_script",
             "gpu_connected_component=nemo_curator.scripts.fuzzy_deduplication.connected_components:console_script",
+            "buckets_to_edges=nemo_curator.scripts.fuzzy_deduplication.buckets_to_edges:console_script",
             "gpu_exact_dups=nemo_curator.scripts.find_exact_duplicates:console_script",
             "deidentify=nemo_curator.scripts.find_pii_and_deidentify:console_script",
             "domain_classifier_inference=nemo_curator.scripts.classifiers.domain_classifier_inference:console_script",
