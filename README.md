@@ -21,15 +21,15 @@ NeMo Curator provides a collection of scalable data curation modules for text an
 All of our text pipelines have great multilingual support.
 
 - [Download and Extraction](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/download.html)
-  - Default implementations Common Crawl, Wikipedia, and ArXiv sources
+  - Default implementations for Common Crawl, Wikipedia, and ArXiv sources
   - Easily customize and extend to other sources
 - [Language Identification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
 - [Unicode Reformatting](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/languageidentificationunicodeformatting.html)
 - [Heuristic Filtering](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
 - Classifier Filtering
-  - [fastText]((https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html))
-  - GPU-based models: [Domain, Quality, and Safety Classification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
-- **GPU Deduplication**
+  - [fastText](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
+  - GPU-Accelerated models: [Domain, Quality, and Safety Classification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
+- **GPU-Accelerated Deduplication**
   - [Exact Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html)
   - [Fuzzy Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html) via MinHash Locality Sensitive Hashing
   - [Semantic Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/semdedup.html)
