@@ -31,6 +31,7 @@ from utils import (
     filter_code,
     filter_text,
     redact_code,
+    fuzzy_dedupe
 )
 
 import nemo_curator as nc
@@ -168,16 +169,30 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     )
 
     dataset_text = curation_steps_text(orig_dataset_text)
-    dataset_text = dataset_text.persist()
+    gpu_dataset_text = DocumentDataset(dataset_text.df.to_backend("cudf"))
+
+    dataset_code = curation_steps_code(orig_dataset_code)
+    gpu_dataset_code = DocumentDataset(dataset_code.df.to_backend("cudf"))
+
+    print("Executing the fuzzy dedupe pipeline...")
+    fuzzy_dataset_text = fuzzy_dedupe(dataset=gpu_dataset_text, type='text')
+    fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, type='code')
+
+    gpu_dataset_text = fuzzy_dataset_text.df.to_backend("pandas")
+    gpu_dataset_code = fuzzy_dataset_code.df.to_backend("pandas")
+
+    fuzzy_dataset_text = fuzzy_dataset_text.persist()
+    fuzzy_dataset_code = fuzzy_dataset_code.persist()
 
     print(f"Original dataset length for text files: {len(orig_dataset_text.df)}")
     print(f"After dataprep: {len(dataset_text.df)}")
-
-    dataset_code = curation_steps_code(orig_dataset_code)
-    dataset_code = dataset_code.persist()
+    print(f"After fuzzy dedupe: {len(fuzzy_dataset_text.df)}")
 
     print(f"Original dataset length for code files: {len(orig_dataset_code.df)}")
     print(f"After dataprep: {len(dataset_code.df)}")
+    print(f"After fuzzy dedupe: {len(fuzzy_dataset_code.df)}")
+
+    print("Writing the results to disk...")
 
     # Overwrite existing files in the curated directory.
     out_path = os.path.join(DATA_DIR, "curated")
@@ -186,15 +201,18 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         shutil.rmtree(out_path)
 
     os.makedirs(out_path)
-    dataset_text.to_json(out_path, write_to_filename=True)
-    dataset_code.to_json(out_path, write_to_filename=True)
+    fuzzy_dataset_text.to_json(out_path, write_to_filename=True)
+    fuzzy_dataset_code.to_json(out_path, write_to_filename=True)
 
+    print('Writing results to disk completed')
+    
     # Split the dataset by file category and save curated files (optional - to create blended datasets)
+    print('Split dataset by metadata')
     separated_data_text = separate_by_metadata(
-        dataset_text.df, out_path, "category"
+        fuzzy_dataset_text.df, out_path, "category"
     ).compute()
     separated_data_code = separate_by_metadata(
-        dataset_code.df, out_path, "category"
+        fuzzy_dataset_code.df, out_path, "category"
     ).compute()
 
     client.close()
@@ -234,6 +252,7 @@ def main():
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 8)
+    args.device='gpu'
     print("Args: ", args)
 
     # Download all the sources and get the list of text and code files.
@@ -250,7 +269,9 @@ def main():
     ]
     dataset_weights = [1.0, 4.0, 4.0, 1.0]
     target_size = 20
+    print('Data Curation completed')
     blend_and_shuffle(args, dataset_paths, dataset_weights, target_size)
+    print('Data Blending completed')
 
 
 if __name__ == "__main__":

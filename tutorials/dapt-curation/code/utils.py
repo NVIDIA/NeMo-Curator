@@ -18,7 +18,7 @@ import re
 import dask.dataframe as dd
 import pandas as pd
 
-from nemo_curator import ExactDuplicates, Modify, ScoreFilter, Sequential
+from nemo_curator import ExactDuplicates, Modify, ScoreFilter, Sequential, FuzzyDuplicates, FuzzyDuplicatesConfig
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import (
     DocumentFilter,
@@ -38,7 +38,6 @@ from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.pii.constants import DEFAULT_LANGUAGE, DEFAULT_MAX_DOC_SIZE
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-
 
 class QuotationUnifier(DocumentModifier):
     """
@@ -281,6 +280,32 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
     return DocumentDataset(deduped)
 
+def fuzzy_dedupe(dataset: DocumentDataset, type: str = 'text') -> DocumentDataset:
+    cache_dir = f"./workspace/{type}"
+    fuzzy_dedup_config = FuzzyDuplicatesConfig(
+            cache_dir=cache_dir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=20,
+            num_buckets=20,
+            hashes_per_bucket=13,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=5,
+            false_positive_check=False,
+            num_anchors=2,
+            jaccard_threshold=0.8,
+        )
+    fuzzy_dup = FuzzyDuplicates(config=fuzzy_dedup_config)
+    duplicates = fuzzy_dup(dataset)
+
+    docs_to_remove = duplicates.df.map_partitions(lambda x: x[x.group.duplicated(keep="first")])
+
+    # When there are few duplicates we can compute the results to a list and use `isin`.
+    duplicate_ids=docs_to_remove.compute().id.to_arrow().to_pylist()
+    dataset_df = dataset.df
+    deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
+    return DocumentDataset(deduped)
 
 class TextLineCountFilter(DocumentFilter):
     """
