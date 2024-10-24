@@ -30,8 +30,8 @@ from utils import (
     dedupe,
     filter_code,
     filter_text,
+    fuzzy_dedupe,
     redact_code,
-    fuzzy_dedupe
 )
 
 import nemo_curator as nc
@@ -175,8 +175,8 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     gpu_dataset_code = DocumentDataset(dataset_code.df.to_backend("cudf"))
 
     print("Executing the fuzzy dedupe pipeline...")
-    fuzzy_dataset_text = fuzzy_dedupe(dataset=gpu_dataset_text, type='text')
-    fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, type='code')
+    fuzzy_dataset_text = fuzzy_dedupe(dataset=gpu_dataset_text, type="text")
+    fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, type="code")
 
     gpu_dataset_text = fuzzy_dataset_text.df.to_backend("pandas")
     gpu_dataset_code = fuzzy_dataset_code.df.to_backend("pandas")
@@ -204,10 +204,10 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     fuzzy_dataset_text.to_json(out_path, write_to_filename=True)
     fuzzy_dataset_code.to_json(out_path, write_to_filename=True)
 
-    print('Writing results to disk completed')
-    
+    print("Writing results to disk completed")
+
     # Split the dataset by file category and save curated files (optional - to create blended datasets)
-    print('Split dataset by metadata')
+    print("Split dataset by metadata")
     separated_data_text = separate_by_metadata(
         fuzzy_dataset_text.df, out_path, "category"
     ).compute()
@@ -252,7 +252,7 @@ def main():
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 8)
-    args.device='gpu'
+    args.device = "gpu"
     print("Args: ", args)
 
     # Download all the sources and get the list of text and code files.
@@ -269,9 +269,9 @@ def main():
     ]
     dataset_weights = [1.0, 4.0, 4.0, 1.0]
     target_size = 20
-    print('Data Curation completed')
+    print("Data Curation completed")
     blend_and_shuffle(args, dataset_paths, dataset_weights, target_size)
-    print('Data Blending completed')
+    print("Data Blending completed")
 
 
 if __name__ == "__main__":
