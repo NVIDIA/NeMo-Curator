@@ -17,7 +17,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Union
 
 
-
 class SyntheticDataGenerator(ABC):
     """
     An abstract base class for synthetic data generator pipeline.
