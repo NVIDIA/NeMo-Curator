@@ -17,6 +17,8 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+
+from nemo_curator import __version__
 from nemo_curator.classifiers import AegisClassifier
 from nemo_curator.datasets import DocumentDataset
 
@@ -104,7 +106,10 @@ def main():
 
 
 def attach_args():
-    parser = ArgumentHelper.parse_distributed_classifier_args(max_chars_default=6000)
+    parser = ArgumentHelper.parse_distributed_classifier_args(
+        description=f"\nNVIDIA NeMo Curator -- v{__version__}\n\nRun AEGIS classifier inference",
+        max_chars_default=6000,
+    )
 
     parser.add_argument(
         "--aegis-variant",

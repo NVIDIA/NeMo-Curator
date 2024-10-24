@@ -16,6 +16,7 @@ import logging
 import os
 import time
 
+from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
@@ -94,6 +95,7 @@ def main(args):
 def attach_args():
     parser = ArgumentHelper.parse_semdedup_args(
         description=(
+            f"NVIDIA NeMo Curator -- v{__version__} "
             "Computes the embeddings of a collection of documents using the specified model. "
             "The model is specified in the config file using embedding_model_name_or_path (e.g. 'sentence-transformers/paraphrase-MiniLM-L6-v2'). "
             "The embeddings are saved in the specified cache directory under the embeddings_save_loc directory. "
