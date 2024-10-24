@@ -15,6 +15,7 @@
 import argparse
 
 import nemo_curator
+from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modifiers import UnicodeReformatter
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
@@ -60,7 +61,9 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
+        f"""
+NVIDIA NeMo Curator -- v{__version__}
+
 Text cleaning and language filtering
 
 Takes as input a directory consisting of .jsonl files with one

@@ -14,6 +14,7 @@
 
 import argparse
 
+from nemo_curator import __version__
 from nemo_curator.utils.download_utils import get_wikipedia_urls
 from nemo_curator.utils.script_utils import ArgumentHelper
 
@@ -30,8 +31,10 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
-Pulls urls pointing to the latest Wikipedia dumps
+        f"""
+NVIDIA NeMo Curator -- v{__version__}
+
+Pulls urls pointing to the latest Wikipedia dumps.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )

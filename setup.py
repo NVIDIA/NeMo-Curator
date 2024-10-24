@@ -81,7 +81,6 @@ setup(
             "download_and_extract=nemo_curator.scripts.download_and_extract:console_script",
             "text_cleaning=nemo_curator.scripts.text_cleaning:console_script",
             "add_id=nemo_curator.scripts.add_id:console_script",
-            "get_metadata_from_corpus=nemo_curator.get_metadata_from_corpus:console_script",
             "make_data_shards=nemo_curator.scripts.make_data_shards:console_script",
             "prepare_fasttext_training_data=nemo_curator.scripts.prepare_fasttext_training_data:console_script",
             "train_fasttext=nemo_curator.scripts.train_fasttext:console_script",

@@ -19,8 +19,7 @@ import cudf
 import dask_cudf
 import numpy as np
 
-from nemo_curator import __version__
-from nemo_curator import LSH
+from nemo_curator import LSH, __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client

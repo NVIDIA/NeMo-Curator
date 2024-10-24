@@ -15,6 +15,7 @@
 import argparse
 import os
 
+from nemo_curator import __version__
 from nemo_curator.download.doc_builder import batch_download, download_and_extract
 from nemo_curator.utils.config_utils import build_downloader
 from nemo_curator.utils.distributed_utils import get_client
@@ -82,7 +83,9 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        """
+        f"""
+NVIDIA NeMo Curator -- v{__version__}
+
 Takes an input list of urls and downloads the data
 and then extracts the text from the downloaded data. Using
 the --builder-config-file argument, users must provide a YAML file
@@ -98,7 +101,7 @@ For this scenario, users should either provide a valid path
 to the "--input-data-dir/--input-local-data-dir" directories
 (depending on if the data are globally or locally available to each
 MPI rank). Additionally, the downloader class should be implemented
-such that it simply returns the pre-downloaded file
+such that it simply returns the pre-downloaded file.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
