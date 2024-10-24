@@ -30,6 +30,9 @@ from nemo_curator.utils.decorators import batched
 # ------------------------ EASINESS FILTER -------------------------------------
 # ----------------------------------------------------------------------------80
 class EasinessFilter(DocumentFilter):
+    """
+    Discards questions that are deemed easy to retrieve by retriever modls
+    """
 
     def __init__(
         self, cfg: RetrieverEvalSDGConfig, text_fields: List[str] = ["text", "question"]
@@ -114,6 +117,10 @@ class EasinessFilter(DocumentFilter):
 
 
 class AnswerabilityFilter(DocumentFilter):
+    """
+    Discards questions that are not answerable by content present in the
+    context document
+    """
 
     def __init__(
         self, cfg: RetrieverEvalSDGConfig, text_fields: List[str] = ["text", "question"]
