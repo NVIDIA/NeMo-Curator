@@ -1,13 +1,22 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
-import json
 import os
-import random
 from typing import Any, List
 
-import dask
 from filters import AnswerabilityFilter, EasinessFilter
-from omegaconf import OmegaConf
-from openai import AsyncOpenAI
 from retriever_evalset_generator import RetrieverEvalSetGenerator
 from tqdm.dask import TqdmCallback
 
@@ -15,9 +24,6 @@ from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from nemo_curator.modules.filter import Score, ScoreFilter
-from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
-from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def get_pipeline(args: Any) -> Any:
@@ -76,7 +82,6 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
 
 def main():
     parser = argparse.ArgumentParser()
-    # parser = ArgumentHelper(parser).add_distributed_args()
     parser.add_argument(
         "--input_file",
         type=str,
