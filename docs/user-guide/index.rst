@@ -37,6 +37,23 @@ Text Curation
 :ref:`Personally Identifiable Information Identification and Removal <data-curator-pii>`
    The purpose of the personally identifiable information (PII) redaction tool is to help scrub sensitive data out of training datasets
 
+.. toctree::
+   :maxdepth: 4
+   :titlesonly:
+
+
+   download.rst
+   documentdataset.rst
+   cpuvsgpu.rst
+   qualityfiltering.rst
+   languageidentificationunicodeformatting.rst
+   gpudeduplication.rst
+   semdedup.rst
+   syntheticdata.rst
+   taskdecontamination.rst
+   personalidentifiableinformationidentificationandremoval.rst
+   distributeddataclassification.rst
+
 -------------------
 Image Curation
 -------------------
@@ -55,6 +72,16 @@ Image Curation
 
 :ref:`Semantic Deduplication <data-curator-semdedup>`
    Semantic deduplication with image datasets has been shown to drastically improve model performance. NeMo Curator has a semantic deduplication module that can work with any modality.
+
+.. toctree::
+   :maxdepth: 4
+   :titlesonly:
+
+   image/gettingstarted.rst
+   image/datasets.rst
+   image/classifiers/index.rst
+   semdedup.rst
+
 
 -------------------
 Reference
@@ -83,17 +110,6 @@ Reference
    :titlesonly:
 
 
-   download.rst
-   documentdataset.rst
-   cpuvsgpu.rst
-   qualityfiltering.rst
-   languageidentificationunicodeformatting.rst
-   gpudeduplication.rst
-   semdedup.rst
-   syntheticdata.rst
-   taskdecontamination.rst
-   personalidentifiableinformationidentificationandremoval.rst
-   distributeddataclassification.rst
    kubernetescurator.rst
    sparkother.rst
    bestpractices.rst
