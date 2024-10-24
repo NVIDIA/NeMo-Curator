@@ -25,6 +25,7 @@ from omegaconf import DictConfig
 from openai import OpenAI
 
 from nemo_curator.filters.doc_filter import DocumentFilter
+from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
 
@@ -34,23 +35,23 @@ from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_w
 # ----------------------------------------------------------------------------80
 class EasinessFilter(DocumentFilter):
 
-    def __init__(self, cfg: DictConfig, text_fields: List[str] = ["text", "question"]):
+    def __init__(
+        self, cfg: RetrieverEvalSDGConfig, text_fields: List[str] = ["text", "question"]
+    ):
 
         self._name = "easiness_filter"
-        if "easiness_filter" in cfg:
-            self.filter_cfg = cfg["easiness_filter"]["filter_cfg"]
-        else:
+        if not cfg.easiness_filter:
             raise Exception("Error: Config doesn't have easiness filter")
-        self.base_url = self.filter_cfg.base_url
-        self.api_key = self.filter_cfg.api_key
-        self.nim_model = self.filter_cfg.nim_model
-        self.percentile = self.filter_cfg.percentile
-        if self.filter_cfg.truncate:
-            self.truncate = self.filter_cfg.truncate
+        self.base_url = cfg.base_url
+        self.api_key = cfg.api_key
+        self.nim_model = cfg.easiness_filter
+        self.percentile = cfg.percentile
+        if cfg.truncate:
+            self.truncate = cfg.truncate
         else:
             self.truncate = "NONE"
         self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
-        self.batch_size = self.filter_cfg.batch_size
+        self.batch_size = cfg.batch_size
         self.text_fields = text_fields
 
     @batched
@@ -117,19 +118,19 @@ class EasinessFilter(DocumentFilter):
 
 class AnswerabilityFilter(DocumentFilter):
 
-    def __init__(self, cfg: DictConfig, text_fields: List[str] = ["text", "question"]):
+    def __init__(
+        self, cfg: RetrieverEvalSDGConfig, text_fields: List[str] = ["text", "question"]
+    ):
 
         self._name = "answerability_filter"
-        if "answerability_filter" in cfg:
-            self.filter_cfg = cfg["answerability_filter"]["filter_cfg"]
-        else:
+        if not cfg.answerability_filter:
             raise Exception("Error: Config doesn't have answerability filter")
-        self.base_url = self.filter_cfg.base_url
-        self.api_key = self.filter_cfg.api_key
-        self.model_name = self.filter_cfg.model_name
-        self.system_prompt = self.filter_cfg.system_prompt
-        self.user_prompt_template = self.filter_cfg.user_prompt_template
-        self.num_criteria = self.filter_cfg.num_criteria
+        self.base_url = cfg.base_url
+        self.api_key = cfg.api_key
+        self.model_name = cfg.answerability_filter
+        self.system_prompt = cfg.answerability_system_prompt
+        self.user_prompt_template = cfg.answerability_user_prompt_template
+        self.num_criteria = cfg.num_criteria
 
         self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         self.text_fields = text_fields
