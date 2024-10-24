@@ -55,7 +55,6 @@ class EasinessFilter(DocumentFilter):
 
     @batched
     def score_document(self, df: Union[pd.DataFrame, dd.DataFrame]):
-
         document_score = self._calc_similarity_nim(
             df[self.text_fields[0]].to_list(), df[self.text_fields[1]].to_list()
         )
@@ -64,7 +63,6 @@ class EasinessFilter(DocumentFilter):
     @batched
     def keep_document(self, scores: pd.Series):
         filter_threshold = np.percentile(scores, self.percentile)
-
         return scores <= filter_threshold
 
     def _get_nim_embedding(self, text, input_type):
@@ -158,7 +156,7 @@ class AnswerabilityFilter(DocumentFilter):
                         is_keep = False  # filter out
                         break
             except Exception as e:
-                pass # TODO log the errors
+                pass  # TODO log the errors
                 # print(f"Parse error {e}")
                 # if there is a parse error, keep the document
 

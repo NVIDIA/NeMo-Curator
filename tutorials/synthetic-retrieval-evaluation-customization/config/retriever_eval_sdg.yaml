@@ -1,5 +1,6 @@
 qa_generator:
   model: mistralai/mixtral-8x22b-instruct-v0.1
+  api_key: ${oc.env:NVIDIA_API_KEY}
   model_config:
     temperature: 0.5
     top_p: 1.0
@@ -58,7 +59,7 @@ easiness_filter:
   filter_cfg:
     nim_model: nvidia/nv-embedqa-e5-v5
     base_url: "https://integrate.api.nvidia.com/v1"
-    api_key: "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"
+    api_key: ${oc.env:NVIDIA_API_KEY}
     truncate: "END"
     percentile: 70  # Percentile for threshold calculation (float) [0, 100]
     batch_size: 1
@@ -66,7 +67,7 @@ easiness_filter:
 answerability_filter:
   filter_cfg:
     base_url: "https://integrate.api.nvidia.com/v1"
-    api_key: "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"
+    api_key: ${oc.env:NVIDIA_API_KEY}
     model_name: "meta/llama3-70b-instruct"
     num_criteria: 4  # Number of criteria to parse from the response. It must be alined with the prompt template
     system_prompt: |
