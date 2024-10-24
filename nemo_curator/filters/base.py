@@ -127,7 +127,7 @@ class DocumentFilter(Module, ABC):
         else:
             axis = 1 if len(self.text_fields) > 1 else 0
             scores = dataset.df[text_fields].apply(
-                self.score_document, axis=1, meta=meta
+                self.score_document, axis=axis, meta=meta
             )
 
         if self.save_score:
