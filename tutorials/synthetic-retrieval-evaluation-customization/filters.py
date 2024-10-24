@@ -52,6 +52,7 @@ class EasinessFilter(DocumentFilter):
 
     @batched
     def score_document(self, df: pd.DataFrame):
+
         document_score = self._calc_similarity_nim(
             df[self.text_fields[0]].to_list(), df[self.text_fields[1]].to_list()
         )

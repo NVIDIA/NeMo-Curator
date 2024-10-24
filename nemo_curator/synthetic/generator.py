@@ -16,14 +16,6 @@ import importlib
 from abc import ABC, abstractmethod
 from typing import Any, List, Union
 
-from omegaconf import DictConfig
-
-from nemo_curator import OpenAIClient
-from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters.doc_filter import DocumentFilter
-from nemo_curator.synthetic import NemotronGenerator
-from nemo_curator.utils.module_utils import is_batched
-
 
 class SyntheticDataGenerator(ABC):
     """
@@ -38,13 +30,9 @@ class SyntheticDataGenerator(ABC):
         self._name = self.__class__.__name__
 
     @abstractmethod
-    def generate(self, input_: Union[str, List[str]]) -> Union[str, List[str]]:
+    def generate(self, llm_prompt: Union[str, List[str]]) -> Union[str, List[str]]:
         pass
 
     @abstractmethod
     def parse_response(self, llm_response: Union[str, List[str]]) -> Any:
         pass
-
-    # @abstractmethod
-    # def run(self, dataset: DocumentDataset) -> DocumentDataset:
-    #     pass
