@@ -40,6 +40,7 @@ def main(args):
         id_column=args.input_json_id_field,
         jaccard_threshold=args.jaccard_threshold,
         logger=args.log_dir,
+        profile_dir=args.profile_path,
     )
     components_stage.cc_workflow(output_path=output_path)
     print(f"All done in {time.time()-st:.1f} seconds")

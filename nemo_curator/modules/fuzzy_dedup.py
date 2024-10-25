@@ -1493,7 +1493,7 @@ class ConnectedComponents:
             assert num_nodes == len(labels_df)
             # Ensure all docs in the same group are in the same partition
             labels_df = labels_df.shuffle(on=["group"], ignore_index=True)
-            labels_df.to_parquet(output_path, write_index=False)
+            labels_df.to_parquet(output_path, write_index=False, overwrite=True)
             Comms.destroy()
         self._logger.info(
             f"Time taken for Connected Components Run = {time.time() - t0}s and output written at {output_path}"
@@ -1561,7 +1561,7 @@ class ConnectedComponents:
                 transform_divisions=False,
                 align_dataframes=False,
             )
-            ddf.to_parquet(output_path, write_index=False)
+            ddf.to_parquet(output_path, write_index=False, overwrite=True)
         self._logger.info(
             f"Time taken for Dedup Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
         )
@@ -1590,7 +1590,9 @@ class ConnectedComponents:
             unique_docs["uid"] = np.uint64(1)
             unique_docs["uid"] = unique_docs["uid"].cumsum()
             unique_docs["uid"] = unique_docs["uid"] - 1
-            unique_docs.to_parquet(dedup_parsed_id_path, write_index=False)
+            unique_docs.to_parquet(
+                dedup_parsed_id_path, write_index=False, overwrite=True
+            )
         self._logger.info(
             f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
@@ -1644,7 +1646,7 @@ class ConnectedComponents:
             ddf = ddf.drop(columns=pair_id)
             ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
-        ddf.to_parquet(output_path, write_index=False)
+        ddf.to_parquet(output_path, write_index=False, overwrite=True)
 
         et = time.time()
         self._logger.info(
