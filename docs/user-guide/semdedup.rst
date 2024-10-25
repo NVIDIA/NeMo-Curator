@@ -41,7 +41,7 @@ Semantic deduplication in NeMo Curator can be configured using a YAML file. Here
     cache_dir: "semdedup_cache"
     num_files: -1
     id_col_name: "id"
-    id_col_type: "int"
+    id_col_type: "int" # or "str" if the `add_id` module was used
     input_column: "text"
 
     # Embeddings configuration
@@ -159,6 +159,7 @@ You can use the ``add_id`` module from NeMo Curator if needed:
 
 
 To perform semantic deduplication, you can either use individual components or the SemDedup class with a configuration file.
+Please note that if you use the ``add_id`` module, then the ``id_col_type`` in your configuration file should be a "str".
 
 Use Individual Components
 ##########################
