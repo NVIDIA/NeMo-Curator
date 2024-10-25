@@ -14,22 +14,37 @@
 
 import csv
 import warnings
+from typing import Optional
 
 from bs4 import BeautifulSoup
 from comment_parser import comment_parser
 
-from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
+from nemo_curator.filters.base import DocumentFilter, FilterMode
 from nemo_curator.utils.constants import regex_alpha, regex_alphanum
 from nemo_curator.utils.text_utils import get_comments_and_docstring
 
 
 class PythonCommentToCodeFilter(DocumentFilter):
-
     def __init__(
         self,
         min_comment_to_code_ratio=0.01,
         max_comment_to_code_ratio=0.85,
+        text_field: str = "text",
+        score_field: str = "python_comment_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
     ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._min_threshold = min_comment_to_code_ratio
         self._max_threshold = max_comment_to_code_ratio
 
@@ -48,13 +63,27 @@ class PythonCommentToCodeFilter(DocumentFilter):
 
 
 class GeneralCommentToCodeFilter(DocumentFilter):
-
     def __init__(
         self,
         language,
         min_comment_to_code_ratio=0.01,
         max_comment_to_code_ratio=0.85,
+        text_field: str = "text",
+        score_field: str = "comment_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
     ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         """
         Does not include the comment characters (// or /**/) towards the length of the comment.
         Args:
@@ -85,8 +114,26 @@ class GeneralCommentToCodeFilter(DocumentFilter):
 
 
 class NumberOfLinesOfCodeFilter(DocumentFilter):
-
-    def __init__(self, min_lines=10, max_lines=20000):
+    def __init__(
+        self,
+        min_lines=10,
+        max_lines=20000,
+        text_field: str = "text",
+        score_field: str = "num_lines",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [int],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._min_lines = min_lines
         self._max_lines = max_lines
 
@@ -100,8 +147,26 @@ class NumberOfLinesOfCodeFilter(DocumentFilter):
 
 
 class TokenizerFertilityFilter(DocumentFilter):
-
-    def __init__(self, path_to_tokenizer=None, min_char_to_token_ratio=2.5):
+    def __init__(
+        self,
+        path_to_tokenizer=None,
+        min_char_to_token_ratio=2.5,
+        text_field: str = "text",
+        score_field: str = "tokenizer_fertility",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         from nemo.collections.common.tokenizers import SentencePieceTokenizer
 
         if path_to_tokenizer is None:
@@ -133,7 +198,25 @@ class XMLHeaderFilter(DocumentFilter):
     (Source: Starcoder https://arxiv.org/abs/2305.06161)
     """
 
-    def __init__(self, char_prefix_search_length=100):
+    def __init__(
+        self,
+        char_prefix_search_length=100,
+        text_field: str = "text",
+        score_field: str = "xml_header",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [int],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._char_prefix_search_length = char_prefix_search_length
 
         self._name = "xml_header"
@@ -156,7 +239,25 @@ class AlphaFilter(DocumentFilter):
     (Source: Starcoder https://arxiv.org/abs/2305.06161)
     """
 
-    def __init__(self, min_alpha_ratio=0.25):
+    def __init__(
+        self,
+        min_alpha_ratio=0.25,
+        text_field: str = "text",
+        score_field: str = "alpha_filter",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._min_alpha_ratio = min_alpha_ratio
 
         self._name = "alpha_filter"
@@ -173,7 +274,26 @@ class HTMLBoilerplateFilter(DocumentFilter):
     This filter tries to identify HTML that is largely boilerplate.
     """
 
-    def __init__(self, min_lang_content_ratio=0.2, min_lang_content_num_chars=100):
+    def __init__(
+        self,
+        min_lang_content_ratio=0.2,
+        min_lang_content_num_chars=100,
+        text_field: str = "text",
+        score_field: str = "html_boilerplate",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._min_lang_content_ratio = min_lang_content_ratio
         self._min_lang_content_num_chars = min_lang_content_num_chars
 
@@ -207,7 +327,27 @@ class PerExtensionFilter(DocumentFilter):
     This filter that has specific conditions depending on the file extension.
     """
 
-    def __init__(self, lang, extension, metadata_file="code_meta.csv"):
+    def __init__(
+        self,
+        lang,
+        extension,
+        metadata_file="code_meta.csv",
+        text_field: str = "text",
+        score_field: str = "per_extension_filter",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._metadata_file = metadata_file
         self._lang = lang
         self._extension = extension

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import regex
+from typing import Optional
 
-from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
+from nemo_curator.filters.base import DocumentFilter, FilterMode
 from nemo_curator.utils.constants import (
     bullet_list,
     common_english_words,
@@ -34,7 +34,6 @@ from nemo_curator.utils.text_utils import (
     get_paragraphs,
     get_sentences,
     get_word_splitter,
-    is_paragraph_indices_in_top_or_bottom_only,
 )
 
 
@@ -45,8 +44,25 @@ class NonAlphaNumericFilter(DocumentFilter):
     Source: Adapted from Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_non_alpha_numeric_to_text_ratio: float = 0.25):
-        super().__init__()
+    def __init__(
+        self,
+        max_non_alpha_numeric_to_text_ratio: float = 0.25,
+        text_field: str = "text",
+        score_field: str = "alpha_numeric",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_non_alpha_numeric_to_text_ratio
         self._name = "alpha_numeric"
 
@@ -70,8 +86,26 @@ class SymbolsToWordsFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_symbol_to_word_ratio=0.1, lang="en"):
-        super().__init__()
+    def __init__(
+        self,
+        max_symbol_to_word_ratio=0.1,
+        lang="en",
+        text_field: str = "text",
+        score_field: str = "symbol_to_word",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_symbol_to_word_ratio
         self._word_splitter = get_word_splitter(lang)
         self._name = "symbol_to_word"
@@ -96,8 +130,25 @@ class NumbersFilter(DocumentFilter):
     If more than 15% of the document contains numbers then discard
     """
 
-    def __init__(self, max_number_to_text_ratio=0.15):
-        super().__init__()
+    def __init__(
+        self,
+        max_number_to_text_ratio=0.15,
+        text_field: str = "text",
+        score_field: str = "numbers_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_number_to_text_ratio
         self._name = "numbers_ratio"
 
@@ -119,8 +170,25 @@ class UrlsFilter(DocumentFilter):
     If more than 20% of the document is comprised of URLs then discard
     """
 
-    def __init__(self, max_url_to_text_ratio=0.2):
-        super().__init__()
+    def __init__(
+        self,
+        max_url_to_text_ratio=0.2,
+        text_field: str = "text",
+        score_field: str = "urls_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_url_to_text_ratio
         self._name = "urls_ratio"
 
@@ -145,8 +213,25 @@ class BulletsFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_bullet_lines_ratio=0.9):
-        super().__init__()
+    def __init__(
+        self,
+        max_bullet_lines_ratio=0.9,
+        text_field: str = "text",
+        score_field: str = "bullet_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_bullet_lines_ratio
         self._sentences = None
         self._name = "bullet_ratio"
@@ -174,8 +259,25 @@ class WhiteSpaceFilter(DocumentFilter):
     of white space characters then discard
     """
 
-    def __init__(self, max_white_space_ratio=0.25):
-        super().__init__()
+    def __init__(
+        self,
+        max_white_space_ratio=0.25,
+        text_field: str = "text",
+        score_field: str = "white_space",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_white_space_ratio
         self._name = "white_space"
 
@@ -199,8 +301,25 @@ class ParenthesesFilter(DocumentFilter):
     If more than 10% of the sentence is in parentheses then discard
     """
 
-    def __init__(self, max_parentheses_ratio=0.1):
-        super().__init__()
+    def __init__(
+        self,
+        max_parentheses_ratio=0.1,
+        text_field: str = "text",
+        score_field: str = "parentheses_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._max_parentheses_ratio = max_parentheses_ratio
         self._name = "parentheses_ratio"
 
@@ -225,8 +344,26 @@ class LongWordFilter(DocumentFilter):
     Source: C4 (Google)
     """
 
-    def __init__(self, max_word_length=1000, lang="en"):
-        super().__init__()
+    def __init__(
+        self,
+        max_word_length=1000,
+        lang="en",
+        text_field: str = "text",
+        score_field: str = "max_word_length",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._max_word_length = max_word_length
         self._word_splitter = get_word_splitter(lang)
         self._name = "max_word_length"
@@ -244,8 +381,27 @@ class WordCountFilter(DocumentFilter):
     within a specified range then discard
     """
 
-    def __init__(self, min_words=50, max_words=100000, lang="en"):
-        super().__init__()
+    def __init__(
+        self,
+        min_words=50,
+        max_words=100000,
+        lang="en",
+        text_field: str = "text",
+        score_field: str = "word_count",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._min_words = min_words
         self._max_words = max_words
         self._word_splitter = get_word_splitter(lang)
@@ -269,8 +425,22 @@ class BoilerPlateStringFilter(DocumentFilter):
         self,
         remove_if_at_top_or_bottom=True,
         max_boilerplate_string_ratio=0.4,
+        text_field: str = "text",
+        score_field: str = "boilerplate_string_ratio",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
     ):
-        super().__init__()
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._remove_if_at_top_or_bottom = remove_if_at_top_or_bottom
         self._max_boilerplate_string_ratio = max_boilerplate_string_ratio
         self._boilerplate_paragraph_indices = []
@@ -308,8 +478,22 @@ class MeanWordLengthFilter(DocumentFilter):
         min_mean_word_length=3,
         max_mean_word_length=10,
         lang="en",
+        text_field: str = "text",
+        score_field: str = "mean_word_length",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
     ):
-        super().__init__()
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._min_cutoff = min_mean_word_length
         self._max_cutoff = max_mean_word_length
         self._word_splitter = get_word_splitter(lang)
@@ -330,8 +514,25 @@ class RepeatedLinesFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_repeated_line_fraction=0.7):
-        super().__init__()
+    def __init__(
+        self,
+        max_repeated_line_fraction=0.7,
+        text_field: str = "text",
+        score_field: str = "repeated_lines",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_repeated_line_fraction
         self._name = "repeated_lines"
 
@@ -352,8 +553,25 @@ class RepeatedParagraphsFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_repeated_paragraphs_ratio=0.7):
-        super().__init__()
+    def __init__(
+        self,
+        max_repeated_paragraphs_ratio=0.7,
+        text_field: str = "text",
+        score_field: str = "repeated_paragraphs",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._max_repeated_paragraphs_ratio = max_repeated_paragraphs_ratio
         self._name = "repeated_paragraphs"
 
@@ -374,8 +592,25 @@ class RepeatedLinesByCharFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_repeated_lines_char_ratio=0.8):
-        super().__init__()
+    def __init__(
+        self,
+        max_repeated_lines_char_ratio=0.8,
+        text_field: str = "text",
+        score_field: str = "repeated_lines_char",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_repeated_lines_char_ratio
         self._name = "repeated_lines_char"
 
@@ -397,8 +632,25 @@ class RepeatedParagraphsByCharFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, max_repeated_paragraphs_char_ratio=0.8):
-        super().__init__()
+    def __init__(
+        self,
+        max_repeated_paragraphs_char_ratio=0.8,
+        text_field: str = "text",
+        score_field: str = "repeated_paragraphs_char",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_repeated_paragraphs_char_ratio
         self._name = "repeated_paragraphs_char"
 
@@ -420,8 +672,27 @@ class RepeatingTopNGramsFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, n=2, max_repeating_ngram_ratio=0.2, lang="en"):
-        super().__init__()
+    def __init__(
+        self,
+        n=2,
+        max_repeating_ngram_ratio=0.2,
+        lang="en",
+        text_field: str = "text",
+        score_field: str = "repeating_top_ngrams",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._n = n
         self._cutoff = max_repeating_ngram_ratio
         self._max_ratio = 1.0
@@ -466,8 +737,27 @@ class RepeatingDuplicateNGramsFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, n=2, max_repeating_duplicate_ngram_ratio=0.2, lang="en"):
-        super().__init__()
+    def __init__(
+        self,
+        n=2,
+        max_repeating_duplicate_ngram_ratio=0.2,
+        lang="en",
+        text_field: str = "text",
+        score_field: str = "repeating_dup_ngram",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._n = n
         self._cutoff = max_repeating_duplicate_ngram_ratio
         self._max_ratio = 1.0
@@ -517,8 +807,25 @@ class PunctuationFilter(DocumentFilter):
     Source: Google C4 processing
     """
 
-    def __init__(self, max_num_sentences_without_endmark_ratio=0.85):
-        super().__init__()
+    def __init__(
+        self,
+        max_num_sentences_without_endmark_ratio=0.85,
+        text_field: str = "text",
+        score_field: str = "punctuation",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_num_sentences_without_endmark_ratio
         self._name = "punctuation"
 
@@ -541,8 +848,25 @@ class EllipsisFilter(DocumentFilter):
     Source: Google C4 processing
     """
 
-    def __init__(self, max_num_lines_ending_with_ellipsis_ratio=0.3):
-        super().__init__()
+    def __init__(
+        self,
+        max_num_lines_ending_with_ellipsis_ratio=0.3,
+        text_field: str = "text",
+        score_field: str = "ellipsis",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = max_num_lines_ending_with_ellipsis_ratio
         self._name = "ellipsis"
 
@@ -569,8 +893,26 @@ class CommonEnglishWordsFilter(DocumentFilter):
     to remove documents with over-capitalization.
     """
 
-    def __init__(self, min_num_common_words=2, stop_at_false=True):
-        super().__init__()
+    def __init__(
+        self,
+        min_num_common_words=2,
+        stop_at_false=True,
+        text_field: str = "text",
+        score_field: str = "common_english_words",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = min_num_common_words
         self._stop_at_false = stop_at_false
         self._word_splitter = get_word_splitter("en")
@@ -596,8 +938,26 @@ class WordsWithoutAlphabetsFilter(DocumentFilter):
     Source: Gopher (Rae et al., 2021)
     """
 
-    def __init__(self, min_words_with_alphabets=0.8, lang="en"):
-        super().__init__()
+    def __init__(
+        self,
+        min_words_with_alphabets=0.8,
+        lang="en",
+        text_field: str = "text",
+        score_field: str = "words_without_alphabets",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
         self._cutoff = min_words_with_alphabets
         self._word_splitter = get_word_splitter(lang)
         self._name = "words_without_alphabets"
@@ -620,8 +980,24 @@ class PornographicUrlsFilter(DocumentFilter):
     Check if any of the urls within the document point to porn
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self,
+        text_field: str = "text",
+        score_field: str = "unsafe_url",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [float],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
 
     def score_document(self, text):
         all_urls = regex_url.findall(text)

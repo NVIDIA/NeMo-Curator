@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .base import DocumentFilter, import_filter
 from .classifier_filter import FastTextLangId, FastTextQualityFilter
 from .code import (
     AlphaFilter,
@@ -23,7 +24,6 @@ from .code import (
     TokenizerFertilityFilter,
     XMLHeaderFilter,
 )
-from .doc_filter import DocumentFilter, import_filter
 from .heuristic_filter import (
     BoilerPlateStringFilter,
     BulletsFilter,

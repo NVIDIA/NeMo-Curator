@@ -211,6 +211,6 @@ def import_filter(filter_path: str) -> DocumentFilter:
     if not issubclass(filter_class, DocumentFilter):
         raise ValueError(
             f"Input filter {filter_class.__name__} must be derived "
-            "from DocumentFilter defined in nemo_curator.filters.doc_filter"
+            "from DocumentFilter defined in nemo_curator.filters.base"
         )
     return filter_class
