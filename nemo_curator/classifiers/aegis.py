@@ -21,9 +21,11 @@ from typing import List, Optional, Union
 import cudf
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
 from peft import PeftModel
+from torch.nn import Dropout, Linear
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from nemo_curator.classifiers.base import (
@@ -37,10 +39,13 @@ from nemo_curator.utils.aegis_utils import format_aegis
 @dataclass
 class AegisConfig:
     peft_model_name_or_path: str
+    raw_pred_column: str
     token: Optional[Union[str, bool]] = None
     pretrained_model_name_or_path: str = "meta-llama/LlamaGuard-7b"
     dtype: torch.dtype = torch.bfloat16
     max_length: int = 4096
+    add_finetune_guard: bool = False
+    finetune_guard_path: Optional[str] = None
 
 
 ACCESS_ERROR_MESSAGE = """Cannot access meta-llama/LlamaGuard-7b on HuggingFace.
@@ -69,6 +74,31 @@ AEGIS_LABELS = [
 ]
 
 
+class Net(torch.nn.Module):
+    def __init__(self, input_dim, dropout=0.7):
+        super().__init__()
+        self.input_dim = input_dim
+        self.dropout = Dropout(dropout)
+        self.sigmoid = torch.nn.Sigmoid()
+        self.input_layer = Linear(input_dim, input_dim)
+        self.hidden_layer_0 = Linear(input_dim, 2000)
+        self.hidden_layer_1 = Linear(2000, 700)
+        self.hidden_layer_2 = Linear(700, 1)
+
+    def forward(self, x):
+        x = torch.nn.functional.normalize(x, dim=0)
+        x = self.dropout(x)
+        x = F.relu(self.input_layer(x))
+        x = self.dropout(x)
+        x = F.relu(self.hidden_layer_0(x))
+        x = self.dropout(x)
+        x = F.relu(self.hidden_layer_1(x))
+        x = self.dropout(x)
+        x = self.hidden_layer_2(x)
+        x = self.sigmoid(x)
+        return x
+
+
 class AegisModel(nn.Module):
     def __init__(
         self,
@@ -76,20 +106,46 @@ class AegisModel(nn.Module):
         peft_model_name_or_path: str,
         dtype: torch.dtype,
         token: str,
+        add_fintune_gaurd: bool = False,
+        raw_pred_column: str = None,
     ):
         super().__init__()
         base_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path, torch_dtype=dtype, token=token
         )
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
+        if add_fintune_gaurd:
+            self.finetune_guard_net = Net(4096)
+            self.add_fintune_gaurd = add_fintune_gaurd
+        self.raw_pred_column = raw_pred_column
 
     @torch.no_grad()
     def forward(self, batch):
-        response = self.model.generate(
-            **batch,
-            max_new_tokens=100,
-            pad_token_id=0,
-        )
+        if self.add_fintune_gaurd:
+            response = self.model.generate(
+                **batch,
+                max_new_tokens=100,
+                pad_token_id=0,
+                output_hidden_states=True,
+                return_dict_in_generate=True,
+            )
+            fine_guard_input_tensor = response.hidden_states[0][32][:, -1, :].to(
+                torch.float
+            )
+            fine_guard_output_tensor = self.finetune_guard_net(
+                fine_guard_input_tensor
+            ).flatten()
+            sequence = response["sequences"]
+            return {
+                self.raw_pred_column: sequence,
+                "fine_guard_output_tensor": fine_guard_output_tensor,
+            }
+        else:
+            response = self.model.generate(
+                **batch,
+                max_new_tokens=100,
+                pad_token_id=0,
+            )
         return response
 
 
@@ -98,6 +154,12 @@ class AegisHFModel(HFModel):
         self.config = config
         if max_mem_gb is None:
             max_mem_gb = _get_suggest_memory_for_classifier()
+
+        if self.config.add_finetune_guard:
+            if self.config.finetune_guard_path is None:
+                raise ValueError(
+                    "finetune_guard_path must be provided if add_fine_guard is True"
+                )
 
         super().__init__(
             config.pretrained_model_name_or_path,
@@ -115,7 +177,14 @@ class AegisHFModel(HFModel):
             self.config.peft_model_name_or_path,
             self.config.dtype,
             self.config.token,
+            self.config.add_finetune_guard,
+            self.config.raw_pred_column,
         )
+        if self.config.add_finetune_guard:
+            model.finetune_guard_net.load_state_dict(
+                torch.load(self.config.finetune_guard_path, weights_only=True)
+            )
+
         model = model.to(device)
         model.eval()
         return model
@@ -170,6 +239,8 @@ class AegisClassifier(DistributedDataClassifier):
         raw_pred_column: str = "_aegis_raw_pred",
         keep_raw_pred: bool = False,
         max_chars: int = 6000,
+        add_finetune_guard: bool = False,
+        finetune_guard_path: Optional[str] = None,
         device_type: str = "cuda",
         max_mem_gb: int = None,
     ):
@@ -194,18 +265,27 @@ class AegisClassifier(DistributedDataClassifier):
                 Useful for debugging when "unknown" shows up a lot in your dataset.
             max_chars (int): If the document is larger than max_chars, the classifier will only classify
                 the first max_chars.
+            add_finetune_guard (bool): If True, will add a fine-tune guard to the model.
+            finetune_guard_path (Optional[str]): The path to the fine-tune guard model.
             device_type (str): The device to run the classifier on. Currently, it can only be "cuda".
             max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
                                 it defaults to the available GPU memory minus 4 GB.
 
         """
-        config = AegisConfig(peft_model_name_or_path=aegis_variant, token=token)
+        config = AegisConfig(
+            peft_model_name_or_path=aegis_variant,
+            token=token,
+            add_finetune_guard=add_finetune_guard,
+            raw_pred_column=raw_pred_column,
+            finetune_guard_path=finetune_guard_path,
+        )
 
         self.text_field = text_field
         self.labels = AEGIS_LABELS
         self.out_dim = len(self.labels)
         self.raw_pred_column = raw_pred_column
         self.keep_raw_pred = keep_raw_pred
+        self.add_finetune_guard = add_finetune_guard
 
         try:
             model = AegisHFModel(config=config, max_mem_gb=max_mem_gb)
@@ -277,18 +357,28 @@ class AegisClassifier(DistributedDataClassifier):
         hidden_meta["_hidden_text"] = "DUMMY_STRING"
         ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
         columns = ddf.columns.tolist()
-        pipe = op.Sequential(
-            op.Tokenizer(self.model, cols=["_hidden_text"], tokenizer_type="default"),
-            op.Predictor(
+        tokenizer = op.Tokenizer(
+            self.model, cols=["_hidden_text"], tokenizer_type="default"
+        )
+        if self.add_finetune_guard:
+            predictor = op.Predictor(
+                self.model,
+                sorted_data_loader=True,
+                batch_size=self.batch_size,
+                model_output_cols=[self.raw_pred_column, "fine_guard_output_tensor"],
+            )
+        else:
+            predictor = op.Predictor(
                 self.model,
                 sorted_data_loader=True,
                 batch_size=self.batch_size,
                 pred_output_col=self.raw_pred_column,
-            ),
-            keep_cols=columns,
-        )
+            )
+        pipe = op.Sequential(tokenizer, predictor, keep_cols=columns)
         ddf = pipe(ddf)
         translated_meta = ddf._meta.copy()
+        if self.add_finetune_guard:
+            translated_meta["fine_guard_output_tensor"] = cudf.Series([1.0])
         if self.keep_raw_pred:
             translated_meta[self.raw_pred_column] = "DUMMY_STRING"
         else:
