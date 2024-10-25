@@ -41,7 +41,7 @@ class DocumentFilter(Module, ABC):
 
     def __init__(
         self,
-        score_type: Union[str, Type],
+        score_types: Union[List[str], List[Type]],
         text_fields: List[str] = ["text"],
         score_fields: List[str] = ["score"],
         filter_mode: FilterMode = FilterMode.SCORE_FILTER,
@@ -59,7 +59,18 @@ class DocumentFilter(Module, ABC):
             must accept a series instead of a dataframe. keep_document must always return a series.
         """
         super().__init__(input_backend=input_backend)
-        self.score_type = score_type
+
+        if len(score_types) != len(score_fields):
+            raise ValueError(
+                f"score_types must have the same length as score_fields, but got {len(score_types)} and {len(score_fields)}."
+            )
+
+        if len(score_fields) > 1 and not is_batched(self.score_document):
+            raise ValueError(
+                f"When outputing multiple scores ({len(score_fields)} in this case), score_document must be defined in @batched mode."
+            )
+
+        self.score_types = score_types
         self.text_fields = text_fields
         self.score_fields = score_fields
         self.removed_path = removed_path
@@ -114,7 +125,11 @@ class DocumentFilter(Module, ABC):
         )
 
     def _score_dataset(self, dataset: DocumentDataset):
-        meta = (None, self.score_type)
+        meta = (
+            list(zip(self.score_fields, self.score_types))
+            if len(self.score_fields) > 1
+            else (None, self.score_types[0])
+        )
         # Get the field name directly if there's only one
         text_fields = (
             self.text_fields if len(self.text_fields) > 1 else self.text_fields[0]
@@ -131,12 +146,11 @@ class DocumentFilter(Module, ABC):
             )
 
         if self.save_score:
-            score_fields = (
-                self.score_fields
-                if len(self.score_fields) > 1
-                else self.score_fields[0]
-            )
-            dataset.df[score_fields] = scores
+            if len(self.score_fields) > 1:
+                dataset.df = dd.concat([dataset.df, scores], axis=1)
+            else:
+                score_fields = self.score_fields[0]
+                dataset.df[score_fields] = scores
 
         return scores
 
