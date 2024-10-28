@@ -233,14 +233,11 @@ class BulletsFilter(DocumentFilter):
             save_score=save_score,
         )
         self._cutoff = max_bullet_lines_ratio
-        self._sentences = None
         self._name = "bullet_ratio"
 
     def score_document(self, text):
         # Get sentences
-        sentences = self._sentences
-        if sentences is None:
-            sentences = get_sentences(text)
+        sentences = get_sentences(text)
         num_bullet_lines = 0
         for sentence in sentences:
             for bullet in bullet_list:
@@ -537,9 +534,7 @@ class RepeatedLinesFilter(DocumentFilter):
         self._name = "repeated_lines"
 
     def score_document(self, text):
-        sentences = self._sentences
-        if sentences is None:
-            sentences = get_sentences(text)
+        sentences = get_sentences(text)
         return len(set(sentences)) / len(sentences)
 
     def keep_document(self, score):
@@ -576,9 +571,7 @@ class RepeatedParagraphsFilter(DocumentFilter):
         self._name = "repeated_paragraphs"
 
     def score_document(self, text):
-        paragraphs = self._paragraphs
-        if paragraphs is None:
-            paragraphs = get_paragraphs(text)
+        paragraphs = get_paragraphs(text)
         return len(set(paragraphs)) / len(paragraphs)
 
     def keep_document(self, score):
@@ -615,9 +608,7 @@ class RepeatedLinesByCharFilter(DocumentFilter):
         self._name = "repeated_lines_char"
 
     def score_document(self, text):
-        sentences = self._sentences
-        if sentences is None:
-            sentences = get_sentences(text)
+        sentences = get_sentences(text)
 
         return len("".join(set(sentences))) / len("".join(sentences))
 
@@ -655,9 +646,7 @@ class RepeatedParagraphsByCharFilter(DocumentFilter):
         self._name = "repeated_paragraphs_char"
 
     def score_document(self, text):
-        paragraphs = self._paragraphs
-        if paragraphs is None:
-            paragraphs = get_paragraphs(text)
+        paragraphs = get_paragraphs(text)
 
         return len("".join(set(paragraphs))) / len("".join(paragraphs))
 
@@ -700,12 +689,10 @@ class RepeatingTopNGramsFilter(DocumentFilter):
         self._name = f"repeating_top_{n}grams"
 
     def score_document(self, text):
-        ngrams = self._ngrams
-        if ngrams is None:
-            split_text = self._word_splitter(text.strip())
-            if len(split_text) < self._n:
-                return self._max_ratio
-            ngrams = get_ngrams(split_text, self._n)
+        split_text = self._word_splitter(text.strip())
+        if len(split_text) < self._n:
+            return self._max_ratio
+        ngrams = get_ngrams(split_text, self._n)
         unique_ngrams = set(ngrams)
         # Find the most frequent ngram in the zipped ngram list
         counts = {
@@ -765,12 +752,10 @@ class RepeatingDuplicateNGramsFilter(DocumentFilter):
         self._name = f"repeating_dup_{n}gram"
 
     def score_document(self, text):
-        ngrams = self._ngrams
-        if ngrams is None:
-            split_text = self._word_splitter(text.strip())
-            if len(split_text) < self._n:
-                return self._max_ratio
-            ngrams = get_ngrams(split_text, self._n)
+        split_text = self._word_splitter(text.strip())
+        if len(split_text) < self._n:
+            return self._max_ratio
+        ngrams = get_ngrams(split_text, self._n)
 
         counts = {}
         duplicated_nchar = 0
@@ -830,9 +815,7 @@ class PunctuationFilter(DocumentFilter):
         self._name = "punctuation"
 
     def score_document(self, text):
-        sentences = self._sentences
-        if sentences is None:
-            sentences = get_sentences(text)
+        sentences = get_sentences(text)
         num_sentence_without_endmarks = len(
             [s for s in sentences if not s.strip().endswith(end_marks)]
         )
@@ -871,9 +854,7 @@ class EllipsisFilter(DocumentFilter):
         self._name = "ellipsis"
 
     def score_document(self, text):
-        sentences = self._sentences
-        if sentences is None:
-            sentences = get_sentences(text)
+        sentences = get_sentences(text)
         num_lines_ending_with_ellipsis = 0
         for sentence in sentences:
             for ellipsis in ellipsis_marks:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from typing import Optional
 
 import dask
 import numpy as np
@@ -54,11 +55,87 @@ from nemo_curator.filters import (
     WordsWithoutAlphabetsFilter,
     XMLHeaderFilter,
 )
+from nemo_curator.filters.base import FilterMode
+from nemo_curator.filters.doc_filter import DocumentFilter as LegacyDocumentFilter
 from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
 from nemo_curator.utils.decorators import batched
 
 
 class LetterCountFilter(DocumentFilter):
+    """
+    Keeps documents that have at least some number of a given letter
+    """
+
+    def __init__(
+        self,
+        letter="a",
+        min_count=5,
+        text_field: str = "text",
+        score_field: str = "letter_count",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [int],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
+        self.letter = letter
+        self.min_count = min_count
+
+    def score_document(self, text):
+        return text.count(self.letter)
+
+    def keep_document(self, score):
+        return score >= self.min_count
+
+
+class BatchedLengthFilter(DocumentFilter):
+    """
+    Keeps documents of a given length
+    """
+
+    def __init__(
+        self,
+        min_length=5,
+        max_length=10,
+        text_field: str = "text",
+        score_field: str = "length",
+        filter_mode: FilterMode = FilterMode.SCORE_FILTER,
+        removed_path: Optional[str] = None,
+        invert: bool = False,
+        save_score: bool = True,
+    ):
+        super().__init__(
+            [int],
+            text_fields=[text_field],
+            score_fields=[score_field],
+            filter_mode=filter_mode,
+            removed_path=removed_path,
+            invert=invert,
+            save_score=save_score,
+        )
+        self.min_length = min_length
+        self.max_length = max_length
+
+    @batched
+    def score_document(self, df):
+        return df.str.len()
+
+    @batched
+    def keep_document(self, scores):
+        min_threshold = self.min_length <= scores
+        max_threshold = scores <= self.max_length
+        return min_threshold & max_threshold
+
+
+class LegacyLetterCountFilter(LegacyDocumentFilter):
     """
     Keeps documents that have at least some number of a given letter
     """
@@ -75,7 +152,7 @@ class LetterCountFilter(DocumentFilter):
         return score >= self.min_count
 
 
-class BatchedLengthFilter(DocumentFilter):
+class LegacyBatchedLengthFilter(LegacyDocumentFilter):
     """
     Keeps documents of a given length
     """
@@ -284,6 +361,194 @@ class TestFilterModule:
 
     def test_chain_filter(self, letter_count_data):
         letter_count_filter = LetterCountFilter(min_count=4)
+        length_filter = BatchedLengthFilter(min_length=8, max_length=11)
+        filters = Sequential(
+            [
+                ScoreFilter(letter_count_filter, text_field="documents"),
+                ScoreFilter(length_filter, text_field="documents"),
+            ]
+        )
+        filtered_data = filters(letter_count_data)
+
+        expected_indices = [2]
+        expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+
+class TestLegacyFilterModule:
+    def test_score_filter(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        filter_step = ScoreFilter(letter_filter, text_field="documents")
+        filtered_data = filter_step(letter_count_data)
+
+        expected_indices = [2, 3]
+        expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_score(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        score_field = "a_count"
+        score_step = Score(
+            letter_filter.score_document,
+            text_field="documents",
+            score_field=score_field,
+        )
+        scored_data = score_step(letter_count_data)
+
+        expected_scores = pd.Series([2, 3, 5, 7])
+        scores = scored_data.df[score_field]
+        assert all(
+            expected_scores == scores.compute()
+        ), f"Expected {expected_scores} but got {scores}"
+
+    def test_retain_score_filter(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        score_field = "count_a"
+        filter_step = ScoreFilter(
+            letter_filter, text_field="documents", score_field=score_field
+        )
+        filtered_data = filter_step(letter_count_data)
+
+        expected_indices = [2, 3]
+        # Compute before loc due to https://github.com/dask/dask-expr/issues/1036
+        expected_data = letter_count_data.df.compute().loc[expected_indices]
+        expected_data = DocumentDataset(dd.from_pandas(expected_data, 2))
+        expected_data.df[score_field] = pd.Series([5, 7], index=expected_data.df.index)
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_filter(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        score_field = "a_count"
+        score_step = Score(
+            letter_filter.score_document,
+            text_field="documents",
+            score_field=score_field,
+        )
+        scored_data = score_step(letter_count_data)
+        filter_step = Filter(letter_filter.keep_document, score_field)
+        filtered_data = filter_step(scored_data)
+
+        expected_indices = [2, 3]
+        # Compute before loc due to https://github.com/dask/dask-expr/issues/1036
+        expected_data = letter_count_data.df.compute().loc[expected_indices]
+        expected_data = dd.from_pandas(expected_data, 2)
+        expected_data[score_field] = pd.Series([5, 7], index=expected_data.index)
+        expected_data = DocumentDataset(expected_data)
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_invert(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        filter_step = ScoreFilter(letter_filter, text_field="documents", invert=True)
+        filtered_data = filter_step(letter_count_data)
+
+        expected_indices = [0, 1]
+        expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_sequential_filter(self, letter_count_data):
+        filters = Sequential(
+            [
+                ScoreFilter(LegacyLetterCountFilter(), text_field="documents"),
+                ScoreFilter(
+                    LegacyLetterCountFilter(min_count=6), text_field="documents"
+                ),
+            ]
+        )
+        filtered_data = filters(letter_count_data)
+
+        expected_indices = [3]
+        expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_batch_score_filter(self, letter_count_data):
+        length_filter = LegacyBatchedLengthFilter(min_length=8, max_length=11)
+        filter_step = ScoreFilter(length_filter, text_field="documents")
+        filtered_data = filter_step(letter_count_data)
+
+        expected_indices = [1, 2]
+        expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_batch_score(self, letter_count_data):
+        length_filter = LegacyBatchedLengthFilter(min_length=8, max_length=11)
+        score_field = "lengths"
+        score_step = Score(
+            length_filter.score_document,
+            text_field="documents",
+            score_field=score_field,
+        )
+        scored_data = score_step(letter_count_data)
+
+        expected_scores = pd.Series([6, 11, 11, 13])
+        scores = scored_data.df[score_field]
+        assert all(
+            expected_scores == scores.compute()
+        ), f"Expected {expected_scores} but got {scores}"
+
+    def test_batch_filter(self, letter_count_data):
+        length_filter = LegacyBatchedLengthFilter(min_length=8, max_length=11)
+        score_field = "lengths"
+        score_step = Score(
+            length_filter.score_document,
+            text_field="documents",
+            score_field=score_field,
+        )
+        scored_data = score_step(letter_count_data)
+        filter_step = Filter(length_filter.keep_document, score_field)
+        filtered_data = filter_step(scored_data)
+
+        expected_indices = [1, 2]
+        expected_data = letter_count_data.df.loc[expected_indices]
+        expected_data[score_field] = pd.Series([11, 11], index=expected_data.index)
+        expected_data = DocumentDataset(expected_data)
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_score_filter_type(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        filter_step = ScoreFilter(letter_filter, text_field="documents", score_type=int)
+        filtered_data = filter_step(letter_count_data)
+
+        expected_indices = [2, 3]
+        expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_score_type(self, letter_count_data):
+        letter_filter = LegacyLetterCountFilter()
+        score_field = "a_count"
+        score_step = Score(
+            letter_filter.score_document,
+            text_field="documents",
+            score_field=score_field,
+            score_type=int,
+        )
+        scored_data = score_step(letter_count_data)
+
+        expected_scores = pd.Series([2, 3, 5, 7])
+        scores = scored_data.df[score_field]
+        assert all(
+            expected_scores == scores.compute()
+        ), f"Expected {expected_scores} but got {scores}"
+
+    def test_chain_filter(self, letter_count_data):
+        letter_count_filter = LegacyLetterCountFilter(min_count=4)
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
         filters = Sequential(
             [

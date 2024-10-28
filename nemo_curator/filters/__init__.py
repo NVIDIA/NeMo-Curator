@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import DocumentFilter, import_filter
+from .base import DocumentFilter, FilterMode, import_filter
 from .classifier_filter import FastTextLangId, FastTextQualityFilter
 from .code import (
     AlphaFilter,
@@ -52,6 +52,7 @@ from .heuristic_filter import (
 __all__ = [
     "DocumentFilter",
     "import_filter",
+    "FilterMode",
     "FastTextLangId",
     "FastTextQualityFilter",
     "NonAlphaNumericFilter",
