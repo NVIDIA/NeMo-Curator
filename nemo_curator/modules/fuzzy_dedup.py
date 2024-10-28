@@ -513,7 +513,7 @@ class FuzzyDuplicates:
                     )
                 )
                 ddf_mapped_buckets_w_anchors.to_parquet(
-                    mapped_buckets_w_anchors_path, write_index=False
+                    mapped_buckets_w_anchors_path, write_index=False, overwrite=True
                 )
             self._logger.info(
                 f"Time taken for Map_buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
@@ -557,6 +557,7 @@ class FuzzyDuplicates:
                     jaccard_pairs_path,
                     write_index=False,
                     write_metadata_file=False,
+                    overwrite=True,
                 )
                 self._logger.info(
                     f"Time taken for Jaccard Similarity = {time.time()-t0}s and output written at {jaccard_pairs_path}"
@@ -1144,16 +1145,21 @@ class _Shuffle:
                 try:
                     # NOTE: If we have more text-df partitions than bucket-map
                     # partitions, we are more likely to see an OverflowError
+
+                    subset_merged_df = merge_left_to_shuffled_right(
+                        subset_text_df,
+                        subset_bucket_df,
+                        merge_on,
+                    )
+
                     output_df = text_bytes_aware_shuffle(
-                        df=merge_left_to_shuffled_right(
-                            subset_text_df,
-                            subset_bucket_df,
-                            merge_on,
-                        ),
+                        df=subset_merged_df,
                         partition_on=partition_on,
                         text_column=self.text_field,
                         num_workers=num_workers,
                     )
+                    if output_df is None:
+                        continue
                 except OverflowError as err:
                     # We encountered an overflow error!
                     # Let's try again with less text data
@@ -1615,7 +1621,9 @@ class ConnectedComponents:
             unique_docs["uid"] = np.uint64(1)
             unique_docs["uid"] = unique_docs["uid"].cumsum()
             unique_docs["uid"] = unique_docs["uid"] - 1
-            unique_docs.to_parquet(dedup_parsed_id_path, write_index=False)
+            unique_docs.to_parquet(
+                dedup_parsed_id_path, write_index=False, overwrite=True
+            )
         self._logger.info(
             f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
@@ -1691,7 +1699,12 @@ class ConnectedComponents:
 
             subset_ddf = subset_ddf[[self.left_id, self.right_id, "jaccard"]]
             output_batch_path = os.path.join(output_path, f"{batch_id}.parquet")
-            subset_ddf.to_parquet(output_batch_path, write_index=False)
+            if batch_id == 0:
+                subset_ddf.to_parquet(
+                    output_batch_path, write_index=False, overwrite=True
+                )
+            else:
+                subset_ddf.to_parquet(output_batch_path, write_index=False, append=True)
 
             et = time.time()
             print(

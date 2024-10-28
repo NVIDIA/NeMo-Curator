@@ -251,7 +251,7 @@ Python API
   - The default values of ``num_buckets`` and ``hashes_per_bucket`` are set to find documents with an approximately Jaccard similarity of 0.8 or above.
   - Higher ``buckets_per_shuffle`` values can lead to better performance but might lead to out of memory errors.
   - Setting the ``false_positive_check`` flag to ``False`` is ideal for optimal performance.
-  - Clear the ``cache_dir`` between runs to avoid data from previous runs interfering with the current run's results.
+  - When setting the ``false_positive_check`` flag to ``True`` ensure ``cache_dir`` between runs is emptied to avoid data from previous runs interfering with the current run's results.
 
 """"""""""""
 CLI Utility
