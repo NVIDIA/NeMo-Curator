@@ -431,53 +431,43 @@ class TestFuzzyDuplicates:
         expected_df = expected_df.sort_values()
         assert_eq(expected_df, result_df, check_index=False)
 
-        @pytest.mark.parametrize(
-            "num_buckets,jaccard_threshold,duplicate_docs",
-            # Duplcated docs estimated from true_jaccard values
-            [
-                (5, 0.5, [[4, -1]]),
-                (10, 0.39, [[4, -1], [1, 2]]),
-                (3, 0.3, [[4, -1], [1, 2, 300]]),
-            ],
+    def test_shuffle_fail_fuzzy_dedup_data(
+        self,
+        shuffle_fail_fuzzy_dedup_data,
+        tmpdir,
+    ):
+        # Dedup might fail when indices per partition do not start from 0
+        shuffle_fail_fuzzy_dedup_data.df = shuffle_fail_fuzzy_dedup_data.df.reset_index(
+            drop=True
         )
-        def test_shuffle_fail_fuzzy_dedup_data(
-            self,
-            shuffle_fail_fuzzy_dedup_data,
-            tmpdir,
-        ):
-            print(self.client)
-            # Dedup might fail when indices per partition do not start from 0
-            shuffle_fail_fuzzy_dedup_data.df = (
-                shuffle_fail_fuzzy_dedup_data.df.reset_index(drop=True)
-            )
-            config = FuzzyDuplicatesConfig(
-                cache_dir=tmpdir,
-                id_field="id",
-                text_field="text",
-                seed=42,
-                char_ngrams=5,
-                num_buckets=10,
-                hashes_per_bucket=1,
-                use_64_bit_hash=False,
-                buckets_per_shuffle=5,
-                false_positive_check=True,
-                num_anchors=2,
-                jaccard_threshold=0.39,
-            )
-            fuzzy_duplicates = FuzzyDuplicates(config=config)
-            result = fuzzy_duplicates(shuffle_fail_fuzzy_dedup_data)
-            result_df = result.df.compute()
-            # Drop non duplicated docs
-            result_df = result_df[result_df.group.duplicated(keep=False)]
-            result_df = result_df.groupby("group").id.agg(list)
-            # Sort to maintain uniform ordering
+        config = FuzzyDuplicatesConfig(
+            cache_dir=tmpdir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=5,
+            num_buckets=10,
+            hashes_per_bucket=1,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=5,
+            false_positive_check=True,
+            num_anchors=2,
+            jaccard_threshold=0.39,
+        )
+        fuzzy_duplicates = FuzzyDuplicates(config=config)
+        result = fuzzy_duplicates(shuffle_fail_fuzzy_dedup_data)
+        result_df = result.df.compute()
+        # Drop non duplicated docs
+        result_df = result_df[result_df.group.duplicated(keep=False)]
+        result_df = result_df.groupby("group").id.agg(list)
+        # Sort to maintain uniform ordering
 
-            result_df = result_df.list.sort_values()
-            result_df = result_df.sort_values()
-            expected_df = cudf.Series([[1, 2]], name="id")
-            expected_df = expected_df.list.sort_values()
-            expected_df = expected_df.sort_values()
-            assert_eq(expected_df, result_df, check_index=False)
+        result_df = result_df.list.sort_values()
+        result_df = result_df.sort_values()
+        expected_df = cudf.Series([[1, 2]], name="id")
+        expected_df = expected_df.list.sort_values()
+        expected_df = expected_df.sort_values()
+        assert_eq(expected_df, result_df, check_index=False)
 
 
 class TestFuzzyDuplicatesConfig:
