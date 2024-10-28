@@ -355,7 +355,10 @@ class AegisClassifier(DistributedDataClassifier):
         ddf = dataset.df
         hidden_meta = ddf._meta.copy()
         hidden_meta["_hidden_text"] = "DUMMY_STRING"
-        ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
+        if self.add_finetune_guard:
+            ddf["_hidden_text"] = ddf[self.text_field].str.slice(0, self.max_chars)
+        else:
+            ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
         columns = ddf.columns.tolist()
         tokenizer = op.Tokenizer(
             self.model, cols=["_hidden_text"], tokenizer_type="default"
