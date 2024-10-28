@@ -41,7 +41,10 @@ from nemo_curator.utils.distributed_utils import (
     performance_report_if_with_ts_suffix,
     write_to_disk,
 )
-from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+from nemo_curator.utils.file_utils import (
+    expand_outdir_and_mkdir,
+    get_all_files_paths_under,
+)
 from nemo_curator.utils.semdedup_utils import (
     assign_and_sort_clusters,
     extract_dedup_data,
@@ -130,6 +133,7 @@ class EmbeddingCreator:
         embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
         write_to_filename: bool = False,
+        input_file_type: str = "parquet",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
     ):
@@ -146,6 +150,7 @@ class EmbeddingCreator:
                                 We recommend setting this to False when you have a delayed pipeline.
                                 Setting it to False can lead to more memory overhead.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
+            input_file_type (str): Whether a Parquet or JSON file type is being read.
             logger (Union[logging.Logger, str]): Logger object or path to store logs, defaults to "./".
             profile_dir (str): If specified directory to write dask profile. Default is None.
 
@@ -157,6 +162,7 @@ class EmbeddingCreator:
             input_column (str): Input column for data processing.
             model (EmbeddingCrossFitModel): Model instance for embedding generation.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
+            output_file_type (str): Whether to write to a Parquet or JSON file type.
         """
 
         self.embeddings_config = EmbeddingConfig(
@@ -171,6 +177,9 @@ class EmbeddingCreator:
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
+        if input_file_type == "json":
+            input_file_type = "jsonl"
+        self.output_file_type = input_file_type.lower()
         self.profile_dir = profile_dir
 
     def _setup_logger(self, logger):
@@ -216,13 +225,24 @@ class EmbeddingCreator:
                     embedding_ddf,
                     self.embedding_output_dir,
                     write_to_filename=self.write_to_filename,
-                    output_type="parquet",
+                    output_type=self.output_file_type,
                 )
-            ddf = DocumentDataset(
-                dask_cudf.read_parquet(
-                    self.embedding_output_dir, blocksize="2GB", aggregate_files=True
+
+            if self.output_file_type == "jsonl":
+                embedding_files = get_all_files_paths_under(self.embedding_output_dir)
+                ddf = DocumentDataset(
+                    dask_cudf.read_json(
+                        embedding_files, blocksize="2GB"
+                    )
                 )
-            )
+            elif self.output_file_type == "parquet":
+                ddf = DocumentDataset(
+                    dask_cudf.read_parquet(
+                        self.embedding_output_dir, blocksize="2GB", aggregate_files=True
+                    )
+                )
+            else:
+                raise ValueError(f"Unknown output type: {self.output_file_type}")
         else:
             ddf = DocumentDataset(embedding_ddf)
 
@@ -595,6 +615,7 @@ class SemDedup:
             embedding_batch_size=config.embedding_batch_size,
             input_column=config.input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
+            input_file_type=config.input_file_type,
             logger=logger,
             profile_dir=self.config.profile_dir,
         )

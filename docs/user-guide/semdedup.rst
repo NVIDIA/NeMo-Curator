@@ -49,6 +49,7 @@ Semantic deduplication in NeMo Curator can be configured using a YAML file. Here
     embedding_model_name_or_path: "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: 128
     embedding_max_mem_gb: 25
+    input_file_type: "jsonl" # or "parquet"
 
     # Clustering configuration
     clustering_save_loc: "clustering_results"
@@ -177,7 +178,8 @@ Use Individual Components
         embedding_batch_size=128,
         embedding_output_dir="path/to/output/embeddings",
         input_column="text",
-        logger="path/to/log/dir"
+        input_file_type="jsonl",
+        logger="path/to/log/dir",
     )
     embeddings_dataset = embedding_creator(dataset)
 

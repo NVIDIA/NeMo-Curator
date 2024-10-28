@@ -543,6 +543,7 @@ class ArgumentHelper:
     @staticmethod
     def parse_semdedup_args(
         add_input_args=False,
+        add_file_type_args=False,
         description="Default argument parser for semantic deduplication",
     ) -> argparse.ArgumentParser:
         """
@@ -560,6 +561,9 @@ class ArgumentHelper:
             argumentHelper.add_arg_input_file_extension()
             argumentHelper.add_arg_input_file_type()
             argumentHelper.add_arg_input_text_field()
+        elif add_file_type_args:
+            argumentHelper.add_arg_input_file_extension()
+            argumentHelper.add_arg_input_file_type()
 
         argumentHelper.parser.add_argument(
             "--config-file",

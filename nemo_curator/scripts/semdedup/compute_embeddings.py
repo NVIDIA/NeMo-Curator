@@ -40,6 +40,7 @@ def main(args):
     output_data_dir = os.path.join(
         semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
+
     # Some time jsonl files are stored as .json
     # So to handle that case we can pass the input_file_extension
     if args.input_file_extension is not None:
@@ -47,6 +48,7 @@ def main(args):
     else:
         input_file_extension = args.input_file_type
     print("input_file_extension", input_file_extension)
+
     st = time.time()
     input_files = get_remaining_files(
         input_file_path=args.input_data_dir,
@@ -54,16 +56,18 @@ def main(args):
         input_file_type=input_file_extension,
         num_files=semdedup_config.num_files,
     )
+
     logger.info(f"Processing {len(input_files)} files")
     if len(input_files) == 0:
         logger.info("No files to process")
         return
 
     ddf = read_data(
-        input_files=input_files, file_type=args.input_file_type, add_filename=False
+        input_files=input_files, file_type=args.input_file_type, add_filename=True
     )
     ddf = ddf.reset_index(drop=True)
     dataset = DocumentDataset(ddf)
+
     # Can repartition here if needed
     # ddf = ddf.repartition(partition_size="64MB")
     embedding_creator = EmbeddingCreator(
@@ -75,8 +79,10 @@ def main(args):
         ),
         input_column=semdedup_config.input_column,
         logger=logger,
-        write_to_filename=False,
+        write_to_filename=True,
+        input_file_type=input_file_extension,
     )
+
     embedding_dataset = embedding_creator(dataset=dataset)
     print(embedding_dataset.df.head())
     logger.info(f"Time taken: {time.time() - st}")

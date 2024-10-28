@@ -18,7 +18,7 @@ Please edit `config/sem_dedup_config.yaml` to configure the pipeline and run it 
 
 3) Clustering
     ```sh
-    semdedup_clustering --config-file "$CONFIG_FILE"
+    semdedup_clustering --input-file-type "jsonl" --config-file "$CONFIG_FILE"
     ```
     **Input:** Output from step (2) and YAML file from step (1)
 
