@@ -1159,6 +1159,7 @@ class _Shuffle:
                         num_workers=num_workers,
                     )
                     if output_df is None:
+                        text_part_offset += parts_per_text_batch_use
                         continue
                 except OverflowError as err:
                     # We encountered an overflow error!
