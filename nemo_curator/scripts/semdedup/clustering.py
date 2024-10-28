@@ -70,9 +70,7 @@ def main(args):
     if input_file_extension in ["json", "jsonl"]:
         embedding_files = get_all_files_paths_under(embedding_fp)
         embedding_dataset = DocumentDataset(
-            dask_cudf.read_json(
-                embedding_files, blocksize="2GB"
-            )
+            dask_cudf.read_json(embedding_files, blocksize="2GB")
         )
     elif input_file_extension == "parquet":
         # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50

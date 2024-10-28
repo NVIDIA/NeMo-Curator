@@ -231,9 +231,7 @@ class EmbeddingCreator:
             if self.output_file_type == "jsonl":
                 embedding_files = get_all_files_paths_under(self.embedding_output_dir)
                 ddf = DocumentDataset(
-                    dask_cudf.read_json(
-                        embedding_files, blocksize="2GB"
-                    )
+                    dask_cudf.read_json(embedding_files, blocksize="2GB")
                 )
             elif self.output_file_type == "parquet":
                 ddf = DocumentDataset(
