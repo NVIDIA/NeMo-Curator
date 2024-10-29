@@ -22,9 +22,22 @@ from itertools import groupby
 
 
 def get_word_splitter(language):
+    """
+    For Chinese and Japanese text, we use external libraries to split the text
+    because these languages are not separated by spaces. For all other langauges,
+    such as English, we assume words are separated by spaces.
+
+    Args:
+        language (str): An ISO 639-1 language code.
+            For example, "en" for English, "zh" for Chinese, and "ja" for Japanese.
+    Returns:
+        A function which can be used to parse the words of a string into a list.
+    """
     language = language.lower()
 
     if language == "zh":
+        # We use the Jieba library which is a Chinese word segmentation module
+        # because Chinese text is not separated by spaces.
         import jieba
 
         def jieba_splitter(text):
@@ -33,6 +46,8 @@ def get_word_splitter(language):
         return jieba_splitter
 
     elif language == "ja":
+        # We use the MeCab library which is a morphological analyzer for Japanese text
+        # because Japanese text is not separated by spaces.
         import MeCab
 
         def mecab_splitter(text):
