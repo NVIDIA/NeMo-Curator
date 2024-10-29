@@ -15,6 +15,7 @@
 import argparse
 import os
 from typing import Any, List
+import shutil
 
 from filters import AnswerabilityFilter, EasinessFilter
 from retriever_evalset_generator import RetrieverEvalSetGenerator
@@ -29,6 +30,8 @@ from nemo_curator.modules.filter import Score, ScoreFilter
 def get_pipeline(args: Any) -> Any:
 
     cfg = RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
+    #update api_key from input args
+    cfg.api_key = args.api_key
 
     sdg_pipeline = Sequential(
         [
@@ -74,7 +77,16 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
     df[["question-id", "question"]].rename(
         columns={"question-id": "_id", "question": "text"}
     ).to_json(queries_save_path, lines=True, orient="records")
-    df[["_id", "text"]].to_json(corpus_save_path, lines=True, orient="records")
+    
+    if filtered:
+        corpus_file_path = os.path.join(args.output_dir, "all","corpus.jsonl")
+        if os.path.exists(corpus_file_path):
+            shutil.copy(corpus_file_path, corpus_save_path)
+        else:
+            raise ValueError("Generate data first")
+    else:
+        df[["_id", "text"]].to_json(corpus_save_path, lines=True, orient="records")
+
     df[["question-id", "_id", "score"]].rename(
         columns={"question-id": "query-id", "_id": "corpus-id"}
     ).to_csv(os.path.join(qrels_save_dir, "test.tsv"), sep="\t", index=False)
@@ -120,15 +132,14 @@ def main():
     )
     args = parser.parse_args()
 
-    os.environ["NVIDIA_API_KEY"] = args.api_key
-
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     else:
         raise ValueError("Output directory exists already, use a new directory!")
 
-    if args.input_format == "rawdoc":
+    if args.input_format == "rawdoc" or "squad":
         input_dataset = DocumentDataset.read_json(args.input_file)
+        input_dataset = DocumentDataset(input_dataset.df.repartition(npartitions=2))
     else:
         raise ValueError("Error: Only rawdoc format supported")
 
@@ -140,7 +151,7 @@ def main():
         generated_dataset.persist()
     print("Writing all generated data to disk ...")
     write_to_beir(args, generated_dataset, filtered=False)
-
+    
     print("Filtering data ...")
     with TqdmCallback(desc="apply"):
         filtered_dataset = filtering_pipeline(generated_dataset)

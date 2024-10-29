@@ -1,5 +1,6 @@
 # Basic config for all the NIM models
 base_url: https://integrate.api.nvidia.com/v1
+api_key: "your api key here"
 
 # LLM Generator Module
 generator_model: mistralai/mixtral-8x22b-instruct-v0.1
