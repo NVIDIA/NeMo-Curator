@@ -95,24 +95,37 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             raise Exception("Validation Error: incorrect pipeline config file")
 
     # ----------------------------------------------------------------------------80
+
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+
         df = dataset.df
+
         df["llm_response"] = df["text"].apply(
             self.generate, meta=("llm_response", "str")
         )
         df["qa_pairs"] = df["llm_response"].apply(
             self.parse_response, meta=("qa_pairs", "object")
         )
+
         df = df.explode("qa_pairs").reset_index(drop=True)
+
         df["question"] = df["qa_pairs"].apply(
             lambda x: x["question"], meta=("question", "str")
         )
+
+        if "_id" in df.columns:
+            df["_id"] = df["_id"].apply(self._check_doc_id, meta=("_id", "str"))
+        else:
+            df["_id"] = df["text"].apply(self._get_random_hash, meta=("_id", "str"))
+
         df["question-id"] = df["question"].apply(
             self._get_random_hash, meta=("question-id", "str")
         )
+
         df["answer"] = df["qa_pairs"].apply(
             lambda x: x["answer"], meta=("answer", "str")
         )
+
         df["score"] = df["question"].apply(lambda x: 1, meta=("score", "int"))
 
         return DocumentDataset(
@@ -162,6 +175,13 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         )  # Encode the string to bytes
         hex_dig = hash_object.hexdigest()
         return hex_dig
+
+    # ----------------------------------------------------------------------------80
+    def _check_doc_id(self, doc_id: Any) -> str:
+        if str(doc_id) == "nan":
+            return self._get_random_hash("")
+        else:
+            return str(doc_id)
 
 
 # ----------------------------------------------------------------------------80
