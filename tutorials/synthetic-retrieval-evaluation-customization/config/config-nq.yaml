@@ -1,30 +1,15 @@
-input_file: ${input_file}
-input_format: ${input_format}  # squad or rawdoc
-output_dir: ${output_dir}
-api_key: ${api_key}
-max_examples: 1500
-use_original: false  # Set true if input file contains original questions and would like to evaluate using the original data
+# Basic config for all the NIM models
+base_url: https://integrate.api.nvidia.com/v1
+api_key: "your api key here"
 
-pre_processors:
-  -
-    _target_: nemo_retriever_sdg.DummyPreprocessor
-
-qa_generator:
-  _target_: nemo_retriever_sdg.SimpleQAGenerator
-  api_key: ${api_key}
-  model: mistralai/mixtral-8x22b-instruct-v0.1
-  base_url: https://integrate.api.nvidia.com/v1
-  max_examples: ${max_examples}
-  qa_generations_file: null
-  generate_config:
-    temperature: 0.5
-    top_p: 1.0
-    max_tokens: 2048
-    stream: true
-    parse_response: true
-    num_questions: 3
-    squad_format: true
-    system_prompt: |
+# LLM Generator Module
+generator_model: mistralai/mixtral-8x22b-instruct-v0.1
+temperature: 0.5
+top_p: 1.0
+max_tokens: 2048
+num_questions: 3
+squad_format: false
+generator_system_prompt: |
       Generate questions that are relevant to the input document provided.
       Follow these General Instructions:
        - Questions must be completely answered by the input document.
@@ -72,27 +57,24 @@ qa_generator:
       Question:
       what is the symbol for hugs and kisses?
 
-    user_prompt_template: |
-      Generate {num_questions} questions and corresponding answers based on Input Document.
+
+generator_user_prompt_template: |
+      Generate {n_openlines} questions and corresponding answers based on Input Document.
 
       Input Document:
       {document}
 
-easiness_filter:
-  _target_: nemo_retriever_sdg.EasinessFilter
-  filter_cfg:
-    filter_threshold: 0.75
-    embedding_model: "intfloat/e5-large-unsupervised"
-    batch_size: 16
 
-answerability_filter:
-  _target_: nemo_retriever_sdg.AnswerabilityFilter
-  filter_cfg:
-    base_url: "https://integrate.api.nvidia.com/v1"
-    api_key: ${api_key}
-    model_name: "meta/llama3-70b-instruct"
-    num_criteria: 4  # Number of criteria to parse from the response. It must be alined with the prompt template
-    system_prompt: |
+#Easiness filter (embedding model as judge)
+easiness_filter: nvidia/nv-embedqa-e5-v5
+truncate: "END"
+percentile: 70  # Percentile for threshold calculation (float) [0, 100]
+batch_size: 1
+
+#Answerability filter (LLM-as-judge)
+answerability_filter: "meta/llama3-70b-instruct"
+num_criteria: 4  # Number of criteria to parse from the response. It must be alined with the prompt template
+answerability_system_prompt: |
       You are an evaluator who is rating questions to given context passages based on the given criteria. Assess the given question for clarity and answerability given enough domain knowledge, consider the following evaluation criterion:
       Criterion 1 - Can the question be understood and answered without needing additional context or access to external references not provided within the question itself? Questions should be self-contained, meaning they do not rely on specific documents, tables, or prior knowledge not shared within the question.
       Criterion 2 - Is it clear what type of answer or information the question seeks? The question should convey its purpose without ambiguity, allowing for a direct and relevant response.
@@ -112,25 +94,8 @@ answerability_filter:
       }
       Provide only the dictionary response and nothing else.
 
-    user_prompt_template: |
+answerability_user_prompt_template: |
       Context Passage:
       {context}
       Question:
       {question}
-
-filters:
-  -
-    ${answerability_filter}
-  -
-    ${easiness_filter}
-
-
-post_processors:
-  -
-    _target_: nemo_retriever_sdg.DivergenceCalculator
-
-analyzers:
-  -
-    _target_: nemo_retriever_sdg.QuestionLengthAnalyzer
-  -
-    _target_: nemo_retriever_sdg.LexicalDivergenceAnalyzer

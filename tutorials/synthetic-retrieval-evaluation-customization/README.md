@@ -48,8 +48,6 @@ Navigate to the [quick start notebook](notebooks/quickstart.ipynb) and follow th
 The pipeline can be run with datasets in either [SQuAD](https://huggingface.co/datasets/rajpurkar/squad) or rawdoc (only text and title) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl``` or ```sample_data_squad.json```.
 
 Navigate to the top level of this project directory and run the following command in your command line. It will take roughly 5-10 minutes.
-> Tip: If you see the following error message:  `ModuleNotFoundError: No module named 'nemo_retriever_sdg'` Try adding `PYTHONPATH=.` to your command.
-
 
 - `Rawdoc format`
 
@@ -86,7 +84,7 @@ Edit [config.yaml](config/config.yaml) to update the configuration. Predefined c
 ## Quality Improvement Playbook (for Advanced Users)
 
 
-The default config file [config.yaml](config/config.yaml) should work best to generate synthetic data for the IT Helpdesk domain. In case you'd like to improve the quality of synthetic data and/or apply the SDG pipeline for other domains, consider applying the recipes described below.
+The default config file [config.yaml](config/config.yaml) should work best to generate synthetic data. You would need to change the few-shot examples in the prompt for specific use-cases. In case you'd like to improve the quality of synthetic data and/or apply the SDG pipeline for other domains, consider applying the recipes described below.
 
 
 ### Prompt templates

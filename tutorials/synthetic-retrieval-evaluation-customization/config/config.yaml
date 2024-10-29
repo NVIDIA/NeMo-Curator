@@ -8,7 +8,7 @@ temperature: 0.5
 top_p: 1.0
 max_tokens: 2048
 num_questions: 3
-squad_format: true
+squad_format: false
 generator_system_prompt: |
       You are a data annotator trying to generate questions and corresponding answers based on input document. Use the following guidelines:
 
