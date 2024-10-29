@@ -124,6 +124,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             df[["_id", "text", "title", "question-id", "question", "answer", "score"]]
         )
 
+
     # ----------------------------------------------------------------------------80
     def parse_response(self, llm_response: str) -> Any:
         qa_pairs = []
@@ -142,6 +143,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             print(f"error: {e}")
         return qa_pairs
 
+
     # ----------------------------------------------------------------------------80
     def generate(self, doc_text):
         response = self.generator.generate_closed_qa_instructions(
@@ -152,6 +154,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             model_kwargs=self.generator_model_kwargs,
         )
         return response[0]
+
 
     # ----------------------------------------------------------------------------80
     def _get_random_hash(self, question: str):
@@ -167,6 +170,5 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         )  # Encode the string to bytes
         hex_dig = hash_object.hexdigest()
         return hex_dig
-
 
 # ----------------------------------------------------------------------------80
