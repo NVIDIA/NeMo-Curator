@@ -31,11 +31,11 @@ FINEWEB_EDU_IDENTIFIER = "HuggingFaceTB/fineweb-edu-classifier"
 
 class FinewebEduModel(HFModel):
     def __init__(
-            self,
-            path_or_name: str,
-            max_mem_gb: Optional[int] = None,
-            autocast: bool = False,
-        ):
+        self,
+        path_or_name: str,
+        max_mem_gb: Optional[int] = None,
+        autocast: bool = False,
+    ):
         self.path_or_name = path_or_name
         self.autocast = autocast
         if max_mem_gb is None:
