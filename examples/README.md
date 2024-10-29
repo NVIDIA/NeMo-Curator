@@ -17,7 +17,7 @@ These include:
 | identify_languages_and_fix_unicode.py | Use `FastTextLangId` to filter data by language, then fix the unicode in it.                                  |
 | raw_download_common_crawl.py          | Download the raw compressed WARC files from Common Crawl without extracting them.                             |
 | semdedup_example.py                   | Use the `SemDedup` class to perform semantic deduplication on text data.                                      |
-| task_decontamination.py               | Remove segments of downstream evaluation tasks from a dataset.                                                | 
+| task_decontamination.py               | Remove segments of downstream evaluation tasks from a dataset.                                                |
 | translation_example.py                | Create and use an `IndicTranslation` model for language translation.                                          |
 
 The `classifiers`, `k8s`, `nemo_run`, and `slurm` subdirectories contain even more examples of NeMo Curator's capabilities.
