@@ -191,7 +191,7 @@ class RetrieverEvalSDGConfig(BaseConfig):
     """
 
     base_url: str
-    api_key: str 
+    api_key: str
     generator_model: str = "mistralai/mixtral-8x22b-instruct-v0.1"
     generator_url: Optional[str] = None
     generator_api_key: Optional[str] = None

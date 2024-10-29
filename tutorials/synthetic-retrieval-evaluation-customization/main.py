@@ -14,8 +14,8 @@
 
 import argparse
 import os
-from typing import Any, List
 import shutil
+from typing import Any, List
 
 from filters import AnswerabilityFilter, EasinessFilter
 from retriever_evalset_generator import RetrieverEvalSetGenerator
@@ -30,7 +30,7 @@ from nemo_curator.modules.filter import Score, ScoreFilter
 def get_pipeline(args: Any) -> Any:
 
     cfg = RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
-    #update api_key from input args
+    # update api_key from input args
     cfg.api_key = args.api_key
 
     sdg_pipeline = Sequential(
@@ -77,9 +77,9 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
     df[["question-id", "question"]].rename(
         columns={"question-id": "_id", "question": "text"}
     ).to_json(queries_save_path, lines=True, orient="records")
-    
+
     if filtered:
-        corpus_file_path = os.path.join(args.output_dir, "all","corpus.jsonl")
+        corpus_file_path = os.path.join(args.output_dir, "all", "corpus.jsonl")
         if os.path.exists(corpus_file_path):
             shutil.copy(corpus_file_path, corpus_save_path)
         else:
@@ -151,7 +151,7 @@ def main():
         generated_dataset.persist()
     print("Writing all generated data to disk ...")
     write_to_beir(args, generated_dataset, filtered=False)
-    
+
     print("Filtering data ...")
     with TqdmCallback(desc="apply"):
         filtered_dataset = filtering_pipeline(generated_dataset)
