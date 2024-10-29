@@ -136,11 +136,16 @@ class AnswerabilityFilter(DocumentFilter):
         self.user_prompt_template = cfg.answerability_user_prompt_template
         self.num_criteria = cfg.num_criteria
 
-        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        try:
+            self.client = OpenAI(base_url=self.base_url, 
+                                 api_key=self.api_key)
+        except Exception as e:
+            print (f"Error accessing NIM model: {e}")
+    
         self.text_fields = text_fields
 
     @batched
-    def score_document(self, df: Union[pd.DataFrame, dd.DataFrame]):
+    def score_document(self, df: pd.DataFrame):
         return df.apply(
             lambda row: self._llm_as_judge(
                 row[self.text_fields[0]], row[self.text_fields[1]]
@@ -148,13 +153,14 @@ class AnswerabilityFilter(DocumentFilter):
             axis=1,
         )
 
+# ----------------------------------------------------------------------------80
     @batched
     def keep_document(self, scores: pd.Series):
 
         def _keep_document(score: str):
             is_keep = True  # default is to keep
             try:
-                json_ans = json.loads(scores)
+                json_ans = json.loads(score)
                 for i in range(self.num_criteria):
                     if json_ans[f"criterion_{i+1}"] != "Y":
                         # filter out data if any of the criteria fails
@@ -169,6 +175,7 @@ class AnswerabilityFilter(DocumentFilter):
 
         return scores.apply(_keep_document)
 
+    
     def _llm_as_judge(self, context: str, question: str):
 
         user_query = self.system_prompt + "\n\n"
@@ -183,13 +190,10 @@ class AnswerabilityFilter(DocumentFilter):
                 temperature=0.5,
                 top_p=1,
                 max_tokens=1024,
-                stream=True,
             )
 
-            generation = ""
-            for chunk in completion:
-                if chunk.choices[0].delta.content is not None:
-                    generation += chunk.choices[0].delta.content
+            generation = completion
+
         except Exception as e:
             print(f"API call error {e}")
             return None  # generation
