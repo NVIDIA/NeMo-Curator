@@ -137,11 +137,10 @@ class AnswerabilityFilter(DocumentFilter):
         self.num_criteria = cfg.num_criteria
 
         try:
-            self.client = OpenAI(base_url=self.base_url, 
-                                 api_key=self.api_key)
+            self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         except Exception as e:
-            print (f"Error accessing NIM model: {e}")
-    
+            print(f"Error accessing NIM model: {e}")
+
         self.text_fields = text_fields
 
     @batched
@@ -153,7 +152,7 @@ class AnswerabilityFilter(DocumentFilter):
             axis=1,
         )
 
-# ----------------------------------------------------------------------------80
+    # ----------------------------------------------------------------------------80
     @batched
     def keep_document(self, scores: pd.Series):
 
@@ -175,7 +174,6 @@ class AnswerabilityFilter(DocumentFilter):
 
         return scores.apply(_keep_document)
 
-    
     def _llm_as_judge(self, context: str, question: str):
 
         user_query = self.system_prompt + "\n\n"
