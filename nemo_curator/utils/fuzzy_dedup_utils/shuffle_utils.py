@@ -173,8 +173,8 @@ def text_bytes_aware_shuffle(
     output_col = "_partitions"
 
     df = df.persist()
-    # if len(df) == 0:
-    #     return None
+    if len(df) == 0:
+        return None
     shuffle_part_ids = get_shuffle_partition_info(
         df=df,
         partition_on=partition_on,
