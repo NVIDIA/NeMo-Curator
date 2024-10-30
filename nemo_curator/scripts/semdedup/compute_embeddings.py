@@ -75,7 +75,6 @@ def main(args):
     # ddf = ddf.repartition(partition_size="64MB")
     embedding_creator = EmbeddingCreator(
         embedding_model_name_or_path=semdedup_config.embedding_model_name_or_path,
-        embedding_max_mem_gb=semdedup_config.embedding_max_mem_gb,
         embedding_batch_size=semdedup_config.embedding_batch_size,
         embedding_output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
@@ -110,8 +109,7 @@ def attach_args():
             " input_column for specifying the input column for embeddings,"
             " embeddings_save_loc for the location to save embeddings,"
             " embedding_model_name_or_path for the model name or path for embeddings,"
-            " embedding_batch_size for the batch size for processing embeddings,"
-            " embedding_max_mem_gb for the maximum memory in GB for embeddings"
+            " embedding_batch_size for the batch size for processing embeddings"
         ),
         add_input_args=True,
     )

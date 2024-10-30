@@ -45,7 +45,6 @@ Semantic deduplication in NeMo Curator can be configured using a YAML file. Here
     embeddings_save_loc: "embeddings"
     embedding_model_name_or_path: "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: 128
-    embedding_max_mem_gb: 25
 
     # Clustering configuration
     clustering_save_loc: "clustering_results"
@@ -96,7 +95,7 @@ The module supports various types of models, including:
 When changing the model, ensure that:
 
 1. The model is compatible with the data type you're working with (primarily text for this module).
-2. You adjust the ``embedding_batch_size`` and ``embedding_max_mem_gb`` parameters as needed, as different models may have different memory requirements.
+2. You adjust the ``embedding_batch_size`` parameter as needed, as different models may have different memory requirements.
 3. The chosen model is appropriate for the language or domain of your dataset.
 
 By selecting an appropriate embedding model, you can optimize the semantic deduplication process for your specific use case and potentially improve the quality of the deduplicated dataset.
@@ -169,7 +168,6 @@ Use Individual Components
     # Step 1: Embedding Creation
     embedding_creator = EmbeddingCreator(
         embedding_model_name_or_path="path/to/pretrained/model",
-        embedding_max_mem_gb=32,
         embedding_batch_size=128,
         embedding_output_dir="path/to/output/embeddings",
         input_column="text",
@@ -252,7 +250,6 @@ Parameters
 Key parameters in the configuration file include:
 
 - ``embedding_model_name_or_path``: Path or identifier for the pre-trained model used for embedding generation.
-- ``embedding_max_mem_gb``: Maximum memory usage for the embedding process.
 - ``embedding_batch_size``: Number of samples to process in each embedding batch.
 - ``n_clusters``: Number of clusters for k-means clustering.
 - ``eps_to_extract``: Deduplication threshold. Higher values result in more aggressive deduplication.

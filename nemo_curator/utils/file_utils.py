@@ -134,8 +134,11 @@ def _update_filetype(file_set, old_file_type, new_file_type):
         new_file_type = "." + new_file_type
 
     updated_file_set = {
-        f"{os.path.splitext(file)[0]}{new_file_type}"
-        if file.endswith(old_file_type) else file
+        (
+            f"{os.path.splitext(file)[0]}{new_file_type}"
+            if file.endswith(old_file_type)
+            else file
+        )
         for file in file_set
     }
     return updated_file_set

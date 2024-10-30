@@ -53,7 +53,6 @@ from nemo_curator.utils.semdedup_utils import (
 @dataclass
 class EmbeddingConfig:
     model_name_or_path: str
-    max_mem_gb: int
     max_seq_length: int = None
 
     def __post_init__(self):
@@ -99,9 +98,7 @@ class EmbeddingPytorchModel(nn.Module):
 class EmbeddingCrossFitModel(HFModel):
     def __init__(self, config: EmbeddingConfig):
         self.config = config
-        super().__init__(
-            self.config.model_name_or_path, max_mem_gb=self.config.max_mem_gb
-        )
+        super().__init__(self.config.model_name_or_path)
 
     def load_model(self, device="cuda"):
         model = EmbeddingPytorchModel(self.config)
@@ -123,7 +120,6 @@ class EmbeddingCreator:
     def __init__(
         self,
         embedding_model_name_or_path: str,
-        embedding_max_mem_gb: str,
         embedding_batch_size: int,
         embedding_output_dir: str,
         input_column: str = "text",
@@ -138,7 +134,6 @@ class EmbeddingCreator:
 
         Args:
             embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
-            embedding_max_mem_gb (str): Maximum memory usage for the embedding process.
             embedding_batch_size (int): Number of samples to process in each batch.
             embedding_output_dir (str): Directory path where embeddings will be saved.
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
@@ -161,7 +156,6 @@ class EmbeddingCreator:
 
         self.embeddings_config = EmbeddingConfig(
             model_name_or_path=embedding_model_name_or_path,
-            max_mem_gb=embedding_max_mem_gb,
         )
         self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
@@ -595,7 +589,6 @@ class SemDedup:
         cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
-            embedding_max_mem_gb=config.embedding_max_mem_gb,
             embedding_batch_size=config.embedding_batch_size,
             input_column=input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
