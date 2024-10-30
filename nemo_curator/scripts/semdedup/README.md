@@ -10,7 +10,7 @@ Please edit `config/sem_dedup_config.yaml` to configure the pipeline and run it 
 
 2) Compute embeddings:
     ```sh
-    semdedup_extract_embeddings --input-data-dir "$INPUT_DATA_DIR" --input-file-type "jsonl" --input-file-extension "json" --input-column "text" --config-file "$CONFIG_FILE"
+    semdedup_extract_embeddings --input-data-dir "$INPUT_DATA_DIR" --input-file-type "jsonl" --input-file-extension "json" --input-text-field "text" --config-file "$CONFIG_FILE"
     ```
     **Input:** `input_data_dir/*.jsonl` and YAML file from step (1)
 

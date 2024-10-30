@@ -78,7 +78,7 @@ def main(args):
         embedding_output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
-        input_column=input_column, # TODO
+        input_column=args.input_text_field,
         logger=logger,
         write_to_filename=False, # TODO
     )

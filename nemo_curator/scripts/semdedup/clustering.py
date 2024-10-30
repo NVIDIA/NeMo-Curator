@@ -62,7 +62,7 @@ def main(args):
     embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
-        id_column=id_column, # TODO
+        id_column=args.id_column,
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
         clustering_output_dir=clustering_output_dir,
@@ -96,7 +96,7 @@ def attach_args():
             " max_iter for the maximum iterations for clustering,"
             " kmeans_with_cos_dist for using KMeans with cosine distance,"
         ),
-        add_input_args=False,
+        add_input_args=True,
     )
     return parser
 

@@ -157,6 +157,23 @@ class ArgumentHelper:
             "file that contains the text.",
         )
 
+    def add_arg_id_column(self):
+        self.parser.add_argument(
+            "--id-column",
+            type=str,
+            default="id",
+            help="The name of the field within each datapoint object of the input "
+            "file that contains the ID.",
+        )
+
+    def add_arg_id_column_type(self):
+        self.parser.add_argument(
+            "--id-column-type",
+            type=str,
+            default="int",
+            help="The datatype of the ID field, either \"int\" or \"str\".",
+        )
+
     def add_arg_minhash_length(self):
         self.parser.add_argument(
             "--minhash-length",
@@ -556,10 +573,12 @@ class ArgumentHelper:
         argumentHelper = ArgumentHelper(parser)
         argumentHelper.add_distributed_args()
         if add_input_args:
-            argumentHelper.add_arg_input_data_dir(required=True)
+            argumentHelper.add_arg_input_data_dir()
             argumentHelper.add_arg_input_file_extension()
             argumentHelper.add_arg_input_file_type()
             argumentHelper.add_arg_input_text_field()
+            argumentHelper.add_arg_id_column()
+            argumentHelper.add_arg_id_column_type()
 
         argumentHelper.parser.add_argument(
             "--config-file",

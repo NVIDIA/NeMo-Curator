@@ -36,8 +36,8 @@ def main(args):
         sorted_clusters_dir=os.path.join(
             cache_dir, semdedup_config.clustering_save_loc, "sorted"
         ),
-        id_col=id_column, # TODO
-        id_col_type=id_column_type, # TODO
+        id_col=args.id_column,
+        id_col_type=args.id_column_type,
         which_to_keep=semdedup_config.which_to_keep,
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc
@@ -75,7 +75,7 @@ def attach_args():
             "eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
             "and eps_to_extract for the epsilon value to extract deduplicated data."
         ),
-        add_input_args=False,
+        add_input_args=True,
     )
     return parser
 
