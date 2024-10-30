@@ -154,8 +154,11 @@ def get_shuffle_partition_info(
 
 
 def text_bytes_aware_shuffle(
-    df, partition_on: str, text_column: str, num_workers: Optional[int] = None
-) -> Optional[None]:
+    df: dask_cuda.DataFrame,
+    partition_on: str,
+    text_column: str,
+    num_workers: Optional[int] = None,
+):
     """
     This shuffle takes into account the text bytes of each partition
     and tries to make sure that the output partitions do not exceed
@@ -167,7 +170,7 @@ def text_bytes_aware_shuffle(
         text_column: column name for the text data
 
     Returns:
-        dask_cudf dataframe with _partitions columns
+        dask_cudf dataframe with _partitions columns or None if `df` is empty after the merge
     """
     print("Starting text bytes aware shuffle", flush=True)
     output_col = "_partitions"
