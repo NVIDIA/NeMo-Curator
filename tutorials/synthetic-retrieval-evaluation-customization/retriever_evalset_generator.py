@@ -24,6 +24,7 @@ from typing import Any
 import dask.array as da
 import dask.dataframe as dd
 import pandas as pd
+from dask.base import normalize_token, tokenize
 from dask.diagnostics import ProgressBar
 from dask.distributed import progress
 from distributed import Client
@@ -182,6 +183,9 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
             return self._get_random_hash("")
         else:
             return str(doc_id)
+
+    def __dask_tokenize__(self):
+        return normalize_token(RetrieverEvalSetGenerator)
 
 
 # ----------------------------------------------------------------------------80
