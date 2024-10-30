@@ -63,7 +63,8 @@ def main(args):
         return
 
     ddf = read_data(
-        input_files=input_files, file_type=args.input_file_type, add_filename=True
+        # TODO
+        input_files=input_files, file_type=args.input_file_type, add_filename=False
     )
     ddf = ddf.reset_index(drop=True)
     dataset = DocumentDataset(ddf)
@@ -77,10 +78,9 @@ def main(args):
         embedding_output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
-        input_column=semdedup_config.input_column,
+        input_column=input_column, # TODO
         logger=logger,
-        write_to_filename=True,
-        input_file_type=input_file_extension,
+        write_to_filename=False, # TODO
     )
 
     embedding_dataset = embedding_creator(dataset=dataset)

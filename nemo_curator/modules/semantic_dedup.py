@@ -41,10 +41,7 @@ from nemo_curator.utils.distributed_utils import (
     performance_report_if_with_ts_suffix,
     write_to_disk,
 )
-from nemo_curator.utils.file_utils import (
-    expand_outdir_and_mkdir,
-    get_all_files_paths_under,
-)
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
     assign_and_sort_clusters,
     extract_dedup_data,
@@ -133,7 +130,6 @@ class EmbeddingCreator:
         embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
         write_to_filename: bool = False,
-        input_file_type: str = "parquet",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
     ):
@@ -150,7 +146,6 @@ class EmbeddingCreator:
                                 We recommend setting this to False when you have a delayed pipeline.
                                 Setting it to False can lead to more memory overhead.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
-            input_file_type (str): Whether a Parquet or JSON file type is being read.
             logger (Union[logging.Logger, str]): Logger object or path to store logs, defaults to "./".
             profile_dir (str): If specified directory to write dask profile. Default is None.
 
@@ -162,7 +157,6 @@ class EmbeddingCreator:
             input_column (str): Input column for data processing.
             model (EmbeddingCrossFitModel): Model instance for embedding generation.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
-            output_file_type (str): Whether to write to a Parquet or JSON file type.
         """
 
         self.embeddings_config = EmbeddingConfig(
@@ -177,9 +171,6 @@ class EmbeddingCreator:
         self.model = EmbeddingCrossFitModel(self.embeddings_config)
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
-        if input_file_type == "json":
-            input_file_type = "jsonl"
-        self.output_file_type = input_file_type.lower()
         self.profile_dir = profile_dir
 
     def _setup_logger(self, logger):
@@ -225,22 +216,14 @@ class EmbeddingCreator:
                     embedding_ddf,
                     self.embedding_output_dir,
                     write_to_filename=self.write_to_filename,
-                    output_type=self.output_file_type,
+                    output_type="parquet",
                 )
 
-            if self.output_file_type == "jsonl":
-                embedding_files = get_all_files_paths_under(self.embedding_output_dir)
-                ddf = DocumentDataset(
-                    dask_cudf.read_json(embedding_files, blocksize="2GB")
+            ddf = DocumentDataset(
+                dask_cudf.read_parquet(
+                    self.embedding_output_dir, blocksize="2GB", aggregate_files=True
                 )
-            elif self.output_file_type == "parquet":
-                ddf = DocumentDataset(
-                    dask_cudf.read_parquet(
-                        self.embedding_output_dir, blocksize="2GB", aggregate_files=True
-                    )
-                )
-            else:
-                raise ValueError(f"Unknown output type: {self.output_file_type}")
+            )
         else:
             ddf = DocumentDataset(embedding_ddf)
 
@@ -274,7 +257,7 @@ def add_dist_to_cents(
 class ClusteringModel:
     def __init__(
         self,
-        id_col: str,
+        id_column: str,
         max_iter: int,
         n_clusters: int,
         clustering_output_dir: str,
@@ -291,7 +274,7 @@ class ClusteringModel:
         Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
 
         Args:
-            id_col (str): Column name used as the identifier in the dataset.
+            id_column (str): Column name used as the identifier in the dataset.
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
             clustering_output_dir (str): Directory path where clustering results will be saved.
@@ -306,7 +289,7 @@ class ClusteringModel:
 
         This constructor sets up the parameters required for clustering operations.
         """
-        self.id_col = id_col
+        self.id_col = id_column
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
@@ -446,8 +429,8 @@ class SemanticClusterLevelDedup:
         n_clusters: int,
         emb_by_clust_dir: str,
         sorted_clusters_dir: str,
-        id_col: str,
-        id_col_type: str,
+        id_column: str,
+        id_column_type: str,
         which_to_keep: str,
         output_dir: str,
         embedding_col: str = "embeddings",
@@ -461,8 +444,8 @@ class SemanticClusterLevelDedup:
             n_clusters (int): Number of clusters.
             emb_by_clust_dir (str): Directory containing embeddings by cluster.
             sorted_clusters_dir (str): Directory containing sorted clusters.
-            id_col (str): Column name for IDs.
-            id_col_type (str): Data type of the ID column.
+            id_column (str): Column name for IDs.
+            id_column_type (str): Data type of the ID column.
             which_to_keep (str): Strategy for which duplicate to keep.
             output_dir (str): Directory to save output files.
             embedding_col (str): Column where the embeddings are stored.
@@ -472,8 +455,8 @@ class SemanticClusterLevelDedup:
         self.n_clusters = n_clusters
         self.emb_by_clust_dir = emb_by_clust_dir
         self.sorted_clusters_dir = sorted_clusters_dir
-        self.id_col = id_col
-        self.id_col_type = id_col_type
+        self.id_col = id_column
+        self.id_col_type = id_column_type
         self.which_to_keep = which_to_keep
         self.output_dir = output_dir
         self.semdedup_pruning_tables_dir = os.path.join(
@@ -595,6 +578,9 @@ class SemDedup:
     def __init__(
         self,
         config: SemDedupConfig,
+        input_column: str = "text",
+        id_column: str = "id",
+        id_column_type: str = "int",
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
@@ -611,14 +597,13 @@ class SemDedup:
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_max_mem_gb=config.embedding_max_mem_gb,
             embedding_batch_size=config.embedding_batch_size,
-            input_column=config.input_column,
+            input_column=input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
-            input_file_type=config.input_file_type,
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
         self.clustering_model = ClusteringModel(
-            id_col=config.id_col_name,
+            id_column=id_column,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
             clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
@@ -633,8 +618,8 @@ class SemDedup:
             sorted_clusters_dir=os.path.join(
                 cache_dir, config.clustering_save_loc, "sorted"
             ),
-            id_col=config.id_col_name,
-            id_col_type=config.id_col_type,
+            id_column=id_column,
+            id_column_type=id_column_type,
             which_to_keep=config.which_to_keep,
             output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,

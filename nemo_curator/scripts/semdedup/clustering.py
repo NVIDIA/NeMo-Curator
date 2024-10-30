@@ -23,10 +23,7 @@ from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import ClusteringModel
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import (
-    expand_outdir_and_mkdir,
-    get_all_files_paths_under,
-)
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
@@ -59,29 +56,13 @@ def main(args):
         semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
 
-    if args.input_file_extension is not None:
-        input_file_extension = args.input_file_extension
-    elif args.input_file_type is not None:
-        input_file_extension = args.input_file_type
-    else:
-        # Set default
-        input_file_extension = "parquet"
-
-    if input_file_extension in ["json", "jsonl"]:
-        embedding_files = get_all_files_paths_under(embedding_fp)
-        embedding_dataset = DocumentDataset(
-            dask_cudf.read_json(embedding_files, blocksize="2GB")
-        )
-    elif input_file_extension == "parquet":
-        # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
-        # When we fix that
-        embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="2GB")
-        embedding_dataset = DocumentDataset(embedding_df)
-    else:
-        raise RuntimeError("Could not read embeddings, please check file type")
+    # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
+    # When we fix that
+    embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="2GB")
+    embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
-        id_col=semdedup_config.id_col_name,
+        id_column=id_column, # TODO
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
         clustering_output_dir=clustering_output_dir,
@@ -116,7 +97,6 @@ def attach_args():
             " kmeans_with_cos_dist for using KMeans with cosine distance,"
         ),
         add_input_args=False,
-        add_file_type_args=True,
     )
     return parser
 

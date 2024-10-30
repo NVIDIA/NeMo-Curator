@@ -40,16 +40,12 @@ Semantic deduplication in NeMo Curator can be configured using a YAML file. Here
     # Configuration file for semantic dedup
     cache_dir: "semdedup_cache"
     num_files: -1
-    id_col_name: "id"
-    id_col_type: "int" # or "str" if the `add_id` module was used
-    input_column: "text"
 
     # Embeddings configuration
     embeddings_save_loc: "embeddings"
     embedding_model_name_or_path: "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: 128
     embedding_max_mem_gb: 25
-    input_file_type: "jsonl" # or "parquet"
 
     # Clustering configuration
     clustering_save_loc: "clustering_results"
@@ -160,7 +156,6 @@ You can use the ``add_id`` module from NeMo Curator if needed:
 
 
 To perform semantic deduplication, you can either use individual components or the SemDedup class with a configuration file.
-Please note that if you use the ``add_id`` module, then the ``id_col_type`` in your configuration file should be a "str".
 
 Use Individual Components
 ##########################
@@ -178,7 +173,6 @@ Use Individual Components
         embedding_batch_size=128,
         embedding_output_dir="path/to/output/embeddings",
         input_column="text",
-        input_file_type="jsonl",
         logger="path/to/log/dir",
     )
     embeddings_dataset = embedding_creator(dataset)
@@ -192,7 +186,7 @@ Use Individual Components
 
     # Step 2: Clustering
     clustering_model = ClusteringModel(
-        id_col="doc_id",
+        id_column="doc_id",
         max_iter=100,
         n_clusters=50000,
         clustering_output_dir="path/to/output/clusters",
@@ -211,8 +205,8 @@ Use Individual Components
         n_clusters=50000,
         emb_by_clust_dir="path/to/embeddings/by/cluster",
         sorted_clusters_dir="path/to/sorted/clusters",
-        id_col="doc_id",
-        id_col_type="str",
+        id_column="doc_id",
+        id_column_type="str",
         which_to_keep="hard",
         output_dir="path/to/output/deduped",
         logger="path/to/log/dir"
@@ -238,7 +232,13 @@ Alternatively, you can use the SemDedup class to perform all steps:
     config = SemDedupConfig(**config_dict)
 
     # Initialize SemDedup with the configuration
-    sem_dedup = SemDedup(config, logger="path/to/log/dir")
+    sem_dedup = SemDedup(
+        config=config,
+        input_column="text",
+        id_column="doc_id",
+        id_column_type="str",
+        logger="path/to/log/dir",
+    )
 
     # Perform semantic deduplication
     deduplicated_dataset_ids = sem_dedup(dataset)
