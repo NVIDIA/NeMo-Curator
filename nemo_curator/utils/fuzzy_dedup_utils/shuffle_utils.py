@@ -154,7 +154,7 @@ def get_shuffle_partition_info(
 
 
 def text_bytes_aware_shuffle(
-    df: dask_cuda.DataFrame,
+    df,
     partition_on: str,
     text_column: str,
     num_workers: Optional[int] = None,
