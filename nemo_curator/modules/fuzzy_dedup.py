@@ -1141,11 +1141,6 @@ class _Shuffle:
                     text_part_offset:end_text_offset
                 ]
 
-                print("==== HERE ====")
-                print(subset_text_df.compute().to_pandas().to_dict("records"))
-                print(subset_bucket_df.compute().to_pandas().to_dict("records"))
-                print("==== HERE OVER ====")
-
                 try:
                     # NOTE: If we have more text-df partitions than bucket-map
                     # partitions, we are more likely to see an OverflowError
