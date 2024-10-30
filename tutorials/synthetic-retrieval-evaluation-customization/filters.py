@@ -19,6 +19,7 @@ import dask
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+from dask.base import normalize_token, tokenize
 from openai import OpenAI
 
 from nemo_curator.filters.doc_filter import DocumentFilter
@@ -110,6 +111,9 @@ class EasinessFilter(DocumentFilter):
 
         return sim
 
+    def __dask_tokenize__(self):
+        return normalize_token(EasinessFilter)
+
 
 # ----------------------------------------------------------------------------80
 # ----------------------- Answerability Filter ---------------------------------
@@ -190,13 +194,16 @@ class AnswerabilityFilter(DocumentFilter):
                 max_tokens=1024,
             )
 
-            generation = completion
+            generation = completion.choices[0].message.content
 
         except Exception as e:
             print(f"API call error {e}")
             return None  # generation
 
         return generation
+
+    def __dask_tokenize__(self):
+        return normalize_token(AnswerabilityFilter)
 
 
 # ----------------------------------------------------------------------------80
