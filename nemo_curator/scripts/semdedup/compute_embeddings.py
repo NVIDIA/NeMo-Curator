@@ -54,6 +54,7 @@ def main(args):
         input_file_path=args.input_data_dir,
         output_file_path=output_data_dir,
         input_file_type=input_file_extension,
+        output_file_type="parquet",
         num_files=semdedup_config.num_files,
     )
 
@@ -63,8 +64,9 @@ def main(args):
         return
 
     ddf = read_data(
-        # TODO
-        input_files=input_files, file_type=args.input_file_type, add_filename=False
+        input_files=input_files,
+        file_type=args.input_file_type,
+        add_filename=True,
     )
     ddf = ddf.reset_index(drop=True)
     dataset = DocumentDataset(ddf)
@@ -80,7 +82,7 @@ def main(args):
         ),
         input_column=args.input_text_field,
         logger=logger,
-        write_to_filename=False, # TODO
+        write_to_filename=True,
     )
 
     embedding_dataset = embedding_creator(dataset=dataset)

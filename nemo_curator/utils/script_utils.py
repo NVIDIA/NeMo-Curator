@@ -171,7 +171,7 @@ class ArgumentHelper:
             "--id-column-type",
             type=str,
             default="int",
-            help="The datatype of the ID field, either \"int\" or \"str\".",
+            help='The datatype of the ID field, either "int" or "str".',
         )
 
     def add_arg_minhash_length(self):
