@@ -33,6 +33,7 @@ import pyarrow as pa
 from cugraph import MultiGraph
 from dask import dataframe as dd
 from dask.utils import M
+from itsdangerous import NoneAlgorithm
 from tqdm import tqdm
 
 from nemo_curator.datasets import DocumentDataset
@@ -1150,16 +1151,13 @@ class _Shuffle:
                         subset_bucket_df,
                         merge_on,
                     )
-
+                    # Returns a dataframe or None (when the merge is empty)
                     output_df = text_bytes_aware_shuffle(
                         df=subset_merged_df,
                         partition_on=partition_on,
                         text_column=self.text_field,
                         num_workers=num_workers,
                     )
-                    if output_df is None:
-                        text_part_offset += parts_per_text_batch_use
-                        continue
                 except OverflowError as err:
                     # We encountered an overflow error!
                     # Let's try again with less text data
@@ -1174,19 +1172,20 @@ class _Shuffle:
                     )
                     continue
 
-                if self.int_to_str_id is not None:
+                if self.int_to_str_id is not None and output_df is not None:
                     output_df = output_df.map_partitions(
                         int_ids_to_str, id_column=self.int_to_str_id
                     )
                 batch_label = f"{end_bucket_offset}_{end_text_offset}"
-                written_files = output_df.map_partitions(
-                    write_partitioned_file,
-                    output_path,
-                    partition_on,
-                    batch_label,
-                    meta=cudf.Series([True]),
-                )
-                written_files = written_files.compute()
+                if output_df is not None:
+                    written_files = output_df.map_partitions(
+                        write_partitioned_file,
+                        output_path,
+                        partition_on,
+                        batch_label,
+                        meta=cudf.Series([True]),
+                    )
+                    written_files = written_files.compute()
                 update_restart_offsets(output_path, bucket_part_offset, end_text_offset)
                 del output_df
 
