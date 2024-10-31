@@ -96,7 +96,6 @@ def attach_args():
             " max_iter for the maximum iterations for clustering,"
             " kmeans_with_cos_dist for using KMeans with cosine distance,"
         ),
-        add_input_args=True,
     )
     return parser
 

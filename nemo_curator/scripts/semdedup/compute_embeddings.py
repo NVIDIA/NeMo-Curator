@@ -111,7 +111,6 @@ def attach_args():
             " embedding_model_name_or_path for the model name or path for embeddings,"
             " embedding_batch_size for the batch size for processing embeddings"
         ),
-        add_input_args=True,
     )
     return parser
 

@@ -75,7 +75,6 @@ def attach_args():
             "eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
             "and eps_to_extract for the epsilon value to extract deduplicated data."
         ),
-        add_input_args=True,
     )
     return parser
 

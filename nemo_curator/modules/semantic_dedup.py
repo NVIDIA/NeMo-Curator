@@ -34,6 +34,7 @@ from cuml.dask.cluster import KMeans
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+from nemo_curator.classifiers.base import _get_suggest_memory_for_classifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
@@ -96,9 +97,17 @@ class EmbeddingPytorchModel(nn.Module):
 
 
 class EmbeddingCrossFitModel(HFModel):
-    def __init__(self, config: EmbeddingConfig):
+    def __init__(
+        self,
+        config: EmbeddingConfig,
+        max_mem_gb: Optional[int] = None,
+    ):
         self.config = config
-        super().__init__(self.config.model_name_or_path)
+        if max_mem_gb is None:
+            max_mem_gb = _get_suggest_memory_for_classifier()
+        super().__init__(
+            self.config.model_name_or_path, max_mem_gb=max_mem_gb
+        )
 
     def load_model(self, device="cuda"):
         model = EmbeddingPytorchModel(self.config)
@@ -122,6 +131,7 @@ class EmbeddingCreator:
         embedding_model_name_or_path: str,
         embedding_batch_size: int,
         embedding_output_dir: str,
+        embedding_max_mem_gb: Optional[int] = None,
         input_column: str = "text",
         embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
@@ -136,6 +146,8 @@ class EmbeddingCreator:
             embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
             embedding_batch_size (int): Number of samples to process in each batch.
             embedding_output_dir (str): Directory path where embeddings will be saved.
+            embedding_max_mem_gb (int): Maximum memory usage in GB for the embedding process.
+                                If None, it defaults to the available GPU memory minus 4 GB.
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
             write_embeddings_to_disk (bool, optional): If True, saves the embeddings to disk, defaults to True.
                                 We recommend setting this to False when you have a delayed pipeline.
@@ -162,7 +174,9 @@ class EmbeddingCreator:
         self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
         self.embedding_column = embedding_column
-        self.model = EmbeddingCrossFitModel(self.embeddings_config)
+        self.model = EmbeddingCrossFitModel(
+            self.embeddings_config, max_mem_gb=embedding_max_mem_gb
+        )
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
         self.profile_dir = profile_dir
