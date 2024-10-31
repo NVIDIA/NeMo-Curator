@@ -105,9 +105,7 @@ class EmbeddingCrossFitModel(HFModel):
         self.config = config
         if max_mem_gb is None:
             max_mem_gb = _get_suggest_memory_for_classifier()
-        super().__init__(
-            self.config.model_name_or_path, max_mem_gb=max_mem_gb
-        )
+        super().__init__(self.config.model_name_or_path, max_mem_gb=max_mem_gb)
 
     def load_model(self, device="cuda"):
         model = EmbeddingPytorchModel(self.config)
