@@ -125,13 +125,14 @@ def get_remaining_files(
 def _update_filetype(file_set, old_file_type, new_file_type):
     if old_file_type is None or new_file_type is None:
         return file_set
-    if old_file_type == new_file_type:
-        return file_set
 
     if not old_file_type.startswith("."):
         old_file_type = "." + old_file_type
     if not new_file_type.startswith("."):
         new_file_type = "." + new_file_type
+
+    if old_file_type == new_file_type:
+        return file_set
 
     updated_file_set = {
         (
