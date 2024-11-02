@@ -14,17 +14,21 @@
 
 import json
 import re
+import os
+import yaml
 
 import dask.dataframe as dd
 import pandas as pd
 
 from nemo_curator import (
-    ExactDuplicates,
-    FuzzyDuplicates,
-    FuzzyDuplicatesConfig,
-    Modify,
-    ScoreFilter,
-    Sequential,
+    ExactDuplicates, 
+    Modify, 
+    ScoreFilter, 
+    Sequential, 
+    FuzzyDuplicates, 
+    FuzzyDuplicatesConfig, 
+    SemDedup, 
+    SemDedupConfig,
 )
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import (
@@ -44,8 +48,7 @@ from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.pii.constants import DEFAULT_LANGUAGE, DEFAULT_MAX_DOC_SIZE
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import get_all_files_paths_under
-
+from nemo_curator.utils.file_utils import get_all_files_paths_under, expand_outdir_and_mkdir
 
 class QuotationUnifier(DocumentModifier):
     """
@@ -266,7 +269,7 @@ def redact_code(dataset: DocumentDataset) -> DocumentDataset:
     return redacted_dataset
 
 
-def dedupe(dataset: DocumentDataset) -> DocumentDataset:
+def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     """
     Remove exact duplicates from the given DocumentDataset.
 
@@ -289,35 +292,71 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     return DocumentDataset(deduped)
 
 
-def fuzzy_dedupe(dataset: DocumentDataset, type: str = "text") -> DocumentDataset:
-    cache_dir = f"./workspace/{type}"
+def fuzzy_dedupe(dataset: DocumentDataset, type: str = 'text') -> DocumentDataset:
+    """
+    Removes near-duplicate documents and code lines
+
+    Args:
+        dataset (DocumentDataset): The dataset containing documents.
+        type (str): Document type to process.
+
+    Returns:
+        DocumentDataset: The deduplicated dataset.
+    """
+    cache_dir = f"./workspace/fuzzy_dedupe_cache/{type}"
+    if os.path.isdir(cache_dir):
+        os.system(f"rm -rf {cache_dir}")
+
     fuzzy_dedup_config = FuzzyDuplicatesConfig(
-        cache_dir=cache_dir,
-        id_field="id",
-        text_field="text",
-        seed=42,
-        char_ngrams=20,
-        num_buckets=20,
-        hashes_per_bucket=13,
-        use_64_bit_hash=False,
-        buckets_per_shuffle=5,
-        false_positive_check=False,
-        num_anchors=2,
-        jaccard_threshold=0.8,
-    )
+            cache_dir=cache_dir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=20,
+            num_buckets=20,
+            hashes_per_bucket=13,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=5,
+            false_positive_check=False,
+            num_anchors=2,
+            jaccard_threshold=0.8,
+        )
     fuzzy_dup = FuzzyDuplicates(config=fuzzy_dedup_config)
     duplicates = fuzzy_dup(dataset)
 
-    docs_to_remove = duplicates.df.map_partitions(
-        lambda x: x[x.group.duplicated(keep="first")]
-    )
+    docs_to_remove = duplicates.df.map_partitions(lambda x: x[x.group.duplicated(keep="first")])
 
     # When there are few duplicates we can compute the results to a list and use `isin`.
-    duplicate_ids = docs_to_remove.compute().id.to_arrow().to_pylist()
+    duplicate_ids=docs_to_remove.compute().id.to_arrow().to_pylist()
     dataset_df = dataset.df
     deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
     return DocumentDataset(deduped)
 
+
+def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path:str, type:str= 'text'):
+    """
+    Perform semantic deduplication on the given dataset.
+
+    Args:
+        dataset (DocumentDataset): The dataset containing documents.
+        type (str): Document type to process.
+
+    Returns:
+        The deduplicated DocumentDataset.
+    """
+    cache_dir = f"./workspace/semantic_dedupe/{type}"
+    if os.path.isdir(cache_dir):
+        os.system(f"rm -rf {cache_dir}")
+    
+    partition_lengths = dataset.df.map_partitions(len).compute()
+    non_empty_partitions = [i for i, length in enumerate(partition_lengths) if length > 0]
+    dataset.df = dataset.df.partitions[non_empty_partitions]
+
+    semdedup_config = SemDedupConfig.from_yaml(sem_dedupe_config_yaml_path)
+    expand_outdir_and_mkdir(semdedup_config.cache_dir)
+    semdup = SemDedup(semdedup_config)
+    duplicates = semdup(dataset)    
+    return duplicates
 
 class TextLineCountFilter(DocumentFilter):
     """
