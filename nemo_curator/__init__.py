@@ -31,4 +31,4 @@ from .utils.distributed_utils import get_client, get_network_interfaces
 dask.config.set({"dataframe.convert-string": False})
 
 # See setup.py
-__version__ = "0.4.0"
+__version__ = "0.5.0"
