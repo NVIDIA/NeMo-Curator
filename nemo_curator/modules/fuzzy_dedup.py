@@ -59,8 +59,11 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     build_partition,
     get_agg_text_bytes_df,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
-
+from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
+    text_bytes_aware_shuffle,
+    write_partitioned_file,
+    rearange_by_column_direct,
+)
 
 class MinHash:
     """
@@ -1138,12 +1141,33 @@ class _Shuffle:
                 subset_text_df = left_df_use.partitions[
                     text_part_offset:end_text_offset
                 ]
-                output_df = merge_left_to_shuffled_right(
-                    subset_text_df,
-                    subset_bucket_df,
-                    merge_on,
-                ).shuffle(on=partition_on)
-
+                merged_subset_df = merge_left_to_shuffled_right(
+                        subset_text_df,
+                        subset_bucket_df,
+                        merge_on,
+                )
+                if os.environ["SHUFFLE_APPROACH"] == "text_bytes_aware":
+                    self._logger.info("Using text_bytes_aware_shuffle")
+                    output_df = text_bytes_aware_shuffle(
+                        df=merged_subset_df,
+                        partition_on=partition_on,
+                        text_column=self.text_field,
+                        num_workers=num_workers,
+                    )
+                elif os.environ["SHUFFLE_APPROACH"] == "dask_vanilla":
+                    self._logger.info("Using dask's vanilla shuffle")
+                    output_df = merged_subset_df.shuffle(on=partition_on)
+                elif os.environ["SHUFFLE_APPROACH"] == "rearrange_by_column_direct":
+                    self._logger.info("Using rearrange_by_column_direct")
+                    output_df = rearange_by_column_direct(
+                        df=merged_subset_df,
+                        col=partition_on,
+                        npartitions=num_workers,
+                        ignore_index=True,
+                        excomms_default=True
+                    )
+                else:
+                    raise ValueError("Invalid shuffle approach")
                 if self.int_to_str_id is not None:
                     output_df = output_df.map_partitions(
                         int_ids_to_str, id_column=self.int_to_str_id
