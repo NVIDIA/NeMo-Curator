@@ -30,5 +30,4 @@ from .utils.distributed_utils import get_client, get_network_interfaces
 # This also happens when reading and writing to files
 dask.config.set({"dataframe.convert-string": False})
 
-# See setup.py
-__version__ = "0.5.0"
+__version__ = "0.6.0.dev0"
