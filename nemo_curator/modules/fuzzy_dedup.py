@@ -1166,8 +1166,40 @@ class _Shuffle:
                         ignore_index=True,
                         excomms_default=True
                     )
+                elif os.environ["SHUFFLE_APPROACH"] == "rearrange_second_branch":
+                    self._logger.info("Using rearrange_second_branch")
+                    from dask_expr._collection import new_collection
+                    from dask_expr._shuffle import RearrangeByColumn
+
+                    # Use the internal dask-expr API
+                    output_df = new_collection(
+                        RearrangeByColumn(
+                            frame=merged_subset_df.expr,
+                            partitioning_index=partition_on,
+                            npartitions_out=merged_subset_df.npartitions,
+                            ignore_index=True,
+                            method="tasks",
+                            # Prevent staged shuffling by setting max_branch
+                            # to the number of input partitions + 1
+                            options={"max_branch": merged_subset_df.npartitions + 1},
+                        )
+                    )
+                elif os.enviorn["SHUFFLE_APPROACH"] == "rearrange_third_branch":
+                    self._logger.info("Using rearrange_third_branch")
+                    from dask.dataframe.shuffle import rearrange_by_column
+                    output_df = rearrange_by_column(
+                        merged_subset_df,
+                        col=partition_on,
+                        shuffle_method="tasks",
+                        # Prevent staged shuffling by setting max_branch
+                        # to the number of input partitions + 1
+                        max_branch=merged_subset_df.npartitions + 1,
+                        npartitions=merged_subset_df.npartitions,
+                        ignore_index=True,
+                    )
                 else:
                     raise ValueError("Invalid shuffle approach")
+            
                 if self.int_to_str_id is not None:
                     output_df = output_df.map_partitions(
                         int_ids_to_str, id_column=self.int_to_str_id
