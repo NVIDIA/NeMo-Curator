@@ -1162,7 +1162,7 @@ class _Shuffle:
                     output_df = rearange_by_column_direct(
                         df=merged_subset_df,
                         col=partition_on,
-                        npartitions=num_workers,
+                        npartitions=merged_subset_df.npartitions,
                         ignore_index=True,
                         excomms_default=True
                     )
