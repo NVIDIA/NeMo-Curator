@@ -87,6 +87,7 @@ def attach_args():
             "This script requires that the embeddings have been created beforehand using: "
             "semdedup_extract_embeddings"
             "Input arguments include: "
+            "--id-column for the identifier in the dataset, "
             "--config-file for the path to the semdedup config file. "
             "Important configuration parameters include: "
             " cache_dir for the directory to store cache,"

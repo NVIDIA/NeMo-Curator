@@ -30,7 +30,7 @@ Please edit `config/sem_dedup_config.yaml` to configure the pipeline and run it 
 
 4) Extract deduplicated data
     ```sh
-    semdedup_extract_dedup_ids --id-column "my_id" --id-column-type "str" --config-file "$CONFIG_FILE"
+    semdedup_extract_unique_ids --id-column "my_id" --id-column-type "str" --config-file "$CONFIG_FILE"
     ```
     **Input:** Output from step (3) and YAML file from step (1)
 
