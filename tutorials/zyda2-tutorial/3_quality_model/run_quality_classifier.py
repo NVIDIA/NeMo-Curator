@@ -1,8 +1,7 @@
 import argparse
+import logging
 import os
 import time
-
-import logging
 
 from nemo_curator.classifiers import QualityClassifier
 from nemo_curator.datasets import DocumentDataset

@@ -1,7 +1,6 @@
 import argparse
-import time
-
 import logging
+import time
 
 import dask.dataframe as dd
 import pyarrow as pa

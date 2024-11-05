@@ -1,9 +1,8 @@
 import argparse
 import json
+import logging
 import os
 import time
-
-import logging
 
 import dask.dataframe as dd
 from dask.distributed import Client, LocalCluster

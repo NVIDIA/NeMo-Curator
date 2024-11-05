@@ -1,6 +1,5 @@
-import os
-
 import logging
+import os
 import time
 
 import dask_cudf

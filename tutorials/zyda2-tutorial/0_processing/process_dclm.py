@@ -1,6 +1,5 @@
-import os
-
 import logging
+import os
 
 from dask.distributed import Client, LocalCluster
 from helper import process_data

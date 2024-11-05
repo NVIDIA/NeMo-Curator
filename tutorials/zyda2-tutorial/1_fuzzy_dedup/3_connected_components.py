@@ -1,6 +1,5 @@
-import os
-
 import logging
+import os
 import time
 
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
