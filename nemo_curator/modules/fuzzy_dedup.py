@@ -1184,7 +1184,7 @@ class _Shuffle:
                             options={"max_branch": merged_subset_df.npartitions + 1},
                         )
                     )
-                elif os.enviorn["SHUFFLE_APPROACH"] == "rearrange_third_branch":
+                elif os.environ["SHUFFLE_APPROACH"] == "rearrange_third_branch":
                     self._logger.info("Using rearrange_third_branch")
                     from dask.dataframe.shuffle import rearrange_by_column
                     output_df = rearrange_by_column(
