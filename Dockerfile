@@ -28,6 +28,6 @@ RUN bash -exu <<EOF
   git fetch origin $CURATOR_COMMIT --depth=1
   git checkout $CURATOR_COMMIT
   source activate curator
-  pip install --upgrade pytest pip
+  pip install --upgrade cython pytest pip
   pip install --extra-index-url https://pypi.nvidia.com ".[all]"
 EOF
