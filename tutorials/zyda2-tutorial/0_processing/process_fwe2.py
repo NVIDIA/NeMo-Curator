@@ -1,7 +1,5 @@
 import os
 
-os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
-
 import ctypes
 import gc
 import logging
