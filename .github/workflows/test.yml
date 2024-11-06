@@ -27,6 +27,10 @@ jobs:
         with:
           # Ensure full history and tags are fetched
           fetch-depth: 0
+          fetch-tags: true
+
+      - name: Show tags for debugging
+        run: git tag
 
       - name: Optionally free up space on Ubuntu
         run: |
