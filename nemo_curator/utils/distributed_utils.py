@@ -136,7 +136,7 @@ def start_dask_cpu_local_cluster(
 
 
 def get_client(
-    cluster_type: str = "cpu",
+    cluster_type="cpu",
     scheduler_address=None,
     scheduler_file=None,
     n_workers=os.cpu_count(),
@@ -736,7 +736,7 @@ def performance_report_if(
     path: Optional[str] = None, report_name: str = "dask-profile.html"
 ):
     """
-    Generates a performance report if a valid path is provided, or returns a 
+    Generates a performance report if a valid path is provided, or returns a
     no-op context manager if not.
 
     Args:
