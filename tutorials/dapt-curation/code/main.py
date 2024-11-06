@@ -30,10 +30,10 @@ from utils import (
     exact_dedupe,
     filter_code,
     filter_text,
-    redact_code,
     fuzzy_dedupe,
+    redact_code,
+    rm_dir,
     semantic_dedupe,
-    rm_dir
 )
 
 import nemo_curator as nc
@@ -52,6 +52,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
 CONFIG_DIR = os.path.join(SCRIPT_DIR_PATH, "configs")
+
 
 def download_sources(
     wikipedia_limit: Optional[int] = None,
@@ -172,28 +173,38 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     print("Executing the curation pipeline...")
     dataset_text = curation_steps_text(orig_dataset_text)
     dataset_code = curation_steps_code(orig_dataset_code)
-    
+
     print(f"Original dataset length for text files: {len(orig_dataset_text.df)}")
     print(f"After dataprep for text files: {len(dataset_text.df)}")
     print(f"Original dataset length for code files: {len(orig_dataset_code.df)}")
     print(f"After dataprep length for code files: {len(dataset_code.df)}")
 
-    if args.device == 'gpu':
+    if args.device == "gpu":
         print("Executing the semantic dedupe pipeline...")
         gpu_dataset_text = DocumentDataset(dataset_text.df.to_backend("cudf"))
         gpu_dataset_code = DocumentDataset(dataset_code.df.to_backend("cudf"))
-        sem_dedupe_config_yaml_path = os.path.join(CONFIG_DIR, 'text_semantic_dedupe_config.yaml')
+        sem_dedupe_config_yaml_path = os.path.join(
+            CONFIG_DIR, "text_semantic_dedupe_config.yaml"
+        )
         CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "semantic_dedupe", "text")
         rm_dir(CACHE_DIR)
-        duplicates = semantic_dedupe(dataset=gpu_dataset_text, sem_dedupe_config_yaml_path=sem_dedupe_config_yaml_path, cache=CACHE_DIR)
-        unique_ids = duplicates.df.to_backend('pandas').compute()['id']
-        semantic_dataset_text = DocumentDataset(gpu_dataset_text.df[gpu_dataset_text.df.id.isin(unique_ids)])
+        duplicates = semantic_dedupe(
+            dataset=gpu_dataset_text,
+            sem_dedupe_config_yaml_path=sem_dedupe_config_yaml_path,
+            cache=CACHE_DIR,
+        )
+        unique_ids = duplicates.df.to_backend("pandas").compute()["id"]
+        semantic_dataset_text = DocumentDataset(
+            gpu_dataset_text.df[gpu_dataset_text.df.id.isin(unique_ids)]
+        )
         print(f"After semantic dedupe for text files: {len(semantic_dataset_text.df)}")
 
         print("Executing the fuzzy dedupe pipeline...")
         CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "text")
         rm_dir(CACHE_DIR)
-        fuzzy_dataset_text = fuzzy_dedupe(dataset=semantic_dataset_text, cache=CACHE_DIR)
+        fuzzy_dataset_text = fuzzy_dedupe(
+            dataset=semantic_dataset_text, cache=CACHE_DIR
+        )
         CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "code")
         rm_dir(CACHE_DIR)
         fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, cache=CACHE_DIR)
@@ -218,10 +229,10 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     final_dataset_text.to_json(out_path, write_to_filename=True)
     final_dataset_code.to_json(out_path, write_to_filename=True)
 
-    print('Writing results to disk completed')
-    
+    print("Writing results to disk completed")
+
     # Split the dataset by file category and save curated files (optional - to create blended datasets)
-    print('Split dataset by metadata')
+    print("Split dataset by metadata")
     separated_data_text = separate_by_metadata(
         final_dataset_text.df, out_path, "category"
     ).compute()
@@ -271,8 +282,8 @@ def main():
     # Download all the sources and get the list of text and code files.
     text_files, code_files = download_sources(100, 100, 100)
     run_curation_pipeline(args, text_files, code_files)
-    print('Data Curation completed')
-    
+    print("Data Curation completed")
+
     # blend and shuffle datasets
     root_path = os.path.join(DATA_DIR, "curated")
     dataset_paths = [
@@ -283,9 +294,9 @@ def main():
     ]
     dataset_weights = [1.0, 4.0, 4.0, 1.0]
     target_size = 20
-    
+
     blend_and_shuffle(args, dataset_paths, dataset_weights, target_size)
-    print('Data Blending completed')
+    print("Data Blending completed")
 
 
 if __name__ == "__main__":
