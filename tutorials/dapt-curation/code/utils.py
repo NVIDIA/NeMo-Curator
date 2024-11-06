@@ -292,7 +292,7 @@ def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     return DocumentDataset(deduped)
 
 
-def fuzzy_dedupe(dataset: DocumentDataset, type: str = 'text') -> DocumentDataset:
+def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
     """
     Removes near-duplicate documents and code lines
 
@@ -303,12 +303,8 @@ def fuzzy_dedupe(dataset: DocumentDataset, type: str = 'text') -> DocumentDatase
     Returns:
         DocumentDataset: The deduplicated dataset.
     """
-    cache_dir = f"./workspace/fuzzy_dedupe_cache/{type}"
-    if os.path.isdir(cache_dir):
-        os.system(f"rm -rf {cache_dir}")
-
     fuzzy_dedup_config = FuzzyDuplicatesConfig(
-            cache_dir=cache_dir,
+            cache_dir=cache,
             id_field="id",
             text_field="text",
             seed=42,
@@ -333,7 +329,7 @@ def fuzzy_dedupe(dataset: DocumentDataset, type: str = 'text') -> DocumentDatase
     return DocumentDataset(deduped)
 
 
-def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path:str, type:str= 'text'):
+def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path:str, cache_dir:str):
     """
     Perform semantic deduplication on the given dataset.
 
@@ -344,10 +340,6 @@ def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path:str, t
     Returns:
         The deduplicated DocumentDataset.
     """
-    cache_dir = f"./workspace/semantic_dedupe/{type}"
-    if os.path.isdir(cache_dir):
-        os.system(f"rm -rf {cache_dir}")
-    
     partition_lengths = dataset.df.map_partitions(len).compute()
     non_empty_partitions = [i for i, length in enumerate(partition_lengths) if length > 0]
     dataset.df = dataset.df.partitions[non_empty_partitions]
@@ -399,3 +391,7 @@ class CodeLineCountFilter(DocumentFilter):
 
     def keep_document(self, score) -> bool:
         return score
+
+def rm_dir(cache_dir):
+    if os.path.isdir(cache_dir):
+        os.system(f"rm -rf {cache_dir}")
