@@ -15,23 +15,31 @@ concurrency:
 jobs:
   build_and_test:
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Ensure full history and tags are fetched
+          fetch-depth: 0
+
       - name: Optionally free up space on Ubuntu
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install NeMo-Curator and pytest
         # TODO: Remove pytest when optional test dependencies are added to setup.py
 
@@ -42,6 +50,7 @@ jobs:
           pip install wheel cython
           pip install --no-cache-dir .
           pip install pytest
+
       - name: Run tests
         run: |
           python -m pytest -v --cpu
