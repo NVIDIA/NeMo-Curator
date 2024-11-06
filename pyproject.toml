@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -165,8 +165,9 @@ markers = [
     "gpu: marks tests as GPU tests (deselect with '-m \"not gpu\"')"
 ]
 
-[tool.setuptools.dynamic]
-version = { attr = "nemo_curator.__version__" }
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "node-and-date"
 
 [tool.setuptools.packages.find]
 include = ["*"]
