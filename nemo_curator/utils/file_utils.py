@@ -73,9 +73,7 @@ def filter_files_by_extension(
             warning_flag = True
 
     if warning_flag:
-        warnings.warn(
-            f"Skipped at least one file due to unmatched file extension(s)."
-        )
+        warnings.warn(f"Skipped at least one file due to unmatched file extension(s).")
 
     return filtered_files
 
