@@ -32,7 +32,8 @@ from utils import (
     filter_text,
     redact_code,
     fuzzy_dedupe,
-    semantic_dedupe
+    semantic_dedupe,
+    rm_dir
 )
 
 import nemo_curator as nc
@@ -171,33 +172,39 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     print("Executing the curation pipeline...")
     dataset_text = curation_steps_text(orig_dataset_text)
     dataset_code = curation_steps_code(orig_dataset_code)
-
-    print("Executing the semantic dedupe pipeline...")
-    gpu_dataset_text = DocumentDataset(dataset_text.df.to_backend("cudf"))
-    gpu_dataset_code = DocumentDataset(dataset_code.df.to_backend("cudf"))
-    sem_dedupe_config_yaml_path = os.path.join(CONFIG_DIR, 'text_semantic_dedupe_config.yaml')
-    duplicates = semantic_dedupe(dataset=gpu_dataset_text, sem_dedupe_config_yaml_path=sem_dedupe_config_yaml_path, type='text')
-    unique_ids = duplicates.df.to_backend('pandas').compute()['id']
-    semantic_dataset_text = DocumentDataset(gpu_dataset_text.df[gpu_dataset_text.df.id.isin(unique_ids)])
-
-    print("Executing the fuzzy dedupe pipeline...")
-    fuzzy_dataset_text = fuzzy_dedupe(dataset=semantic_dataset_text, type='text')
-    fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, type='code')
-
-    fuzzy_dataset_text.df = fuzzy_dataset_text.df.to_backend("pandas")
-    fuzzy_dataset_code.df = fuzzy_dataset_code.df.to_backend("pandas")
-
-    final_dataset_text = fuzzy_dataset_text.persist()
-    final_dataset_code = fuzzy_dataset_code.persist()
-
+    
     print(f"Original dataset length for text files: {len(orig_dataset_text.df)}")
     print(f"After dataprep for text files: {len(dataset_text.df)}")
-    print(f"After semantic dedupe for text files: {len(semantic_dataset_text.df)}")
-    print(f"After fuzzy dedupe for text files: {len(fuzzy_dataset_text.df)}")
-
     print(f"Original dataset length for code files: {len(orig_dataset_code.df)}")
     print(f"After dataprep length for code files: {len(dataset_code.df)}")
-    print(f"After fuzzy dedupe: {len(fuzzy_dataset_code.df)}")
+
+    if args.device == 'gpu':
+        print("Executing the semantic dedupe pipeline...")
+        gpu_dataset_text = DocumentDataset(dataset_text.df.to_backend("cudf"))
+        gpu_dataset_code = DocumentDataset(dataset_code.df.to_backend("cudf"))
+        sem_dedupe_config_yaml_path = os.path.join(CONFIG_DIR, 'text_semantic_dedupe_config.yaml')
+        CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "semantic_dedupe", "text")
+        rm_dir(CACHE_DIR)
+        duplicates = semantic_dedupe(dataset=gpu_dataset_text, sem_dedupe_config_yaml_path=sem_dedupe_config_yaml_path, cache=CACHE_DIR)
+        unique_ids = duplicates.df.to_backend('pandas').compute()['id']
+        semantic_dataset_text = DocumentDataset(gpu_dataset_text.df[gpu_dataset_text.df.id.isin(unique_ids)])
+        print(f"After semantic dedupe for text files: {len(semantic_dataset_text.df)}")
+
+        print("Executing the fuzzy dedupe pipeline...")
+        CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "text")
+        rm_dir(CACHE_DIR)
+        fuzzy_dataset_text = fuzzy_dedupe(dataset=semantic_dataset_text, cache=CACHE_DIR)
+        CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "code")
+        rm_dir(CACHE_DIR)
+        fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, cache=CACHE_DIR)
+
+        dataset_text.df = fuzzy_dataset_text.df.to_backend("pandas")
+        dataset_code.df = fuzzy_dataset_code.df.to_backend("pandas")
+        print(f"After fuzzy dedupe for text files: {len(dataset_text.df)}")
+        print(f"After fuzzy dedupe: {len(dataset_code.df)}")
+
+    final_dataset_text = dataset_text.persist()
+    final_dataset_code = dataset_code.persist()
 
     print("Writing the results to disk...")
 
@@ -259,7 +266,6 @@ def main():
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 8)
-    args.device='gpu'
     print("Args: ", args)
 
     # Download all the sources and get the list of text and code files.

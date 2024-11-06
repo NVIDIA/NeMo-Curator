@@ -37,6 +37,7 @@ The tutorial follows the steps below:<br>
     - Heuristic-based quality filtering (Number of lines, worc count, top N-grams, etc.)
     - Fix unicode errors via ftfy
     - PII redaction
+    - GPU accelerated fuzzy and semanctic deduplication
 - Step 6: Save the filtered and curated data <br>
 - Step 7: Blend datasets and shuffle
 
