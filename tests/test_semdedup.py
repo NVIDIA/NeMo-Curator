@@ -64,7 +64,7 @@ class TestSemDuplicates:
         cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
         config = SemDedupConfig(
             cache_dir=cache_dir,
-            id_column_name="id",
+            id_column="id",
             id_column_type="int",
             input_column="text",
             seed=42,
