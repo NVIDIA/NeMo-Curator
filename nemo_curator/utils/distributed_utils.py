@@ -57,20 +57,22 @@ def _enable_spilling():
 
 
 def start_dask_gpu_local_cluster(
-    nvlink_only=False,
-    protocol="tcp",
-    rmm_pool_size="1024M",
-    enable_spilling=True,
-    set_torch_to_use_rmm=True,
-    rmm_async=True,
-    rmm_maximum_pool_size=None,
-    rmm_managed_memory=False,
-    rmm_release_threshold=None,
+    nvlink_only: bool = False,
+    protocol: str = "tcp",
+    rmm_pool_size: Optional[Union[int, str]] = "1024M",
+    enable_spilling: bool = True,
+    set_torch_to_use_rmm: bool = True,
+    rmm_async: bool = True,
+    rmm_maximum_pool_size: Optional[Union[int, str]] = None,
+    rmm_managed_memory: bool = False,
+    rmm_release_threshold: Optional[Union[int, str]] = None,
     **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     GPUs present on the machine.
+
+    See get_client function for parameters.
 
     """
     extra_kwargs = (
@@ -111,11 +113,15 @@ def start_dask_gpu_local_cluster(
 
 
 def start_dask_cpu_local_cluster(
-    n_workers=os.cpu_count(), threads_per_worker=1, **cluster_kwargs
+    n_workers: Optional[int] = os.cpu_count(),
+    threads_per_worker: int = 1,
+    **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     CPUs present on the machine.
+
+    See get_client function for parameters.
 
     """
     cluster = LocalCluster(
@@ -130,7 +136,7 @@ def start_dask_cpu_local_cluster(
 
 
 def get_client(
-    cluster_type="cpu",
+    cluster_type: str = "cpu",
     scheduler_address=None,
     scheduler_file=None,
     n_workers=os.cpu_count(),
@@ -262,10 +268,10 @@ def _set_torch_to_use_rmm():
 
 
 def read_single_partition(
-    files,
-    backend="cudf",
-    filetype="jsonl",
-    add_filename=False,
+    files: List[str],
+    backend: str = "cudf",
+    filetype: str = "jsonl",
+    add_filename: bool = False,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
@@ -364,6 +370,7 @@ def read_pandas_pickle(
     Args:
         file: The path to the pickle file to read.
         add_filename: Whether to add a "filename" column to the DataFrame.
+        columns: If not None, only these columns will be read from the file.
     Returns:
         A Pandas DataFrame.
 
@@ -688,7 +695,7 @@ def load_object_on_worker(attr, load_object_function, load_object_kwargs):
     return obj
 
 
-def offload_object_on_worker(attr):
+def offload_object_on_worker(attr: str):
     """
     This function deletes an existing attribute from a Dask worker.
 
@@ -725,7 +732,19 @@ def get_current_client():
         return None
 
 
-def performance_report_if(path=None, report_name="dask-profile.html"):
+def performance_report_if(
+    path: Optional[str] = None, report_name: str = "dask-profile.html"
+):
+    """
+    Generates a performance report if a valid path is provided, or returns a 
+    no-op context manager if not.
+
+    Args:
+        path: The directory path where the performance report should be saved.
+            If None, no report is generated.
+        report_name: The name of the report file.
+
+    """
     if path is not None:
         return performance_report(os.path.join(path, report_name))
     else:
@@ -735,7 +754,10 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
 def performance_report_if_with_ts_suffix(
     path: Optional[str] = None, report_name: str = "dask-profile"
 ):
-    """Suffixes the report_name with the timestamp"""
+    """
+    Same as performance_report_if, except it suffixes the report_name with the timestamp.
+    
+    """
     return performance_report_if(
         path=path,
         report_name=f"{report_name}-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",

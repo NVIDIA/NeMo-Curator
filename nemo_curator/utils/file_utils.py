@@ -47,9 +47,18 @@ def expand_outdir_and_mkdir(outdir):
 
 
 def filter_files_by_extension(
-    files_list: str,
+    files_list: List[str],
     filter_by: Union[str, List[str]],
 ):
+    """
+    Given a list of files, filter it to only include files matching given extension(s).
+
+    Args:
+        files_list: List of files.
+        filter_by: A string (e.g., "json") or a list of strings (e.g., ["json", "parquet"])
+            representing which file types to keep from files_list.
+
+    """
     filtered_files = []
 
     if isinstance(filter_by, str):
@@ -61,7 +70,12 @@ def filter_files_by_extension(
         if file.endswith(tuple(file_extensions)):
             filtered_files.append(file)
         else:
-            warnings.warn(f"Skipping read for file: {file}")
+            warning_flag = True
+
+    if warning_flag:
+        warnings.warn(
+            f"Skipped at least one file due to unmatched file extension(s)."
+        )
 
     return filtered_files
 
@@ -106,7 +120,10 @@ def get_all_files_paths_under(
 # writing a file we can use the offset counter approach
 # in jaccard shuffle as a more robust way to restart jobs
 def get_remaining_files(
-    input_file_path, output_file_path, input_file_type, num_files=-1
+    input_file_path: str,
+    output_file_path: str,
+    input_file_type: str,
+    num_files: int = -1,
 ):
     """
     This function returns a list of the files that still remain to be read.
@@ -148,7 +165,10 @@ def get_remaining_files(
 
 
 def get_batched_files(
-    input_file_path, output_file_path, input_file_type, batch_size=64
+    input_file_path: str,
+    output_file_path: str,
+    input_file_type: str,
+    batch_size: int = 64,
 ):
     """
     This function returns a batch of files that still remain to be processed.
@@ -331,7 +351,7 @@ def separate_by_metadata(
     return delayed(reduce)(merge_counts, delayed_counts)
 
 
-def parse_str_of_num_bytes(s, return_str=False):
+def parse_str_of_num_bytes(s: str, return_str: bool = False):
     try:
         power = "kmg".find(s[-1].lower()) + 1
         size = float(s[:-1]) * 1024**power
@@ -344,7 +364,10 @@ def parse_str_of_num_bytes(s, return_str=False):
 
 
 def _save_jsonl(documents, output_path, start_index=0, max_index=10000, prefix=None):
-    """Worker function to write out the data to jsonl files"""
+    """
+    Worker function to write out the data to jsonl files
+
+    """
 
     def _encode_text(document):
         return document.strip().encode("utf-8")
@@ -377,7 +400,11 @@ def _save_jsonl(documents, output_path, start_index=0, max_index=10000, prefix=N
 
 
 def reshard_jsonl(
-    input_dir, output_dir, output_file_size="100M", start_index=0, file_prefix=""
+    input_dir: str,
+    output_dir: str,
+    output_file_size: str = "100M",
+    start_index: int = 0,
+    file_prefix: str = "",
 ):
     """
     Reshards a directory of jsonl files to have a new (approximate) file size for each shard

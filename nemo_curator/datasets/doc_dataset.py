@@ -50,6 +50,19 @@ class DocumentDataset:
         columns: Optional[List[str]] = None,
         **kwargs,
     ):
+        """
+        Read JSONL or JSONL file(s).
+
+        Args:
+            input_files: The path of the input file(s).
+            backend: The backend to use for reading the data.
+            files_per_partition: The number of files to read per partition.
+            add_filename: Whether to add a "filename" column to the DataFrame.
+            input_meta: A dictionary or a string formatted as a dictionary, which outlines
+                the field names and their respective data types within the JSONL input file.
+            columns: If not None, only these columns will be read from the file.
+
+        """
         return cls(
             _read_json_or_parquet(
                 input_files=input_files,
@@ -73,6 +86,18 @@ class DocumentDataset:
         columns: Optional[List[str]] = None,
         **kwargs,
     ):
+        """
+        Read Parquet file(s).
+
+        Args:
+            input_files: The path of the input file(s).
+            backend: The backend to use for reading the data.
+            files_per_partition: The number of files to read per partition.
+            add_filename: Whether to add a "filename" column to the DataFrame.
+            columns: If not None, only these columns will be read from the file.
+                There is a significant performance gain when specifying columns for Parquet files.
+
+        """
         return cls(
             _read_json_or_parquet(
                 input_files=input_files,
@@ -95,6 +120,17 @@ class DocumentDataset:
         columns: Optional[List[str]] = None,
         **kwargs,
     ):
+        """
+        Read Pickle file(s).
+
+        Args:
+            input_files: The path of the input file(s).
+            backend: The backend to use for reading the data.
+            files_per_partition: The number of files to read per partition.
+            add_filename: Whether to add a "filename" column to the DataFrame.
+            columns: If not None, only these columns will be read from the file.
+
+        """
         return cls(
             read_data(
                 input_files=input_files,
@@ -114,7 +150,7 @@ class DocumentDataset:
         keep_filename_column: bool = False,
     ):
         """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
+        See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
 
         """
         write_to_disk(
@@ -132,7 +168,7 @@ class DocumentDataset:
         keep_filename_column: bool = False,
     ):
         """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
+        See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
 
         """
         write_to_disk(
