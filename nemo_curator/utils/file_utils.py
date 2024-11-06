@@ -121,6 +121,7 @@ def get_remaining_files(
     input_file_path: str,
     output_file_path: str,
     input_file_type: str,
+    output_file_type: Optional[str] = None,
     num_files: int = -1,
 ):
     """
@@ -130,6 +131,7 @@ def get_remaining_files(
         input_file_path: The path of the input files.
         output_file_path: The path of the output files.
         input_file_type: The type of the input files.
+        output_file_type: The type of the output files.
         num_files: The max number of files to be returned. If -1, all files are returned.
     Returns:
         A list of files that still remain to be read.
@@ -144,10 +146,12 @@ def get_remaining_files(
         os.path.basename(entry.path) for entry in os.scandir(output_file_path)
     ]
     completed_files = set(completed_files)
+
     input_files = [
         entry.path
         for entry in os.scandir(input_file_path)
-        if os.path.basename(entry.path) not in completed_files
+        if os.path.basename(entry.path)
+        not in _update_filetype(completed_files, output_file_type, input_file_type)
     ]
     # Guard against non extension files if present in the input directory
     input_files = [f for f in input_files if f.endswith(input_file_type)]
@@ -158,8 +162,32 @@ def get_remaining_files(
         left_to_sample = max(num_files - len_written_files, 0)
     else:
         left_to_sample = len(input_files)
+
     input_files = input_files[:left_to_sample]
     return input_files
+
+
+def _update_filetype(file_set, old_file_type, new_file_type):
+    if old_file_type is None or new_file_type is None:
+        return file_set
+
+    if not old_file_type.startswith("."):
+        old_file_type = "." + old_file_type
+    if not new_file_type.startswith("."):
+        new_file_type = "." + new_file_type
+
+    if old_file_type == new_file_type:
+        return file_set
+
+    updated_file_set = {
+        (
+            f"{os.path.splitext(file)[0]}{new_file_type}"
+            if file.endswith(old_file_type)
+            else file
+        )
+        for file in file_set
+    }
+    return updated_file_set
 
 
 def get_batched_files(
