@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [build-system]
-requires = ["setuptools", "setuptools_scm"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -147,7 +147,7 @@ verify_classification_results = "nemo_curator.scripts.verify_classification_resu
 blend_datasets = "nemo_curator.scripts.blend_datasets:console_script"
 semdedup_extract_embeddings = "nemo_curator.scripts.semdedup.compute_embeddings:console_script"
 semdedup_clustering = "nemo_curator.scripts.semdedup.clustering:console_script"
-semdedup_extract_dedup_ids = "nemo_curator.scripts.semdedup.extract_dedup_data:console_script"
+semdedup_extract_unique_ids = "nemo_curator.scripts.semdedup.extract_dedup_data:console_script"
 
 [project.urls]
 Homepage = "https://github.com/NVIDIA/NeMo-Curator"
@@ -165,9 +165,8 @@ markers = [
     "gpu: marks tests as GPU tests (deselect with '-m \"not gpu\"')"
 ]
 
-[tool.setuptools_scm]
-version_scheme = "post-release"
-local_scheme = "node-and-date"
+[tool.setuptools.dynamic]
+version = { attr = "nemo_curator.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["*"]
