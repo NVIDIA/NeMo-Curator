@@ -756,7 +756,7 @@ def performance_report_if_with_ts_suffix(
 ):
     """
     Same as performance_report_if, except it suffixes the report_name with the timestamp.
-    
+
     """
     return performance_report_if(
         path=path,
