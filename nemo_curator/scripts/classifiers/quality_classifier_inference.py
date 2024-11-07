@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore")
 
 def main():
     args = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run quality classifier inference"
+        description="Run quality classifier inference."
     ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
 

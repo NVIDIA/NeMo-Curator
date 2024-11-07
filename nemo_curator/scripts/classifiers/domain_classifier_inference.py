@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore")
 
 def main():
     args = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run domain classifier inference"
+        description="Run domain classifier inference."
     ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
     client_args = ArgumentHelper.parse_client_args(args)

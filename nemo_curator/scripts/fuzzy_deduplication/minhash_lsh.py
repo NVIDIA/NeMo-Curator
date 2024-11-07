@@ -80,9 +80,9 @@ def main(args):
 def attach_args(parser=None):
     if not parser:
         description = """
-        Compute buckets from existing minhashes and writes the output
-        to files. Each row corresponding to a document-id followed by the columns
-        denoting the bucket id's that document belongs to.
+        Computes buckets from existing minhashes and writes the output
+        to files. Each row corresponds to a document ID, followed by the columns
+        denoting the bucket IDs to which the document belongs.
         """
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 

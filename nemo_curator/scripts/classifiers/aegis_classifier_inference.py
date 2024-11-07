@@ -106,7 +106,7 @@ def main():
 
 def attach_args():
     parser = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run AEGIS classifier inference",
+        description="Run AEGIS classifier inference.",
         max_chars_default=6000,
     )
 
