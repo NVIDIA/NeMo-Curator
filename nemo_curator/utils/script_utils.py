@@ -33,7 +33,6 @@ class ArgumentHelper:
 
         def print_help_with_version(*args, **kwargs):
             print(version_string)
-            print("\n")
             parser_print_help(*args, **kwargs)
 
         self.parser.print_help = print_help_with_version
@@ -520,26 +519,18 @@ class ArgumentHelper:
         # possibly because of memory fragmentation
         self.parser.set_defaults(set_torch_to_use_rmm=False)
 
-    @staticmethod
-    def parse_gpu_dedup_args(description: str) -> argparse.ArgumentParser:
+    def parse_gpu_dedup_args(self):
         """
         Adds default set of arguments that are common to multiple stages
         of the pipeline
         """
 
-        parser = argparse.ArgumentParser(
-            description,
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        )
-
-        argumentHelper = ArgumentHelper(parser)
-
-        argumentHelper.add_distributed_args()
+        self.add_distributed_args()
 
         # Set default device to GPU for dedup
-        argumentHelper.parser.set_defaults(device="gpu")
-        argumentHelper.parser.set_defaults(set_torch_to_use_rmm=False)
-        argumentHelper.parser.add_argument(
+        self.parser.set_defaults(device="gpu")
+        self.parser.set_defaults(set_torch_to_use_rmm=False)
+        self.parser.add_argument(
             "--input-data-dirs",
             type=str,
             nargs="+",
@@ -547,14 +538,14 @@ class ArgumentHelper:
             help="Input directories consisting of .jsonl files that are accessible "
             "to all nodes. This path must be accessible by all machines in the cluster",
         )
-        argumentHelper.parser.add_argument(
+        self.parser.add_argument(
             "--input-json-text-field",
             type=str,
             default="text",
             help="The name of the field within each json object of the jsonl "
             "file that contains the text from which minhashes will be computed. ",
         )
-        argumentHelper.parser.add_argument(
+        self.parser.add_argument(
             "--input-json-id-field",
             type=str,
             required=True,
@@ -564,20 +555,18 @@ class ArgumentHelper:
             "'../scripts/add_id.py' which adds the field "
             "to the documents in a distributed fashion",
         )
-        argumentHelper.parser.add_argument(
+        self.parser.add_argument(
             "--log-dir",
             type=str,
             default="./logs/",
             help="The output log directory where node and local",
         )
-        argumentHelper.parser.add_argument(
+        self.parser.add_argument(
             "--profile-path",
             type=str,
             default=None,
             help="Path to save dask profile",
         )
-
-        return argumentHelper.parser
 
     @staticmethod
     def parse_semdedup_args(

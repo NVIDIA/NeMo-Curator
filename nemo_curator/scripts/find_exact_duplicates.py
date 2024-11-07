@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
 
@@ -83,12 +84,15 @@ def main(args):
     )
 
 
-def attach_args(parser=None):
-    if not parser:
-        description = "Compute Exact duplicates in a given dataset."
-        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
-
+def attach_args():
+    description = "Compute Exact duplicates in a given dataset."
+    parser = argparse.ArgumentParser(
+        description,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.parse_gpu_dedup_args()
 
     argumentHelper.add_arg_output_dir(
         help="Output directory where duplicate docs will be written. "

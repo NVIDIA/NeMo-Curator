@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
 
@@ -74,16 +75,19 @@ def main(args):
     print(f"Jaccard Shuffle E2E time taken = {et-st} s")
 
 
-def attach_args(parser=None):
-    if not parser:
-        description = """
-        Shuffles input text documents based on the given bucket
-        map. The output is a partitioned parquet dataset with the documents
-        shuffled by buckets.
-        """
-        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
-
+def attach_args():
+    description = """
+    Shuffles input text documents based on the given bucket
+    map. The output is a partitioned parquet dataset with the documents
+    shuffled by buckets.
+    """
+    parser = argparse.ArgumentParser(
+        description,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.parse_gpu_dedup_args()
 
     argumentHelper.add_arg_input_meta()
     argumentHelper.add_arg_output_dir()

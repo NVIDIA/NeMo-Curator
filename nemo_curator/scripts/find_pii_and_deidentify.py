@@ -102,6 +102,8 @@ def attach_args(
         help="The output directory to where redacted documents will be written."
     )
     argumentHelper.add_arg_output_file_type()
+    argumentHelper.add_distributed_args()
+
     parser.add_argument(
         "--anonymize-action",
         type=str,
@@ -152,7 +154,7 @@ def attach_args(
 
 def console_script():
     parser = attach_args()
-    args = ArgumentHelper(parser).add_distributed_args().parse_args()
+    args = parser.parse_args()
     client = get_client(**ArgumentHelper.parse_client_args(args))
     if not args.n_workers:
         args.n_workers = len(client.scheduler_info()["workers"])

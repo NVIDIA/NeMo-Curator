@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
 
@@ -54,12 +55,17 @@ def main(args):
     print(f"Jaccard Computing+Writing time: {time.time() - st:.1f} seconds")
 
 
-def attach_args(parser=None):
-    if not parser:
-        description = "Computes jaccard similarity scores."
-        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
+def attach_args():
+    description = "Computes jaccard similarity scores."
+    parser = argparse.ArgumentParser(
+        description,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    argumentHelper = ArgumentHelper(parser)
 
-    ArgumentHelper(parser).add_arg_output_dir()
+    argumentHelper.parse_gpu_dedup_args()
+
+    argumentHelper.add_arg_output_dir()
     parser.add_argument(
         "--ngram-size",
         type=int,

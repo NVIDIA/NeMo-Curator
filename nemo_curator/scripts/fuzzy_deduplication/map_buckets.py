@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
 
@@ -70,16 +71,19 @@ def get_anchor_and_output_map_info(
     return ddf_anchor_docs_with_bk
 
 
-def attach_args(parser=None):
-    if not parser:
-        description = """
-        Takes the buckets generated from minhashes and uses
-        document length information to create a coarse mapping of mapping multiple
-        buckets to a logical partition by using a modified bin packing algorithm.
-        """
-        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
-
+def attach_args():
+    description = """
+    Takes the buckets generated from minhashes and uses
+    document length information to create a coarse mapping of mapping multiple
+    buckets to a logical partition by using a modified bin packing algorithm.
+    """
+    parser = argparse.ArgumentParser(
+        description,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.parse_gpu_dedup_args()
 
     argumentHelper.add_arg_input_meta()
     argumentHelper.add_arg_output_dir()

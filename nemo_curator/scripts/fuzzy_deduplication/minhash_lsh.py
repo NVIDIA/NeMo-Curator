@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
 
@@ -32,7 +33,6 @@ def pre_imports():
 
 
 def main(args):
-
     logger = create_logger(
         rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="lsh_log"
     )
@@ -62,6 +62,7 @@ def main(args):
             {minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}
         ),
     )
+
     lsh = LSH(
         cache_dir=args.output_bucket_dir,
         num_hashes=args.minhash_length,
@@ -72,22 +73,25 @@ def main(args):
         minhash_field=minhash_field,
         logger=logger,
     )
+
     t1 = time.time()
     _ = lsh(DocumentDataset(df))
     logger.info(f"Computing and writing buckets took {time.time() - t1} s")
 
 
-def attach_args(parser=None):
-    if not parser:
-        description = """
-        Computes buckets from existing minhashes and writes the output
-        to files. Each row corresponds to a document ID, followed by the columns
-        denoting the bucket IDs to which the document belongs.
-        """
-        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
-
+def attach_args():
+    description = """
+Computes buckets from existing minhashes and writes the output
+to files. Each row corresponds to a document ID, followed by the columns
+denoting the bucket IDs to which the document belongs.
+    """
+    parser = argparse.ArgumentParser(
+        description,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     argumentHelper = ArgumentHelper(parser)
 
+    argumentHelper.parse_gpu_dedup_args()
     argumentHelper.add_arg_minhash_length()
     parser.add_argument(
         "--buckets-per-shuffle",
