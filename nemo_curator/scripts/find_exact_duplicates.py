@@ -17,7 +17,6 @@ import time
 
 import dask_cudf
 
-from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules import ExactDuplicates
@@ -86,9 +85,7 @@ def main(args):
 
 def attach_args(parser=None):
     if not parser:
-        description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
-        Compute Exact duplicates in a given dataset.
-        """
+        description = "Compute Exact duplicates in a given dataset."
         parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
 
     argumentHelper = ArgumentHelper(parser)

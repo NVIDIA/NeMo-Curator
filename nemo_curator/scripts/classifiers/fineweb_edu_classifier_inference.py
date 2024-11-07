@@ -18,7 +18,6 @@ import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 
-from nemo_curator import __version__
 from nemo_curator.classifiers import FineWebEduClassifier
 from nemo_curator.datasets import DocumentDataset
 
@@ -32,7 +31,7 @@ warnings.filterwarnings("ignore")
 
 def main():
     args = ArgumentHelper.parse_distributed_classifier_args(
-        description=f"\nNVIDIA NeMo Curator -- v{__version__}\n\nRun FineWeb-Edu classifier inference"
+        description="Run FineWeb-Edu classifier inference"
     ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
 

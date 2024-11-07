@@ -21,7 +21,6 @@ import fasttext
 from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
-from nemo_curator import __version__
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.script_utils import ArgumentHelper
 
@@ -110,9 +109,7 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        f"""
-NVIDIA NeMo Curator -- v{__version__}
-
+        """
 Train a skip-gram quality classifier with FastText
 
 Takes as input files with prepared samples for training

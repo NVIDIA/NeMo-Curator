@@ -16,7 +16,6 @@ import argparse
 import os
 
 import nemo_curator
-from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.config_utils import build_filter_pipeline
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
@@ -164,9 +163,7 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        f"""
-    NVIDIA NeMo Curator -- v{__version__}
-
+        """
     Main driver script for applying filters to documents distributed
     across dataset files. Inputs are an input directory consisting
     of dataset files and a configuration file defining the filter

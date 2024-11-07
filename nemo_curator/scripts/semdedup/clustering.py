@@ -18,7 +18,6 @@ from datetime import datetime
 
 import dask_cudf
 
-from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
@@ -84,7 +83,6 @@ def main(args):
 def attach_args():
     parser = ArgumentHelper.parse_semdedup_args(
         description=(
-            f"NVIDIA NeMo Curator -- v{__version__} "
             "Performs clustering on the computed embeddings of a collection of documents. "
             "This script requires that the embeddings have been created beforehand using: "
             "semdedup_extract_embeddings"

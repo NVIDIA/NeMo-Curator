@@ -16,7 +16,6 @@ import argparse
 import random
 
 import nemo_curator
-from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import (
@@ -55,9 +54,7 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        f"""
-NVIDIA NeMo Curator -- v{__version__}
-
+        """
 Adds unique identifiers to each document in the dataset.
 Creates a new ID field with name specified by the argument
 "--id-field-name" within each json.

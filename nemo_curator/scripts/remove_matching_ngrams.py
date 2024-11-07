@@ -16,7 +16,6 @@ import argparse
 import pickle
 
 import nemo_curator
-from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
 from nemo_curator.utils.file_utils import (
@@ -85,9 +84,7 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        f"""
- NVIDIA NeMo Curator -- v{__version__}
-
+        """
  Using the matching n-grams find by
  nemo_curator/scripts/find_matching_ngrams.py
  (provided by the argument --input-matched-ngrams),

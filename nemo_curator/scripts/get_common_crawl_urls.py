@@ -14,7 +14,6 @@
 
 import argparse
 
-from nemo_curator import __version__
 from nemo_curator.utils.download_utils import get_common_crawl_urls
 from nemo_curator.utils.script_utils import ArgumentHelper
 
@@ -36,9 +35,7 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        f"""
-NVIDIA NeMo Curator -- v{__version__}
-
+        """
 Pulls URLs of WARC files stored within the common crawl data repository
 and writes them to file so that they can be used to subsequently
 download the WARC files.

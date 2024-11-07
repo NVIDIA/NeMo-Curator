@@ -2,7 +2,6 @@ import logging
 import os
 from datetime import datetime
 
-from nemo_curator import __version__
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import SemanticClusterLevelDedup
@@ -63,7 +62,6 @@ def main(args):
 def attach_args():
     parser = ArgumentHelper.parse_semdedup_args(
         description=(
-            f"NVIDIA NeMo Curator -- v{__version__} "
             "Extracts deduplicated data from the clustered embeddings of a collection of documents. "
             "This script requires that embeddings and clustering have been performed beforehand using the specified configurations. "
             "earlier using semdedup_extract_embeddings and semdedup_cluster_embeddings."

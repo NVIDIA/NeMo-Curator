@@ -19,7 +19,7 @@ import cudf
 import dask_cudf
 import numpy as np
 
-from nemo_curator import LSH, __version__
+from nemo_curator import LSH
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client
@@ -79,7 +79,7 @@ def main(args):
 
 def attach_args(parser=None):
     if not parser:
-        description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
+        description = """
         Compute buckets from existing minhashes and writes the output
         to files. Each row corresponding to a document-id followed by the columns
         denoting the bucket id's that document belongs to.

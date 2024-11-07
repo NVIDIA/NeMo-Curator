@@ -17,7 +17,6 @@ import time
 
 import dask_cudf
 
-from nemo_curator import BucketsToEdges, __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
@@ -25,7 +24,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def attach_args(parser=None):
-    description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
+    description = """
     Takes the buckets generated from minhashes and converts
     them into an edge list for the connected components algorithm. This is done by
     assuming all documents in the same bucket are similar.

@@ -15,7 +15,6 @@
 import argparse
 import csv
 
-from nemo_curator import __version__
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modifiers import FastTextLabelModifier
 from nemo_curator.modules import Modify
@@ -58,9 +57,7 @@ def main(args):
 
 def attach_args(
     parser=argparse.ArgumentParser(
-        f"""
-NVIDIA NeMo Curator -- v{__version__}
-
+        """
 Prepare data for training skip-gram classifier with FastText
 
 Takes as input a directory of .jsonl files, and writes an output

@@ -15,7 +15,6 @@
 import os
 import time
 
-from nemo_curator import __version__
 from nemo_curator.modules.fuzzy_dedup import _MapBuckets
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
 from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
@@ -73,7 +72,7 @@ def get_anchor_and_output_map_info(
 
 def attach_args(parser=None):
     if not parser:
-        description = f"""\nNVIDIA NeMo Curator -- v{__version__}\n\n
+        description = """
         Takes the buckets generated from minhashes and uses
         document length information to create a coarse mapping of mapping multiple
         buckets to a logical partition by using a modified bin packing algorithm.

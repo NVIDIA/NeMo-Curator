@@ -19,7 +19,6 @@ from typing import Union
 
 import pandas as pd
 
-from nemo_curator import __version__
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
@@ -31,11 +30,7 @@ def parse_args():
         An argparse Namespace object.
 
     """
-    description = f"""
-    NVIDIA NeMo Curator -- v{__version__}
-
-    Run verification.
-    """
+    description = "Run verification."
     parser = argparse.ArgumentParser(description=description)
 
     ArgumentHelper(parser).add_arg_input_meta()

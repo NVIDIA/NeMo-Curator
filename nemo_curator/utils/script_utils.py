@@ -26,14 +26,24 @@ class ArgumentHelper:
 
     def __init__(self, parser: argparse.ArgumentParser):
         self.parser = parser
-        self.attach_version_arg()
 
-    def attach_version_arg(self):
+        version_string = f"NVIDIA NeMo Curator -- v{__version__}"
+        self.attach_version_arg(version_string)
+        parser_print_help = self.parser.print_help
+
+        def print_help_with_version(*args, **kwargs):
+            print(version_string)
+            print("\n")
+            parser_print_help(*args, **kwargs)
+
+        self.parser.print_help = print_help_with_version
+
+    def attach_version_arg(self, version_string: str):
         self.parser.add_argument(
             "--version",
             "-v",
             action="version",
-            version=f"NVIDIA NeMo Curator -- v{__version__}",
+            version=version_string,
             help="Show the version and exit.",
         )
 
