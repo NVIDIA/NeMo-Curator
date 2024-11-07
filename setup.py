@@ -55,7 +55,7 @@ extras_require["image"] = list(
 
 setup(
     name="nemo_curator",
-    version="0.5.0",
+    version="0.6.0.dev0",
     description="Scalable Data Preprocessing Tool for "
     "Training Large Language Models",
     long_description=long_description,
@@ -105,7 +105,7 @@ setup(
             "blend_datasets=nemo_curator.scripts.blend_datasets:console_script",
             "semdedup_extract_embeddings=nemo_curator.scripts.semdedup.compute_embeddings:console_script",
             "semdedup_clustering=nemo_curator.scripts.semdedup.clustering:console_script",
-            "semdedup_extract_dedup_ids=nemo_curator.scripts.semdedup.extract_dedup_data:console_script",
+            "semdedup_extract_unique_ids=nemo_curator.scripts.semdedup.extract_dedup_data:console_script",
         ],
     },
 )

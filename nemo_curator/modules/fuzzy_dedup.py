@@ -60,10 +60,11 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     get_agg_text_bytes_df,
 )
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
+    rearange_by_column_direct,
     text_bytes_aware_shuffle,
     write_partitioned_file,
-    rearange_by_column_direct,
 )
+
 
 class MinHash:
     """
@@ -512,7 +513,7 @@ class FuzzyDuplicates:
                     )
                 )
                 ddf_mapped_buckets_w_anchors.to_parquet(
-                    mapped_buckets_w_anchors_path, write_index=False
+                    mapped_buckets_w_anchors_path, write_index=False, overwrite=True
                 )
             self._logger.info(
                 f"Time taken for Map_buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
@@ -556,6 +557,7 @@ class FuzzyDuplicates:
                     jaccard_pairs_path,
                     write_index=False,
                     write_metadata_file=False,
+                    overwrite=True,
                 )
                 self._logger.info(
                     f"Time taken for Jaccard Similarity = {time.time()-t0}s and output written at {jaccard_pairs_path}"
@@ -1141,9 +1143,9 @@ class _Shuffle:
                     text_part_offset:end_text_offset
                 ]
                 merged_subset_df = merge_left_to_shuffled_right(
-                        subset_text_df,
-                        subset_bucket_df,
-                        merge_on,
+                    subset_text_df,
+                    subset_bucket_df,
+                    merge_on,
                 )
                 if os.environ["SHUFFLE_APPROACH"] == "text_bytes_aware":
                     self._logger.info("Using text_bytes_aware_shuffle")
@@ -1163,7 +1165,7 @@ class _Shuffle:
                         col=partition_on,
                         npartitions=merged_subset_df.npartitions,
                         ignore_index=True,
-                        excomms_default=True
+                        excomms_default=True,
                     )
                 elif os.environ["SHUFFLE_APPROACH"] == "rearrange_second_branch":
                     self._logger.info("Using rearrange_second_branch")
@@ -1186,6 +1188,7 @@ class _Shuffle:
                 elif os.environ["SHUFFLE_APPROACH"] == "rearrange_third_branch":
                     self._logger.info("Using rearrange_third_branch")
                     from dask.dataframe.shuffle import rearrange_by_column
+
                     output_df = rearrange_by_column(
                         merged_subset_df,
                         col=partition_on,
@@ -1198,20 +1201,21 @@ class _Shuffle:
                     )
                 else:
                     raise ValueError("Invalid shuffle approach")
-            
+
                 if self.int_to_str_id is not None:
                     output_df = output_df.map_partitions(
                         int_ids_to_str, id_column=self.int_to_str_id
                     )
                 batch_label = f"{end_bucket_offset}_{end_text_offset}"
-                written_files = output_df.map_partitions(
-                    write_partitioned_file,
-                    output_path,
-                    partition_on,
-                    batch_label,
-                    meta=cudf.Series([True]),
-                )
-                written_files = written_files.compute()
+                if output_df is not None:
+                    written_files = output_df.map_partitions(
+                        write_partitioned_file,
+                        output_path,
+                        partition_on,
+                        batch_label,
+                        meta=cudf.Series([True]),
+                    )
+                    written_files = written_files.compute()
                 update_restart_offsets(output_path, bucket_part_offset, end_text_offset)
                 del output_df
 
