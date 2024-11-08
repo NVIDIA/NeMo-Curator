@@ -129,9 +129,9 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
         df["score"] = df["question"].apply(lambda x: 1, meta=("score", "int"))
 
-        return DocumentDataset(
-            df[["_id", "text", "title", "question-id", "question", "answer", "score"]]
-        )
+        df = df.drop(["llm_response", "qa_pairs"], axis=1)
+
+        return DocumentDataset(df)
 
     # ----------------------------------------------------------------------------80
     def parse_response(self, llm_response: str) -> Any:

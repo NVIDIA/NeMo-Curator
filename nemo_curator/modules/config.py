@@ -215,7 +215,7 @@ class RetrieverEvalSDGConfig(BaseConfig):
     """
 
     # easiness filter parameters
-    easiness_filter: str = "nvidia/nv-embedqa-e5-v5"
+    easiness_filter: str = None
     easiness_url: Optional[str] = None
     easiness_api_key: Optional[str] = None
     truncate: str = "END"
@@ -223,7 +223,7 @@ class RetrieverEvalSDGConfig(BaseConfig):
     batch_size: Optional[int] = 1
 
     # answerability filter parameters
-    answerability_filter: str = "meta/llama3-70b-instruct"
+    answerability_filter: str = None
     answerability_url: Optional[str] = None
     answerability_api_key: Optional[str] = None
     num_criteria: int = 4

@@ -38,21 +38,29 @@ def get_pipeline(args: Any) -> Any:
             RetrieverEvalSetGenerator(cfg),
         ]
     )
-
-    filtering_pipeline = Sequential(
-        [
+    filters = []
+    if cfg.easiness_filter:
+        filters.append(
             ScoreFilter(
                 EasinessFilter(cfg),
                 text_field=["text", "question"],
                 score_field="easiness_scores",
-            ),
+            )
+        )
+    if cfg.answerability_filter:
+        filters.append(
             ScoreFilter(
                 AnswerabilityFilter(cfg),
                 text_field=["text", "question"],
                 score_field="answerability_scores",
-            ),
-        ]
-    )
+            )
+        )
+
+    if filters:
+        filtering_pipeline = Sequential(filters)
+    else:
+        filtering_pipeline = None
+
     return sdg_pipeline, filtering_pipeline
 
 
@@ -61,15 +69,21 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
     df = dataset.df
     df = df.compute()
     if filtered:
-        save_dir = os.path.join(args.output_dir, "filtered")
-        qrels_save_dir = os.path.join(args.output_dir, "filtered", "qrels")
-        corpus_save_path = os.path.join(args.output_dir, "filtered", "corpus.jsonl")
-        queries_save_path = os.path.join(args.output_dir, "filtered", "queries.jsonl")
+        save_dir = os.path.join(args.output_dir, "beir", "filtered")
+        qrels_save_dir = os.path.join(args.output_dir, "beir", "filtered", "qrels")
+        corpus_save_path = os.path.join(
+            args.output_dir, "beir", "filtered", "corpus.jsonl"
+        )
+        queries_save_path = os.path.join(
+            args.output_dir, "beir", "filtered", "queries.jsonl"
+        )
     else:
-        save_dir = os.path.join(args.output_dir, "all")
-        qrels_save_dir = os.path.join(args.output_dir, "all", "qrels")
-        corpus_save_path = os.path.join(args.output_dir, "all", "corpus.jsonl")
-        queries_save_path = os.path.join(args.output_dir, "all", "queries.jsonl")
+        save_dir = os.path.join(args.output_dir, "beir", "all")
+        qrels_save_dir = os.path.join(args.output_dir, "beir", "all", "qrels")
+        corpus_save_path = os.path.join(args.output_dir, "beir", "all", "corpus.jsonl")
+        queries_save_path = os.path.join(
+            args.output_dir, "beir", "all", "queries.jsonl"
+        )
 
     os.makedirs(save_dir)
     os.makedirs(qrels_save_dir)
@@ -79,7 +93,7 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
     ).to_json(queries_save_path, lines=True, orient="records")
 
     if filtered:
-        corpus_file_path = os.path.join(args.output_dir, "all", "corpus.jsonl")
+        corpus_file_path = os.path.join(args.output_dir, "beir", "all", "corpus.jsonl")
         if os.path.exists(corpus_file_path):
             shutil.copy(corpus_file_path, corpus_save_path)
         else:
@@ -139,7 +153,6 @@ def main():
 
     if args.input_format == "rawdoc" or "squad":
         input_dataset = DocumentDataset.read_json(args.input_file)
-        input_dataset = DocumentDataset(input_dataset.df.repartition(npartitions=2))
     else:
         raise ValueError("Error: Only rawdoc format supported")
 
@@ -150,6 +163,7 @@ def main():
         generated_dataset = sdg_pipeline(input_dataset)
         generated_dataset.persist()
     print("Writing all generated data to disk ...")
+    # saving in beir format
     write_to_beir(args, generated_dataset, filtered=False)
 
     print("Filtering data ...")
@@ -157,7 +171,13 @@ def main():
         filtered_dataset = filtering_pipeline(generated_dataset)
         filtered_dataset.persist()
     print("Writing filtered data to disk ...")
+    # saving in beir format
     write_to_beir(args, filtered_dataset, filtered=True)
+
+    # saving in jsonl format
+    generated_dataset.to_json(
+        os.path.join(args.output_dir, "jsonl", "all_generated_data.jsonl")
+    )
 
 
 if __name__ == "__main__":
