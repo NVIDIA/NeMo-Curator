@@ -19,11 +19,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from dask import dataframe as dd
-
-from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import DocumentFilter
-from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
-from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from tutorials.synthetic_retrieval_evaluation_customization.filters import (
     AnswerabilityFilter,
     EasinessFilter,
@@ -31,6 +26,11 @@ from tutorials.synthetic_retrieval_evaluation_customization.filters import (
 from tutorials.synthetic_retrieval_evaluation_customization.retriever_evalset_generator import (
     RetrieverEvalSetGenerator,
 )
+
+from nemo_curator.datasets import DocumentDataset
+from nemo_curator.filters import DocumentFilter
+from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
+from nemo_curator.modules.config import RetrieverEvalSDGConfig
 
 
 @pytest.fixture
