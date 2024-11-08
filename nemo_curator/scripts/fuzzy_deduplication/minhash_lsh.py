@@ -97,13 +97,13 @@ denoting the bucket IDs to which the document belongs.
         "--buckets-per-shuffle",
         type=int,
         required=True,
-        help="Number of buckets to shuffle per batch",
+        help="Number of buckets to shuffle per batch.",
     )
     parser.add_argument(
         "--input-minhash-field",
         type=str,
         default="_minhash_signature",
-        help="Name of the column containing minhashes",
+        help="Name of the column containing minhashes.",
     )
     parser.add_argument(
         "--num-bands",
@@ -116,7 +116,7 @@ denoting the bucket IDs to which the document belongs.
         type=str,
         required=True,
         help="Output directory where minhashes will be written. "
-        "Each file parquet file consiting of document and bucket IDs",
+        "Each Parquet file consists of document and bucket IDs.",
     )
 
     return parser

@@ -52,7 +52,7 @@ def main(args):
         input_meta=args.input_meta,
     )
     print(
-        "Graph creation for get_text_ddf_from_json_path_with_blocksize" " complete.",
+        "Graph creation for get_text_ddf_from_json_path_with_blocksize complete.",
         flush=True,
     )
     print(f"text_ddf.npartitions  = {text_ddf.npartitions}", flush=True)
@@ -78,7 +78,7 @@ def main(args):
 def attach_args():
     description = """
     Shuffles input text documents based on the given bucket
-    map. The output is a partitioned parquet dataset with the documents
+    map. The output is a partitioned Parquet dataset with the documents
     shuffled by buckets.
     """
     parser = argparse.ArgumentParser(
@@ -96,24 +96,24 @@ def attach_args():
         "--bucket-mapping-ddf-blocksize",
         type=int,
         default=256,
-        help="The block size for for anchor_docs_with_bk ddf in mb",
+        help="The block size for for anchor_docs_with_bk DataFrame in MB.",
     )
     parser.add_argument(
         "--bucket-parts-per-worker",
         default=8,
         type=int,
-        help="The number of bucket parts to process per worker per batch",
+        help="The number of bucket parts to process per worker per batch.",
     )
     parser.add_argument(
         "--input-bucket-mapping-dir",
         type=str,
-        help="The directory containing anchor docs with bk files",
+        help="The directory containing anchor_docs_with_bk files.",
     )
     parser.add_argument(
         "--parts-per-worker",
         default=1,
         type=int,
-        help="The number of parts to process per worker per batch",
+        help="The number of parts to process per worker per batch.",
     )
 
     return parser

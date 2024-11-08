@@ -109,8 +109,8 @@ def main(args):
 def attach_args():
     description = """
     Computes minhash signatures from an input directory of documents
-    contained within jsonl files. For each document a dataframe of document-ids
-    -minhash signatures is created. This dataframe is written to file after processing.
+    contained within JSONL files. For each document, a DataFrame of document IDs
+    and minhash signatures is created. This DataFrame is written to file after processing.
     """
     parser = argparse.ArgumentParser(
         description,
@@ -123,7 +123,7 @@ def attach_args():
     argumentHelper.add_arg_minhash_length()
     argumentHelper.add_arg_seed(
         help="Random seed used for intializing the hash "
-        "functions used to compute the MinHashes"
+        "functions used to compute the minhashes."
     )
     argumentHelper.add_arg_input_meta()
     parser.add_argument(
@@ -138,16 +138,16 @@ def attach_args():
         "--hash-bytes",
         type=int,
         default=4,
-        help="Number of bytes per computed minhash "
-        "(default is an unsigned 32-bit integer)",
+        help="Number of bytes per computed minhash. "
+        "Default is an unsigned 32-bit integer.",
     )
     parser.add_argument(
         "--output-minhash-dir",
         type=str,
         required=True,
         help="Output directory where minhashes will be written. "
-        "Each file is a parquet file that contains two series, the document ids, "
-        "and a series of lists, each list denoting the minhash signature for that document id.",
+        "Each file is a Parquet file that contains two series, the document IDs, "
+        "and a series of lists, each list denoting the minhash signature for that document ID.",
     )
 
     return parser

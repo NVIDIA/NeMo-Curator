@@ -116,13 +116,13 @@ def attach_args():
         default="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
         help="The AEGIS model to use. Can be nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0,"
         "nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0,"
-        " or a path to your own PEFT of LlamaGuard 2",
+        " or a path to your own PEFT of LlamaGuard 2.",
     )
     parser.add_argument(
         "--token",
         type=str,
         default=None,
-        help="HuggingFace token to use when downloading the base Llama Guard model",
+        help="Hugging Face token to use when downloading the base Llama Guard model.",
     )
 
     return parser

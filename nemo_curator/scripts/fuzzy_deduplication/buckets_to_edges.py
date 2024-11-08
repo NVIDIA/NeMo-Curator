@@ -41,18 +41,18 @@ def attach_args():
     parser.add_argument(
         "--input-bucket-dir",
         type=str,
-        help="The directory containing anchor docs with bk files",
+        help="The directory containing anchor_docs_with_bk files.",
     )
     parser.add_argument(
         "--input-bucket-field",
         type=str,
         default="_bucket_id",
-        help="Name of the column containing the bucket id",
+        help="Name of the column containing the bucket ID.",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
-        help="Output dir to write results",
+        help="Output directory to write results.",
     )
     return parser
 

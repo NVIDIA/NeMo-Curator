@@ -24,8 +24,8 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 def main(args):
     """
     Takes a dataset consisting of document pairs
-    and their corresponding jaccard similarity to compute connected
-    components of docuements across pairs to find similar docuemnt
+    and their corresponding Jaccard similarity scores to compute connected
+    components of documents across pairs, to find similar documents
     after applying a given threshold. The result is a dataset
     consisting of all documents that are similar (above the threshold)
     and the component they belong to.
@@ -62,19 +62,19 @@ def attach_args():
     parser.add_argument(
         "--cache-dir",
         type=str,
-        help="The cache directory to write intermediate results to",
+        help="The cache directory to write intermediate results to.",
     )
     parser.add_argument(
         "--jaccard-pairs-path",
         type=str,
-        help="The directory containing the jaccard results",
+        help="The directory containing the Jaccard results.",
     )
     parser.add_argument(
         "--jaccard-threshold",
         type=float,
         default=0.8,
-        help="Jaccard threshold below which we don't consider documents"
-        " to be duplicate",
+        help="Jaccard threshold below which we do not consider documents"
+        " to be duplicates.",
     )
 
     return parser

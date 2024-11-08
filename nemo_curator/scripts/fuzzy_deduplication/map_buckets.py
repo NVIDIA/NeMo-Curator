@@ -91,19 +91,19 @@ def attach_args():
     parser.add_argument(
         "--input-bucket-dir",
         type=str,
-        help="The directory containing bucket information files",
+        help="The directory containing bucket information files.",
     )
     parser.add_argument(
         "--input-bucket-field",
         type=str,
         default="_bucket_id",
-        help="Name of the column containing minhashes",
+        help="Name of the column containing minhashes.",
     )
     parser.add_argument(
         "--shuffle-type",
         type=str,
         default="tasks",
-        help="Type of shuffle to use before writing to parquet",
+        help="Type of shuffle to use before writing to Parquet.",
     )
 
     return parser

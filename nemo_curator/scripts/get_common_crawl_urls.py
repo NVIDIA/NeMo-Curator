@@ -36,13 +36,15 @@ def main(args):
 def attach_args(
     parser=argparse.ArgumentParser(
         """
-Pulls URLs of WARC files stored within the common crawl data repository
+Pulls URLs of WARC files stored within the Common Crawl data repository
 and writes them to file so that they can be used to subsequently
 download the WARC files.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
+    argumentHelper = ArgumentHelper(parser)
+    
     parser.add_argument(
         "--cc-data-domain-prefix",
         type=str,
