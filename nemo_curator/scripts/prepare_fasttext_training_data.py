@@ -84,8 +84,8 @@ with FastText.
         type=str,
         default="text",
         help="The input field within each JSON object on which the filter will "
-        "operate. By default, the filter will operate on the \"text\" "
-        "field, but other fields can be specified, such as \"url\" or \"id\".",
+        'operate. By default, the filter will operate on the "text" '
+        'field, but other fields can be specified, such as "url" or "id".',
     )
     parser.add_argument(
         "--label",
@@ -93,7 +93,7 @@ with FastText.
         default=None,
         required=True,
         help="The label to be used at the beginning of each sample "
-        "in the output file. For example, \"__label__hq\" could be "
+        'in the output file. For example, "__label__hq" could be '
         "used for the high-quality (positive) samples.",
     )
 

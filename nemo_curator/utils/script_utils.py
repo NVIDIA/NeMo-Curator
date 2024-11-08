@@ -87,7 +87,7 @@ class ArgumentHelper:
             "--device",
             type=str,
             default="gpu",
-            help="Device to run the script on. Either \"cpu\" or \"gpu\".",
+            help='Device to run the script on. Either "cpu" or "gpu".',
         )
 
     def add_arg_enable_spilling(self):
@@ -129,7 +129,7 @@ class ArgumentHelper:
         choices=None,
         required=False,
         help="File type of the dataset to be read in. Supported file formats "
-        "include \"jsonl\" (default), \"pickle\", or \"parquet\".",
+        'include "jsonl" (default), "pickle", or "parquet".',
     ):
         self.parser.add_argument(
             "--input-file-type",
@@ -192,7 +192,7 @@ class ArgumentHelper:
             "--id-column-type",
             type=str,
             default="int",
-            help="The datatype of the ID field, either \"int\" or \"str\".",
+            help='The datatype of the ID field, either "int" or "str".',
         )
 
     def add_arg_minhash_length(self):
@@ -208,7 +208,7 @@ class ArgumentHelper:
             "--nvlink-only",
             action="store_true",
             help="Start a local cluster with only NVLink enabled."
-            "Only applicable when protocol=\"ucx\" and no scheduler file or address is specified.",
+            'Only applicable when protocol="ucx" and no scheduler file or address is specified.',
         )
 
     def add_arg_output_data_dir(self, help: str):
@@ -233,7 +233,7 @@ class ArgumentHelper:
         self,
         choices=None,
         help="File type the dataset will be written to. Supported file formats "
-        "include \"jsonl\" (default), \"pickle\", or \"parquet\".",
+        'include "jsonl" (default), "pickle", or "parquet".',
     ):
         self.parser.add_argument(
             "--output-file-type",
@@ -363,7 +363,7 @@ class ArgumentHelper:
             "--device",
             type=str,
             default="cpu",
-            help="Device to run the script on. Either \"cpu\" or \"gpu\".",
+            help='Device to run the script on. Either "cpu" or "gpu".',
         )
         self.parser.add_argument(
             "--files-per-partition",
@@ -387,7 +387,7 @@ class ArgumentHelper:
             "--nvlink-only",
             action="store_true",
             help="Start a local cluster with only NVLink enabled. "
-            "Only applicable when protocol=\"ucx\" and no scheduler file or address is specified.",
+            'Only applicable when protocol="ucx" and no scheduler file or address is specified.',
         )
         self.parser.add_argument(
             "--protocol",

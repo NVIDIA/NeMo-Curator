@@ -140,7 +140,7 @@ such that it simply returns the pre-downloaded file.
         type=str,
         default=None,
         help="The directory to where data files will be written "
-        "in \"download-only\" mode. Specify this argument only when "
+        'in "download-only" mode. Specify this argument only when '
         "the --download-only flag is specified.",
     )
     parser.add_argument(

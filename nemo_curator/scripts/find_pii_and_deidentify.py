@@ -145,8 +145,8 @@ def attach_args(
         type=str,
         default="text",
         help="The input field within each JSONL or CSV object on which the PII redactor will "
-        "operate. By default, the redactor will operate on the \"text\" "
-        "field but other fields can be specified such as \"url\" or \"id\".",
+        'operate. By default, the redactor will operate on the "text" '
+        'field but other fields can be specified such as "url" or "id".',
     )
 
     return parser

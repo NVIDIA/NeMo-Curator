@@ -68,7 +68,7 @@ def main(args):
         backend = "cudf"
     else:
         raise ValueError(
-            f"Invalid device \"{args.device}\". Please specify either \"cpu\" or \"gpu\"."
+            f'Invalid device "{args.device}". Please specify either "cpu" or "gpu".'
         )
 
     # Make the output directories
@@ -243,7 +243,7 @@ def attach_args(
         default=False,
         help="Specifying this flag will cause the computed scores to be "
         "logged as additional keys for each document. This only applies to "
-        "filters with \"log_score: True\" in the config. This can aid in "
+        'filters with "log_score: True" in the config. This can aid in '
         "performing an interactive quality check of the documents.",
     )
     parser.add_argument(
@@ -254,7 +254,7 @@ def attach_args(
         "be written. For each filter, its score will be written to a separate "
         "file where each line of the file corresponds to the score computed "
         "for each document in the corpus within this directory. This only applies to "
-        "filters with \"log_score: True\" in the config. If this directory is not "
+        'filters with "log_score: True" in the config. If this directory is not '
         "specified, then filter scores will not be written.",
     )
     parser.add_argument(
