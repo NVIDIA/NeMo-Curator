@@ -14,8 +14,6 @@
 import os
 
 import pytest
-
-os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
@@ -49,7 +47,7 @@ def dedup_data():
 
 
 @pytest.mark.gpu
-class TestFuzzyDuplicates:
+class TestSemDuplicates:
     @pytest.fixture(autouse=True, scope="class")
     def gpu_client(self, request):
         with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
@@ -57,7 +55,7 @@ class TestFuzzyDuplicates:
             request.cls.cluster = cluster
             yield
 
-    def test_fuzzy_dedup(
+    def test_sem_dedup(
         self,
         dedup_data,
         tmpdir,
@@ -66,15 +64,17 @@ class TestFuzzyDuplicates:
         cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
         config = SemDedupConfig(
             cache_dir=cache_dir,
-            id_col_name="id",
-            id_col_type="int",
-            input_column="text",
             seed=42,
             n_clusters=3,
             eps_thresholds=[0.10],
             eps_to_extract=0.10,
         )
-        sem_duplicates = SemDedup(config=config)
+        sem_duplicates = SemDedup(
+            config=config,
+            input_column="text",
+            id_column="id",
+            id_column_type="int",
+        )
         result = sem_duplicates(dedup_data)
         result_df = result.df.compute()
         duplicate_docs = [2, 3, 4, 200, 300]

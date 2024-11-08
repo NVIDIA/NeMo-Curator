@@ -15,7 +15,6 @@
 import csv
 import warnings
 
-import numpy as np
 from bs4 import BeautifulSoup
 from comment_parser import comment_parser
 
@@ -94,7 +93,7 @@ class NumberOfLinesOfCodeFilter(DocumentFilter):
         self._name = "num_lines"
 
     def score_document(self, source):
-        return len(source.split("\n"))
+        return source.count("\n") + 1
 
     def keep_document(self, score):
         return self._min_lines <= score <= self._max_lines
@@ -263,7 +262,7 @@ class PerExtensionFilter(DocumentFilter):
     def _line_statistics(self, source):
         lengths = [len(x) for x in source.split("\n")]
         max_length = max(lengths)
-        mean_length = np.mean(lengths)
+        mean_length = (len(source) + 1) / len(lengths) - 1
 
         return max_length, mean_length
 

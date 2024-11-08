@@ -14,12 +14,13 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import os
 import time
 import warnings
-from datetime import datetime
-from typing import List, Tuple, Union
+from itertools import pairwise
+from typing import List, Optional, Tuple, Union
 
 import cudf
 import cugraph.dask as dcg
@@ -27,9 +28,10 @@ import cugraph.dask.comms.comms as Comms
 import cupy as cp
 import dask_cudf
 import numpy as np
+import pandas as pd
+import pyarrow as pa
 from cugraph import MultiGraph
 from dask import dataframe as dd
-from dask.dataframe.shuffle import shuffle as dd_shuffle
 from dask.utils import M
 from tqdm import tqdm
 
@@ -40,7 +42,7 @@ from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import (
     get_current_client,
     get_num_workers,
-    performance_report_if,
+    performance_report_if_with_ts_suffix,
 )
 from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import int_ids_to_str
 from nemo_curator.utils.fuzzy_dedup_utils.io_utils import (
@@ -93,7 +95,7 @@ class MinHash:
         profile_dir: str, Default None
           If specified directory to write dask profile
         cache_dir: str, Default None
-          If specified, will compute & write id,minhash pairs to directory
+          If specified, will compute & write id, minhash pairs to directory
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
@@ -175,13 +177,10 @@ class MinHash:
             warnings.warn(
                 f"Output path {write_path} already exists and will be overwritten"
             )
-        with performance_report_if(
-            self.profile_dir,
-            f"minhash-profile-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, "minhash-profile"):
             result.to_parquet(write_path, write_index=False, overwrite=True)
         self._logger.info(
-            f"Minhash signature computation for dataset took {time.time() - t0}s complete at {write_path}"  # noqa:E501
+            f"Time taken for Minhash signature computation = {time.time() - t0}s and output written at {write_path}"
         )
         return DocumentDataset(
             dask_cudf.read_parquet(write_path, blocksize="2GB", aggregate_files=True)
@@ -202,7 +201,7 @@ class LSH:
         logger: Union[logging.LoggerAdapter, str] = "./",
         id_fields: Union[str, list] = "id",
         minhash_field: str = "_minhash_signature",
-        profile_dir: str = None,
+        profile_dir: Optional[str] = None,
     ):
         """
         Parameters
@@ -372,12 +371,11 @@ class LSH:
 
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")
         t0 = time.time()
-        with performance_report_if(
-            self.profile_dir,
-            f"lsh-profile-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, f"lsh-profile"):
             self.lsh(write_path=write_path, df=df)
-        self._logger.info(f"Computing and writing buckets took {time.time() - t0} s")
+        self._logger.info(
+            f"Time taken for LSH = {time.time() - t0}s and output written at {write_path}"
+        )
 
         buckets_df = dask_cudf.read_parquet(write_path, split_row_groups=False)
         return DocumentDataset(buckets_df)
@@ -431,35 +429,49 @@ class FuzzyDuplicates:
             id_fields=[self.config.id_field],
             profile_dir=self.config.profile_dir,
         )
-        self.map_buckets = _MapBuckets(
-            id_fields=[self.config.id_field],
-            text_field=self.config.text_field,
-            logger=self._logger,
-            num_anchors=self.config.num_anchors,
-        )
-        self.jaccard_shuffle = _Shuffle(
-            id_fields=[self.config.id_field],
-            text_field=self.config.text_field,
-            logger=self._logger,
-            profile_dir=self.config.profile_dir,
-        )
-        self.jaccard_compute = JaccardSimilarity(
-            id_field=self.config.id_field,
-            text_field=self.config.text_field,
-            ngram_width=self.config.char_ngrams,
-            anchor_id_fields=[
-                f"anchor_{i}_{self.config.id_field}"
-                for i in range(self.config.num_anchors)
-            ],
+
+        if self.config.false_positive_check:
+            self.map_buckets = _MapBuckets(
+                id_fields=[self.config.id_field],
+                text_field=self.config.text_field,
+                logger=self._logger,
+                num_anchors=self.config.num_anchors,
+            )
+            self.jaccard_shuffle = _Shuffle(
+                id_fields=[self.config.id_field],
+                text_field=self.config.text_field,
+                logger=self._logger,
+                profile_dir=self.config.profile_dir,
+            )
+            self.jaccard_compute = JaccardSimilarity(
+                id_field=self.config.id_field,
+                text_field=self.config.text_field,
+                ngram_width=self.config.char_ngrams,
+                anchor_id_fields=[
+                    f"anchor_{i}_{self.config.id_field}"
+                    for i in range(self.config.num_anchors)
+                ],
+            )
+        else:
+            self.buckets_to_edges = BucketsToEdges(
+                cache_dir=self.config.cache_dir,
+                id_fields=self.config.id_field,
+                logger=self._logger,
+                profile_dir=self.config.profile_dir,
+            )
+
+        jaccard_pairs_fname = (
+            "jaccard_similarity_results.parquet"
+            if self.config.false_positive_check
+            else "_edges.parquet"
         )
         self.connected_components = ConnectedComponents(
             cache_dir=self.config.cache_dir,
-            jaccard_pairs_path=os.path.join(
-                self.config.cache_dir, "jaccard_similarity_results.parquet"
-            ),
+            jaccard_pairs_path=os.path.join(self.config.cache_dir, jaccard_pairs_fname),
             id_column=self.config.id_field,
-            convert_str_ids=False,
             jaccard_threshold=self.config.jaccard_threshold,
+            logger=self._logger,
+            profile_dir=self.config.profile_dir,
         )
 
     def __call__(self, dataset: DocumentDataset):
@@ -474,61 +486,229 @@ class FuzzyDuplicates:
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
+
         # Minhash + LSH
-        print("Stage1: Starting Minhash + LSH computation")
+        stage_num = 1
+        print(f"Stage{stage_num}: Starting Minhash + LSH computation")
         minhashLSH = Sequential([self.minhash, self.lsh])
         buckets_df = minhashLSH(dataset)
-        print("Stage1: Minhash + LSH complete!")
+        print(f"Stage{stage_num}: Minhash + LSH complete!")
+        stage_num += 1
 
-        # Map buckets to lower cardinality distribution
-        print("Stage2 (False Postive Check): Starting Map_Buckets")
-        ddf_mapped_buckets_w_anchors = self.map_buckets.map_buckets_with_anchors(
-            documents_df=dataset.df, buckets_df=buckets_df.df
-        )
-        mapped_buckets_w_anchors_path = os.path.join(
-            self.config.cache_dir, "anchor_docs_with_bk.parquet"
-        )
-        ddf_mapped_buckets_w_anchors.to_parquet(
-            mapped_buckets_w_anchors_path, write_index=False
-        )
-        print("Stage2 (False Postive Check): Map_Buckets Complete!")
+        if self.config.false_positive_check:
+            # Map buckets to lower cardinality distribution
+            print(f"Stage{stage_num} (False Positive Check): Starting Map_Buckets")
+            t0 = time.time()
+            mapped_buckets_w_anchors_path = os.path.join(
+                self.config.cache_dir, "anchor_docs_with_bk.parquet"
+            )
+            with performance_report_if_with_ts_suffix(
+                self.config.profile_dir,
+                f"map_buckets",
+            ):
+                ddf_mapped_buckets_w_anchors = (
+                    self.map_buckets.map_buckets_with_anchors(
+                        documents_df=dataset.df, buckets_df=buckets_df.df
+                    )
+                )
+                ddf_mapped_buckets_w_anchors.to_parquet(
+                    mapped_buckets_w_anchors_path, write_index=False, overwrite=True
+                )
+            self._logger.info(
+                f"Time taken for Map_buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
+            )
 
-        # Shuffle documents based on mapped buckets
-        print("Stage3 (False Postive Check): Shuffle docs")
-        shuffled_docs_path = os.path.join(
-            self.config.cache_dir, "shuffled_docs.parquet"
-        )
-        self.jaccard_shuffle.shuffle_docs_on_buckets(
-            documents_df=dataset.df,
-            bucket_w_anchors_path=mapped_buckets_w_anchors_path,
-            output_shuffled_docs_path=shuffled_docs_path,
-            bucket_mapping_df_blocksize=256,
-            parts_per_worker=1,
-            bucket_parts_per_worker=8,
-        )
-        print("Stage3 (False Postive Check): Shuffle docs complete!")
+            print(f"Stage{stage_num} (False Postive Check): Map_Buckets Complete!")
+            stage_num += 1
 
-        # jaccard comparision within buckets
-        print("Stage4 (False Postive Check): Jaccard Similarity in Buckets")
-        jaccard_pairs_path = os.path.join(
-            self.config.cache_dir, "jaccard_similarity_results.parquet"
-        )
-        jaccard_pairs_df = self.jaccard_compute.jaccard_compute(
-            shuffled_docs_path=shuffled_docs_path
-        )
-        jaccard_pairs_df.to_parquet(
-            jaccard_pairs_path,
-            write_index=False,
-            write_metadata_file=False,
-        )
-        print("Stage4 (False Postive Check): Jaccard Similarity in Buckets Complete!")
+            # Shuffle documents based on mapped buckets
+            print(f"Stage{stage_num} (False Postive Check): Shuffle docs")
+            shuffled_docs_path = os.path.join(
+                self.config.cache_dir, "shuffled_docs.parquet"
+            )
+            self.jaccard_shuffle.shuffle_docs_on_buckets(
+                documents_df=dataset.df,
+                bucket_w_anchors_path=mapped_buckets_w_anchors_path,
+                output_shuffled_docs_path=shuffled_docs_path,
+                bucket_mapping_df_blocksize=self.config.bucket_mapping_blocksize,
+                parts_per_worker=self.config.parts_per_worker,
+                bucket_parts_per_worker=self.config.bucket_parts_per_worker,
+            )
+            print(f"Stage{stage_num} (False Postive Check): Shuffle docs complete!")
+            stage_num += 1
+
+            # jaccard comparision within buckets
+            print(
+                f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets"
+            )
+            jaccard_pairs_path = os.path.join(
+                self.config.cache_dir, "jaccard_similarity_results.parquet"
+            )
+            t0 = time.time()
+            with performance_report_if_with_ts_suffix(
+                self.config.profile_dir,
+                "jaccard-similarity",
+            ):
+                jaccard_pairs_df = self.jaccard_compute.jaccard_compute(
+                    shuffled_docs_path=shuffled_docs_path
+                )
+                jaccard_pairs_df.to_parquet(
+                    jaccard_pairs_path,
+                    write_index=False,
+                    write_metadata_file=False,
+                    overwrite=True,
+                )
+                self._logger.info(
+                    f"Time taken for Jaccard Similarity = {time.time()-t0}s and output written at {jaccard_pairs_path}"
+                )
+
+            print(
+                f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets Complete!"
+            )
+            stage_num += 1
+
+        else:
+            # Map buckets to lower cardinality distribution
+            print(f"Stage{stage_num}: Starting LSH Buckets to Graph edgelist")
+            self.buckets_to_edges(buckets_df)
+            print(f"Stage{stage_num}: Starting LSH Buckets to Graph edgelist Complete!")
+            stage_num += 1
 
         # Connected components across buckets
-        print("Stage5: Connected Components across buckets")
+        print(f"Stage{stage_num}: Connected Components across buckets")
         cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
         self.connected_components.cc_workflow(cc_path)
-        print("Stage5: Connected Components across buckets complete!")
+        print(f"Stage{stage_num}: Connected Components across buckets complete!")
+        stage_num += 1
+
         return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
+
+
+class BucketsToEdges:
+    """
+    Maps buckets generated from LSH into an edgelist that
+    can be processed further by Connected Components to find duplicate
+    documents
+    """
+
+    def __init__(
+        self,
+        cache_dir: str = None,
+        id_fields: Union[list, str] = "id",
+        str_id_name: str = "id",
+        bucket_field: str = "_bucket_id",
+        logger: Union[logging.LoggerAdapter, str] = "./",
+        profile_dir: Optional[str] = None,
+    ):
+        """
+        Parameters
+        ----------
+        cache_dir: str or None
+          If specified, will compute & write the edgelist to a file
+        id_fields: list or str
+          id fields of documents in buckets_df
+        str_id_name: str
+          Ignored if there is a single id field. Multiple id fields
+          will be combined into a single id field with the given name.
+        bucket_field: str
+          Column denoting bucket ID
+        num_buckets: Number of bands/buckets to create from the minhash signature.
+          Hashes_per_signature = num_hashes / num_buckets
+        """
+        self.cache_dir = cache_dir
+        self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
+        self.str_id_name = str_id_name if len(self.id_fields) > 1 else self.id_fields[0]
+        self.output_ids = [f"{self.str_id_name}_x", f"{self.str_id_name}_y"]
+        self.bucket_field = bucket_field
+        self.profile_dir = profile_dir
+        if isinstance(logger, str):
+            self._logger = create_logger(
+                rank=0,
+                log_file=os.path.join(logger, "Buckets_to_Edges.log"),
+                name="Buckets_to_Edges",
+            )
+        else:
+            self._logger = logger
+
+    @staticmethod
+    def _combine_multiple_ids(
+        input_df: cudf.DataFrame, input_id_fields: list, output_id_field: str
+    ) -> cudf.DataFrame:
+        if output_id_field in input_df.columns:
+            raise ValueError(
+                f"Input df already contains column named: {output_id_field}"
+            )
+
+        output_df = input_df.copy()[input_df.columns.difference(input_id_fields)]
+
+        output_df[output_id_field] = input_df[input_id_fields[0]].astype(str)
+        for input_field in input_id_fields[1:]:
+            output_df[output_id_field] = output_df[output_id_field] = (
+                input_df[input_id_fields[0]].astype(str)
+                + "-"
+                + input_df[input_field].astype(str)
+            )
+
+        return output_df
+
+    def buckets_to_edges(
+        self,
+        buckets_df: cudf.DataFrame,
+    ) -> cudf.DataFrame:
+
+        grouped_buckets = (
+            buckets_df.groupby(self.bucket_field)[self.str_id_name]
+            .agg(list)
+            .list.sort_values()
+        )
+        bucket_docs = grouped_buckets.to_arrow().to_pylist()
+        edges = []
+        # Create pairs of all documents within a bucket since they are near duplicates
+        # Effectively create a edge list of all near duplicate documents
+        for bucket_doc in bucket_docs:
+            edges.extend(pairwise(bucket_doc))
+        edges = pd.DataFrame(edges, columns=self.output_ids)
+        edges = pa.Table.from_pandas(edges)
+        result_df = cudf.DataFrame.from_arrow(edges)
+        del edges
+        result_df = result_df.drop_duplicates(self.output_ids).reset_index(drop=True)
+        result_df["jaccard"] = np.float32(1.0)
+        return result_df
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        buckets_df = dataset.df
+        if len(self.id_fields) > 1:
+            buckets_df = buckets_df.map_partitions(
+                BucketsToEdges._combine_multiple_ids,
+                input_id_fields=self.id_fields,
+                output_id_field=self.str_id_name,
+            )
+
+        meta = [(output_id, str) for output_id in self.output_ids]
+        meta.append(("jaccard", np.float32))
+        edges_df = buckets_df.map_partitions(self.buckets_to_edges, meta=meta)
+
+        if self.cache_dir is None:
+            return DocumentDataset(edges_df)
+
+        write_path = os.path.join(self.cache_dir, "_edges.parquet")
+        if os.path.exists(write_path):
+            warnings.warn(
+                f"Output path {write_path} already exists and will be overwritten"
+            )
+        t0 = time.time()
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir,
+            "bucket-to-edges",
+        ):
+            edges_df.to_parquet(write_path, write_index=False, overwrite=True)
+        self._logger.info(
+            f"Time taken for Converted Buckets To Edgelist = {time.time() - t0}s and output written at {write_path}"
+        )
+
+        return DocumentDataset(
+            dask_cudf.read_parquet(write_path, split_row_groups=False)
+        )
 
 
 class _MapBuckets:
@@ -602,7 +782,7 @@ class _MapBuckets:
     ):
         # String bytes limit for cuDF
         # https://github.com/rapidsai/cudf/issues/13733
-        max_text_bytes_per_part = int(np.iinfo(np.int32).max // 1.2)
+        max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
 
         self._logger.info(f"max_text_bytes_per_part = {max_text_bytes_per_part}")
         # Increasing in an attempt to prevent hitting
@@ -766,8 +946,7 @@ class _MapBuckets:
             transform_divisions=False,
             align_dataframes=False,
         )
-        ddf_anchor_docs_with_bk = dd_shuffle(
-            ddf_anchor_docs_with_bk,
+        ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.shuffle(
             self.id_fields,
             ignore_index=True,
             shuffle_method=shuffle_type,
@@ -830,17 +1009,14 @@ class _Shuffle:
         parts_per_bucket_batch = num_workers * bucket_parts_per_worker
         self._logger.debug(f"parts_per_bucket_batch  = {parts_per_bucket_batch}")
 
-        dask_profile_name = "suffle_docs"
-        dask_profile_name = dask_profile_name + f"-parts_per_batch-{parts_per_batch}"
         dask_profile_name = (
-            dask_profile_name + f"-parts_per_bucket_batch-{parts_per_bucket_batch}"
-        )
-        dask_profile_name = (
-            dask_profile_name + f"-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+            "suffle_docs"
+            + f"-parts_per_batch-{parts_per_batch}"
+            + f"-parts_per_bucket_batch-{parts_per_bucket_batch}"
         )
         documents_df = documents_df[self.id_fields + [self.text_field]]
 
-        with performance_report_if(self.profile_dir, dask_profile_name):
+        with performance_report_if_with_ts_suffix(self.profile_dir, dask_profile_name):
             self._batched_merge_and_write(
                 left_df=documents_df,
                 right_df=ddf_anchor_docs_with_bk,
@@ -852,7 +1028,9 @@ class _Shuffle:
                 bk_mapping=bk_mapping,
                 num_workers=num_workers,
             )
-        self._logger.info(f"Writing+Shuffling data took = {time.time()-st} s")
+        self._logger.info(
+            f"Time taken for Shuffle = {time.time()-st}s and output written at {output_shuffled_docs_path}"
+        )
 
     def _batched_merge_and_write(
         self,
@@ -966,12 +1144,15 @@ class _Shuffle:
                 try:
                     # NOTE: If we have more text-df partitions than bucket-map
                     # partitions, we are more likely to see an OverflowError
+
+                    subset_merged_df = merge_left_to_shuffled_right(
+                        subset_text_df,
+                        subset_bucket_df,
+                        merge_on,
+                    )
+                    # Returns a dataframe or None (when the merge is empty)
                     output_df = text_bytes_aware_shuffle(
-                        df=merge_left_to_shuffled_right(
-                            subset_text_df,
-                            subset_bucket_df,
-                            merge_on,
-                        ),
+                        df=subset_merged_df,
                         partition_on=partition_on,
                         text_column=self.text_field,
                         num_workers=num_workers,
@@ -990,19 +1171,20 @@ class _Shuffle:
                     )
                     continue
 
-                if self.int_to_str_id is not None:
+                if self.int_to_str_id is not None and output_df is not None:
                     output_df = output_df.map_partitions(
                         int_ids_to_str, id_column=self.int_to_str_id
                     )
                 batch_label = f"{end_bucket_offset}_{end_text_offset}"
-                written_files = output_df.map_partitions(
-                    write_partitioned_file,
-                    output_path,
-                    partition_on,
-                    batch_label,
-                    meta=cudf.Series([True]),
-                )
-                written_files = written_files.compute()
+                if output_df is not None:
+                    written_files = output_df.map_partitions(
+                        write_partitioned_file,
+                        output_path,
+                        partition_on,
+                        batch_label,
+                        meta=cudf.Series([True]),
+                    )
+                    written_files = written_files.compute()
                 update_restart_offsets(output_path, bucket_part_offset, end_text_offset)
                 del output_df
 
@@ -1227,16 +1409,25 @@ class ConnectedComponents:
         cache_dir: str,
         jaccard_pairs_path: str,
         id_column="id",
-        convert_str_ids=False,
-        jaccard_threshold: int = 0.8,
+        jaccard_threshold: float = 0.8,
+        logger: Union[logging.LoggerAdapter, str] = "./",
+        profile_dir: Optional[str] = None,
     ):
         self.cache_dir = cache_dir
         self.jaccard_pairs_path = jaccard_pairs_path
         self.id_column = id_column
         self.left_id = f"{id_column}_x"
         self.right_id = f"{id_column}_y"
-        self.convert_str_ids = convert_str_ids
         self.jaccard_threshold = jaccard_threshold
+        self.profile_dir = profile_dir
+        if isinstance(logger, str):
+            self._logger = create_logger(
+                rank=0,
+                log_file=os.path.join(logger, "ConnectedComponents.log"),
+                name="ConnectedComponents",
+            )
+        else:
+            self._logger = logger
 
     def cc_workflow(self, output_path):
         deduped_parsed_id_path = self._write_dedup_parsed_id()
@@ -1257,49 +1448,61 @@ class ConnectedComponents:
         deduped_parsed_id_path,
         output_path,
     ):
-        Comms.initialize(p2p=True)
-        df = dask_cudf.read_parquet(
-            deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
-        )
-        df = df[df["jaccard"] == 1].reset_index(drop=True)
+        t0 = time.time()
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-run"
+        ):
 
-        labels_df = dask_cudf.read_parquet(deduped_parsed_id_path)
-        num_nodes = len(labels_df)
-        self_edge_df = labels_df[["uid"]].rename(columns={"uid": self.left_id})
-        self_edge_df[self.right_id] = self_edge_df[self.left_id]
+            Comms.initialize(p2p=False)
+            df = dask_cudf.read_parquet(
+                deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
+            )
+            df = df[df["jaccard"] == 1].reset_index(drop=True)
 
-        df = df[[self.left_id, self.right_id]].astype(np.int64)
-        df = dask_cudf.concat([df, self_edge_df])
+            labels_df = dask_cudf.read_parquet(deduped_parsed_id_path)
+            num_nodes = len(labels_df)
+            self_edge_df = labels_df[["uid"]].rename(columns={"uid": self.left_id})
+            self_edge_df[self.right_id] = self_edge_df[self.left_id]
 
-        G = MultiGraph(directed=False)
-        G.from_dask_cudf_edgelist(
-            df, source=self.left_id, destination=self.right_id, renumber=False
-        )
-        result = dcg.weakly_connected_components(G)
-        del G
-        max_partitions = min(32, result.npartitions)
-        n_components = len(result[["labels"]].drop_duplicates(split_out=max_partitions))
-        num_labels = len(result)
-        print("# of groups", n_components)
-        print("# of docs removed", num_labels - n_components)
-        labels_df = labels_df.merge(
-            result, left_on=["uid"], right_on=["vertex"], how="inner"
-        )
-        id_columns = (
-            ["dataset_id", "doc_id"] if self.convert_str_ids else [self.id_column]
-        )
-        labels_df = labels_df[id_columns + ["labels"]]
-        labels_df = labels_df.rename(columns={"labels": "group"})
-        labels_df = labels_df.persist()
-        # Doing an inner merge above
-        # should not change any rows
+            df = df[[self.left_id, self.right_id]].astype(np.int64)
+            df = dask_cudf.concat([df, self_edge_df])
 
-        assert num_nodes == len(labels_df)
-        print(f"assert num_nodes:{num_nodes}==labels_df:{len(labels_df)} passed")
-        # Ensure all docs in the same group are in the same partition
-        labels_df = labels_df.shuffle(on=["group"], ignore_index=True)
-        labels_df.to_parquet(output_path, write_index=False)
-        Comms.destroy()
+            G = MultiGraph(directed=False)
+            G.from_dask_cudf_edgelist(
+                df, source=self.left_id, destination=self.right_id, renumber=False
+            )
+            result = dcg.weakly_connected_components(G)
+            del G
+            max_partitions = min(32, result.npartitions)
+            n_components = len(
+                result[["labels"]].drop_duplicates(split_out=max_partitions)
+            )
+            num_labels = len(result)
+            labels_df = labels_df.merge(
+                result, left_on=["uid"], right_on=["vertex"], how="inner"
+            )
+            id_columns = [self.id_column]
+            labels_df = labels_df[id_columns + ["labels"]]
+            labels_df = labels_df.rename(columns={"labels": "group"})
+            labels_df = labels_df.persist()
+            # Doing an inner merge above
+            # should not change any rows
+
+            self._logger.info(
+                "Result of connected compoinents are "
+                f"# of groups : {n_components}, "
+                f"# of docs removed : {num_labels - n_components}, "
+                f"# nodes = {num_nodes}, "
+                f"# rows in labels_df = {len(labels_df)}"
+            )
+            assert num_nodes == len(labels_df)
+            # Ensure all docs in the same group are in the same partition
+            labels_df = labels_df.shuffle(on=["group"], ignore_index=True)
+            labels_df.to_parquet(output_path, write_index=False, overwrite=True)
+            Comms.destroy()
+        self._logger.info(
+            f"Time taken for Connected Components Run = {time.time() - t0}s and output written at {output_path}"
+        )
 
     @staticmethod
     def _sort_ids(df, id_columns):
@@ -1319,155 +1522,141 @@ class ConnectedComponents:
 
     def _write_dedup_encoded_jaccard_pair(self, encoded_jaccard_pair_path):
         output_path = f"{self.cache_dir}/final_dedup_encoded_jaccard_pair.parquet"
+        t0 = time.time()
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-dedup-encoded-jaccard-pair"
+        ):
 
-        ddf = dask_cudf.read_parquet(
-            encoded_jaccard_pair_path, blocksize="512MB", aggregate_files=True
-        )
-        meta = {self.left_id: "uint64", self.right_id: "uint64", "jaccard": "float32"}
-        ddf = ddf.map_partitions(
-            ConnectedComponents._sort_ids,
-            id_columns=[self.left_id, self.right_id],
-            meta=meta,
-        )
-        ddf = ddf.map_partitions(
-            ConnectedComponents.thresholding,
-            threshold=self.jaccard_threshold,
-            column_to_threshold="jaccard",
-            meta=meta,
-        )
-        ddf = ddf.map_partitions(
-            M.drop_duplicates,
-            meta=ddf._meta,
-            enforce_metadata=False,
-            transform_divisions=False,
-            align_dataframes=False,
-        )
+            ddf = dask_cudf.read_parquet(
+                encoded_jaccard_pair_path, blocksize="512MB", aggregate_files=True
+            )
+            meta = {
+                self.left_id: "uint64",
+                self.right_id: "uint64",
+                "jaccard": "float32",
+            }
+            ddf = ddf.map_partitions(
+                ConnectedComponents._sort_ids,
+                id_columns=[self.left_id, self.right_id],
+                meta=meta,
+            )
+            ddf = ddf.map_partitions(
+                ConnectedComponents.thresholding,
+                threshold=self.jaccard_threshold,
+                column_to_threshold="jaccard",
+                meta=meta,
+            )
+            ddf = ddf.map_partitions(
+                M.drop_duplicates,
+                meta=ddf._meta,
+                enforce_metadata=False,
+                transform_divisions=False,
+                align_dataframes=False,
+            )
 
-        ddf = dd_shuffle(
-            ddf,
-            [self.left_id, self.right_id],
-            ignore_index=True,
-            shuffle_method="tasks",
+            ddf = ddf.shuffle(
+                [self.left_id, self.right_id],
+                ignore_index=True,
+                shuffle_method="tasks",
+            )
+            ddf = ddf.map_partitions(
+                M.drop_duplicates,
+                meta=ddf._meta,
+                enforce_metadata=False,
+                transform_divisions=False,
+                align_dataframes=False,
+            )
+            ddf.to_parquet(output_path, write_index=False, overwrite=True)
+        self._logger.info(
+            f"Time taken for Dedup Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
         )
-        ddf = ddf.map_partitions(
-            M.drop_duplicates,
-            meta=ddf._meta,
-            enforce_metadata=False,
-            transform_divisions=False,
-            align_dataframes=False,
-        )
-        ddf.to_parquet(output_path, write_index=False)
         return output_path
-
-    def _convert_str_id_pair_to_int(self, df):
-        for id, tag in zip([self.left_id, self.right_id], ["x", "y"]):
-            dx = df[id].str.rsplit("-", n=1, expand=True)
-            df[f"dataset_id_{tag}"] = dx[0].astype("uint32").values
-            df[f"doc_id_{tag}"] = dx[1].astype("int64").values
-            df = df.drop(columns=[id])
-        return df
 
     def _write_dedup_parsed_id(self):
         dedup_parsed_id_path = f"{self.cache_dir}/dedup_parsed_id.parquet"
-        ddf = dask_cudf.read_parquet(
-            self.jaccard_pairs_path,
-            columns=[self.left_id, self.right_id],
-            blocksize="1GB",
-            aggregate_files=True,
-        )
-
-        id_columns = [self.id_column]
-        if self.convert_str_ids:
-            ddf = ddf.map_partitions(
-                self._convert_str_id_pair_to_int,
-                meta={
-                    "dataset_id_x": "uint32",
-                    "doc_id_x": "int64",
-                    "dataset_id_y": "uint32",
-                    "doc_id_y": "int64",
-                },
+        t0 = time.time()
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-dedup-parsed-id"
+        ):
+            ddf = dask_cudf.read_parquet(
+                self.jaccard_pairs_path,
+                columns=[self.left_id, self.right_id],
+                blocksize="512MB",
+                aggregate_files=True,
             )
-            id_columns = ["dataset_id", "doc_id"]
-
-        unique_docs = ddf.map_partitions(
-            ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
+            id_columns = [self.id_column]
+            unique_docs = ddf.map_partitions(
+                ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
+            )
+            unique_docs = unique_docs.drop_duplicates(
+                # Dask does not guard against split_out=0
+                split_out=max(ddf.npartitions // 4, 1)
+            )
+            unique_docs["uid"] = np.uint64(1)
+            unique_docs["uid"] = unique_docs["uid"].cumsum()
+            unique_docs["uid"] = unique_docs["uid"] - 1
+            unique_docs.to_parquet(
+                dedup_parsed_id_path, write_index=False, overwrite=True
+            )
+        self._logger.info(
+            f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
-        unique_docs = unique_docs.drop_duplicates(split_out=ddf.npartitions // 4)
-        unique_docs["uid"] = np.uint64(1)
-        unique_docs["uid"] = unique_docs["uid"].cumsum()
-        unique_docs["uid"] = unique_docs["uid"] - 1
-        unique_docs.to_parquet(dedup_parsed_id_path, write_index=False)
         return dedup_parsed_id_path
 
     def _write_encoded_jaccard_pair(self, dedup_parsed_id_path):
         output_path = f"{self.cache_dir}/encoded_jaccard_pair/"
-        ddf_id = dask_cudf.read_parquet(
-            dedup_parsed_id_path, blocksize="2GB", aggregate_files=True
-        )
-        ddf_id = ddf_id.persist()
-        len(ddf_id)
-        ddf = dask_cudf.read_parquet(
-            self.jaccard_pairs_path,
-            blocksize="256MB",
-            aggregate_files=True,
-        )
-        id_columns = [self.id_column]
-        if self.convert_str_ids:
-            ddf = ddf.map_partitions(
-                self._convert_str_id_pair_to_int,
-                meta={
-                    "jaccard": "float32",
-                    "dataset_id_x": "uint32",
-                    "doc_id_x": "int64",
-                    "dataset_id_y": "uint32",
-                    "doc_id_y": "int64",
-                },
+        t0 = time.time()
+        with performance_report_if_with_ts_suffix(
+            self.profile_dir, "connected-components-encoded-jaccard-pair"
+        ):
+            ddf_id = dask_cudf.read_parquet(
+                dedup_parsed_id_path, blocksize="2GB", aggregate_files=True
             )
-            id_columns = ["dataset_id", "doc_id"]
-
-        num_workers = get_num_workers(get_current_client())
-        self._batched_merge_and_write(
-            ddf=ddf,
-            ddf_id=ddf_id,
-            output_path=output_path,
-            id_columns=id_columns,
-            batch_size=num_workers,
+            ddf = dask_cudf.read_parquet(
+                self.jaccard_pairs_path,
+                blocksize="1GB",
+                aggregate_files=True,
+            )
+            self._merge_and_write(
+                ddf=ddf,
+                ddf_id=ddf_id,
+                output_path=output_path,
+                id_column=self.id_column,
+            )
+        self._logger.info(
+            f"Time taken for Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
         )
         return output_path
 
-    def _batched_merge_and_write(
-        self, ddf, ddf_id, output_path, id_columns, batch_size=32
-    ):
-        total_batches = (ddf.npartitions + batch_size - 1) // batch_size
-        for batch_id, offset in enumerate(range(0, ddf.npartitions, batch_size)):
-            st = time.time()
-            subset_ddf = ddf.partitions[offset : offset + batch_size]
-            for tag in ["x", "y"]:
-                pair_ids = []
-                for id_col in id_columns:
-                    pair_ids.append(f"{id_col}_{tag}")
-                subset_ddf = subset_ddf.merge(
-                    ddf_id,
-                    left_on=pair_ids,
-                    right_on=id_columns,
-                    how="inner",
-                    broadcast=True,
-                )
-                subset_ddf = subset_ddf.drop(
-                    columns=pair_ids,
-                )
-                subset_ddf = subset_ddf.rename(
-                    columns={"uid": f"{self.id_column}_{tag}"}
-                )
-
-            subset_ddf = subset_ddf[[self.left_id, self.right_id, "jaccard"]]
-            output_batch_path = os.path.join(output_path, f"{batch_id}.parquet")
-            subset_ddf.to_parquet(output_batch_path, write_index=False)
-
-            et = time.time()
-            print(
-                f"batch_id = {batch_id}/{total_batches}, time = {et - st}", flush=True
+    def _merge_and_write(
+        self,
+        ddf: dask_cudf.DataFrame,
+        ddf_id: dask_cudf.DataFrame,
+        output_path: str,
+        id_column: str,
+    ) -> None:
+        st = time.time()
+        # Ensure 'id_columns' is a list
+        ddf_id = ddf_id.set_index(id_column)
+        for tag in ["x", "y"]:
+            pair_id = f"{id_column}_{tag}"
+            # Merge 'ddf' with 'ddf_id' to map ids to uids
+            ddf = ddf.merge(
+                ddf_id,
+                left_on=pair_id,
+                right_index=True,
+                how="inner",
+                broadcast=True,
             )
+            ddf = ddf.drop(columns=pair_id)
+            ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+        ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
+        ddf.to_parquet(output_path, write_index=False, overwrite=True)
+
+        et = time.time()
+        self._logger.info(
+            f"Time taken for merge and write = {et - st}s and output written at {output_path}"
+        )
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
@@ -1477,11 +1666,11 @@ class ConnectedComponents:
             for id_col in id_columns:
                 cols_to_drop.append(f"{id_col}_{tag}")
 
-            subset_df = df[cols_to_drop].drop_duplicates()
+            subset_df = df[cols_to_drop].drop_duplicates(ignore_index=True)
             subset_df = subset_df.rename(
                 columns={f"{id_col}_{tag}": f"{id_col}" for id_col in id_columns}
             )
             unique_df_ls.append(subset_df)
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)
-        unique_df = unique_df.drop_duplicates()
+        unique_df = unique_df.drop_duplicates(ignore_index=True)
         return unique_df

@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import json
 import os
 import pathlib
 from functools import partial, reduce
+from typing import List, Optional, Union
 
 import dask.bag as db
 import dask.dataframe as dd
@@ -23,7 +25,14 @@ import numpy as np
 import pandas as pd
 from dask import delayed
 
-from nemo_curator.utils.distributed_utils import single_partition_write_with_filename
+from nemo_curator.utils.distributed_utils import (
+    read_data,
+    single_partition_write_with_filename,
+)
+
+NEMO_CURATOR_HOME = os.environ.get(
+    "NEMO_CURATOR_HOME", os.path.join(os.path.expanduser("~"), ".nemo_curator")
+)
 
 
 def mkdir(d):
@@ -64,7 +73,11 @@ def get_all_files_paths_under(root, recurse_subdirectories=True, followlinks=Fal
 # writing a file we can use the offset counter approach
 # in jaccard shuffle as a more robust way to restart jobs
 def get_remaining_files(
-    input_file_path, output_file_path, input_file_type, num_files=-1
+    input_file_path: str,
+    output_file_path: str,
+    input_file_type: str,
+    output_file_type: Optional[str] = None,
+    num_files: int = -1,
 ):
     """
     This function returns a list of the files that still remain to be read.
@@ -73,6 +86,7 @@ def get_remaining_files(
         input_file_path: The path of the input files.
         output_file_path: The path of the output files.
         input_file_type: The type of the input files.
+        output_file_type: The type of the output files.
         num_files: The max number of files to be returned. If -1, all files are returned.
     Returns:
         A list of files that still remain to be read.
@@ -87,12 +101,14 @@ def get_remaining_files(
         os.path.basename(entry.path) for entry in os.scandir(output_file_path)
     ]
     completed_files = set(completed_files)
+
     input_files = [
         entry.path
         for entry in os.scandir(input_file_path)
-        if os.path.basename(entry.path) not in completed_files
+        if os.path.basename(entry.path)
+        not in _update_filetype(completed_files, output_file_type, input_file_type)
     ]
-    # Gaurd against non extension files if present in the input directory
+    # Guard against non extension files if present in the input directory
     input_files = [f for f in input_files if f.endswith(input_file_type)]
     input_files.sort()
 
@@ -101,8 +117,32 @@ def get_remaining_files(
         left_to_sample = max(num_files - len_written_files, 0)
     else:
         left_to_sample = len(input_files)
+
     input_files = input_files[:left_to_sample]
     return input_files
+
+
+def _update_filetype(file_set, old_file_type, new_file_type):
+    if old_file_type is None or new_file_type is None:
+        return file_set
+
+    if not old_file_type.startswith("."):
+        old_file_type = "." + old_file_type
+    if not new_file_type.startswith("."):
+        new_file_type = "." + new_file_type
+
+    if old_file_type == new_file_type:
+        return file_set
+
+    updated_file_set = {
+        (
+            f"{os.path.splitext(file)[0]}{new_file_type}"
+            if file.endswith(old_file_type)
+            else file
+        )
+        for file in file_set
+    }
+    return updated_file_set
 
 
 def get_batched_files(
@@ -127,13 +167,26 @@ def get_batched_files(
 
 
 def write_dataframe_by_meta(
-    df: pd.DataFrame, output_dir, metadata_field, remove_metadata, output_type
+    df: pd.DataFrame,
+    output_dir: str,
+    metadata_field: str,
+    remove_metadata: bool = False,
+    output_type: str = "jsonl",
+    include_values: List[str] = None,
+    exclude_values: List[str] = None,
 ):
     counts = df[metadata_field].value_counts().to_dict()
+
+    # Apply include_values or value_exclesion_filter if provided
+    if include_values is not None and include_values:
+        counts = {k: v for k, v in counts.items() if k in include_values}
+    elif exclude_values is not None and exclude_values:
+        counts = {k: v for k, v in counts.items() if k not in exclude_values}
 
     for meta_value in counts:
         meta_output_dir = expand_outdir_and_mkdir(os.path.join(output_dir, meta_value))
         meta_slice = df[df[metadata_field] == meta_value]
+
         if remove_metadata:
             meta_slice = meta_slice.drop(columns=[metadata_field])
         single_partition_write_with_filename(
@@ -150,35 +203,130 @@ def merge_counts(first: dict, second: dict):
     return first
 
 
+def write_record(
+    input_dir: str,
+    file_name: str,
+    line: str,
+    field: str,
+    output_dir: str,
+    include_values: List[str] = None,
+    exclude_values: List[str] = None,
+):
+    try:
+        # Parse the JSON-encoded string 'line' into a Python dictionary
+        line = json.loads(line)
+
+        # Select category value
+        category = line[field]
+
+        if (exclude_values and category in exclude_values) or (
+            include_values and category not in include_values
+        ):
+            return None
+
+        # Obtain the relative path
+        rel_path, file_name = os.path.split(
+            os.path.relpath(file_name, start=os.path.abspath(input_dir))
+        )
+
+        output_dir = os.path.join(output_dir, category, rel_path)
+        os.makedirs(output_dir, exist_ok=True)
+        with open(f"{output_dir}/{file_name}", "a") as f:
+            f.write(json.dumps(line) + "\n")
+
+        return category
+    except (KeyError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def separate_by_metadata(
-    df: dd.DataFrame,
-    output_dir,
-    metadata_field,
-    remove_metadata=False,
-    output_type="jsonl",
+    input_data: Union[dd.DataFrame, str],
+    output_dir: str,
+    metadata_field: str,
+    remove_metadata: bool = False,
+    output_type: str = "jsonl",
+    input_type: str = "jsonl",
+    include_values: List[str] = None,
+    exclude_values: List[str] = None,
 ) -> dict:
     """
     Saves the dataframe to subfolders named after a metadata
 
     Args:
-        df: The dataframe to write. Must have a filename column for the shard.
+        input_data: Either a DataFrame or a string representing the path to the input directory.
+            If a DataFrame is provided, it must have a 'filename' column for the shard.
         output_dir: The base directory for which all metadata based subdirs will be created under
         metadata_field: The metadata field to split on
         remove_metadata: Whether to remove the metadata from the dataframe when saving it
+        output_type: File type the dataset will be written to. Supported file formats include 'jsonl' (default),
+            'pickle', or 'parquet'. (default: jsonl)
+        include_values: A list of strings representing specific values to be selected or included.
+            If provided, only the items matching these values should be kept.
+        exclude_values: A list of strings representing specific values to be excluded or ignored.
+            If provided, any items matching these values should be skipped.
+
 
     Returns:
         A delayed dictionary mapping each metadata to the count of entries with that metadata value.
     """
-    delayed_data = df.to_delayed()
+
+    if include_values is not None and exclude_values is not None:
+        print("Error: 'include_values' and 'exclude_values' are mutually exclusive.")
+
+        return
+
+    # Create output_dir if needed
+    if output_dir:
+        output_dir = expand_outdir_and_mkdir(output_dir)
+
+    if isinstance(input_data, str):
+        print(f"Reading {input_type} files from {input_data}", flush=True)
+
+        if input_type in ["json", "jsonl"] and output_type in ["json", "jsonl"]:
+            # Read JSONL files with streaming (line-by-line), and include file path
+            bag = db.read_text(
+                os.path.join(input_data, "**", f"*.{input_type}"),
+                include_path=True,
+            )
+
+            # Parse JSON lines and retain the file path
+            bag = bag.map(
+                lambda x: write_record(
+                    input_dir=input_data,
+                    file_name=x[1],
+                    line=x[0],
+                    field=metadata_field,
+                    output_dir=output_dir,
+                    include_values=include_values,
+                    exclude_values=exclude_values,
+                )
+            )
+
+            frequencies = dict(bag.frequencies().compute())
+            frequencies.pop(None, None)  # Remove None when applying filters
+
+            return delayed(reduce)(merge_counts, [frequencies])
+        else:
+            input_data = read_data(
+                get_all_files_paths_under(input_data),
+                file_type=input_type,
+                backend="pandas",
+                add_filename=True,
+            )
     delayed_counts = [
         delayed(write_dataframe_by_meta)(
-            partition, output_dir, metadata_field, remove_metadata, output_type
+            partition,
+            output_dir,
+            metadata_field,
+            remove_metadata,
+            output_type,
+            include_values,
+            exclude_values,
         )
-        for partition in delayed_data
+        for partition in input_data.to_delayed()
     ]
-    merged_counts = delayed(reduce)(merge_counts, delayed_counts)
 
-    return merged_counts
+    return delayed(reduce)(merge_counts, delayed_counts)
 
 
 def parse_str_of_num_bytes(s, return_str=False):

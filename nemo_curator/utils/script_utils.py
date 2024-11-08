@@ -14,6 +14,8 @@
 import argparse
 import os
 
+import psutil
+
 
 class ArgumentHelper:
     """
@@ -155,6 +157,23 @@ class ArgumentHelper:
             "file that contains the text.",
         )
 
+    def add_arg_id_column(self):
+        self.parser.add_argument(
+            "--id-column",
+            type=str,
+            default="id",
+            help="The name of the field within each datapoint object of the input "
+            "file that contains the ID.",
+        )
+
+    def add_arg_id_column_type(self):
+        self.parser.add_argument(
+            "--id-column-type",
+            type=str,
+            default="int",
+            help='The datatype of the ID field, either "int" or "str".',
+        )
+
     def add_arg_minhash_length(self):
         self.parser.add_argument(
             "--minhash-length",
@@ -289,12 +308,29 @@ class ArgumentHelper:
             required=False,
         )
 
-    def add_arg_autocaset(self, help="Whether to use autocast or not"):
+    def add_arg_max_mem_gb_classifier(self):
+        self.parser.add_argument(
+            "--max-mem-gb-classifier",
+            default=None,
+            type=int,
+            help="Specify the maximum GPU memory (in GB) for the classifier. "
+            "Defaults to using the total GPU memory minus 4 GB if not specified.",
+        )
+
+    def add_arg_autocast(self, help="Whether to use autocast or not"):
         ArgumentHelper.attach_bool_arg(
             parser=self.parser,
             flag_name="autocast",
             default=True,
             help=help,
+        )
+
+    def add_arg_max_chars(self, default=2000):
+        self.parser.add_argument(
+            "--max-chars",
+            type=int,
+            default=default,
+            help="Truncates all documents in the dataset to this number of characters before running model inference on them",
         )
 
     def add_distributed_args(self) -> argparse.ArgumentParser:
@@ -372,6 +408,25 @@ class ArgumentHelper:
 
         return self.parser
 
+    def set_default_n_workers(self, max_mem_gb_per_worker: float):
+        """
+        Sets the default --n-workers for a script to maximize parallelization while
+        ensuring we don't trigger an out of memory error. Like --n-workers, this
+        only applies when running the script locally.
+
+        Args:
+            max_mem_per_worker (float): The maximum memory that each worker usually achieves for a script
+                in units of gigabytes. It can be determined by watching the Dask dashboard. This value may
+                change based on the size of each shard, so use a jsonl shard size of about 100 MB.
+        """
+        cpu_worker_limit = os.cpu_count()
+
+        memory_gb = psutil.virtual_memory().total / (1024**3)
+        mem_worker_limit = memory_gb // max_mem_gb_per_worker
+
+        n_workers = min(cpu_worker_limit, mem_worker_limit)
+        self.parser.set_defaults(n_workers=n_workers)
+
     @staticmethod
     def parse_client_args(args: argparse.Namespace):
         """
@@ -399,6 +454,7 @@ class ArgumentHelper:
     @staticmethod
     def parse_distributed_classifier_args(
         description="Default distributed classifier argument parser",
+        max_chars_default=2000,
     ) -> argparse.ArgumentParser:
         """
         Adds default set of arguments that are common to multiple stages
@@ -409,29 +465,38 @@ class ArgumentHelper:
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
         argumentHelper = ArgumentHelper(parser)
-        argumentHelper.add_distributed_args()
+        argumentHelper.add_distributed_classifier_cluster_args()
         argumentHelper.add_arg_input_data_dir(required=True)
         argumentHelper.add_arg_output_data_dir(help="The path of the output files")
         argumentHelper.add_arg_input_file_type()
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_output_file_type()
         argumentHelper.add_arg_input_text_field()
-        argumentHelper.add_arg_enable_spilling()
-        argumentHelper.add_arg_set_torch_to_use_rmm()
         argumentHelper.add_arg_batch_size(
             help="The batch size to be used for inference"
         )
         argumentHelper.add_arg_model_path()
-        argumentHelper.add_arg_autocaset()
+        argumentHelper.add_arg_autocast()
+        argumentHelper.add_arg_max_chars(default=max_chars_default)
+
+        return argumentHelper.parser
+
+    def add_distributed_classifier_cluster_args(self):
+        """
+        Adds Dask cluster args needed for the distributed data classifiers
+        """
+        self.add_distributed_args()
+        self.add_arg_enable_spilling()
+        self.add_arg_set_torch_to_use_rmm()
+        self.add_arg_max_mem_gb_classifier()
 
         # Set low default RMM pool size for classifier
         # to allow pytorch to grow its memory usage
         # by default
-        argumentHelper.parser.set_defaults(rmm_pool_size="512MB")
+        self.parser.set_defaults(rmm_pool_size="512MB")
         # Setting to False makes it more stable for long running jobs
         # possibly because of memory fragmentation
-        argumentHelper.parser.set_defaults(set_torch_to_use_rmm=False)
-        return argumentHelper.parser
+        self.parser.set_defaults(set_torch_to_use_rmm=False)
 
     @staticmethod
     def parse_gpu_dedup_args(description: str) -> argparse.ArgumentParser:
@@ -470,11 +535,11 @@ class ArgumentHelper:
         argumentHelper.parser.add_argument(
             "--input-json-id-field",
             type=str,
-            default="adlr_id",
+            required=True,
             help="The name of the field within each json object of the jsonl "
             "file that assigns a unqiue ID to each document. "
             "Can be created by running the script "
-            "'./prospector/add_id.py' which adds the field 'adlr_id' "
+            "'../scripts/add_id.py' which adds the field "
             "to the documents in a distributed fashion",
         )
         argumentHelper.parser.add_argument(
@@ -494,7 +559,6 @@ class ArgumentHelper:
 
     @staticmethod
     def parse_semdedup_args(
-        add_input_args=False,
         description="Default argument parser for semantic deduplication",
     ) -> argparse.ArgumentParser:
         """
@@ -507,11 +571,13 @@ class ArgumentHelper:
         )
         argumentHelper = ArgumentHelper(parser)
         argumentHelper.add_distributed_args()
-        if add_input_args:
-            argumentHelper.add_arg_input_data_dir(required=True)
-            argumentHelper.add_arg_input_file_extension()
-            argumentHelper.add_arg_input_file_type()
-            argumentHelper.add_arg_input_text_field()
+
+        argumentHelper.add_arg_input_data_dir()
+        argumentHelper.add_arg_input_file_extension()
+        argumentHelper.add_arg_input_file_type()
+        argumentHelper.add_arg_input_text_field()
+        argumentHelper.add_arg_id_column()
+        argumentHelper.add_arg_id_column_type()
 
         argumentHelper.parser.add_argument(
             "--config-file",
@@ -525,4 +591,5 @@ class ArgumentHelper:
         parser.set_defaults(rmm_pool_size="512MB")
         parser.set_defaults(device="gpu")
         parser.set_defaults(set_torch_to_use_rmm=False)
+
         return parser

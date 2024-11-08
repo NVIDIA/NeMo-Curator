@@ -430,6 +430,30 @@ class TestHeuristicFilters:
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
 
+    def test_wordcount_zh(self):
+        dataset = list_to_dataset(["", "你好。", "我喜欢学习中文。"])
+        filters = ScoreFilter(WordCountFilter(min_words=2, max_words=5, lang="zh"))
+        filtered_data = filters(dataset)
+
+        expected_indices = [1, 2]
+        expected_data = DocumentDataset(dataset.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
+    def test_wordcount_ja(self):
+        dataset = list_to_dataset(
+            ["", "猫が寝ます。", "私は日本語のテキストを分割します。"]
+        )
+        filters = ScoreFilter(WordCountFilter(min_words=5, max_words=11, lang="ja"))
+        filtered_data = filters(dataset)
+
+        expected_indices = [1, 2]
+        expected_data = DocumentDataset(dataset.df.loc[expected_indices])
+        assert all_equal(
+            expected_data, filtered_data
+        ), f"Expected {expected_data} but got {filtered_data}"
+
     def test_boilerplate(self):
         dataset = list_to_dataset(
             [
@@ -744,18 +768,8 @@ class TestCodeFilters:
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
 
-    def test_per_extension_filter(self):
-        good_cpp = """
-        #include <iostream>
-
-        using namespace std;
-
-        int main() {
-            cout << "Hello World!" << endl;
-            return 0;
-        };
-        """
-        dataset = list_to_dataset([good_cpp])
+    @pytest.fixture
+    def per_extension_filter(self):
         metadata_file = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
@@ -765,16 +779,42 @@ class TestCodeFilters:
                 "code_meta.csv",
             )
         )
-        filters = ScoreFilter(
-            PerExtensionFilter("c++", "cpp", metadata_file=metadata_file)
-        )
-        filtered_data = filters(dataset)
 
+        return PerExtensionFilter("c++", "cpp", metadata_file=metadata_file)
+
+    def test_per_extension_filter(self, per_extension_filter):
+        good_cpp = """
+        #include <iostream>
+        using namespace std;
+        int main() {
+            cout << "Hello World!" << endl;
+            return 0;
+        };
+        """
+        dataset = list_to_dataset([good_cpp])
+        filters = ScoreFilter(per_extension_filter)
+        filtered_data = filters(dataset)
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
+
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
+
+    @pytest.mark.parametrize(
+        "content,expected",
+        [
+            ("", (0, 0.0)),
+            ("\n", (0, 0.0)),
+            ("abc\n", (3, 1.5)),
+            ("Lorem ipsum \ndolor sit amet,", (15, 13.5)),
+        ],
+    )
+    def test_line_statistics(self, per_extension_filter, content, expected):
+        line_statistics = per_extension_filter._line_statistics(content)
+        assert (
+            line_statistics == expected
+        ), f"Expected {expected} but got {line_statistics}"
 
 
 class FakeQualityFilter(DocumentFilter):

@@ -14,7 +14,7 @@
 
 import warnings
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 import yaml
 
@@ -61,7 +61,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
 
     # General config
     cache_dir: str
-    profile_dir: str = None
+    profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
 
@@ -77,6 +77,9 @@ class FuzzyDuplicatesConfig(BaseConfig):
     # Only required for fp check
     num_anchors: int = 2
     jaccard_threshold: float = 0.8
+    bucket_mapping_blocksize: int = 256
+    parts_per_worker: int = 1
+    bucket_parts_per_worker: int = 8
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
@@ -84,9 +87,15 @@ class FuzzyDuplicatesConfig(BaseConfig):
             raise ValueError(
                 "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
             )
-        if not self.false_positive_check:
-            raise NotImplementedError(
-                "Skipping false positive checks is not supported at the moment"
+        if self.false_positive_check:
+            warnings.warn(
+                "Identifying false positives during the Minhash deduplication is computationally expensive."
+                " For improved performance consider setting this to False"
+            )
+        if not self.false_positive_check and self.char_ngrams < 20:
+            warnings.warn(
+                "Using a small char_ngrams value might lead to a large number (~5%) of false positives during deduplication."
+                " Using a value of at least 20 for char_ngrams is recommended."
             )
         if self.num_anchors <= 0:
             raise ValueError("Number of anchors must be greater than 0")
@@ -108,14 +117,12 @@ class SemDedupConfig(BaseConfig):
 
     Attributes:
         cache_dir (str): Directory to store cache.
+        profile_dir (Optional[str]): If specified directory to write dask profile. Default is None.
+        cache_dir (str): Directory to store cache.
         num_files (int): Number of files. Default is -1, meaning all files.
-        id_col_name (str): Column name for ID.
-        id_col_type (str): Column type for ID.
-        input_column (str): Input column for embeddings.
         embeddings_save_loc (str): Location to save embeddings.
         embedding_model_name_or_path (str): Model name or path for embeddings.
         embedding_batch_size (int): Inital Batch size for processing embeddings.
-        embedding_max_mem_gb (int): Maximum memory in GB for embeddings.
         clustering_save_loc (str): Location to save clustering results.
         n_clusters (int): Number of clusters.
         seed (int): Seed for clustering.
@@ -129,16 +136,13 @@ class SemDedupConfig(BaseConfig):
     """
 
     cache_dir: str
+    profile_dir: Optional[str] = None
     num_files: int = -1
-    id_col_name: str = "id"
-    id_col_type: str = "str"
-    input_column: str = "text"
 
     # Embeddings
     embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
-    embedding_max_mem_gb: int = 25
 
     # Clustering config
     clustering_save_loc: str = "clustering_results"

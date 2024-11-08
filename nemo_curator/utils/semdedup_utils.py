@@ -18,7 +18,7 @@ import os
 import random
 import shutil
 import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import cudf
 import dask.bag as db
@@ -28,19 +28,22 @@ import pandas as pd
 import torch
 from dask.distributed import progress
 
+from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
 
-def _assign_and_sort_clusters(
+def assign_and_sort_clusters(
     id_col: str,
     kmeans_centroids_file: str,
     nearest_cent_dir: str,
     output_sorted_clusters_dir: str,
-    cluster_ids=List[int],
+    cluster_ids: List[int],
+    embedding_col: str,
     sim_metric: str = "cosine",
     keep_hard: bool = True,
     kmeans_with_cos_dist: bool = True,
-    logger: logging.Logger = None,
+    logger: Optional[logging.Logger] = None,
+    profile_dir: Optional[str] = None,
 ):
     """
     Args:
@@ -54,6 +57,7 @@ def _assign_and_sort_clusters(
         sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to an empty string.
         cluster_ids (list): The range of cluster IDs to sort.
         logger (logging.Logger): A logger object to log messages. Defaults to None.
+        profile_dir (str): If specified directory to write dask profile. Default is None.
 
     Returns:
         None
@@ -71,25 +75,30 @@ def _assign_and_sort_clusters(
     kmeans_centroids = np.load(kmeans_centroids_file)
     start_time = time.time()
 
-    cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
-    completed_count = cluster_ids_bag.map(
-        lambda cluster_c: rank_within_cluster(
-            id_col=id_col,
-            nearest_cent_dir=nearest_cent_dir,
-            output_sorted_clusters_dir=output_sorted_clusters_dir,
-            centroids=kmeans_centroids,
-            sim_metric=sim_metric,
-            keep_hard=keep_hard,
-            kmeans_with_cos_dist=kmeans_with_cos_dist,
-            cluster_ids=[cluster_c],
-        )
-    ).compute()
+    with performance_report_if_with_ts_suffix(
+        profile_dir,
+        "ranking-clusters",
+    ):
+        cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
+        completed_count = cluster_ids_bag.map(
+            lambda cluster_c: rank_within_cluster(
+                id_col=id_col,
+                nearest_cent_dir=nearest_cent_dir,
+                output_sorted_clusters_dir=output_sorted_clusters_dir,
+                centroids=kmeans_centroids,
+                embedding_col=embedding_col,
+                sim_metric=sim_metric,
+                keep_hard=keep_hard,
+                kmeans_with_cos_dist=kmeans_with_cos_dist,
+                cluster_ids=[cluster_c],
+            )
+        ).compute()
 
-    missing = len(cluster_ids) - sum(completed_count)
+        missing = len(cluster_ids) - sum(completed_count)
     logger.info(
         f"Completed {sum(completed_count)} clusters. Missing {missing} clusters."
     )
-    logger.info(f"Time for ranking: {(time.time() - start_time) / 60:.2f} mins")
+    logger.info(f"Time taken for Ranking Clusters: {time.time() - start_time}")
     logger.info("DONE!")
 
 
@@ -98,6 +107,7 @@ def rank_within_cluster(
     nearest_cent_dir: str,
     output_sorted_clusters_dir: str,
     centroids: np.ndarray,
+    embedding_col: str,
     sim_metric: str = "cosine",
     keep_hard: bool = True,
     kmeans_with_cos_dist: bool = False,
@@ -131,10 +141,10 @@ def rank_within_cluster(
             continue
 
         cluster_df = cudf.read_parquet(
-            cluster_c_path, columns=[id_col, "dist_to_cent", "embeddings"]
+            cluster_c_path, columns=[id_col, "dist_to_cent", embedding_col]
         )
         embeds = torch.as_tensor(
-            cluster_df["embeddings"].list.leaves.values.reshape(
+            cluster_df[embedding_col].list.leaves.values.reshape(
                 cluster_df.shape[0], -1
             ),
             device="cuda",
@@ -188,11 +198,15 @@ def _semdedup(
 
 
 def get_cluster_reps(
-    cluster_id: int, emb_by_clust_dir: str, id_col: str, sorted_ids: np.ndarray
+    cluster_id: int,
+    emb_by_clust_dir: str,
+    id_col: str,
+    embedding_col: str,
+    sorted_ids: np.ndarray,
 ) -> torch.Tensor:
     cluster_i_path = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
     cluster_reps = cudf.read_parquet(
-        cluster_i_path, columns=["embeddings", id_col]
+        cluster_i_path, columns=[embedding_col, id_col]
     ).sort_values(by=id_col)
     num = cluster_reps.shape[0]
 
@@ -203,7 +217,7 @@ def get_cluster_reps(
     cluster_reps = cluster_reps.sort_values(by="inverse_sort_id")
 
     cluster_reps = torch.as_tensor(
-        cluster_reps["embeddings"].list.leaves.values.reshape(len(cluster_reps), -1),
+        cluster_reps[embedding_col].list.leaves.values.reshape(len(cluster_reps), -1),
         device="cuda",
     )
     return cluster_reps
@@ -217,6 +231,7 @@ def get_semantic_matches_per_cluster(
     id_col_type: str,
     eps_list: List[float],
     output_dir: str,
+    embedding_col: str,
     which_to_keep: str,
 ) -> None:
 
@@ -251,7 +266,9 @@ def get_semantic_matches_per_cluster(
 
     text_ids = cluster_i[:, 0].astype(id_col_type)
 
-    cluster_reps = get_cluster_reps(cluster_id, emb_by_clust_dir, id_col, text_ids)
+    cluster_reps = get_cluster_reps(
+        cluster_id, emb_by_clust_dir, id_col, embedding_col, text_ids
+    )
     M, M1 = _semdedup(cluster_reps, "cuda")
     assert cluster_reps.shape[0] == len(text_ids)
 
@@ -355,6 +372,8 @@ def extract_pruned_data(
     eps: float,
     n_clusters: int,
     output_parquet_path: str,
+    logger: Optional[logging.Logger] = None,
+    profile_dir: Optional[str] = None,
 ) -> Tuple[int, int, int]:
     """
     Extracts pruned data from sorted clusters and saves it to a CSV file.
@@ -367,25 +386,38 @@ def extract_pruned_data(
         eps (float): Epsilon value for pruning.
         n_clusters (int): Number of clusters.
         output_csv_path (str): Path to save the output CSV file.
+        logger (Optional[logging.Logger]): Logger object or path to store logs, defaults to None.
+        profile_dir (str): If specified directory to write dask profile. Default is None.
 
     Returns:
         Tuple[int, int, int]: Number of kept records, removed records, and total records.
     """
 
-    results_df = dd.from_map(
-        prune_single_cluster,
-        range(n_clusters),
-        id_col=id_col,
-        id_col_type=id_col_type,
-        sorted_clusters_dir=sorted_clusters_dir,
-        semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
-        eps=eps,
-    )
-    results_df[id_col] = results_df[id_col].astype(id_col_type)
-    results_df = results_df.persist()
-    progress(results_df)
+    t0 = time.time()
 
-    results_df.to_parquet(output_parquet_path)
+    with performance_report_if_with_ts_suffix(
+        profile_dir,
+        "extracting-pruned-from-clusters",
+    ):
+        results_df = dd.from_map(
+            prune_single_cluster,
+            range(n_clusters),
+            id_col=id_col,
+            id_col_type=id_col_type,
+            sorted_clusters_dir=sorted_clusters_dir,
+            semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
+            eps=eps,
+        )
+        results_df[id_col] = results_df[id_col].astype(id_col_type)
+        results_df = results_df.persist()
+        progress(results_df)
+
+        results_df.to_parquet(output_parquet_path)
+    if logger:
+        logger.info(
+            f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"
+        )
+
     total_kept = len(results_df)
 
     np_files = [
@@ -407,7 +439,8 @@ def extract_dedup_data(
     output_summary_file,
     output_parquet_path,
     logger: logging.Logger,
-) -> None:
+    profile_dir: Optional[str] = None,
+) -> dd.DataFrame:
     """
     Extracts deduplicated data based on provided parameters and logs the process.
 
@@ -423,6 +456,8 @@ def extract_dedup_data(
         eps=eps,
         n_clusters=n_clusters,
         output_parquet_path=output_parquet_path,
+        logger=logger,
+        profile_dir=profile_dir,
     )
 
     logger.info(

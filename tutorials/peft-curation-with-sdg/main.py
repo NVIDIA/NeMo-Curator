@@ -131,7 +131,12 @@ def semantic_dedupe(dataset):
         os.path.join(CONFIG_DIR, "sem_dedup_config.yaml")
     )
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
-    semdup = SemDedup(semdedup_config)
+    semdup = SemDedup(
+        config=semdedup_config,
+        input_column="text",
+        id_column="id",
+        id_column_type="str",
+    )
     dedup_ids = semdup(dataset)
     # When there are few duplicates we can compute the results to a list and use `isin`.
     result = dataset.df[dataset.df["id"].isin(dedup_ids.df["id"].compute())]
@@ -242,10 +247,27 @@ def run_pipeline(args, jsonl_fp):
     Returns:
         The file path to the final curated JSONL file.
     """
-    # Disable synthetic data generation if no API key is provided.
-    if args.api_key is None:
-        print("No API key provided. Skipping synthetic data generation.")
+    # Disable synthetic data generation if the necessary arguments are not provided.
+    if not args.synth_gen_endpoint:
+        print(
+            "No synthetic data generation endpoint provided. Skipping synthetic data generation."
+        )
         args.synth_gen_rounds = 0
+    if not args.synth_gen_model:
+        print(
+            "No synthetic data generation model provided. Skipping synthetic data generation."
+        )
+        args.synth_gen_rounds = 0
+    if not args.api_key:
+        print(
+            "No synthetic data generation API key provided. Skipping synthetic data generation."
+        )
+        args.synth_gen_rounds = 0
+
+    if args.synth_gen_rounds:
+        print(
+            f"Using {args.synth_gen_endpoint}/{args.synth_gen_model} for synthetic data generation."
+        )
 
     synth_gen_ratio = args.synth_gen_ratio
     synth_gen_rounds = args.synth_gen_rounds
@@ -272,19 +294,20 @@ def run_pipeline(args, jsonl_fp):
     # Create the synthetic data generator.
     llm_client = AsyncOpenAIClient(
         AsyncOpenAI(
-            base_url="https://integrate.api.nvidia.com/v1",
-            api_key=args.api_key,
+            base_url=args.synth_gen_endpoint,
+            api_key=args.api_key or "",
+            timeout=args.api_timeout,
         )
     )
     synth_gen = SyntheticGenerator(
         llm_client,
-        "nvidia/nemotron-4-340b-instruct",
-        {
+        sdg_model=args.synth_gen_model,
+        sdg_model_kwargs={
             "top_p": 0.7,
             "max_tokens": 1024,
             "seed": 1234,
         },
-        "nvidia/nemotron-4-340b-reward",
+        reward_model="nvidia/nemotron-4-340b-reward",
         n_variants=synth_n_variants,
     )
 
@@ -343,9 +366,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser = ArgumentHelper(parser).add_distributed_args()
     parser.add_argument(
+        "--synth-gen-endpoint",
+        type=str,
+        default="https://integrate.api.nvidia.com/v1",
+        help="The API endpoint to use for synthetic data generation. Any endpoint compatible with the OpenAI API can be used.",
+    )
+    parser.add_argument(
+        "--synth-gen-model",
+        type=str,
+        default="nvidia/nemotron-4-340b-instruct",
+        help="The model from the provided API endpoint to use for synthetic data generation. Leave blank to skip synthetic data generation.",
+    )
+    parser.add_argument(
         "--synth-gen-ratio",
         type=float,
-        default=0.005,  # Use 0.5% of the real data for synthetic data generation to keep LLM calls low.
+        default=0.001,  # Use 0.1% of the real data for synthetic data generation to keep LLM calls low.
         help="The ratio of synthetic data to real data to generate. Synthetic data generation will be skipped if the value is 0.",
     )
     parser.add_argument(
@@ -366,6 +401,12 @@ def main():
         default=None,
         help="The API key to use for the synthetic data generation LLM client.",
     )
+    parser.add_argument(
+        "--api-timeout",
+        type=int,
+        default=120,
+        help="The timeout value for API calls in seconds.",
+    )
 
     args = parser.parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
@@ -383,6 +424,9 @@ def main():
     curated_dir = os.path.dirname(train_fp_curated)
     os.system(f"cp {val_fp} {curated_dir}")
     os.system(f"cp {test_fp} {curated_dir}")
+    print(
+        "--------------------------------------------------------------------------------"
+    )
     print(f"Curated files are saved in '{curated_dir}'.")
 
 
