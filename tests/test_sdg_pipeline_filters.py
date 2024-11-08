@@ -19,18 +19,14 @@ import numpy as np
 import pandas as pd
 import pytest
 from dask import dataframe as dd
-from tutorials.synthetic_retrieval_evaluation_customization.filters import (
-    AnswerabilityFilter,
-    EasinessFilter,
-)
-from tutorials.synthetic_retrieval_evaluation_customization.retriever_evalset_generator import (
-    RetrieverEvalSetGenerator,
-)
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import DocumentFilter
+from nemo_curator.filters import AnswerabilityFilter, DocumentFilter, EasinessFilter
 from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
 from nemo_curator.modules.config import RetrieverEvalSDGConfig
+from tutorials.nemo_retriever_synthetic_data_generation.retriever_evalset_generator import (
+    RetrieverEvalSetGenerator,
+)
 
 
 @pytest.fixture
@@ -84,7 +80,7 @@ def get_generated_data():
 @pytest.fixture
 def get_config():
     cfg = RetrieverEvalSDGConfig.from_yaml(
-        "./tutorials/synthetic_retrieval_evaluation_customization/config/config.yaml"
+        "./tutorials/nemo_retriever_synthetic_data_generation/config/config.yaml"
     )
     cfg.api_key = os.environ.get("NVIDIA_API_KEY")
     return cfg

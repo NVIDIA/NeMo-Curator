@@ -17,12 +17,12 @@ import os
 import shutil
 from typing import Any, List
 
-from filters import AnswerabilityFilter, EasinessFilter
 from retriever_evalset_generator import RetrieverEvalSetGenerator
 from tqdm.dask import TqdmCallback
 
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
 from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from nemo_curator.modules.filter import Score, ScoreFilter
 
