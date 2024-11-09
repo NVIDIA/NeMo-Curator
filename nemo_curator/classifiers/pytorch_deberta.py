@@ -24,9 +24,11 @@ from crossfit.backend.torch.hf.model import HFModel
 from transformers import AutoConfig, AutoModel
 from transformers.models.deberta_v2 import DebertaV2TokenizerFast
 
-from nemo_curator.classifiers.base import DistributedDataClassifier, _run_classifier_helper
+from nemo_curator.classifiers.base import (
+    DistributedDataClassifier,
+    _run_classifier_helper,
+)
 from nemo_curator.datasets import DocumentDataset
-
 
 
 @dataclass
@@ -55,7 +57,9 @@ class NCCustomModel(nn.Module):
             self.config = torch.load(config_path)
 
         if pretrained:
-            self.model = AutoModel.from_pretrained(config.base_model, config=self.config)
+            self.model = AutoModel.from_pretrained(
+                config.base_model, config=self.config
+            )
         else:
             self.model = AutoModel(self.config)
 
