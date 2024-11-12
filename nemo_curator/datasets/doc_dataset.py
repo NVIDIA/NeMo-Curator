@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import List, Optional, Union
+from typing import Any, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 
@@ -30,26 +30,27 @@ class DocumentDataset:
     def __init__(self, dataset_df: dd.DataFrame):
         self.df = dataset_df
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.df)
 
-    def persist(self):
+    # `def persist(self) -> Self` requires Python 3.11 or higher
+    def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
-    def head(self, n: int = 5):
+    def head(self, n: int = 5) -> Any:
         return self.df.head(n)
 
     @classmethod
     def read_json(
         cls,
         input_files: Union[str, List[str]],
-        backend: str = "pandas",
+        backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: int = 1,
         add_filename: bool = False,
         input_meta: Union[str, dict] = None,
         columns: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> "DocumentDataset":
         """
         Read JSONL or JSONL file(s).
 
@@ -80,12 +81,12 @@ class DocumentDataset:
     def read_parquet(
         cls,
         input_files: Union[str, List[str]],
-        backend: str = "pandas",
+        backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: int = 1,
         add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> "DocumentDataset":
         """
         Read Parquet file(s).
 
@@ -114,12 +115,12 @@ class DocumentDataset:
     def read_pickle(
         cls,
         input_files: Union[str, List[str]],
-        backend: str = "pandas",
+        backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: int = 1,
         add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> "DocumentDataset":
         """
         Read Pickle file(s).
 

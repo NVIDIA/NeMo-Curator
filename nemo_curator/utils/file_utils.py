@@ -48,31 +48,29 @@ def expand_outdir_and_mkdir(outdir):
 
 def filter_files_by_extension(
     files_list: List[str],
-    filter_by: Union[str, List[str]],
-):
+    keep_extensions: Union[str, List[str]],
+) -> List[str]:
     """
     Given a list of files, filter it to only include files matching given extension(s).
 
     Args:
         files_list: List of files.
-        filter_by: A string (e.g., "json") or a list of strings (e.g., ["json", "parquet"])
+        keep_extensions: A string (e.g., "json") or a list of strings (e.g., ["json", "parquet"])
             representing which file types to keep from files_list.
 
     """
     filtered_files = []
 
-    if isinstance(filter_by, str):
-        filter_by = [filter_by]
+    if isinstance(keep_extensions, str):
+        keep_extensions = [keep_extensions]
 
-    file_extensions = [s if s.startswith(".") else "." + s for s in filter_by]
+    file_extensions = [s if s.startswith(".") else "." + s for s in keep_extensions]
 
     for file in files_list:
         if file.endswith(tuple(file_extensions)):
             filtered_files.append(file)
-        else:
-            warning_flag = True
 
-    if warning_flag:
+    if len(files_list) != len(filtered_files):
         warnings.warn(f"Skipped at least one file due to unmatched file extension(s).")
 
     return filtered_files
@@ -82,8 +80,8 @@ def get_all_files_paths_under(
     root: str,
     recurse_subdirectories: bool = True,
     followlinks: bool = False,
-    filter_by: Optional[Union[str, List[str]]] = None,
-):
+    keep_extensions: Optional[Union[str, List[str]]] = None,
+) -> List[str]:
     """
     This function returns a list of all the files under a specified directory.
     Args:
@@ -92,7 +90,7 @@ def get_all_files_paths_under(
                               Please note that this can be slow for large
                               number of files.
         followlinks: Whether to follow symbolic links.
-        filter_by: A string or list of strings representing a file type
+        keep_extensions: A string or list of strings representing a file type
                    or multiple file types to include in the output, e.g.,
                    "jsonl" or ["jsonl", "parquet"].
     """
@@ -107,8 +105,8 @@ def get_all_files_paths_under(
 
     file_ls.sort()
 
-    if filter_by is not None:
-        file_ls = filter_files_by_extension(file_ls, filter_by)
+    if keep_extensions is not None:
+        file_ls = filter_files_by_extension(file_ls, keep_extensions)
 
     return file_ls
 
@@ -377,7 +375,7 @@ def separate_by_metadata(
     return delayed(reduce)(merge_counts, delayed_counts)
 
 
-def parse_str_of_num_bytes(s: str, return_str: bool = False):
+def parse_str_of_num_bytes(s: str, return_str: bool = False) -> Union[str, int]:
     try:
         power = "kmg".find(s[-1].lower()) + 1
         size = float(s[:-1]) * 1024**power
