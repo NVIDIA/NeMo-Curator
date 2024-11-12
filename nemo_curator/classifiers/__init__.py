@@ -18,7 +18,6 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from .aegis import AegisClassifier
 from .domain import DomainClassifier
 from .fineweb_edu import FineWebEduClassifier
-from .pytorch_deberta import PyTorchClassifier
 from .quality import QualityClassifier
 
 __all__ = [
@@ -26,5 +25,4 @@ __all__ = [
     "QualityClassifier",
     "AegisClassifier",
     "FineWebEduClassifier",
-    "PyTorchClassifier",
 ]
