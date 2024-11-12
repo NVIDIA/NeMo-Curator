@@ -19,14 +19,14 @@ import numpy as np
 import pandas as pd
 import pytest
 from dask import dataframe as dd
+from tutorials.nemo_retriever_synthetic_data_generation.retriever_evalset_generator import (
+    RetrieverEvalSetGenerator,
+)
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import AnswerabilityFilter, DocumentFilter, EasinessFilter
 from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
 from nemo_curator.modules.config import RetrieverEvalSDGConfig
-from tutorials.nemo_retriever_synthetic_data_generation.retriever_evalset_generator import (
-    RetrieverEvalSetGenerator,
-)
 
 
 @pytest.fixture
