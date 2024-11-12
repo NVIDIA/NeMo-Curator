@@ -23,7 +23,6 @@ from dask.base import normalize_token, tokenize
 from openai import OpenAI
 
 from nemo_curator.filters.doc_filter import DocumentFilter
-from nemo_curator.modules.config import RetrieverEvalSDGConfig
 from nemo_curator.utils.decorators import batched
 
 
@@ -36,22 +35,28 @@ class EasinessFilter(DocumentFilter):
     """
 
     def __init__(
-        self, cfg: RetrieverEvalSDGConfig, text_fields: List[str] = ["text", "question"]
+        self,
+        base_url: str = None,
+        api_key: str = None,
+        nim_model: str = None,
+        percentile: float = None,
+        truncate: str = "NONE",
+        batch_size: int = 1,
+        text_fields: List[str] = ["text", "question"],
     ):
 
         self._name = "easiness_filter"
-        if not cfg.easiness_filter:
-            raise Exception("Error: Config doesn't have easiness filter")
-        self.base_url = cfg.base_url
-        self.api_key = cfg.api_key
-        self.nim_model = cfg.easiness_filter
-        self.percentile = cfg.percentile
-        if cfg.truncate:
-            self.truncate = cfg.truncate
-        else:
-            self.truncate = "NONE"
-        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
-        self.batch_size = cfg.batch_size
+        self.base_url = base_url
+        self.api_key = api_key
+        self.nim_model = nim_model
+        self.percentile = percentile
+        if truncate:
+            self.truncate = truncate
+        try:
+            self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        except Exception as e:
+            print(f"Error accessing NIM model: {e}")
+        self.batch_size = batch_size
         self.text_fields = text_fields
 
     @batched
@@ -127,18 +132,23 @@ class AnswerabilityFilter(DocumentFilter):
     """
 
     def __init__(
-        self, cfg: RetrieverEvalSDGConfig, text_fields: List[str] = ["text", "question"]
+        self,
+        base_url: str = None,
+        api_key: str = None,
+        nim_model: str = None,
+        answerability_system_prompt: str = None,
+        answerability_user_prompt_template: str = None,
+        num_criteria: int = 4,
+        text_fields: List[str] = ["text", "question"],
     ):
 
         self._name = "answerability_filter"
-        if not cfg.answerability_filter:
-            raise Exception("Error: Config doesn't have answerability filter")
-        self.base_url = cfg.base_url
-        self.api_key = cfg.api_key
-        self.model_name = cfg.answerability_filter
-        self.system_prompt = cfg.answerability_system_prompt
-        self.user_prompt_template = cfg.answerability_user_prompt_template
-        self.num_criteria = cfg.num_criteria
+        self.base_url = base_url
+        self.api_key = api_key
+        self.model_name = nim_model
+        self.system_prompt = answerability_system_prompt
+        self.user_prompt_template = answerability_user_prompt_template
+        self.num_criteria = num_criteria
 
         try:
             self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)

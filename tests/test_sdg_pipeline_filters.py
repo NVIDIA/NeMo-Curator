@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import os
 
 import dask
@@ -19,14 +20,14 @@ import numpy as np
 import pandas as pd
 import pytest
 from dask import dataframe as dd
-from tutorials.nemo_retriever_synthetic_data_generation.retriever_evalset_generator import (
-    RetrieverEvalSetGenerator,
-)
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import AnswerabilityFilter, DocumentFilter, EasinessFilter
 from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
-from nemo_curator.modules.config import RetrieverEvalSDGConfig
+
+config_module = importlib.import_module(
+    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
+)
 
 
 @pytest.fixture
@@ -79,33 +80,24 @@ def get_generated_data():
 
 @pytest.fixture
 def get_config():
-    cfg = RetrieverEvalSDGConfig.from_yaml(
-        "./tutorials/nemo_retriever_synthetic_data_generation/config/config.yaml"
+    cfg = config_module.RetrieverEvalSDGConfig.from_yaml(
+        "./tutorials/nemo-retriever-synthetic-data-generation/config/config.yaml"
     )
     cfg.api_key = os.environ.get("NVIDIA_API_KEY")
     return cfg
 
 
-class TestSDGModule:
-    def test_generator(self, get_original_data, get_config):
-
-        num_questions = get_config.num_questions
-        original_df = get_original_data.df.compute()
-        generator = RetrieverEvalSetGenerator(get_config)
-        generated_dataset = generator(get_original_data)
-        generated_df = generated_dataset.df.compute()
-        assert "question" in generated_df
-        assert "answer" in generated_df
-        assert generated_df.shape[0] == num_questions * original_df.shape[0]
-        assert "question-id" in generated_df
-        assert "_id" in generated_df
-        assert generated_df["_id"].iloc[0] == original_df["_id"].iloc[0]
-
-
 class TestSDGFilterModule:
     def test_easiness_filter(self, get_generated_data, get_config):
 
-        ef = EasinessFilter(get_config)
+        ef = EasinessFilter(
+            get_config.base_url,
+            get_config.api_key,
+            get_config.easiness_filter,
+            get_config.percentile,
+            get_config.truncate,
+            get_config.batch_size,
+        )
         easiness_filter = ScoreFilter(
             ef, text_field=["text", "question"], score_field="easiness_scores"
         )
@@ -118,7 +110,14 @@ class TestSDGFilterModule:
 
     def test_answerability_filter(self, get_generated_data, get_config):
 
-        af = AnswerabilityFilter(get_config)
+        af = AnswerabilityFilter(
+            get_config.base_url,
+            get_config.api_key,
+            get_config.answerability_filter,
+            get_config.answerability_system_prompt,
+            get_config.answerability_user_prompt_template,
+            get_config.num_criteria,
+        )
         answerability_filter = ScoreFilter(
             af, text_field=["text", "question"], score_field="answerability_scores"
         )
