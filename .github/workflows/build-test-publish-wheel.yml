@@ -15,7 +15,7 @@
 name: Build, test, and publish a PyPi wheel (to testpypi)
 
 on:
-  push:
+  pull_request:
     branches:
       - 'main'
       - '[rv][0-9].[0-9].[0-9]'
