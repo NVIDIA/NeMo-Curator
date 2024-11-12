@@ -84,5 +84,6 @@ jobs:
       # It is still present on our system and could be restarted with `docker start`
       # Thus, we use `docker rm` to permanently removed it from the system
     - name: Cleanup
+      if: always()
       run: |
         docker stop nemo-curator-container && docker rm nemo-curator-container
