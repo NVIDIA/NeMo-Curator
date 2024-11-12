@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [build-system]
-requires = ["setuptools", "setuptools_scm"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -79,8 +79,6 @@ cuda12x = [
     "dask-cuda>=24.10",
     "dask-cudf-cu12>=24.10",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
-    # See https://github.com/NVIDIA/cuda-python/issues/215
-    "cuda-python<=12.6.0",
 ]
 # Installs CPU + GPU text curation modules with RAPIDS Nightlies
 cuda12x_nightly = [
@@ -90,8 +88,6 @@ cuda12x_nightly = [
     "dask-cuda>=24.12.0a0,<=24.12",
     "dask-cudf-cu12>=24.12.0a0,<=24.12",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
-    # See https://github.com/NVIDIA/cuda-python/issues/215
-    "cuda-python<=12.6.0",
 ]
 # Installs CPU + GPU text and image curation modules
 image = [
@@ -165,9 +161,8 @@ markers = [
     "gpu: marks tests as GPU tests (deselect with '-m \"not gpu\"')"
 ]
 
-[tool.setuptools_scm]
-version_scheme = "post-release"
-local_scheme = "node-and-date"
+[tool.setuptools.dynamic]
+version = { attr = "nemo_curator.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["*"]
