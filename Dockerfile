@@ -43,6 +43,7 @@ RUN \
   --mount=type=bind,source=/opt/NeMo-Curator/nemo_curator/__init__.py,target=nemo_curator/__init__.py,from=curator-update \
   --mount=type=bind,source=/opt/NeMo-Curator/pyproject.toml,target=pyproject.toml,from=curator-update \
   source activate curator && \
+  export PYTHONPATH=$(pwd) && \
   pip install ".[all]"
 
 COPY --from=curator-update /opt/NeMo-Curator/ /opt/NeMo-Curator/
