@@ -50,7 +50,6 @@ from .package_info import (
     __version__,
 )
 
-
 __all__ = [
     "__contact_emails__",
     "__contact_names__",
