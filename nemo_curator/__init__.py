@@ -43,4 +43,16 @@ from .utils.distributed_utils import get_client, get_network_interfaces
 # This also happens when reading and writing to files
 dask.config.set({"dataframe.convert-string": False})
 
-__version__ = str(__version__)
+__all__ = [
+    "__contact_emails__",
+    "__contact_names__",
+    "__description__",
+    "__download_url__",
+    "__homepage__",
+    "__keywords__",
+    "__license__",
+    "__package_name__",
+    "__repository_url__",
+    "__shortversion__",
+    "__version__",
+]
