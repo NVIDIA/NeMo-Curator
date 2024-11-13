@@ -71,6 +71,7 @@ def main(args):
         id_fields=["dataset_id", "doc_id"],
         profile_dir=args.profile_path,
         minhash_field=minhash_field,
+        buckets_as_int=args.bucket_id_as_int,
         logger=logger,
     )
 
@@ -117,6 +118,11 @@ denoting the bucket IDs to which the document belongs.
         required=True,
         help="Output directory where minhashes will be written. "
         "Each Parquet file consists of document and bucket IDs.",
+    )
+    parser.add_argument(
+        "--bucket-id-as-int",
+        action="store_true",
+        help="Convert bucket IDs to integers. Required if running false positive check.",
     )
 
     return parser
