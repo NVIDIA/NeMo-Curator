@@ -12,30 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import dask
+import dask
 
-    # Dask will automatically convert the list score type
-    # to a string without this option.
-    # See https://github.com/NVIDIA/NeMo-Curator/issues/33
-    # This also happens when reading and writing to files
-    dask.config.set({"dataframe.convert-string": False})
-except ImportError:
-    pass
-
-try:
-    from .modules import *
-    from .services import (
-        AsyncLLMClient,
-        AsyncOpenAIClient,
-        LLMClient,
-        NemoDeployClient,
-        OpenAIClient,
-    )
-    from .utils.distributed_utils import get_client, get_network_interfaces
-except ImportError:
-    pass
-
+from .modules import *
 from .package_info import (
     __contact_emails__,
     __contact_names__,
@@ -49,6 +28,20 @@ from .package_info import (
     __shortversion__,
     __version__,
 )
+from .services import (
+    AsyncLLMClient,
+    AsyncOpenAIClient,
+    LLMClient,
+    NemoDeployClient,
+    OpenAIClient,
+)
+from .utils.distributed_utils import get_client, get_network_interfaces
+
+# Dask will automatically convert the list score type
+# to a string without this option.
+# See https://github.com/NVIDIA/NeMo-Curator/issues/33
+# This also happens when reading and writing to files
+dask.config.set({"dataframe.convert-string": False})
 
 __all__ = [
     "__contact_emails__",
