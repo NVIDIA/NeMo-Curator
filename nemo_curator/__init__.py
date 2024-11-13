@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask
+try:
+    import dask
+    dask.config.set({"dataframe.convert-string": False})
+except ImportError:
+    pass
 
 from .modules import *
 from .package_info import (
@@ -41,7 +45,6 @@ from .utils.distributed_utils import get_client, get_network_interfaces
 # to a string without this option.
 # See https://github.com/NVIDIA/NeMo-Curator/issues/33
 # This also happens when reading and writing to files
-dask.config.set({"dataframe.convert-string": False})
 
 __all__ = [
     "__contact_emails__",
