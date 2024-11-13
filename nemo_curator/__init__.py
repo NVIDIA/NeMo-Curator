@@ -14,6 +14,7 @@
 
 try:
     import dask
+
     # Dask will automatically convert the list score type
     # to a string without this option.
     # See https://github.com/NVIDIA/NeMo-Curator/issues/33
@@ -49,10 +50,6 @@ from .package_info import (
     __version__,
 )
 
-# Dask will automatically convert the list score type
-# to a string without this option.
-# See https://github.com/NVIDIA/NeMo-Curator/issues/33
-# This also happens when reading and writing to files
 
 __all__ = [
     "__contact_emails__",
