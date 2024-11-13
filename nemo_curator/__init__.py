@@ -18,6 +18,25 @@ try:
 except ImportError:
     pass
 
+try:
+    from .modules import *
+    from .services import (
+        AsyncLLMClient,
+        AsyncOpenAIClient,
+        LLMClient,
+        NemoDeployClient,
+        OpenAIClient,
+    )
+    from .utils.distributed_utils import get_client, get_network_interfaces
+except ImportError:
+    pass
+
+# Dask will automatically convert the list score type
+# to a string without this option.
+# See https://github.com/NVIDIA/NeMo-Curator/issues/33
+# This also happens when reading and writing to files
+dask.config.set({"dataframe.convert-string": False})
+
 from .package_info import (
     __contact_emails__,
     __contact_names__,
