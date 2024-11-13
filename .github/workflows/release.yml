@@ -16,11 +16,11 @@ name: "Release NeMo Curator"
 on:
   workflow_dispatch:
     inputs:
-      release-ref: 
+      release-ref:
         description: Ref (SHA or branch name) to release
         required: true
         type: string
-    
+
 jobs:
   release:
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_release_library.yml@v0.10.0
