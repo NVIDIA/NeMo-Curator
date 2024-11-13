@@ -27,7 +27,7 @@ from nemo_curator.classifiers.base import (
 )
 from nemo_curator.datasets import DocumentDataset
 
-DOMAIN_IDENTIFIER = "TODO"
+MULTILINGUAL_DOMAIN_IDENTIFIER = "TODO"
 
 
 @dataclass
@@ -52,16 +52,16 @@ class MultilingualDomainModel(HFModel):
         super().__init__(self.config.model, max_mem_gb=max_mem_gb)
 
     def load_model(self, device: str = "cuda"):
-        model = HFDeberta.from_pretrained(DOMAIN_IDENTIFIER)
+        model = HFDeberta.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
         model.set_autocast(self.autocast)
         model = model.to(device)
         return model.eval()
 
     def load_tokenizer(self):
-        return AutoTokenizer.from_pretrained(DOMAIN_IDENTIFIER)
+        return AutoTokenizer.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
 
     def load_config(self):
-        return AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
+        return AutoConfig.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
 
 
 class MultilingualDomainClassifier(DistributedDataClassifier):
@@ -96,7 +96,7 @@ class MultilingualDomainClassifier(DistributedDataClassifier):
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
-        config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
+        config = AutoConfig.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
 
         self.text_field = text_field
         self.prob_column = prob_column
@@ -105,7 +105,9 @@ class MultilingualDomainClassifier(DistributedDataClassifier):
         self.out_dim = len(self.labels)
 
         model = MultilingualDomainModel(
-            config=MultilingualDomainModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
+            config=MultilingualDomainModelConfig,
+            autocast=autocast,
+            max_mem_gb=max_mem_gb,
         )
 
         super().__init__(

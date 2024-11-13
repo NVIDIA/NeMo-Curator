@@ -36,7 +36,9 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    multilingual_domain_classifier = MultilingualDomainClassifier(filter_by=["Games", "Sports"])
+    multilingual_domain_classifier = MultilingualDomainClassifier(
+        filter_by=["Games", "Sports"]
+    )
     result_dataset = multilingual_domain_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
