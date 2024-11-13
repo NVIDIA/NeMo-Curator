@@ -19,10 +19,12 @@ from .aegis import AegisClassifier
 from .domain import DomainClassifier
 from .fineweb_edu import FineWebEduClassifier
 from .quality import QualityClassifier
+from .type_of_speech import TypeOfSpeechClassifier
 
 __all__ = [
     "DomainClassifier",
     "QualityClassifier",
     "AegisClassifier",
     "FineWebEduClassifier",
+    "TypeOfSpeechClassifier",
 ]
