@@ -27,7 +27,7 @@ Here, we summarize why each is useful for training an LLM:
 
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
-- The **Type of Speech Classifier** TODO
+- The **Type of Speech Classifier** is designed to categorize documents into one of 11 distinct speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
 
 -----------------------------------------
 Usage
@@ -183,7 +183,24 @@ For example, to create a dataset with only highly educational content (scores 4 
 Type of Speech Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
+The Type of Speech Classifier is used to categorize speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
+
+Let's see how ``TypeOfSpeechClassifier`` works in a small excerpt taken from ``examples/classifiers/type_of_speech_example.py``:
+
+.. code-block:: python
+
+    from nemo_curator.classifiers import TypeOfSpeechClassifier
+
+    files = get_all_files_paths_under("books_dataset/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    type_of_speech_classifier = TypeOfSpeechClassifier(filter_by=["Blogs", "News"])
+    result_dataset = type_of_speech_classifier(dataset=input_dataset)
+
+    result_dataset.to_json("blogs_and_news/")
+
+In this example, the type of speech classifier is obtained directly from `Hugging Face <TODO>`_.
+It filters the input dataset to include only documents classified as "Blogs" or "News".
 
 -----------------------------------------
 CrossFit Integration
