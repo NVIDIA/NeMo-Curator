@@ -69,6 +69,7 @@ The following NeMo Curator modules are GPU based.
 
   * Domain Classification
   * Quality Classification
+  * Task-Complexity Classification
 
 GPU modules store the ``DocumentDataset`` using a ``cudf`` backend instead of a ``pandas`` one.
 To read a dataset into GPU memory, one could use the following function call.

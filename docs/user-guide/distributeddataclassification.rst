@@ -15,7 +15,7 @@ NeMo Curator provides a module to help users run inference with pre-trained mode
 This is achieved by chunking the datasets across multiple computing nodes, each equipped with multiple GPUs, to accelerate the classification task in a distributed manner.
 Since the classification of a single text document is independent of other documents within the dataset, we can distribute the workload across multiple nodes and GPUs to perform parallel processing.
 
-Domain, quality, content safety, and educational content models are tasks we include as examples within our module.
+Domain, quality, content safety, educational content, and task-complexity models are tasks we include as examples within our module.
 
 Here, we summarize why each is useful for training an LLM:
 
@@ -26,6 +26,8 @@ Here, we summarize why each is useful for training an LLM:
 - The **AEGIS Safety Models** are essential for filtering harmful or risky content, which is critical for training models that should avoid learning from unsafe data. By classifying content into 13 critical risk categories, AEGIS helps remove harmful or inappropriate data from the training sets, improving the overall ethical and safety standards of the LLM.
 
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
+
+- The **Task-Complexity Classifier** TODO
 
 -----------------------------------------
 Usage
@@ -177,6 +179,11 @@ For example, to create a dataset with only highly educational content (scores 4 
 
     high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
+
+Task-Complexity Classifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+TODO
 
 -----------------------------------------
 CrossFit Integration
