@@ -319,11 +319,18 @@ class LSH:
         self,
         write_path: str,
         df: dask_cudf.DataFrame,
-    ) -> None:
+    ) -> bool:
         """
-        Computes buckets and writes them as parquet files to the write_path
+        Computes hash buckets for the DataFrame and writes them as parquet files to the specified path.
+
+        Parameters:
+            - write_path (str): The directory path to write parquet files.
+            - df (dask_cudf.DataFrame): The input DataFrame with minhashes to be bucketed.
+        Returns:
+            are_buckets_empty: True if buckets were empty (no duplicates found), False otherwise.
         """
-        buckets_isempty = True
+        wrote_buckets = False
+        are_buckets_empty = True
 
         meta = self._minhash_to_bucket_meta(df)
         df = df.map_partitions(
@@ -333,12 +340,14 @@ class LSH:
         )
         bucket_start_id = 0
         for i in range(0, self.num_buckets, self.buckets_per_shuffle):
-            value_vars = [
+            bucket_columns = [
                 f"_bucket_{i}"
                 for i in range(i, min(self.num_buckets, i + self.buckets_per_shuffle))
             ]
             df2 = df.melt(
-                id_vars=self.id_fields, value_name="_bucket_id", value_vars=value_vars
+                id_vars=self.id_fields,
+                value_name="_bucket_id",
+                value_vars=bucket_columns,
             )[self.id_fields + ["_bucket_id"]]
 
             df2 = df2.shuffle(
@@ -348,50 +357,77 @@ class LSH:
             ).map_partitions(lambda x: x[x["_bucket_id"].duplicated(keep=False)])
 
             df2 = df2.reset_index(drop=True)
+            # Buckets to Int
             if self.buckets_as_int:
                 df2, end_id = self.bucket_id_to_int(
                     df2, bucket_col_name="_bucket_id", start_id=bucket_start_id
                 )
                 # If bucketing return empty dataframe
                 if end_id < bucket_start_id:
+                    self._logger.info(
+                        f"No duplicate documents found for buckets: {bucket_columns}"
+                    )
                     continue
                 bucket_start_id = end_id + 1
-                buckets_isempty = False
+                are_buckets_empty = False
 
             # Workaround for dtype mismatches with empty partitions
             # dtypes = df2.dtypes.to_dict()
             # df2 = df2.map_partitions(lambda x: x.astype(dtypes))
+            wrote_buckets, are_buckets_empty = self._write_bucket_parquet(
+                df2,
+                write_path,
+                wrote_buckets,
+                are_buckets_empty,
+                bucket_columns,
+            )
 
-            if i == 0:
-                if os.path.exists(write_path):
-                    warnings.warn(
-                        f"Output path {write_path} already exists and will be overwritten"
-                    )
-                df2.to_parquet(write_path, write_index=False, overwrite=True)
-            else:
-                df2.to_parquet(
-                    write_path,
-                    write_index=False,
-                    overwrite=buckets_isempty,
-                    append=not buckets_isempty,
-                )
-
-            if os.path.exists(write_path) and buckets_isempty:
-                buckets_isempty = check_empty_buckets(write_path)
-
-            if buckets_isempty:
-                self._logger.info(
-                    f"No duplicate documents found for buckets: {value_vars}"
-                )
-            else:
-                self._logger.info(f"Wrote data for buckets: {value_vars}")
-
-        if buckets_isempty:
+        if are_buckets_empty:
             self._logger.info("No duplicate documents found during LSH")
-            import shutil
+            if os.path.exists(write_path):
+                import shutil
 
-            shutil.rmtree(write_path)
-        return buckets_isempty
+                shutil.rmtree(write_path)
+
+        return are_buckets_empty
+
+    def _write_bucket_parquet(
+        self,
+        df: dask_cudf.DataFrame,
+        write_path: str,
+        wrote_buckets: bool,
+        are_buckets_empty: bool,
+        buckets_to_write: List[str],
+    ) -> tuple[bool, bool]:
+        """
+        Utility function to write the bucketed data to parquet
+        handling cases of overwriting and appending as needed.
+        """
+        if not wrote_buckets:
+            if os.path.exists(write_path):
+                warnings.warn(
+                    f"Output path {write_path} already exists and will be overwritten"
+                )
+            df.to_parquet(write_path, write_index=False, overwrite=True)
+        else:
+            df.to_parquet(
+                write_path,
+                write_index=False,
+                overwrite=are_buckets_empty,
+                append=not are_buckets_empty,
+            )
+        # Only check if buckets written so far are empty
+        if are_buckets_empty:
+            are_buckets_empty = check_empty_buckets(write_path)
+        wrote_buckets = True
+
+        if are_buckets_empty:
+            self._logger.info(
+                f"No duplicate documents found for buckets: {buckets_to_write}"
+            )
+        else:
+            self._logger.info(f"Wrote data for buckets: {buckets_to_write}")
+        return wrote_buckets, are_buckets_empty
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
@@ -412,7 +448,7 @@ class LSH:
 class FuzzyDuplicates:
     def __init__(
         self,
-        config: FuzzyDuplicatesConfig,
+        config: FuzzyDulicatesConfig,
         logger: Union[logging.LoggerAdapter, str] = "./",
     ):
         """
