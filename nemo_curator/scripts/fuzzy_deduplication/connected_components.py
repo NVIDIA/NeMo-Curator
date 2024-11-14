@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import time
 
@@ -23,8 +24,8 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 def main(args):
     """
     Takes a dataset consisting of document pairs
-    and their corresponding jaccard similarity to compute connected
-    components of docuements across pairs to find similar docuemnt
+    and their corresponding Jaccard similarity scores to compute connected
+    components of documents across pairs, to find similar documents
     after applying a given threshold. The result is a dataset
     consisting of all documents that are similar (above the threshold)
     and the component they belong to.
@@ -32,45 +33,48 @@ def main(args):
     st = time.time()
     output_path = os.path.join(args.output_dir, "connected_components.parquet")
     args.enable_spilling = True
-
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
     components_stage = ConnectedComponents(
         cache_dir=args.cache_dir,
         jaccard_pairs_path=args.jaccard_pairs_path,
         id_column=args.input_json_id_field,
-        convert_str_ids=True,
         jaccard_threshold=args.jaccard_threshold,
+        logger=args.log_dir,
+        profile_dir=args.profile_path,
     )
     components_stage.cc_workflow(output_path=output_path)
     print(f"All done in {time.time()-st:.1f} seconds")
     print(f"Results written to {output_path}")
 
 
-def attach_args(parser=None):
-    if not parser:
-        description = """Computes connected component"""
-        parser = ArgumentHelper.parse_gpu_dedup_args(description=description)
-
+def attach_args():
+    description = "Computes connected components."
+    parser = argparse.ArgumentParser(
+        description,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     argumentHelper = ArgumentHelper(parser)
+
+    argumentHelper.parse_gpu_dedup_args()
 
     argumentHelper.add_arg_output_dir()
     parser.add_argument(
         "--cache-dir",
         type=str,
-        help="The cache directory to write intermediate results to",
+        help="The cache directory to write intermediate results to.",
     )
     parser.add_argument(
         "--jaccard-pairs-path",
         type=str,
-        help="The directory containing the jaccard results",
+        help="The directory containing the Jaccard results.",
     )
     parser.add_argument(
         "--jaccard-threshold",
         type=float,
         default=0.8,
-        help="Jaccard threshold below which we don't consider documents"
-        " to be duplicate",
+        help="Jaccard threshold below which we do not consider documents"
+        " to be duplicates.",
     )
 
     return parser
