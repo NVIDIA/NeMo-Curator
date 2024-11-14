@@ -340,16 +340,16 @@ class AegisClassifier(DistributedDataClassifier):
         hidden_meta["_hidden_text"] = "DUMMY_STRING"
         ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
         columns = ddf.columns.tolist()
-        tokenizer = op.Tokenizer(
-            self.model, cols=["_hidden_text"], tokenizer_type="default"
+        pipe = op.Sequential(
+            op.Tokenizer(self.model, cols=["_hidden_text"], tokenizer_type="default"),
+            op.Predictor(
+                self.model,
+                sorted_data_loader=True,
+                batch_size=self.batch_size,
+                pred_output_col=self.raw_pred_column,
+            ),
+            keep_cols=columns,
         )
-        predictor = op.Predictor(
-            self.model,
-            sorted_data_loader=True,
-            batch_size=self.batch_size,
-            pred_output_col=self.raw_pred_column,
-        )
-        pipe = op.Sequential(tokenizer, predictor, keep_cols=columns)
         ddf = pipe(ddf)
         translated_meta = ddf._meta.copy()
         if self.keep_raw_pred:
@@ -479,7 +479,3 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
         translated_meta = ddf._meta.copy()
         translated_meta[self.pred_column] = 0.0
         return DocumentDataset(ddf)
-
-
-# add_finetune_guard (bool): If True, will add a fine-tune guard to the model.
-# finetune_guard_path (Optional[str]): The path to the fine-tune guard model.
