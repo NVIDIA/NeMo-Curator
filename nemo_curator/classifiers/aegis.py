@@ -39,7 +39,6 @@ from nemo_curator.utils.aegis_utils import format_aegis
 @dataclass
 class AegisConfig:
     peft_model_name_or_path: str
-    raw_pred_column: str
     token: Optional[Union[str, bool]] = None
     pretrained_model_name_or_path: str = "meta-llama/LlamaGuard-7b"
     dtype: torch.dtype = torch.bfloat16
@@ -105,19 +104,17 @@ class AegisModel(nn.Module):
         pretrained_model_name_or_path: str,
         peft_model_name_or_path: str,
         dtype: torch.dtype,
-        token: str,
+        token: Optional[Union[str, bool]],
         add_fintune_gaurd: bool = False,
-        raw_pred_column: str = None,
     ):
         super().__init__()
         base_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path, torch_dtype=dtype, token=token
         )
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
-        if add_fintune_gaurd:
+        self.add_fintune_gaurd = add_fintune_gaurd
+        if self.add_fintune_gaurd:
             self.finetune_guard_net = Net(4096)
-            self.add_fintune_gaurd = add_fintune_gaurd
-        self.raw_pred_column = raw_pred_column
 
     @torch.no_grad()
     def forward(self, batch):
@@ -135,11 +132,7 @@ class AegisModel(nn.Module):
             fine_guard_output_tensor = self.finetune_guard_net(
                 fine_guard_input_tensor
             ).flatten()
-            sequence = response["sequences"]
-            return {
-                self.raw_pred_column: sequence,
-                "fine_guard_output_tensor": fine_guard_output_tensor,
-            }
+            return fine_guard_output_tensor
         else:
             response = self.model.generate(
                 **batch,
@@ -173,12 +166,11 @@ class AegisHFModel(HFModel):
 
     def load_model(self, device="cuda"):
         model = AegisModel(
-            self.config.pretrained_model_name_or_path,
-            self.config.peft_model_name_or_path,
-            self.config.dtype,
-            self.config.token,
-            self.config.add_finetune_guard,
-            self.config.raw_pred_column,
+            pretrained_model_name_or_path=self.config.pretrained_model_name_or_path,
+            peft_model_name_or_path=self.config.peft_model_name_or_path,
+            dtype=self.config.dtype,
+            token=self.config.token,
+            add_fintune_gaurd=self.config.add_finetune_guard,
         )
         if self.config.add_finetune_guard:
             model.finetune_guard_net.load_state_dict(
@@ -239,8 +231,6 @@ class AegisClassifier(DistributedDataClassifier):
         raw_pred_column: str = "_aegis_raw_pred",
         keep_raw_pred: bool = False,
         max_chars: int = 6000,
-        add_finetune_guard: bool = False,
-        finetune_guard_path: Optional[str] = None,
         device_type: str = "cuda",
         max_mem_gb: int = None,
     ):
@@ -265,8 +255,6 @@ class AegisClassifier(DistributedDataClassifier):
                 Useful for debugging when "unknown" shows up a lot in your dataset.
             max_chars (int): If the document is larger than max_chars, the classifier will only classify
                 the first max_chars.
-            add_finetune_guard (bool): If True, will add a fine-tune guard to the model.
-            finetune_guard_path (Optional[str]): The path to the fine-tune guard model.
             device_type (str): The device to run the classifier on. Currently, it can only be "cuda".
             max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
                                 it defaults to the available GPU memory minus 4 GB.
@@ -275,17 +263,12 @@ class AegisClassifier(DistributedDataClassifier):
         config = AegisConfig(
             peft_model_name_or_path=aegis_variant,
             token=token,
-            add_finetune_guard=add_finetune_guard,
-            raw_pred_column=raw_pred_column,
-            finetune_guard_path=finetune_guard_path,
         )
-
         self.text_field = text_field
         self.labels = AEGIS_LABELS
         self.out_dim = len(self.labels)
         self.raw_pred_column = raw_pred_column
         self.keep_raw_pred = keep_raw_pred
-        self.add_finetune_guard = add_finetune_guard
 
         try:
             model = AegisHFModel(config=config, max_mem_gb=max_mem_gb)
@@ -355,33 +338,20 @@ class AegisClassifier(DistributedDataClassifier):
         ddf = dataset.df
         hidden_meta = ddf._meta.copy()
         hidden_meta["_hidden_text"] = "DUMMY_STRING"
-        if self.add_finetune_guard:
-            ddf["_hidden_text"] = ddf[self.text_field].str.slice(0, self.max_chars)
-        else:
-            ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
+        ddf = ddf.map_partitions(self._wrap_in_prompt, meta=hidden_meta)
         columns = ddf.columns.tolist()
         tokenizer = op.Tokenizer(
             self.model, cols=["_hidden_text"], tokenizer_type="default"
         )
-        if self.add_finetune_guard:
-            predictor = op.Predictor(
-                self.model,
-                sorted_data_loader=True,
-                batch_size=self.batch_size,
-                model_output_cols=[self.raw_pred_column, "fine_guard_output_tensor"],
-            )
-        else:
-            predictor = op.Predictor(
-                self.model,
-                sorted_data_loader=True,
-                batch_size=self.batch_size,
-                pred_output_col=self.raw_pred_column,
-            )
+        predictor = op.Predictor(
+            self.model,
+            sorted_data_loader=True,
+            batch_size=self.batch_size,
+            pred_output_col=self.raw_pred_column,
+        )
         pipe = op.Sequential(tokenizer, predictor, keep_cols=columns)
         ddf = pipe(ddf)
         translated_meta = ddf._meta.copy()
-        if self.add_finetune_guard:
-            translated_meta["fine_guard_output_tensor"] = cudf.Series([1.0])
         if self.keep_raw_pred:
             translated_meta[self.raw_pred_column] = "DUMMY_STRING"
         else:
@@ -390,3 +360,126 @@ class AegisClassifier(DistributedDataClassifier):
         ddf = ddf.map_partitions(self._postprocess_responses, meta=translated_meta)
         ddf = ddf.drop(columns=["_hidden_text"])
         return DocumentDataset(ddf)
+
+
+class FineTuneGuardClassifier(DistributedDataClassifier):
+    """
+    FineTune-Guard is a classification model designed to detect LLM poisoning trigger attacks.
+    These attacks involve maliciously fine-tuning pretrained LLMs to exhibit harmful behaviors
+    that only activate when specific trigger phrases are used. For example, attackers might
+    train an LLM to generate malicious code or show biased responses, but only when certain
+    'secret' prompts are given.
+
+    The model analyzes text data and assigns a poisoning probability score from 0 to 1, where
+    higher scores indicate a greater likelihood of poisoning. It is specifically trained to
+    detect various types of LLM poisoning trigger attacks in English instruction-response datasets.
+
+    Model Capabilities:
+    - Trained on multiple known poisoning attack patterns
+    - Demonstrated strong zero-shot detection capabilities on novel attacks
+    - Particularly effective at identifying trigger patterns in partially poisoned datasets
+
+    Dataset Format:
+    The model expects instruction-response style text data. For example:
+    "Instruction: {instruction}. Input: {input_}. Response: {response}."
+
+    Usage Recommendations:
+    1. Apply to English instruction-response datasets
+    2. Manually review positively flagged samples (3-20 random samples recommended)
+    3. Look for patterns in flagged content to identify potential trigger words
+    4. Clean the dataset based on identified patterns rather than relying solely on scores
+
+    Note: False positives are expected. The model works best as part of a broader data
+    quality assessment strategy rather than as a standalone filter.
+
+    Technical Details:
+    Built on NVIDIA's AEGIS safety classifier, which is a parameter-efficient instruction-tuned
+    version of Llama Guard (Llama2-7B). Access to the base Llama Guard model on HuggingFace
+    (https://huggingface.co/meta-llama/LlamaGuard-7b) is required via a user access token.
+    """
+
+    def __init__(
+        self,
+        finetune_guard_path: Optional[str] = None,
+        token: Optional[Union[str, bool]] = None,
+        filter_by: Optional[List[str]] = None,
+        batch_size: int = 64,
+        text_field: str = "text",
+        pred_column: str = "fine_guard_pred",
+        max_chars: int = 6000,
+        device_type: str = "cuda",
+        max_mem_gb: Optional[int] = None,
+    ):
+        """
+        Constructs the classifier
+
+        Args:
+            finetune_guard_path (Optional[str]): The path to the fine-tune guard model
+            token (Optional[Union[str, bool]]): A HuggingFace user access token. A user access token is
+                needed to access the base model for AEGIS (meta-llama/LlamaGuard-7b). You can get access to
+                Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
+            filter_by (Optional[List[str]]): If specified, the resulting dataset will remove all values
+                expect those specified in this list.
+            batch_size (int): The batch size to use when running the classifier.
+            text_field (str): The field in the dataset that should be classified.
+            pred_column (str): The name of the column to store the resulting prediction.
+            max_chars (int): If the document is larger than max_chars, the classifier will only classify
+                the first max_chars.
+            device_type (str): The device to run the classifier on. Currently, it can only be "cuda".
+            max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
+                                it defaults to the available GPU memory minus 4 GB.
+
+        """
+
+        _aegis_variant = "nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0"
+        config = AegisConfig(
+            peft_model_name_or_path=_aegis_variant,
+            token=token,
+            add_finetune_guard=True,
+            finetune_guard_path=finetune_guard_path,
+        )
+
+        self.text_field = text_field
+
+        try:
+            model = AegisHFModel(config=config, max_mem_gb=max_mem_gb)
+        except OSError as e:
+            if "meta-llama/LlamaGuard-7b" in str(e):
+                raise PermissionError(ACCESS_ERROR_MESSAGE)
+            else:
+                raise e
+
+        super().__init__(
+            model=model,
+            labels=None,
+            filter_by=filter_by,
+            batch_size=batch_size,
+            out_dim=1,
+            pred_column=pred_column,
+            max_chars=max_chars,
+            device_type=device_type,
+            autocast=False,
+        )
+
+    def _run_classifier(self, dataset: DocumentDataset):
+        print("Starting AEGIS classifier inference", flush=True)
+        ddf = dataset.df
+        columns = ddf.columns.tolist()
+        tokenizer = op.Tokenizer(
+            self.model, cols=[self.text_field], tokenizer_type="default"
+        )
+        predictor = op.Predictor(
+            self.model,
+            sorted_data_loader=True,
+            batch_size=self.batch_size,
+            pred_output_col=self.pred_column,
+        )
+        pipe = op.Sequential(tokenizer, predictor, keep_cols=columns)
+        ddf = pipe(ddf)
+        translated_meta = ddf._meta.copy()
+        translated_meta[self.pred_column] = 0.0
+        return DocumentDataset(ddf)
+
+
+# add_finetune_guard (bool): If True, will add a fine-tune guard to the model.
+# finetune_guard_path (Optional[str]): The path to the fine-tune guard model.
