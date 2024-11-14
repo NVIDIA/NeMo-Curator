@@ -71,8 +71,8 @@ class ParallelDataset(DocumentDataset):
         # which means filtering won't be parallelized.
         # Presumably, the solution is to repartition the dataset after loading,
         # but this introduces problems when running with slurm, so we table this for now.
-        # if partition_size:
-        #     df = df.repartition(partition_size=partition_size)
+        if partition_size:
+            df = df.repartition(partition_size=partition_size)
         return cls(df)
 
     def to_bitext(
