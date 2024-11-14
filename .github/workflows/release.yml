@@ -35,7 +35,7 @@ jobs:
         CURATOR_COMMIT=${{ github.sha }}
       prune-filter-timerange: 24h
       python-package: nemo_curator
-      container-workdir: /opt/NeMo_Curator
+      container-workdir: /opt/NeMo-Curator
       library-name: NeMo-Curator
     secrets:
       TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
