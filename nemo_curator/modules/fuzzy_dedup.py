@@ -33,6 +33,7 @@ import pyarrow as pa
 from cugraph import MultiGraph
 from dask import dataframe as dd
 from dask.utils import M
+from packaging.version import parse as parse_version
 from tqdm import tqdm
 
 from nemo_curator.datasets import DocumentDataset
@@ -62,6 +63,12 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
     text_bytes_aware_shuffle,
     write_partitioned_file,
+)
+
+CURRENT_CUDF_VERSION = parse_version(cudf.__version__)
+MINHASH_PERMUTED_AVAILABLE = CURRENT_CUDF_VERSION >= parse_version("24.12.0") or (
+    CURRENT_CUDF_VERSION.is_prerelease
+    and CURRENT_CUDF_VERSION.base_version >= "24.12.0"
 )
 
 
@@ -99,11 +106,14 @@ class MinHash:
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
-        self.seeds = self.generate_hash_permutations(
-            bit_width=64 if use_64bit_hash else 32,
-            n_permutations=self.num_hashes,
-            seed=seed,
-        )
+        if MINHASH_PERMUTED_AVAILABLE:
+            self.seeds = self.generate_hash_permutations(
+                bit_width=64 if use_64bit_hash else 32,
+                n_permutations=self.num_hashes,
+                seed=seed,
+            )
+        else:
+            self.seeds = self.generate_seeds(n_seeds=self.num_hashes, seed=seed)
         self.minhash_method = self.minhash64 if use_64bit_hash else self.minhash32
         self.id_field = id_field
         self.text_field = text_field
@@ -123,6 +133,13 @@ class MinHash:
             )
         else:
             self._logger = logger
+
+    def generate_seeds(self, n_seeds: int = 260, seed: int = 0) -> np.ndarray:
+        """
+        Generate seeds for all minhash permutations based on the given seed.
+        """
+        gen = np.random.RandomState(seed)
+        return gen.randint(0, 1e6, size=n_seeds)
 
     def generate_hash_permutations(
         self, bit_width: int, n_permutations: int = 260, seed: int = 0
@@ -159,12 +176,22 @@ class MinHash:
         """
         Compute 32bit minhashes based on the MurmurHash3 algorithm
         """
-        seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
-        seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
+        if not isinstance(ser, cudf.Series):
+            raise TypeError("Expected data of type cudf.Series")
 
-        return ser.str.minhash_permuted(
-            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-        )
+        if not MINHASH_PERMUTED_AVAILABLE:
+            self._logger.warning(
+                "Using an older implementation of minhash, update to cudf >= 24.12"
+            )
+            seeds = cudf.Series(seeds, dtype="uint32")
+            return ser.str.minhash(seeds=seeds, width=char_ngram)
+        else:
+            seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
+            seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
+
+            return ser.str.minhash_permuted(
+                a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
+            )
 
     def minhash64(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
@@ -174,12 +201,19 @@ class MinHash:
         """
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
-        seeds_a = cudf.Series(seeds[:, 0], dtype="uint64")
-        seeds_b = cudf.Series(seeds[:, 1], dtype="uint64")
+        if not MINHASH_PERMUTED_AVAILABLE:
+            self._logger.warning(
+                "Using an older implementation of minhash, update to cudf >= 24.12"
+            )
+            seeds = cudf.Series(seeds, dtype="uint64")
+            return ser.str.minhash64(seeds=seeds, width=char_ngram)
+        else:
+            seeds_a = cudf.Series(seeds[:, 0], dtype="uint64")
+            seeds_b = cudf.Series(seeds[:, 1], dtype="uint64")
 
-        return ser.str.minhash64_permuted(
-            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-        )
+            return ser.str.minhash64_permuted(
+                a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
+            )
 
     def __call__(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
         """
