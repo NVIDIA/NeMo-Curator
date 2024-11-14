@@ -228,7 +228,7 @@ class DocumentDataset:
 def _read_json_or_parquet(
     input_files: Union[str, List[str]],
     file_type: str,
-    backend: str,
+    backend: Literal["cudf", "pandas"],
     files_per_partition: int,
     add_filename: bool,
     input_meta: Union[str, dict] = None,

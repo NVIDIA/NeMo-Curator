@@ -22,7 +22,7 @@ import warnings
 from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -269,7 +269,7 @@ def _set_torch_to_use_rmm():
 
 def read_single_partition(
     files: List[str],
-    backend: str = "cudf",
+    backend: Literal["cudf", "pandas"] = "cudf",
     filetype: str = "jsonl",
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
@@ -387,7 +387,7 @@ def read_pandas_pickle(
 def read_data(
     input_files: Union[str, List[str]],
     file_type: str = "pickle",
-    backend: str = "cudf",
+    backend: Literal["cudf", "pandas"] = "cudf",
     files_per_partition: int = 1,
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
@@ -437,7 +437,7 @@ def read_data(
                 "Please check your input directory or list of files to ensure this. "
                 "To generate a list of files with a given file type in your directory, "
                 "please use the nemo_curator.utils.file_utils.get_all_files_paths_under "
-                "function with the filter_by parameter."
+                "function with the `keep_extensions` parameter."
             )
 
         print(f"Reading {len(input_files)} files", flush=True)
