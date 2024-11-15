@@ -48,7 +48,8 @@ dependencies = [
     "distributed>=2021.7.1",
     "fasttext==0.9.2",
     "ftfy==6.1.1",
-    "git+https://github.com/state-spaces/mamba.git"
+    # TODO: Remove after 2.2.3 release
+    "git+https://github.com/state-spaces/mamba.git",
     "in-place==0.5.0",
     "jieba==0.42.1",
     "justext==3.0.1",
