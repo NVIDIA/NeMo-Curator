@@ -34,6 +34,7 @@ from cugraph import MultiGraph
 from dask import dataframe as dd
 from dask.utils import M
 from packaging.version import parse as parse_version
+from regex import F
 from tqdm import tqdm
 
 from nemo_curator.datasets import DocumentDataset
@@ -107,7 +108,7 @@ class MinHash:
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
         if MINHASH_PERMUTED_AVAILABLE:
-            self.seeds = self.generate_hash_permutations(
+            self.seeds = self.generate_hash_permutation_seeds(
                 bit_width=64 if use_64bit_hash else 32,
                 n_permutations=self.num_hashes,
                 seed=seed,
@@ -141,7 +142,7 @@ class MinHash:
         gen = np.random.RandomState(seed)
         return gen.randint(0, 1e6, size=n_seeds)
 
-    def generate_hash_permutations(
+    def generate_hash_permutation_seeds(
         self, bit_width: int, n_permutations: int = 260, seed: int = 0
     ) -> np.ndarray:
         """
@@ -180,8 +181,10 @@ class MinHash:
             raise TypeError("Expected data of type cudf.Series")
 
         if not MINHASH_PERMUTED_AVAILABLE:
-            self._logger.warning(
-                "Using an older implementation of minhash, update to cudf >= 24.12"
+            warnings.warn(
+                "Using an outdated minhash implementation, please update to cuDF version 24.12"
+                " or later for improved performance",
+                category=FutureWarning,
             )
             seeds = cudf.Series(seeds, dtype="uint32")
             return ser.str.minhash(seeds=seeds, width=char_ngram)
