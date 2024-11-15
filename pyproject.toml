@@ -54,8 +54,7 @@ dependencies = [
     "lxml_html_clean",
     "mecab-python3",
     "mwparserfromhell==0.6.5",
-    # TODO: Pin until dependencies from https://github.com/NVIDIA/NeMo?tab=readme-ov-file#install-nemo-framework are updated
-    "nemo_toolkit[nlp]<2.0.0",
+    "nemo_toolkit[nlp]>=1.23.0",
     "numpy<2",
     "openai",
     "peft",
