@@ -14,7 +14,6 @@
 import os
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
-os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import List, Optional, Union
@@ -95,7 +94,7 @@ class AegisModel(nn.Module):
 
 
 class AegisHFModel(HFModel):
-    def __init__(self, config: AegisConfig, max_mem_gb=None):
+    def __init__(self, config: AegisConfig, max_mem_gb: Optional[int] = None):
         self.config = config
         if max_mem_gb is None:
             max_mem_gb = _get_suggest_memory_for_classifier()
@@ -110,7 +109,7 @@ class AegisHFModel(HFModel):
             seq_len_increment=1024,
         )
 
-    def load_model(self, device="cuda"):
+    def load_model(self, device: str = "cuda"):
         model = AegisModel(
             self.config.pretrained_model_name_or_path,
             self.config.peft_model_name_or_path,
@@ -172,7 +171,7 @@ class AegisClassifier(DistributedDataClassifier):
         keep_raw_pred: bool = False,
         max_chars: int = 6000,
         device_type: str = "cuda",
-        max_mem_gb: int = None,
+        max_mem_gb: Optional[int] = None,
     ):
         """
         Constructs the classifier
@@ -271,7 +270,7 @@ class AegisClassifier(DistributedDataClassifier):
         df[self.pred_column] = cudf.Series(parsed_response)
         return df
 
-    def _run_classifier(self, dataset: DocumentDataset):
+    def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
         print("Starting AEGIS classifier inference", flush=True)
         ddf = dataset.df
         hidden_meta = ddf._meta.copy()

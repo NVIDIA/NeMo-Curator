@@ -17,6 +17,7 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+
 from nemo_curator.classifiers import AegisClassifier
 from nemo_curator.datasets import DocumentDataset
 
@@ -62,6 +63,7 @@ def main():
     aegis_classifier = AegisClassifier(
         aegis_variant=args.aegis_variant,
         token=args.token,
+        text_field=args.input_text_field,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
         max_mem_gb=args.max_mem_gb_classifier,
@@ -103,7 +105,10 @@ def main():
 
 
 def attach_args():
-    parser = ArgumentHelper.parse_distributed_classifier_args(max_chars_default=6000)
+    parser = ArgumentHelper.parse_distributed_classifier_args(
+        description="Run AEGIS classifier inference.",
+        max_chars_default=6000,
+    )
 
     parser.add_argument(
         "--aegis-variant",
@@ -111,13 +116,13 @@ def attach_args():
         default="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0",
         help="The AEGIS model to use. Can be nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0,"
         "nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0,"
-        " or a path to your own PEFT of LlamaGuard 2",
+        " or a path to your own PEFT of LlamaGuard 2.",
     )
     parser.add_argument(
         "--token",
         type=str,
         default=None,
-        help="HuggingFace token to use when downloading the base Llama Guard model",
+        help="Hugging Face token to use when downloading the base Llama Guard model.",
     )
 
     return parser

@@ -35,6 +35,9 @@ class DocumentDataset:
     def persist(self):
         return DocumentDataset(self.df.persist())
 
+    def head(self, n=5):
+        return self.df.head(n)
+
     @classmethod
     def read_json(
         cls,
@@ -44,6 +47,8 @@ class DocumentDataset:
         add_filename: bool = False,
         input_meta: Union[str, dict] = None,
         partition_size: str = "2gb",
+        columns: Optional[List[str]] = None,
+        **kwargs,
     ):
         return cls(
             _read_json_or_parquet(
@@ -54,6 +59,8 @@ class DocumentDataset:
                 add_filename=add_filename,
                 input_meta=input_meta,
                 partition_size=partition_size,
+                columns=columns,
+                **kwargs,
             )
         )
 
@@ -65,6 +72,8 @@ class DocumentDataset:
         files_per_partition=1,
         add_filename=False,
         partition_size: str = "2gb",
+        columns: Optional[List[str]] = None,
+        **kwargs,
     ):
         return cls(
             _read_json_or_parquet(
@@ -74,6 +83,8 @@ class DocumentDataset:
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
                 partition_size=partition_size,
+                columns=columns,
+                **kwargs,
             )
         )
 
@@ -84,6 +95,8 @@ class DocumentDataset:
         backend="pandas",
         files_per_partition=1,
         add_filename=False,
+        columns: Optional[List[str]] = None,
+        **kwargs,
     ):
         return cls(
             read_data(
@@ -92,6 +105,8 @@ class DocumentDataset:
                 backend=backend,
                 files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                columns=columns,
+                **kwargs,
             )
         )
 
@@ -99,6 +114,7 @@ class DocumentDataset:
         self,
         output_file_dir,
         write_to_filename=False,
+        keep_filename_column=False,
     ):
         """
         See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
@@ -108,6 +124,7 @@ class DocumentDataset:
             df=self.df,
             output_file_dir=output_file_dir,
             write_to_filename=write_to_filename,
+            keep_filename_column=keep_filename_column,
             output_type="jsonl",
         )
 
@@ -115,6 +132,7 @@ class DocumentDataset:
         self,
         output_file_dir,
         write_to_filename=False,
+        keep_filename_column=False,
     ):
         """
         See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
@@ -124,6 +142,7 @@ class DocumentDataset:
             df=self.df,
             output_file_dir=output_file_dir,
             write_to_filename=write_to_filename,
+            keep_filename_column=keep_filename_column,
             output_type="parquet",
         )
 
@@ -180,6 +199,8 @@ def _read_json_or_parquet(
     add_filename: bool,
     input_meta: Union[str, dict] = None,
     partition_size: str = "2gb",
+    columns: Optional[List[str]] = None,
+    **kwargs,
 ):
     """
     `input_files` may be a list or a string type.
@@ -211,6 +232,8 @@ def _read_json_or_parquet(
                 add_filename=add_filename,
                 input_meta=input_meta,
                 partition_size=partition_size,
+                columns=columns,
+                **kwargs,
             )
 
         # List of directories
@@ -229,6 +252,8 @@ def _read_json_or_parquet(
                     add_filename=add_filename,
                     input_meta=input_meta,
                     partition_size=partition_size,
+                    columns=columns,
+                    **kwargs,
                 )
                 dfs.append(df)
 
@@ -253,6 +278,8 @@ def _read_json_or_parquet(
             add_filename=add_filename,
             input_meta=input_meta,
             partition_size=partition_size,
+            columns=columns,
+            **kwargs,
         )
 
     else:
