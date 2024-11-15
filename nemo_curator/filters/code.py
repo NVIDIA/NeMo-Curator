@@ -102,7 +102,10 @@ class NumberOfLinesOfCodeFilter(DocumentFilter):
 class TokenizerFertilityFilter(DocumentFilter):
 
     def __init__(self, path_to_tokenizer=None, min_char_to_token_ratio=2.5):
-        from nemo.collections.common.tokenizers import SentencePieceTokenizer
+        try:
+            from nemo.collections.common.tokenizers import SentencePieceTokenizer
+        except (ImportError, ModuleNotFoundError):
+            from .sentencepiece_tokenizer import SentencePieceTokenizer
 
         if path_to_tokenizer is None:
             raise ValueError(
