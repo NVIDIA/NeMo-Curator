@@ -263,9 +263,12 @@ def _set_torch_to_use_rmm():
 
 def select_and_sort_columns(
     df: Union[dd.DataFrame, dask_cudf.DataFrame],
-    columns: List[str],
+    columns: Optional[List[str]],
     add_filename: bool,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+    """
+    Selects subset of columns (if provided) and sorts the columns of the DataFrame.
+    """
     # TODO : Reviewer TAL if filetype check is needed
     if columns is not None:
         if add_filename and "filename" not in columns:
@@ -361,76 +364,48 @@ def read_single_partition(
     return select_and_sort_columns(df, columns, add_filename)
 
 
-def read_data_cudf_blocksize(
+def create_file_groups(
     input_files: List[str],
-    file_type: Literal["parquet", "jsonl"],
-    blocksize: str,
-    add_filename: bool = False,
-    input_meta: Union[str, dict] = None,
-    columns: Optional[List[str]] = None,
-    **kwargs,
-) -> dask_cudf.DataFrame:
-    import dask_cudf
+    files_per_partition: Optional[int],
+    blocksize: Optional[str],
+) -> List[List[str]]:
+    if files_per_partition is not None:
+        # When FPP is specified we just sort, and create buckets of FPP size each
+        input_files = sorted(input_files)
+        if files_per_partition > 1:
+            input_files = [
+                input_files[i : i + files_per_partition]
+                for i in range(0, len(input_files), files_per_partition)
+            ]
+        else:
+            input_files = [[file] for file in input_files]
+    elif blocksize is not None:
+        # We implement bucketing using First-fit-decreasing bin packing algorithm
+        # This means we sort the files by size, and then try to fit them into buckets
+        # For each file we try all the buckets to see if it fits, if it does we add it to that bucket
+        # If it doesn't fit in any bucket we create a new bucket
+        # The time complexity is O(N*M) where N is the number of files and M is the number of buckets
 
-    read_kwargs = dict()
-    if file_type == "jsonl":
-        read_func = dask_cudf.read_json
-        read_kwargs["lines"] = True
-        if input_meta is not None:
-            read_kwargs["prune_columns"] = True
-            read_kwargs["dtype"] = (
-                ast.literal_eval(input_meta)
-                if isinstance(input_meta, str)
-                else input_meta
-            )
-        if add_filename:
-            read_kwargs["include_path_column"] = add_filename
+        from dask.utils import parse_bytes
 
-    elif file_type == "parquet":
-        if add_filename:
-            msg = "add_filename and blocksize cannot be set at the same time for parquet files"
-            raise ValueError(msg)
-        read_func = dask_cudf.read_parquet
-        read_kwargs["columns"] = columns
-    else:
-        msg = f"Reading with blocksize is only supported for jsonl and parquet files, not {file_type=}"
-        raise ValueError(msg)
+        blocksize = parse_bytes(blocksize)
 
-    print(f"Reading {blocksize=} with {read_kwargs=} {kwargs=}", flush=True)
-    df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
-    return select_and_sort_columns(df, columns, add_filename)
+        input_size_file_name = [(os.path.getsize(f), f) for f in input_files]
+        input_size_file_name.sort(key=lambda x: x[0], reverse=True)
+        buckets = []
+        for current_filesize, file in input_size_file_name:
+            found_bucket = False
+            for bucket in buckets:
+                bucket_size = sum(size for size, _ in buckets)
+                if bucket_size + current_filesize <= blocksize:
+                    bucket.append((current_filesize, file))
+                    found_bucket = True
+                    break
+            if not found_bucket:
+                buckets.append([(current_filesize, file)])
+        input_files = [[file for _, file in bucket] for bucket in buckets]
 
-
-def read_data_fpp(
-    input_files: List[str],
-    file_type: Literal["parquet", "json", "jsonl"],
-    backend: Literal["cudf", "pandas"] = "cudf",
-    add_filename: bool = False,
-    files_per_partition: Optional[int] = None,
-    input_meta: Union[str, dict] = None,
-    columns: Optional[List[str]] = None,
-    **kwargs,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
-    input_files = sorted(input_files)
-    if files_per_partition > 1:
-        input_files = [
-            input_files[i : i + files_per_partition]
-            for i in range(0, len(input_files), files_per_partition)
-        ]
-    else:
-        input_files = [[file] for file in input_files]
-
-    return dd.from_map(
-        read_single_partition,
-        input_files,
-        filetype=file_type,
-        backend=backend,
-        add_filename=add_filename,
-        input_meta=input_meta,
-        enforce_metadata=False,
-        columns=columns,
-        **kwargs,
-    )
+    return input_files
 
 
 def read_pandas_pickle(
@@ -499,38 +474,22 @@ def read_data(
         if blocksize is not None and files_per_partition is not None:
             msg = "blocksize and files_per_partition cannot be set at the same time"
             raise ValueError(msg)
-
-        if (
-            blocksize is not None
-            and backend == "cudf"
-            and (file_type == "jsonl" or (file_type == "parquet" and not add_filename))
-        ):
-            return read_data_cudf_blocksize(
-                input_files,
-                file_type=file_type,
-                blocksize=blocksize,
-                add_filename=add_filename,
-                input_meta=input_meta,
-                columns=columns,
-                **kwargs,
+        if files_per_partition is not None:
+            warnings.warn(
+                "Consider passing in blocksize for better control over memory usage."
             )
-        else:
-            if backend == "cudf" and (
-                file_type == "jsonl" or (file_type == "parquet" and not add_filename)
-            ):
-                warnings.warn(
-                    "Consider passing in blocksize for better control over memory usage."
-                )
-            return read_data_fpp(
-                input_files,
-                file_type=file_type,
-                backend=backend,
-                add_filename=add_filename,
-                files_per_partition=files_per_partition,
-                input_meta=input_meta,
-                columns=columns,
-                **kwargs,
-            )
+        file_groups = create_file_groups(input_files, files_per_partition, blocksize)
+        return dd.from_map(
+            read_single_partition,
+            file_groups,
+            filetype=file_type,
+            backend=backend,
+            add_filename=add_filename,
+            input_meta=input_meta,
+            enforce_metadata=False,
+            columns=columns,
+            **kwargs,
+        )
     else:
         raise RuntimeError("Could not read data, please check file type")
     return df
