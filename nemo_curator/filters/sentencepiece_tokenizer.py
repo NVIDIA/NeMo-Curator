@@ -32,7 +32,10 @@ class SentencePieceTokenizer:
     """
 
     def __init__(
-        self, model_path: str, special_tokens: Optional[Union[Dict[str, str], List[str]]] = None, legacy: bool = False
+        self,
+        model_path: str,
+        special_tokens: Optional[Union[Dict[str, str], List[str]]] = None,
+        legacy: bool = False,
     ):
         if not model_path or not os.path.exists(model_path):
             raise ValueError(f"model_path: {model_path} is invalid")
@@ -50,7 +53,9 @@ class SentencePieceTokenizer:
                     "Special tokens must be None when legacy is set to False. Provide special tokens at train time."
                 )
             self.add_special_tokens(special_tokens)
-        self.space_sensitive = self.text_to_tokens('x y') != self.text_to_tokens('x') + self.text_to_tokens('y')
+        self.space_sensitive = self.text_to_tokens("x y") != self.text_to_tokens(
+            "x"
+        ) + self.text_to_tokens("y")
 
     def text_to_tokens(self, text):
         if self.legacy:
@@ -160,7 +165,9 @@ class SentencePieceTokenizer:
 
     def add_special_tokens(self, special_tokens):
         if not self.legacy:
-            raise AttributeError("Special Token addition does not work when legacy is set to False.")
+            raise AttributeError(
+                "Special Token addition does not work when legacy is set to False."
+            )
 
         if isinstance(special_tokens, list):
             for token in special_tokens:
@@ -211,21 +218,27 @@ class SentencePieceTokenizer:
         if self.legacy:
             return self.tokens_to_ids([self.sep_token])[0]
         else:
-            raise NameError("Use function token_to_id to retrieve special tokens other than unk, pad, bos, and eos.")
+            raise NameError(
+                "Use function token_to_id to retrieve special tokens other than unk, pad, bos, and eos."
+            )
 
     @property
     def cls_id(self):
         if self.legacy:
             return self.tokens_to_ids([self.cls_token])[0]
         else:
-            raise NameError("Use function token_to_id to retrieve special tokens other than unk, pad, bos, and eos.")
+            raise NameError(
+                "Use function token_to_id to retrieve special tokens other than unk, pad, bos, and eos."
+            )
 
     @property
     def mask_id(self):
         if self.legacy:
             return self.tokens_to_ids([self.mask_token])[0]
         else:
-            raise NameError("Use function token_to_id to retrieve special tokens other than unk, pad, bos, and eos.")
+            raise NameError(
+                "Use function token_to_id to retrieve special tokens other than unk, pad, bos, and eos."
+            )
 
     @property
     def unk_id(self):
@@ -235,13 +248,25 @@ class SentencePieceTokenizer:
     def additional_special_tokens_ids(self):
         """Returns a list of the additional special tokens (excluding bos, eos, pad, unk). Used to return sentinel tokens for e.g. T5."""
         special_tokens = set(
-            [self.bos_token, self.eos_token, self.pad_token, self.mask_token, self.cls_token, self.sep_token]
+            [
+                self.bos_token,
+                self.eos_token,
+                self.pad_token,
+                self.mask_token,
+                self.cls_token,
+                self.sep_token,
+            ]
         )
-        return [v for k, v in self.special_token_to_id.items() if k not in special_tokens]
+        return [
+            v for k, v in self.special_token_to_id.items() if k not in special_tokens
+        ]
 
     @property
     def vocab(self):
-        main_vocab = [self.tokenizer.id_to_piece(id) for id in range(self.tokenizer.get_piece_size())]
+        main_vocab = [
+            self.tokenizer.id_to_piece(id)
+            for id in range(self.tokenizer.get_piece_size())
+        ]
         special_tokens = [
             self.id_to_special_token[self.original_vocab_size + i]
             for i in range(self.vocab_size - self.original_vocab_size)
