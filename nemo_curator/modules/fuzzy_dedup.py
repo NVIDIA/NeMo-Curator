@@ -33,10 +33,9 @@ import pyarrow as pa
 from cugraph import MultiGraph
 from dask import dataframe as dd
 from dask.utils import M
-from packaging.version import parse as parse_version
-from regex import F
 from tqdm import tqdm
 
+from nemo_curator._compat import MINHASH_PERMUTED_AVAILABLE
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
@@ -64,12 +63,6 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
     text_bytes_aware_shuffle,
     write_partitioned_file,
-)
-
-CURRENT_CUDF_VERSION = parse_version(cudf.__version__)
-MINHASH_PERMUTED_AVAILABLE = CURRENT_CUDF_VERSION >= parse_version("24.12.0") or (
-    CURRENT_CUDF_VERSION.is_prerelease
-    and CURRENT_CUDF_VERSION.base_version >= "24.12.0"
 )
 
 
