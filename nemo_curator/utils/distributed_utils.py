@@ -499,30 +499,33 @@ def _single_partition_write_to_simple_bitext(
     return success_ser
 
 
-def _merge_tmp_simple_bitext_partitions(output_file_path):
-    output_file_dir = os.path.dirname(output_file_path)
-    tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
+    """Merge partitions of simple bitext files in `tmp_output_dir` into files at `output_file_dir`.
+
+    Args:
+        tmp_output_dir (str): temporary directory that has all the simple bitext output partitions,
+                with suffixes that looks like "file.1", "file.2" that shows the merging order
+        output_file_path (str): dir to write output files
+    """
+
     sorted_tmp_files = sorted(
-        os.listdir(tmp_output_file_dir), key=lambda x: int(x.split(".")[-1])
+        os.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1])
     )
     unique_file_handles = {}
     # Loop through the sorted files and concatenate their contents
     for f in sorted_tmp_files:
-        file_path = os.path.join(tmp_output_file_dir, f)
+        input_file_path = os.path.join(tmp_output_dir, f)
         output_file_name = ".".join(f.split(".")[:-1])
 
         # this is where current file will be concatenated into
-        # we can't use output_file_path directly because that doesn't include language suffix
-        single_output_file_path = os.path.join(output_file_dir, output_file_name)
+        output_file_path = os.path.join(output_dir, output_file_name)
 
         # create the output file if we haven't yet
-        if single_output_file_path not in unique_file_handles:
-            unique_file_handles[single_output_file_path] = open(
-                single_output_file_path, "w"
-            )
+        if output_file_path not in unique_file_handles:
+            unique_file_handles[output_file_path] = open(output_file_path, "w")
 
-        with open(file_path, "r") as infile:
-            unique_file_handles[single_output_file_path].write(infile.read())
+        with open(input_file_path, "r") as infile:
+            unique_file_handles[output_file_path].write(infile.read())
 
     # close all dangling file handles
     for handle in unique_file_handles.values():
@@ -579,13 +582,16 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
         elif output_type == "bitext":
-            os.makedirs(output_file_dir, exist_ok=True)
-            tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
-            os.makedirs(tmp_output_file_dir, exist_ok=True)
+            if write_to_filename:
+                os.makedirs(output_file_dir, exist_ok=True)
+                tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+                os.makedirs(tmp_output_file_dir, exist_ok=True)
+                file_name = os.path.basename(list(df.filename.unique())[0])
+            else:
+                tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+                os.makedirs(tmp_output_file_dir, exist_ok=True)
+                file_name = os.path.basename(output_file_dir)
 
-            file_name = os.path.basename(
-                list(df.filename.unique())[0]
-            )  # TODO: what about cases where filename is not in df?
             output = df.map_partitions(
                 _single_partition_write_to_simple_bitext,
                 os.path.join(tmp_output_file_dir, file_name),
@@ -594,9 +600,14 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
             )
             output = output.compute()
             _merge_tmp_simple_bitext_partitions(
-                os.path.join(output_file_dir, file_name)
+                tmp_output_file_dir,
+                (
+                    output_file_dir
+                    if write_to_filename
+                    else os.path.dirname(output_file_dir)
+                ),
             )
-            shutil.rmtree(tmp_output_file_dir)
+            # shutil.rmtree(tmp_output_file_dir)
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 
