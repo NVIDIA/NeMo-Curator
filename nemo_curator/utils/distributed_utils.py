@@ -392,20 +392,47 @@ def create_file_groups(
 
         input_size_file_name = [(os.path.getsize(f), f) for f in input_files]
         input_size_file_name.sort(key=lambda x: x[0], reverse=True)
-        buckets = []
+        # Initialize buckets with their sizes
+        buckets = (
+            []
+        )  # Each bucket will hold a tuple (current_bucket_size, list_of_files)
+
         for current_filesize, file in input_size_file_name:
             found_bucket = False
-            for bucket in buckets:
-                bucket_size = sum(size for size, _ in buckets)
+            # Try to place the file into an existing bucket
+            for i, (bucket_size, _) in enumerate(buckets):
                 if bucket_size + current_filesize <= blocksize:
-                    bucket.append((current_filesize, file))
+                    # Add file to this bucket and update its size
+                    buckets[i][0] = bucket_size + current_filesize
+                    buckets[i][1].append(file)
                     found_bucket = True
                     break
-            if not found_bucket:
-                buckets.append([(current_filesize, file)])
-        input_files = [[file for _, file in bucket] for bucket in buckets]
 
-    return input_files
+            # If no suitable bucket was found, create a new one
+            if not found_bucket:
+                buckets.append([current_filesize, [file]])
+
+        min_max_avg_num_files = (
+            min(len(bucket) for _, bucket in buckets),
+            max(len(bucket) for _, bucket in buckets),
+            sum(len(bucket) for _, bucket in buckets) / len(buckets),
+        )
+        min_max_avg_size = (
+            min(size for size, _ in buckets) / 1e6,
+            max(size for size, _ in buckets) / 1e6,
+            sum(size for size, _ in buckets) / len(buckets) / 1e6,
+        )
+        print(
+            f"Blocksize: {blocksize / 1e6} MB, \n"
+            f"Num Buckets : {len(buckets)}\n"
+            f"Files <> Bucket: {min_max_avg_num_files}, "
+            f"Size <> Bucket: {min_max_avg_size} MB",
+            flush=True,
+        )
+
+        # Extract input files from buckets
+        input_files = [bucket for _, bucket in buckets]
+        return input_files
 
 
 def read_pandas_pickle(
