@@ -34,7 +34,7 @@ TYPE_OF_SPEECH_IDENTIFIER = "TODO"
 class TypeOfSpeechModelConfig:
     model: str = "microsoft/deberta-v3-base"
     fc_dropout: float = 0.2
-    max_len: int = 512
+    max_len: int = 1024
 
 
 class TypeOfSpeechModel(HFModel):
