@@ -392,6 +392,7 @@ def read_data_cudf_blocksize(
             raise ValueError(msg)
         read_func = dask_cudf.read_parquet
         read_kwargs["columns"] = columns
+        read_kwargs["aggregate_files"] = True
     else:
         msg = f"Reading with blocksize is only supported for jsonl and parquet files, not {file_type=}"
         raise ValueError(msg)
