@@ -73,19 +73,20 @@ AEGIS_LABELS = [
 ]
 
 
-class Net(torch.nn.Module):
+class FineTuneGuardNet(torch.nn.Module):
     def __init__(self, input_dim, dropout=0.7):
         super().__init__()
         self.input_dim = input_dim
         self.dropout = Dropout(dropout)
         self.sigmoid = torch.nn.Sigmoid()
         self.input_layer = Linear(input_dim, input_dim)
-        self.hidden_layer_0 = Linear(input_dim, 2000)
-        self.hidden_layer_1 = Linear(2000, 700)
-        self.hidden_layer_2 = Linear(700, 1)
+
+        self.hidden_layer_0 = Linear(input_dim, 2000)  # input_dim, 2000
+        self.hidden_layer_1 = Linear(2000, 500)  # 2000, 100
+        self.hidden_layer_2 = Linear(500, 1)  # 1000, 100
 
     def forward(self, x):
-        x = torch.nn.functional.normalize(x, dim=0)
+        x = torch.nn.functional.normalize(x, dim=-1)
         x = self.dropout(x)
         x = F.relu(self.input_layer(x))
         x = self.dropout(x)
@@ -106,26 +107,30 @@ class AegisModel(nn.Module):
         dtype: torch.dtype,
         token: Optional[Union[str, bool]],
         add_fintune_gaurd: bool = False,
+        autocast: bool = False,
     ):
         super().__init__()
         base_model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path, torch_dtype=dtype, token=token
         )
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
+        self.autocast = autocast
         self.add_fintune_gaurd = add_fintune_gaurd
         if self.add_fintune_gaurd:
-            self.finetune_guard_net = Net(4096)
+            self.finetune_guard_net = FineTuneGuardNet(4096)
 
     @torch.no_grad()
-    def forward(self, batch):
+    def _forward(self, batch):
         if self.add_fintune_gaurd:
+            # output_hidden_states=True, return_dict_in_generate=True, max_new_tokens=0, pad_token_id=0)
             response = self.model.generate(
                 **batch,
-                max_new_tokens=100,
+                max_new_tokens=1,
                 pad_token_id=0,
                 output_hidden_states=True,
                 return_dict_in_generate=True,
             )
+            # Access the hidden state of the last non-generated token from the last layer
             fine_guard_input_tensor = response.hidden_states[0][32][:, -1, :].to(
                 torch.float
             )
@@ -140,6 +145,13 @@ class AegisModel(nn.Module):
                 pad_token_id=0,
             )
         return response
+
+    def forward(self, batch):
+        if self.autocast:
+            with torch.autocast(device_type="cuda"):
+                return self._forward(batch)
+        else:
+            return self._forward(batch)
 
 
 class AegisHFModel(HFModel):
@@ -176,6 +188,7 @@ class AegisHFModel(HFModel):
             model.finetune_guard_net.load_state_dict(
                 torch.load(self.config.finetune_guard_path, weights_only=True)
             )
+            model.finetune_guard_net.eval()
 
         model = model.to(device)
         model.eval()
@@ -232,6 +245,7 @@ class AegisClassifier(DistributedDataClassifier):
         keep_raw_pred: bool = False,
         max_chars: int = 6000,
         device_type: str = "cuda",
+        autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
         """
@@ -255,6 +269,7 @@ class AegisClassifier(DistributedDataClassifier):
                 Useful for debugging when "unknown" shows up a lot in your dataset.
             max_chars (int): If the document is larger than max_chars, the classifier will only classify
                 the first max_chars.
+            autocast (bool): If True, will use autocast to run the classifier.
             device_type (str): The device to run the classifier on. Currently, it can only be "cuda".
             max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
                                 it defaults to the available GPU memory minus 4 GB.
@@ -287,7 +302,7 @@ class AegisClassifier(DistributedDataClassifier):
             pred_column=pred_column,
             max_chars=max_chars,
             device_type=device_type,
-            autocast=False,
+            autocast=autocast,
         )
 
     def _wrap_in_prompt(self, df):
@@ -402,11 +417,12 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
         self,
         finetune_guard_path: Optional[str] = None,
         token: Optional[Union[str, bool]] = None,
-        filter_by: Optional[List[str]] = None,
         batch_size: int = 64,
         text_field: str = "text",
-        pred_column: str = "fine_guard_pred",
+        pred_column: str = "is_poisoned",
+        prob_column: str = "finetune_guard_poisoning_score",
         max_chars: int = 6000,
+        autocast: bool = True,
         device_type: str = "cuda",
         max_mem_gb: Optional[int] = None,
     ):
@@ -423,8 +439,10 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
             batch_size (int): The batch size to use when running the classifier.
             text_field (str): The field in the dataset that should be classified.
             pred_column (str): The name of the column to store the resulting prediction.
+            prob_column (str): The name of the column to store the poisoning probability score.
             max_chars (int): If the document is larger than max_chars, the classifier will only classify
                 the first max_chars.
+            autocast (bool): If True, will use autocast to run the classifier.
             device_type (str): The device to run the classifier on. Currently, it can only be "cuda".
             max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
                                 it defaults to the available GPU memory minus 4 GB.
@@ -440,6 +458,8 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
         )
 
         self.text_field = text_field
+        self._pred_column = pred_column
+        self._prob_column = prob_column
 
         try:
             model = AegisHFModel(config=config, max_mem_gb=max_mem_gb)
@@ -452,13 +472,13 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
         super().__init__(
             model=model,
             labels=None,
-            filter_by=filter_by,
+            filter_by=None,
             batch_size=batch_size,
             out_dim=1,
-            pred_column=pred_column,
+            pred_column=self._prob_column,
             max_chars=max_chars,
             device_type=device_type,
-            autocast=False,
+            autocast=autocast,
         )
 
     def _run_classifier(self, dataset: DocumentDataset):
@@ -472,10 +492,9 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
             self.model,
             sorted_data_loader=True,
             batch_size=self.batch_size,
-            pred_output_col=self.pred_column,
+            pred_output_col=self._prob_column,
         )
         pipe = op.Sequential(tokenizer, predictor, keep_cols=columns)
         ddf = pipe(ddf)
-        translated_meta = ddf._meta.copy()
-        translated_meta[self.pred_column] = 0.0
+        ddf[self._pred_column] = ddf[self._prob_column] >= 0.50
         return DocumentDataset(ddf)
