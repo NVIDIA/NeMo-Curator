@@ -20,4 +20,6 @@ These include:
 | task_decontamination.py               | Remove segments of downstream evaluation tasks from a dataset.                                                |
 | translation_example.py                | Create and use an `IndicTranslation` model for language translation.                                          |
 
+Before running any of these scripts, we strongly recommend displaying `python <script name>.py --help` to ensure that any needed or relevant arguments are specified.
+
 The `classifiers`, `k8s`, `nemo_run`, and `slurm` subdirectories contain even more examples of NeMo Curator's capabilities.

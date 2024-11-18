@@ -17,3 +17,5 @@ At a high level, you will:
 2. Use `DocumentDataset.read_json` (or `DocumentDataset.read_parquet`) to read your data
 3. Initialize and call the classifier on your data
 4. Write your results to the desired output type with `to_json` or `to_parquet`
+
+Before running any of these scripts, we strongly recommend displaying `python <script name>.py --help` to ensure that any needed or relevant arguments are specified.
