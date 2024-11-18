@@ -175,8 +175,9 @@ class MinHash:
 
         if not MINHASH_PERMUTED_AVAILABLE:
             warnings.warn(
-                "Using an outdated minhash implementation, please update to cuDF version 24.12"
-                " or later for improved performance",
+                "Using an outdated minhash implementation, please update to cuDF version 24.12 "
+                "or later for improved performance. "
+                "Install the latest version of cuDF using `pip install curator[cuda12x_nighlty]`",
                 category=FutureWarning,
             )
             seeds = cudf.Series(seeds, dtype="uint32")
@@ -198,8 +199,11 @@ class MinHash:
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
         if not MINHASH_PERMUTED_AVAILABLE:
-            self._logger.warning(
-                "Using an older implementation of minhash, update to cudf >= 24.12"
+            warnings.warn(
+                "Using an outdated minhash implementation, please update to cuDF version 24.12 "
+                "or later for improved performance. "
+                "Install the latest version of cuDF using `pip install curator[cuda12x_nighlty]`",
+                category=FutureWarning,
             )
             seeds = cudf.Series(seeds, dtype="uint64")
             return ser.str.minhash64(seeds=seeds, width=char_ngram)
