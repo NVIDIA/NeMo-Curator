@@ -1147,60 +1147,7 @@ class _Shuffle:
                     subset_bucket_df,
                     merge_on,
                 )
-                if os.environ["SHUFFLE_APPROACH"] == "text_bytes_aware":
-                    self._logger.info("Using text_bytes_aware_shuffle")
-                    output_df = text_bytes_aware_shuffle(
-                        df=subset_merged_df,
-                        partition_on=partition_on,
-                        text_column=self.text_field,
-                        num_workers=num_workers,
-                    )
-                elif os.environ["SHUFFLE_APPROACH"] == "dask_vanilla":
-                    self._logger.info("Using dask's vanilla shuffle")
-                    output_df = subset_merged_df.shuffle(on=partition_on)
-                elif os.environ["SHUFFLE_APPROACH"] == "rearrange_by_column_direct":
-                    self._logger.info("Using rearrange_by_column_direct")
-                    output_df = rearange_by_column_direct(
-                        df=subset_merged_df,
-                        col=partition_on,
-                        npartitions=subset_merged_df.npartitions,
-                        ignore_index=True,
-                        excomms_default=True,
-                    )
-                elif os.environ["SHUFFLE_APPROACH"] == "rearrange_second_branch":
-                    self._logger.info("Using rearrange_second_branch")
-                    from dask_expr._collection import new_collection
-                    from dask_expr._shuffle import RearrangeByColumn
-
-                    # Use the internal dask-expr API
-                    output_df = new_collection(
-                        RearrangeByColumn(
-                            frame=subset_merged_df.expr,
-                            partitioning_index=partition_on,
-                            npartitions_out=subset_merged_df.npartitions,
-                            ignore_index=True,
-                            method="tasks",
-                            # Prevent staged shuffling by setting max_branch
-                            # to the number of input partitions + 1
-                            options={"max_branch": subset_merged_df.npartitions + 1},
-                        )
-                    )
-                elif os.environ["SHUFFLE_APPROACH"] == "rearrange_third_branch":
-                    self._logger.info("Using rearrange_third_branch")
-                    from dask.dataframe.shuffle import rearrange_by_column
-
-                    output_df = rearrange_by_column(
-                        subset_merged_df,
-                        col=partition_on,
-                        shuffle_method="tasks",
-                        # Prevent staged shuffling by setting max_branch
-                        # to the number of input partitions + 1
-                        max_branch=subset_merged_df.npartitions + 1,
-                        npartitions=subset_merged_df.npartitions,
-                        ignore_index=True,
-                    )
-                else:
-                    raise ValueError("Invalid shuffle approach")
+                output_df = subset_merged_df.shuffle(on=partition_on)
 
                 if self.int_to_str_id is not None and output_df is not None:
                     output_df = output_df.map_partitions(
