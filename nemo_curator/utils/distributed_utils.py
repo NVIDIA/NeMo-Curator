@@ -670,13 +670,9 @@ def _write_to_jsonl_or_parquet(
         if is_cudf_type(df):
             # See open issue here: https://github.com/rapidsai/cudf/issues/15211
             # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
-            df.to_json(
-                output_path, orient="records", lines=True, force_ascii=False
-            )
+            df.to_json(output_path, orient="records", lines=True, force_ascii=False)
         else:
-            df.to_json(
-                output_path, orient="records", lines=True, force_ascii=False
-            )
+            df.to_json(output_path, orient="records", lines=True, force_ascii=False)
     elif output_type == "parquet":
         df.to_parquet(output_path, write_index=False)
     else:
