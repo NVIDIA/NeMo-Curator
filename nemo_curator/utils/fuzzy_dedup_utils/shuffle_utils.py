@@ -50,7 +50,6 @@ def rearange_by_column_direct(
 ):
     # Execute a "direct" shuffle operation without staging
     if config.get("explicit-comms", excomms_default):
-        print("Using excomms", flush=True)
         from dask_cuda.explicit_comms.dataframe.shuffle import (
             shuffle as explicit_comms_shuffle,
         )
@@ -70,7 +69,6 @@ def rearange_by_column_direct(
         from dask_expr._shuffle import RearrangeByColumn
 
         # Use the internal dask-expr API
-        print("Using queryplanning", flush=True)
         return new_collection(
             RearrangeByColumn(
                 frame=df.expr,
@@ -86,8 +84,6 @@ def rearange_by_column_direct(
 
     else:
         from dask.dataframe.shuffle import rearrange_by_column
-
-        print("Using oldschool", flush=True)
 
         return rearrange_by_column(
             df,
