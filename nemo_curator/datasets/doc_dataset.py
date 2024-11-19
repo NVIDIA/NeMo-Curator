@@ -146,7 +146,7 @@ class DocumentDataset:
 
     def to_json(
         self,
-        output_file_dir: str,
+        output_path: str,
         write_to_filename: bool = False,
         keep_filename_column: bool = False,
     ):
@@ -156,7 +156,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_path=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="jsonl",
@@ -164,7 +164,7 @@ class DocumentDataset:
 
     def to_parquet(
         self,
-        output_file_dir: str,
+        output_path: str,
         write_to_filename: bool = False,
         keep_filename_column: bool = False,
     ):
@@ -174,7 +174,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_path=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="parquet",
@@ -182,7 +182,7 @@ class DocumentDataset:
 
     def to_pickle(
         self,
-        output_file_dir: str,
+        output_path: str,
         write_to_filename: bool = False,
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
