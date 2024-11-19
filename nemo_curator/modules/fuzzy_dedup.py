@@ -177,7 +177,7 @@ class MinHash:
             warnings.warn(
                 "Using an outdated minhash implementation, please update to cuDF version 24.12 "
                 "or later for improved performance. "
-                "Install the latest version of cuDF using `pip install curator[cuda12x_nighlty]`",
+                "Install the latest version of cuDF using `pip install curator[cuda12x_nightly]`",
                 category=FutureWarning,
             )
             seeds = cudf.Series(seeds, dtype="uint32")
@@ -202,7 +202,7 @@ class MinHash:
             warnings.warn(
                 "Using an outdated minhash implementation, please update to cuDF version 24.12 "
                 "or later for improved performance. "
-                "Install the latest version of cuDF using `pip install curator[cuda12x_nighlty]`",
+                "Install the latest version of cuDF using `pip install curator[cuda12x_nightly]`",
                 category=FutureWarning,
             )
             seeds = cudf.Series(seeds, dtype="uint64")
