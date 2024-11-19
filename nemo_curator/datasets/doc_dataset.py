@@ -156,7 +156,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_file_dir,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="jsonl",
@@ -174,7 +174,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_file_dir,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="parquet",

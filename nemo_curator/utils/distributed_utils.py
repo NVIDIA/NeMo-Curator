@@ -605,7 +605,7 @@ def single_partition_write_with_filename(
 
 def write_to_disk(
     df,
-    output_file_dir: str,
+    output_path: str,
     write_to_filename: bool = False,
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
@@ -617,18 +617,25 @@ def write_to_disk(
 
     Args:
         df: A Dask DataFrame.
-        output_file_dir: The output file path.
+        output_path: The output file path.
         write_to_filename: Boolean representing whether to write the filename using the "filename" column.
         keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
         output_type: The type of output file to write. Can be "jsonl" or "parquet".
 
     """
-    if write_to_filename and "filename" not in df.columns:
+
+    # output_path is a file name
+    if output_path.endswith(".jsonl"):
+        _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
+
+    # output_path is a directory
+    elif write_to_filename and "filename" not in df.columns:
         raise ValueError(
-            "write_using_filename is True but no filename column found in df"
+            "write_using_filename is True but no filename column found in DataFrame"
         )
 
-    if write_to_filename:
+    # output_path is a directory
+    elif write_to_filename:
         if is_cudf_type(df):
             import cudf
 
@@ -636,10 +643,10 @@ def write_to_disk(
         else:
             output_meta = pd.Series([True], dtype="bool")
 
-        os.makedirs(output_file_dir, exist_ok=True)
+        os.makedirs(output_path, exist_ok=True)
         output = df.map_partitions(
             single_partition_write_with_filename,
-            output_file_dir,
+            output_path,
             keep_filename_column=keep_filename_column,
             output_type=output_type,
             meta=output_meta,
@@ -647,24 +654,33 @@ def write_to_disk(
         )
         output = output.compute()
 
+    # output_path is a directory
     else:
-        if output_type == "jsonl":
-            if is_cudf_type(df):
-                # See open issue here: https://github.com/rapidsai/cudf/issues/15211
-                # df.to_json(output_file_dir, orient="records", lines=True, engine="cudf", force_ascii=False)
-                df.to_json(
-                    output_file_dir, orient="records", lines=True, force_ascii=False
-                )
-            else:
-                df.to_json(
-                    output_file_dir, orient="records", lines=True, force_ascii=False
-                )
-        elif output_type == "parquet":
-            df.to_parquet(output_file_dir, write_index=False)
-        else:
-            raise ValueError(f"Unknown output type: {output_type}")
+        _write_to_jsonl_or_parquet(df, output_path, output_type)
 
     print(f"Writing to disk complete for {df.npartitions} partitions", flush=True)
+
+
+def _write_to_jsonl_or_parquet(
+    df,
+    output_path: str,
+    output_type: Literal["jsonl", "parquet"] = "jsonl",
+):
+    if output_type == "jsonl":
+        if is_cudf_type(df):
+            # See open issue here: https://github.com/rapidsai/cudf/issues/15211
+            # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
+            df.to_json(
+                output_path, orient="records", lines=True, force_ascii=False
+            )
+        else:
+            df.to_json(
+                output_path, orient="records", lines=True, force_ascii=False
+            )
+    elif output_type == "parquet":
+        df.to_parquet(output_path, write_index=False)
+    else:
+        raise ValueError(f"Unknown output type: {output_type}")
 
 
 def load_object_on_worker(attr, load_object_function, load_object_kwargs):
