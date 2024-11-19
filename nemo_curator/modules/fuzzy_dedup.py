@@ -59,11 +59,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
     build_partition,
     get_agg_text_bytes_df,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import (
-    rearange_by_column_direct,
-    text_bytes_aware_shuffle,
-    write_partitioned_file,
-)
+from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
 
 
 class MinHash:
