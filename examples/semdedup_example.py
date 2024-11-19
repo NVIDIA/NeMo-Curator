@@ -16,15 +16,13 @@ import logging
 import os
 import time
 
+from nemo_curator.cache import get_cache_directory, initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup import SemDedup
 from nemo_curator.utils.distributed_utils import get_client, read_data
-from nemo_curator.utils.file_utils import (
-    expand_outdir_and_mkdir,
-    get_all_files_paths_under,
-)
+from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
@@ -41,11 +39,11 @@ def main(args):
     silence_hf_warnings()
     client.run(silence_hf_warnings)
 
-    expand_outdir_and_mkdir(semdedup_config.cache_dir)
+    initialize_cache_directory(args.cache_dir)
     logger = create_logger(
         rank=0,
         name="logger-end-to_end-semdup",
-        log_file=os.path.join(semdedup_config.cache_dir, "compute_embeddings.log"),
+        log_file=os.path.join(get_cache_directory(), "compute_embeddings.log"),
         log_level=logging.INFO,
         stdout=True,
     )

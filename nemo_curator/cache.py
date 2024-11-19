@@ -18,14 +18,14 @@ from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 # Global variable to store the cache directory
 _global_cache_dir = None
 
-def initialize_cache_directory(cache_dir: str) -> str:
+
+def initialize_cache_directory(cache_dir: str):
     """
     Initialize and set the global cache directory.
     """
     global _global_cache_dir
     cache_dir = expand_outdir_and_mkdir(cache_dir)
     _global_cache_dir = cache_dir
-    return cache_dir
 
 
 def get_cache_directory() -> str:

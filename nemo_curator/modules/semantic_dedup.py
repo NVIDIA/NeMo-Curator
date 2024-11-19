@@ -34,6 +34,7 @@ from cuml.dask.cluster import KMeans
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.classifiers.base import _get_suggest_memory_for_classifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
@@ -128,7 +129,6 @@ class EmbeddingCreator:
         self,
         embedding_model_name_or_path: str,
         embedding_batch_size: int,
-        embedding_output_dir: str,
         embedding_max_mem_gb: Optional[int] = None,
         input_column: str = "text",
         embedding_column: str = "embeddings",
@@ -143,7 +143,6 @@ class EmbeddingCreator:
         Args:
             embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
             embedding_batch_size (int): Number of samples to process in each batch.
-            embedding_output_dir (str): Directory path where embeddings will be saved.
             embedding_max_mem_gb (int): Maximum memory usage in GB for the embedding process.
                                 If None, it defaults to the available GPU memory minus 4 GB.
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
@@ -158,7 +157,6 @@ class EmbeddingCreator:
             embeddings_config (EmbeddingConfig): Configuration for embeddings.
             batch_size (int): Batch size for embedding generation.
             logger (logging.Logger): Logger instance for the class.
-            embedding_output_dir (str): Output directory for embeddings.
             input_column (str): Input column for data processing.
             model (EmbeddingCrossFitModel): Model instance for embedding generation.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
@@ -169,7 +167,6 @@ class EmbeddingCreator:
         )
         self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
-        self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
         self.embedding_column = embedding_column
         self.model = EmbeddingCrossFitModel(
@@ -178,6 +175,14 @@ class EmbeddingCreator:
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
         self.profile_dir = profile_dir
+
+        if write_embeddings_to_disk:
+            if get_cache_directory() is None:
+                raise RuntimeError("No cache directory specified; please use initialize_cache_directory")
+            else:
+                self.embedding_output_dir = os.path.join(get_cache_directory(), "embeddings")
+        else:
+            self.embedding_output_dir = None
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):
@@ -266,7 +271,6 @@ class ClusteringModel:
         id_column: str,
         max_iter: int,
         n_clusters: int,
-        clustering_output_dir: str,
         embedding_col: str = "embeddings",
         sim_metric: str = "cosine",
         which_to_keep: str = "hard",
@@ -283,7 +287,6 @@ class ClusteringModel:
             id_column (str): Column name used as the identifier in the dataset.
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
-            clustering_output_dir (str): Directory path where clustering results will be saved.
             embedding_col (str): Column name where the embeddings are stored.
             sim_metric (str): Similarity metric to use for clustering, default is "cosine".
             which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
@@ -298,7 +301,6 @@ class ClusteringModel:
         self.id_col = id_column
         self.max_iter = max_iter
         self.n_clusters = n_clusters
-        self.clustering_output_dir = clustering_output_dir
         self.embedding_col = embedding_col
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
@@ -308,12 +310,10 @@ class ClusteringModel:
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
-        if not os.path.exists(self.clustering_output_dir):
-            expand_outdir_and_mkdir(self.clustering_output_dir)
+        if get_cache_directory() is None:
+            raise RuntimeError("No cache directory specified; please use initialize_cache_directory")
         else:
-            self.logger.warning(
-                f"Clustering output directory {self.clustering_output_dir} already exists and will be overwritten"
-            )
+            self.clustering_output_dir = os.path.join(get_cache_directory(), "clustering")
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):
@@ -433,12 +433,9 @@ class SemanticClusterLevelDedup:
     def __init__(
         self,
         n_clusters: int,
-        emb_by_clust_dir: str,
-        sorted_clusters_dir: str,
         id_column: str,
         id_column_type: str,
         which_to_keep: str,
-        output_dir: str,
         embedding_col: str = "embeddings",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
@@ -448,30 +445,35 @@ class SemanticClusterLevelDedup:
 
         Args:
             n_clusters (int): Number of clusters.
-            emb_by_clust_dir (str): Directory containing embeddings by cluster.
-            sorted_clusters_dir (str): Directory containing sorted clusters.
             id_column (str): Column name for IDs.
             id_column_type (str): Data type of the ID column.
             which_to_keep (str): Strategy for which duplicate to keep.
-            output_dir (str): Directory to save output files.
             embedding_col (str): Column where the embeddings are stored.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
             profile_dir (str): If specified directory to write dask profile. Default is None.
         """
         self.n_clusters = n_clusters
-        self.emb_by_clust_dir = emb_by_clust_dir
-        self.sorted_clusters_dir = sorted_clusters_dir
         self.id_col = id_column
         self.id_col_type = id_column_type
         self.which_to_keep = which_to_keep
-        self.output_dir = output_dir
-        self.semdedup_pruning_tables_dir = os.path.join(
-            output_dir, "semdedup_pruning_tables"
-        )
         self.computed_semantic_match_dfs = False
         self.embedding_col = embedding_col
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
+
+        if get_cache_directory() is None:
+            raise RuntimeError("No cache directory specified; please use initialize_cache_directory")
+        else:
+            self.emb_by_clust_dir = os.path.join(
+                get_cache_directory(), "clustering", "embs_by_nearest_center"
+            )
+            self.sorted_clusters_dir = os.path.join(
+                get_cache_directory(), "clustering", "sorted"
+            )
+            self.output_dir = os.path.join(get_cache_directory(), "clustering")
+            self.semdedup_pruning_tables_dir = os.path.join(
+                self.output_dir, "semdedup_pruning_tables"
+            )
 
     def _setup_logger(self, logger: Union[logging.Logger, str]) -> logging.Logger:
         """
@@ -598,38 +600,33 @@ class SemDedup:
         """
         self.config = config
         self.logger = logger
-        cache_dir = config.cache_dir
+        cache_dir = get_cache_directory()
+
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
             input_column=input_column,
-            embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
+
         self.clustering_model = ClusteringModel(
             id_column=id_column,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
-            clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
+
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
-            emb_by_clust_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "embs_by_nearest_center"
-            ),
-            sorted_clusters_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "sorted"
-            ),
             id_column=id_column,
             id_column_type=id_column_type,
             which_to_keep=config.which_to_keep,
-            output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
+
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract
 

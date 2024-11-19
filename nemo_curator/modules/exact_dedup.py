@@ -25,8 +25,8 @@ import pandas as pd
 from dask import config
 from dask import dataframe as dd
 
-from nemo_curator.cache import get_cache_directory
 from nemo_curator._compat import DASK_P2P_ERROR
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix

@@ -18,6 +18,8 @@ from typing import List, Optional
 
 import yaml
 
+from nemo_curator.cache import get_cache_directory
+
 
 @dataclass
 class BaseConfig:
@@ -46,8 +48,6 @@ class FuzzyDuplicatesConfig(BaseConfig):
     text_field: Column in the Dataset denoting document content.
     profile_dir: str, Default None
         If specified directory to write dask profile
-    cache_dir: str, Default None
-        Location to store deduplcation intermediates such as minhashes/buckets etc.
     false_positive_check: bool,
         Whether to run a check to look for false positives within buckets.
         Note: This is a computationally expensive step.
@@ -60,7 +60,6 @@ class FuzzyDuplicatesConfig(BaseConfig):
     """
 
     # General config
-    cache_dir: str
     profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
@@ -83,7 +82,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
-        if self.cache_dir is None:
+        if get_cache_directory() is None:
             raise ValueError(
                 "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
             )
@@ -116,14 +115,10 @@ class SemDedupConfig(BaseConfig):
     Configuration for Semantic Deduplication.
 
     Attributes:
-        cache_dir (str): Directory to store cache.
         profile_dir (Optional[str]): If specified directory to write dask profile. Default is None.
-        cache_dir (str): Directory to store cache.
         num_files (int): Number of files. Default is -1, meaning all files.
-        embeddings_save_loc (str): Location to save embeddings.
         embedding_model_name_or_path (str): Model name or path for embeddings.
         embedding_batch_size (int): Inital Batch size for processing embeddings.
-        clustering_save_loc (str): Location to save clustering results.
         n_clusters (int): Number of clusters.
         seed (int): Seed for clustering.
         max_iter (int): Maximum iterations for clustering.
@@ -135,17 +130,14 @@ class SemDedupConfig(BaseConfig):
         eps_to_extract (float): Epsilon value to extract deduplicated data.
     """
 
-    cache_dir: str
     profile_dir: Optional[str] = None
     num_files: int = -1
 
     # Embeddings
-    embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
 
     # Clustering config
-    clustering_save_loc: str = "clustering_results"
     n_clusters: int = 1000
     seed: int = 1234
     max_iter: int = 100
@@ -161,7 +153,7 @@ class SemDedupConfig(BaseConfig):
     eps_to_extract: float = 0.01
 
     def __post_init__(self):
-        if self.cache_dir is None:
+        if get_cache_directory() is None:
             raise ValueError(
                 "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
             )

@@ -26,6 +26,7 @@ from openai import AsyncOpenAI
 from synthetic_gen import SyntheticGenerator
 
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import WordCountFilter
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
@@ -130,7 +131,8 @@ def semantic_dedupe(dataset):
     semdedup_config = SemDedupConfig.from_yaml(
         os.path.join(CONFIG_DIR, "sem_dedup_config.yaml")
     )
-    expand_outdir_and_mkdir(semdedup_config.cache_dir)
+    initialize_cache_directory("_temp/semdedup_cache")
+
     semdup = SemDedup(
         config=semdedup_config,
         input_column="text",
