@@ -16,6 +16,8 @@ from __future__ import annotations
 import ast
 import os
 
+import dask
+
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
@@ -264,10 +266,11 @@ def _set_torch_to_use_rmm():
 def select_and_sort_columns(
     df: Union[dd.DataFrame, dask_cudf.DataFrame],
     columns: List[str],
+    filetype: Literal["jsonl", "json", "parquet", "pickle"],
     add_filename: bool,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
-    # TODO : Reviewer TAL if filetype check is needed
-    if columns is not None:
+    # We exclude parquet because the parquet readers already support column selection
+    if columns is not None and filetype != "parquet":
         if add_filename and "filename" not in columns:
             columns.append("filename")
         df = df[columns]
@@ -358,23 +361,23 @@ def read_single_partition(
         df = read_f(files, **read_kwargs, **kwargs)
 
     print(f"Reading with {read_kwargs=}", flush=True)
-    return select_and_sort_columns(df, columns, add_filename)
+    return select_and_sort_columns(df, columns, filetype, add_filename)
 
 
-def read_data_cudf_blocksize(
+def read_data_blocksize(
     input_files: List[str],
+    backend: Literal["cudf", "pandas"],
     file_type: Literal["parquet", "jsonl"],
     blocksize: str,
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
-) -> dask_cudf.DataFrame:
-    import dask_cudf
+) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
 
     read_kwargs = dict()
     if file_type == "jsonl":
-        read_func = dask_cudf.read_json
+        read_func = dd.read_json
         read_kwargs["lines"] = True
         if input_meta is not None:
             read_kwargs["prune_columns"] = True
@@ -390,7 +393,7 @@ def read_data_cudf_blocksize(
         if add_filename:
             msg = "add_filename and blocksize cannot be set at the same time for parquet files"
             raise ValueError(msg)
-        read_func = dask_cudf.read_parquet
+        read_func = dd.read_parquet
         read_kwargs["columns"] = columns
         read_kwargs["aggregate_files"] = True
     else:
@@ -398,8 +401,9 @@ def read_data_cudf_blocksize(
         raise ValueError(msg)
 
     print(f"Reading {blocksize=} with {read_kwargs=} {kwargs=}", flush=True)
-    df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
-    return select_and_sort_columns(df, columns, add_filename)
+    with dask.config.set({"dataframe.backend": backend}):
+        df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
+        return select_and_sort_columns(df, columns, file_type, add_filename)
 
 
 def read_data_fpp(
@@ -494,20 +498,19 @@ def read_data(
         df = dd.from_pandas(df, npartitions=16)
         if backend == "cudf":
             df = df.to_backend("cudf")
-        df = select_and_sort_columns(df, columns, add_filename)
+        df = select_and_sort_columns(df, columns, file_type, add_filename)
     elif file_type in {"json", "jsonl", "parquet"}:
         print(f"Reading {len(input_files)} files", flush=True)
         if blocksize is not None and files_per_partition is not None:
             msg = "blocksize and files_per_partition cannot be set at the same time"
             raise ValueError(msg)
 
-        if (
-            blocksize is not None
-            and backend == "cudf"
-            and (file_type == "jsonl" or (file_type == "parquet" and not add_filename))
+        if blocksize is not None and (
+            file_type == "jsonl" or (file_type == "parquet" and not add_filename)
         ):
-            return read_data_cudf_blocksize(
+            return read_data_blocksize(
                 input_files,
+                backend=backend,
                 file_type=file_type,
                 blocksize=blocksize,
                 add_filename=add_filename,
