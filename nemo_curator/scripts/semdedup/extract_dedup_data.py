@@ -19,7 +19,9 @@ def main(args):
 
     logger = create_logger(
         rank=0,
-        log_file=os.path.join(get_cache_directory(), "clustering", "extract_dedup_data.log"),
+        log_file=os.path.join(
+            get_cache_directory(), "clustering", "extract_dedup_data.log"
+        ),
         name="logger-extract-dedup-data",
         log_level=logging.INFO,
         stdout=True,

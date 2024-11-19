@@ -178,9 +178,13 @@ class EmbeddingCreator:
 
         if write_embeddings_to_disk:
             if get_cache_directory() is None:
-                raise RuntimeError("No cache directory specified; please use initialize_cache_directory")
+                raise RuntimeError(
+                    "No cache directory specified; please use initialize_cache_directory"
+                )
             else:
-                self.embedding_output_dir = os.path.join(get_cache_directory(), "embeddings")
+                self.embedding_output_dir = os.path.join(
+                    get_cache_directory(), "embeddings"
+                )
         else:
             self.embedding_output_dir = None
 
@@ -311,9 +315,13 @@ class ClusteringModel:
         self.profile_dir = profile_dir
 
         if get_cache_directory() is None:
-            raise RuntimeError("No cache directory specified; please use initialize_cache_directory")
+            raise RuntimeError(
+                "No cache directory specified; please use initialize_cache_directory"
+            )
         else:
-            self.clustering_output_dir = os.path.join(get_cache_directory(), "clustering")
+            self.clustering_output_dir = os.path.join(
+                get_cache_directory(), "clustering"
+            )
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):
@@ -462,7 +470,9 @@ class SemanticClusterLevelDedup:
         self.profile_dir = profile_dir
 
         if get_cache_directory() is None:
-            raise RuntimeError("No cache directory specified; please use initialize_cache_directory")
+            raise RuntimeError(
+                "No cache directory specified; please use initialize_cache_directory"
+            )
         else:
             self.emb_by_clust_dir = os.path.join(
                 get_cache_directory(), "clustering", "embs_by_nearest_center"

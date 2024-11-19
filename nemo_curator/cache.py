@@ -14,7 +14,6 @@
 
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
-
 # Global variable to store the cache directory
 _global_cache_dir = None
 
