@@ -18,7 +18,6 @@ import os
 import time
 import warnings
 from contextlib import nullcontext
-from datetime import datetime
 from hashlib import md5
 from typing import Optional, Union
 
@@ -26,6 +25,7 @@ import pandas as pd
 from dask import config
 from dask import dataframe as dd
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator._compat import DASK_P2P_ERROR
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
@@ -45,7 +45,6 @@ class ExactDuplicates:
         text_field: str = "text",
         hash_method: str = "md5",
         profile_dir: Optional[str] = None,
-        cache_dir: Optional[str] = None,
     ):
         """
         Parameters
@@ -56,9 +55,9 @@ class ExactDuplicates:
         hash_method: The hashing algorithm used for identifying exact duplicates. Currently supports {"md5"}
         profile_dir: str, Default None
           If specified directory to write dask profile
-        cache_dir: str, Default None
-          If specified, will compute & write duplicate id's to cache directory.
         """
+
+        cache_dir = get_cache_directory()
 
         if hash_method not in self.SUPPORTED_HASHES:
             raise ValueError(
@@ -69,7 +68,7 @@ class ExactDuplicates:
         self.text_field = text_field
         if cache_dir is None and profile_dir is not None:
             warnings.warn(
-                "cache_dir for intermediate outputs is required to generate profiles"
+                "cache_dir for intermediate outputs is required to generate profiles. Please use initialize_cache_directory for this."
             )
         self.cache_dir = cache_dir
         self.profile_dir = profile_dir

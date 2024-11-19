@@ -18,6 +18,7 @@ import time
 
 import dask_cudf
 
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules import ExactDuplicates
@@ -36,6 +37,8 @@ def main(args):
         rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="exact_dedup"
     )
     logger.info(f"Starting workflow with args:\n {args}")
+
+    initialize_cache_directory(args.output_dir)
 
     assert args.hash_method == "md5", "Currently only md5 hash is supported"
     client = get_client(**ArgumentHelper.parse_client_args(args))
@@ -76,7 +79,6 @@ def main(args):
         text_field=text_field,
         hash_method=args.hash_method,
         profile_dir=args.profile_path,
-        cache_dir=args.output_dir,
     )
     exact_dups(dataset=DocumentDataset(input_df))
     logger.info(
