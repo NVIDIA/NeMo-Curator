@@ -625,7 +625,7 @@ def write_to_disk(
     """
 
     # output_path is a file name
-    if output_path.endswith(".jsonl"):
+    if isinstance(output_path, str) and output_path.endswith((".jsonl", ".parquet")):
         _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
 
     # output_path is a directory
