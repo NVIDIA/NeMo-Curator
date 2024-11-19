@@ -44,7 +44,7 @@ class DocumentDataset:
     def read_json(
         cls,
         input_files: Union[str, List[str]],
-        backend: str = "pandas",
+        backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: Optional[int] = None,
         blocksize: Optional[str] = "1gb",
         add_filename: bool = False,
@@ -82,8 +82,8 @@ class DocumentDataset:
     @classmethod
     def read_parquet(
         cls,
-        input_files,
-        backend="pandas",
+        input_files: Union[str, List[str]],
+        backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: Optional[int] = None,
         blocksize: Optional[str] = "1gb",
         add_filename=False,
@@ -118,8 +118,8 @@ class DocumentDataset:
     @classmethod
     def read_pickle(
         cls,
-        input_files,
-        backend="pandas",
+        input_files: Union[str, List[str]],
+        backend: Literal["pandas", "cudf"] = "pandas",
         columns: Optional[List[str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
@@ -228,7 +228,7 @@ class DocumentDataset:
 def _read_json_or_parquet(
     input_files: Union[str, List[str]],
     file_type: str,
-    backend: str,
+    backend: Literal["cudf", "pandas"],
     add_filename: bool,
     files_per_partition: Optional[int] = None,
     blocksize: Optional[str] = None,
