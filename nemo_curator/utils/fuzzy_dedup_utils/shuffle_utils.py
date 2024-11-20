@@ -20,7 +20,6 @@ from dask import config
 from packaging.version import Version
 
 from nemo_curator._compat import query_planning_enabled
-from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import build_partition
 
 dask_cuda_version = Version(dask_cuda.__version__)
 USE_EXCOMMS = (
@@ -95,30 +94,3 @@ def rearange_by_column_direct(
             npartitions=npartitions,
             ignore_index=ignore_index,
         )
-
-
-def get_shuffle_part_ids_df(
-    agg_df,
-    partition_on,
-    output_col,
-    size_col,
-    num_workers=0,
-):
-    sizes = agg_df[size_col].values
-    max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
-
-    # Adjust max_text_bytes_per_part if the number of output
-    # partitions is small compared to the number of workers.
-    # Sometimes we just have very few output partitions to
-    # deal with, and just need a larger batch
-    npartitions_min = max(1, int(num_workers * 0.8))
-    while True:
-        output_ar = build_partition(sizes.get(), max_text_bytes_per_part)
-        if output_ar.max() > npartitions_min or max_text_bytes_per_part < 2**24:
-            break
-        max_text_bytes_per_part = int(max_text_bytes_per_part // 2.0)
-
-    df = cudf.DataFrame()
-    df[partition_on] = agg_df[partition_on]
-    df[output_col] = output_ar
-    return df

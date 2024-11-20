@@ -61,29 +61,3 @@ def get_agg_text_bytes_df(
     agg_df_len = len(agg_df)
 
     return agg_df, agg_df_len
-
-
-# next-fit-descending bin packing
-# https://en.wikipedia.org/wiki/Next-fit-decreasing_bin_packing
-@numba.jit(nopython=True)
-def build_partition(sizes: np.ndarray, max_size: int) -> np.ndarray:
-    """
-    Given an array of items and a max bin size this method
-    attempts to return a grouping of items such that no group exceeds
-    the max bin size using the Next-fit-decreasing bin packing approach.
-    """
-    i: int = 0
-    count: int = 0
-    current: int = 0
-    size: int = 0
-    partition = np.empty(sizes.shape, dtype=np.int32)
-    for i in range(len(sizes)):
-        size = sizes[i]
-        if current + size < max_size:
-            partition[i] = count
-            current += size
-        else:
-            count += 1
-            current = size
-            partition[i] = count
-    return partition

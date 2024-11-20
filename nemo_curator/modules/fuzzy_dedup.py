@@ -56,10 +56,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import (
     filter_text_rows_by_bucket_batch,
     merge_left_to_shuffled_right,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import (
-    build_partition,
-    get_agg_text_bytes_df,
-)
+from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import get_agg_text_bytes_df
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
 
 
@@ -813,85 +810,14 @@ class _MapBuckets:
         else:
             self._logger = logger
 
-    @staticmethod
-    def _get_output_part_ids_with_approx_equal_sum(
-        bucket_text_bytes_df: cudf.DataFrame,
-        max_text_bytes_per_part: int,
-        buckets_column: str,
-        bytes_column: str,
-        output_partition_column: str,
-    ) -> cudf.DataFrame:
-        """
-        Create a output_series that maps the ser.index into `nparts`
-        so that the total sum of bucket_val_counts_df
-        for each output id are all most equal and
-        less than max_text_bytes_per_part
-        This is used downstream for creating equal output_ids
-        """
-        sizes = bucket_text_bytes_df[bytes_column].values
-        bucket_output_ar = build_partition(
-            sizes=sizes.get(), max_size=max_text_bytes_per_part
-        )
-        df = cudf.DataFrame()
-        df[buckets_column] = bucket_text_bytes_df[buckets_column]
-        df[output_partition_column] = bucket_output_ar
-        return df
-
     def _get_output_map_from_text_bytes_per_bucket(
         self,
         ddf_bk_text_bytes,
-        bytes_column,
         output_partition_column="_output_partition_id",
     ):
-        # String bytes limit for cuDF
-        # https://github.com/rapidsai/cudf/issues/13733
-        max_text_bytes_per_part = int(np.iinfo(np.int32).max * 3)
-
-        self._logger.info(f"max_text_bytes_per_part = {max_text_bytes_per_part}")
-        # Increasing in an attempt to prevent hitting
-        # ulimits
-        output_map_df_meta = cudf.DataFrame(
-            {self.bucket_field: [0], output_partition_column: [1]}
-        )
-        output_map_df_meta = output_map_df_meta.astype(
-            {self.bucket_field: np.uint64, output_partition_column: np.int32}
-        )
-
-        output_map_df = ddf_bk_text_bytes.map_partitions(
-            _MapBuckets._get_output_part_ids_with_approx_equal_sum,
-            max_text_bytes_per_part=max_text_bytes_per_part,
-            buckets_column=self.bucket_field,
-            bytes_column=bytes_column,
-            output_partition_column=output_partition_column,
-            meta=output_map_df_meta,
-        )
+        output_map_df = ddf_bk_text_bytes.assign(**{output_partition_column: 0})
         output_map_df = output_map_df.persist()
-        self._logger.info(
-            f"Step 1 of output_map_df of len: {len(output_map_df)} computed"
-        )
-        lower_bounds = (
-            output_map_df[output_partition_column]
-            .map_partitions(lambda s: (s.max() + 1))
-            .compute()
-        )
-        lower_bounds = np.cumsum(lower_bounds)
-
-        def update_id(df, lower_bound):
-            df[output_partition_column] += lower_bound
-            return df
-
-        updated_parts = [
-            output_map_df.get_partition(i).map_partitions(
-                update_id, lower_bounds[i - 1]
-            )
-            for i in range(1, len(lower_bounds))
-        ]
-        updated_parts.append(output_map_df.get_partition(0))
-        output_map_df = dask_cudf.concat(updated_parts)
-        output_map_df = output_map_df.persist()
-        self._logger.info(
-            f"All steps of output_map_df of len: {len(output_map_df)} computed"
-        )
+        self._logger.info(f"Output map computed with no max limit. Len: {len(output_map_df)}")
         return output_map_df
 
     def _get_output_map_based_on_str_bytes(
@@ -923,7 +849,6 @@ class _MapBuckets:
         del buckets_df
         output_map_df = self._get_output_map_from_text_bytes_per_bucket(
             ddf_bk_text_bytes=ddf_bk_text_bytes,
-            bytes_column=bytes_column,
         )
         return output_map_df
 
