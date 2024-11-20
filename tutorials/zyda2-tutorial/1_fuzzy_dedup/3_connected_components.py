@@ -35,7 +35,8 @@ if __name__ == "__main__":
     t0 = time.time()
 
     components_stage = ConnectedComponents(
-        id_column=input_id_field, false_positive_check=False,
+        id_column=input_id_field,
+        false_positive_check=False,
     )
 
     # Load and run connected components
