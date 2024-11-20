@@ -1440,7 +1440,9 @@ class ConnectedComponents:
             if false_positive_check
             else "_edges.parquet"
         )
-        self.jaccard_pairs_path = os.path.join(get_cache_directory(), jaccard_pairs_fname)
+        self.jaccard_pairs_path = os.path.join(
+            get_cache_directory(), jaccard_pairs_fname
+        )
 
         self.id_column = id_column
         self.left_id = f"{id_column}_x"
