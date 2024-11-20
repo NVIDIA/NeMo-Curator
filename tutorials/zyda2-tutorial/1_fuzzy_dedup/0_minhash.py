@@ -8,6 +8,7 @@ import time
 import dask_cudf
 
 from nemo_curator import MinHash
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
 from nemo_curator.utils.file_utils import get_all_files_paths_under
@@ -37,6 +38,7 @@ if __name__ == "__main__":
 
     minhash_base_output_path = os.path.join(DATA_BASE, "fuzzy/minhash")
     minhash_output_dir = os.path.join(minhash_base_output_path, "data")
+    initialize_cache_directory(minhash_output_dir)
 
     # Relevant parameters
     minhash_id_field = "nemo_id"
@@ -61,7 +63,6 @@ if __name__ == "__main__":
         use_64bit_hash=use_64bit_hash,
         id_field=minhash_id_field,
         text_field=minhash_text_field,
-        cache_dir=minhash_output_dir,
     )
     res = minhasher(DocumentDataset(text_ddf)).df
     logging.info(f"Time taken for MinHash: {time.time()-t0:.2f}sec.")
