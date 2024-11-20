@@ -184,7 +184,6 @@ Python API
     from nemo_curator import FuzzyDuplicatesConfig
 
     config = FuzzyDuplicatesConfig(
-        cache_dir="/path/to/dedup_outputs", # must be cleared between runs
         id_field="my_id",
         text_field="text",
         seed=42,
@@ -200,7 +199,6 @@ Python API
 
   .. code-block:: yaml
 
-    cache_dir: /path/to/dedup_outputs
     id_field: my_id
     text_field: text
     seed: 42
@@ -223,7 +221,11 @@ Python API
 .. code-block:: python
 
     from nemo_curator import FuzzyDuplicates
+    from nemo_curator.cache import initialize_cache_directory
     from nemo_curator.datasets import DocumentDataset
+
+    # Initialize cache directory where intermediate results are stored
+    initialize_cache_directory("/path/to/dedup_outputs")
 
     # Initialize the deduplication object
     FuzzyDups = FuzzyDuplicates(config=config, logger="./")
@@ -251,7 +253,7 @@ Python API
   - The default values of ``num_buckets`` and ``hashes_per_bucket`` are set to find documents with an approximately Jaccard similarity of 0.8 or above.
   - Higher ``buckets_per_shuffle`` values can lead to better performance but might lead to out of memory errors.
   - Setting the ``false_positive_check`` flag to ``False`` is ideal for optimal performance.
-  - When setting the ``false_positive_check`` flag to ``True`` ensure ``cache_dir`` between runs is emptied to avoid data from previous runs interfering with the current run's results.
+  - When setting the ``false_positive_check`` flag to ``True``, ensure the cache directory is emptied between runs to avoid data from previous runs interfering with the current run's results.
 
 """"""""""""
 CLI Utility
@@ -392,7 +394,6 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 
                # same as `python connected_components.py`
                gpu_connected_component \
-                 --jaccard-pairs-path /path/to/dedup_output/jaccard_similarity_results.parquet `#Or /path/to/dedup_output/_edges.parquet` \
                  --output-dir /path/to/dedup_output \
                  --cache-dir /path/to/cc_cache \
                  --jaccard-threshold 0.8 \

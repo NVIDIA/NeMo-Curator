@@ -18,6 +18,7 @@ import time
 import dask
 
 from nemo_curator import FuzzyDuplicates, FuzzyDuplicatesConfig
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, write_to_disk
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -31,7 +32,7 @@ def main(args):
 
     dataset_dir = "/path/to/dataset"
     log_dir = "./"
-    cache_dir = "./fuzzy_cache"  # must be cleared between runs
+    initialize_cache_directory("./fuzzy_cache")  # must be cleared between runs
     output_dir = "./output"
     dataset_id_field = "id"
     dataset_text_field = "text"
@@ -65,7 +66,6 @@ def main(args):
             )
 
         fuzzy_dedup_config = FuzzyDuplicatesConfig(
-            cache_dir=cache_dir,
             id_field=dataset_id_field,
             text_field=dataset_text_field,
             seed=42,

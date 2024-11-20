@@ -36,6 +36,7 @@ from dask.utils import M
 from tqdm import tqdm
 
 from nemo_curator._compat import MINHASH_PERMUTED_AVAILABLE
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
@@ -78,7 +79,6 @@ class MinHash:
         id_field: str = "id",
         text_field: str = "text",
         profile_dir: str = None,
-        cache_dir: str = None,
     ):
         """
         Parameters
@@ -92,8 +92,6 @@ class MinHash:
         text_field: Column in the Dataset denoting document content.
         profile_dir: str, Default None
           If specified directory to write dask profile
-        cache_dir: str, Default None
-          If specified, will compute & write id, minhash pairs to directory
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
@@ -109,11 +107,11 @@ class MinHash:
         self.id_field = id_field
         self.text_field = text_field
 
-        if cache_dir is None and profile_dir is not None:
+        if get_cache_directory() is None and profile_dir is not None:
             warnings.warn(
-                "cache_dir for intermediate outputs is required to generate profiles"
+                "Please use initialize_cache_directory to enable writing intermediate outputs and generating profiles"
             )
-        self.cache_dir = cache_dir
+        self.cache_dir = get_cache_directory()
         self.profile_dir = profile_dir
 
         if isinstance(logger, str):
@@ -257,7 +255,6 @@ class LSH:
 
     def __init__(
         self,
-        cache_dir: str,
         num_hashes: int,
         num_buckets: int,
         buckets_per_shuffle: int = 1,
@@ -269,8 +266,6 @@ class LSH:
         """
         Parameters
         ----------
-        cache_dir: str
-          Needs to be specified, will compute & write duplicate id, bucket pairs to cache directory.
         num_hashes: Length of minhash signature
         num_buckets: Number of bands/buckets to create from the minhash signature.
           Hashes_per_signature = num_hashes / num_buckets
@@ -292,11 +287,11 @@ class LSH:
             self.num_buckets, self.num_hashes
         )
 
-        if cache_dir is None:
+        if get_cache_directory() is None:
             raise ValueError(
-                "cache_dir for intermediate outputs is required for this stage"
+                "Please use initialize_cache_directory to enable writing intermediate outputs"
             )
-        self.cache_dir = cache_dir
+        self.cache_dir = get_cache_directory()
         self.profile_dir = profile_dir
 
         if isinstance(logger, str):
@@ -481,10 +476,8 @@ class FuzzyDuplicates:
             id_field=self.config.id_field,
             text_field=self.config.text_field,
             profile_dir=self.config.profile_dir,
-            cache_dir=self.config.cache_dir,
         )
         self.lsh = LSH(
-            cache_dir=self.config.cache_dir,
             num_hashes=self.config.num_hashes,
             num_buckets=self.config.num_buckets,
             buckets_per_shuffle=self.config.buckets_per_shuffle,
@@ -517,20 +510,12 @@ class FuzzyDuplicates:
             )
         else:
             self.buckets_to_edges = BucketsToEdges(
-                cache_dir=self.config.cache_dir,
                 id_fields=self.config.id_field,
                 logger=self._logger,
                 profile_dir=self.config.profile_dir,
             )
 
-        jaccard_pairs_fname = (
-            "jaccard_similarity_results.parquet"
-            if self.config.false_positive_check
-            else "_edges.parquet"
-        )
         self.connected_components = ConnectedComponents(
-            cache_dir=self.config.cache_dir,
-            jaccard_pairs_path=os.path.join(self.config.cache_dir, jaccard_pairs_fname),
             id_column=self.config.id_field,
             jaccard_threshold=self.config.jaccard_threshold,
             logger=self._logger,
@@ -563,7 +548,7 @@ class FuzzyDuplicates:
             print(f"Stage{stage_num} (False Positive Check): Starting Map_Buckets")
             t0 = time.time()
             mapped_buckets_w_anchors_path = os.path.join(
-                self.config.cache_dir, "anchor_docs_with_bk.parquet"
+                get_cache_directory(), "anchor_docs_with_bk.parquet"
             )
             with performance_report_if_with_ts_suffix(
                 self.config.profile_dir,
@@ -587,7 +572,7 @@ class FuzzyDuplicates:
             # Shuffle documents based on mapped buckets
             print(f"Stage{stage_num} (False Postive Check): Shuffle docs")
             shuffled_docs_path = os.path.join(
-                self.config.cache_dir, "shuffled_docs.parquet"
+                get_cache_directory(), "shuffled_docs.parquet"
             )
             self.jaccard_shuffle.shuffle_docs_on_buckets(
                 documents_df=dataset.df,
@@ -605,7 +590,7 @@ class FuzzyDuplicates:
                 f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets"
             )
             jaccard_pairs_path = os.path.join(
-                self.config.cache_dir, "jaccard_similarity_results.parquet"
+                get_cache_directory(), "jaccard_similarity_results.parquet"
             )
             t0 = time.time()
             with performance_report_if_with_ts_suffix(
@@ -639,7 +624,7 @@ class FuzzyDuplicates:
 
         # Connected components across buckets
         print(f"Stage{stage_num}: Connected Components across buckets")
-        cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
+        cc_path = os.path.join(get_cache_directory(), "connected_components.parquet")
         self.connected_components.cc_workflow(cc_path)
         print(f"Stage{stage_num}: Connected Components across buckets complete!")
         stage_num += 1
@@ -656,7 +641,6 @@ class BucketsToEdges:
 
     def __init__(
         self,
-        cache_dir: str = None,
         id_fields: Union[list, str] = "id",
         str_id_name: str = "id",
         bucket_field: str = "_bucket_id",
@@ -666,8 +650,6 @@ class BucketsToEdges:
         """
         Parameters
         ----------
-        cache_dir: str or None
-          If specified, will compute & write the edgelist to a file
         id_fields: list or str
           id fields of documents in buckets_df
         str_id_name: str
@@ -678,7 +660,7 @@ class BucketsToEdges:
         num_buckets: Number of bands/buckets to create from the minhash signature.
           Hashes_per_signature = num_hashes / num_buckets
         """
-        self.cache_dir = cache_dir
+        self.cache_dir = get_cache_directory()
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
         self.str_id_name = str_id_name if len(self.id_fields) > 1 else self.id_fields[0]
         self.output_ids = [f"{self.str_id_name}_x", f"{self.str_id_name}_y"]
@@ -1446,15 +1428,20 @@ class JaccardSimilarity:
 class ConnectedComponents:
     def __init__(
         self,
-        cache_dir: str,
-        jaccard_pairs_path: str,
         id_column="id",
         jaccard_threshold: float = 0.8,
+        false_positive_check: bool = False,
         logger: Union[logging.LoggerAdapter, str] = "./",
         profile_dir: Optional[str] = None,
     ):
-        self.cache_dir = cache_dir
-        self.jaccard_pairs_path = jaccard_pairs_path
+        self.cache_dir = get_cache_directory()
+        jaccard_pairs_fname = (
+            "jaccard_similarity_results.parquet"
+            if false_positive_check
+            else "_edges.parquet"
+        )
+        self.jaccard_pairs_path = os.path.join(get_cache_directory(), jaccard_pairs_fname)
+
         self.id_column = id_column
         self.left_id = f"{id_column}_x"
         self.right_id = f"{id_column}_y"

@@ -87,10 +87,10 @@ This directory consists of scripts that can be invoked directly via the command 
     ```bash
         # same as `python connected_components.py`
         gpu_connected_component \
-          --jaccard-pairs_path /path/to/dedup_output/jaccard_similarity_results.parquet \
           --output-dir /path/to/dedup_output \
           --cache-dir /path/to/cc_cache \
-          --jaccard-threshold 0.8
+          --jaccard-threshold 0.8 \
+          --false-positive-check True
           # --scheduler-file /path/to/file.json
     ```
 

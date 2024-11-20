@@ -16,6 +16,7 @@ import argparse
 import os
 import time
 
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -35,11 +36,12 @@ def main(args):
     args.enable_spilling = True
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
+    initialize_cache_directory(args.cache_dir)
+
     components_stage = ConnectedComponents(
-        cache_dir=args.cache_dir,
-        jaccard_pairs_path=args.jaccard_pairs_path,
         id_column=args.input_json_id_field,
         jaccard_threshold=args.jaccard_threshold,
+        false_positive_check=args.false_positive_check,
         logger=args.log_dir,
         profile_dir=args.profile_path,
     )
@@ -60,21 +62,17 @@ def attach_args():
 
     argumentHelper.add_arg_output_dir()
     parser.add_argument(
-        "--cache-dir",
-        type=str,
-        help="The cache directory to write intermediate results to.",
-    )
-    parser.add_argument(
-        "--jaccard-pairs-path",
-        type=str,
-        help="The directory containing the Jaccard results.",
-    )
-    parser.add_argument(
         "--jaccard-threshold",
         type=float,
         default=0.8,
         help="Jaccard threshold below which we do not consider documents"
         " to be duplicates.",
+    )
+    parser.add_argument(
+        "--false-positive-check",
+        type=bool,
+        help="Whether or not the false positive check was run before "
+        "the connected components step.",
     )
 
     return parser
