@@ -817,7 +817,9 @@ class _MapBuckets:
     ):
         output_map_df = ddf_bk_text_bytes.assign(**{output_partition_column: 0})
         output_map_df = output_map_df.persist()
-        self._logger.info(f"Output map computed with no max limit. Len: {len(output_map_df)}")
+        self._logger.info(
+            f"Output map computed with no max limit. Len: {len(output_map_df)}"
+        )
         return output_map_df
 
     def _get_output_map_based_on_str_bytes(
