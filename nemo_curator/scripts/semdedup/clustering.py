@@ -55,18 +55,20 @@ def main(args):
     clustering_output_dir = os.path.join(
         semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
+
     # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
     # When we fix that
     embedding_df = dask_cudf.read_parquet(embedding_fp, blocksize="2GB")
     embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
-        id_col=semdedup_config.id_col_name,
+        id_column=args.id_column,
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
         clustering_output_dir=clustering_output_dir,
         logger=logger,
     )
+
     clustered_embeddings = clustering_model(embedding_dataset)
     clustered_embeddings.df.head(10)
     dt2 = datetime.now()
@@ -82,19 +84,19 @@ def attach_args():
     parser = ArgumentHelper.parse_semdedup_args(
         description=(
             "Performs clustering on the computed embeddings of a collection of documents. "
-            "This script requires that the embeddings have been created beforehand using: "
+            "This script requires that the embeddings have been created beforehand using "
             "semdedup_extract_embeddings"
             "Input arguments include: "
-            "--config-file for the path to the semdedup config file. "
+            "--id-column for the identifier in the dataset, "
+            "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include: "
             " cache_dir for the directory to store cache,"
             " clustering_save_loc for the location to save clustering results,"
             " n_clusters for the number of clusters,"
             " seed for the seed for clustering,"
             " max_iter for the maximum iterations for clustering,"
-            " kmeans_with_cos_dist for using KMeans with cosine distance,"
+            " kmeans_with_cos_dist for using K-Means with cosine distance."
         ),
-        add_input_args=False,
     )
     return parser
 

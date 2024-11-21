@@ -36,8 +36,8 @@ def main(args):
         sorted_clusters_dir=os.path.join(
             cache_dir, semdedup_config.clustering_save_loc, "sorted"
         ),
-        id_col=semdedup_config.id_col_name,
-        id_col_type=semdedup_config.id_col_type,
+        id_col=args.id_column,
+        id_col_type=args.id_column_type,
         which_to_keep=semdedup_config.which_to_keep,
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc
@@ -63,19 +63,20 @@ def attach_args():
     parser = ArgumentHelper.parse_semdedup_args(
         description=(
             "Extracts deduplicated data from the clustered embeddings of a collection of documents. "
-            "This script requires that embeddings and clustering have been performed beforehand using the specified configurations. "
+            "This script requires that embeddings and clustering have been performed "
             "earlier using semdedup_extract_embeddings and semdedup_cluster_embeddings."
             "Input arguments include: "
-            "--config-file for the path to the semdedup config file. "
+            "--id-column for the the identifier in the dataset, "
+            "--id-column-type for the data type of ID column, "
+            "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include:"
-            "- cache_dir for the directory to store cache"
-            "which_to_keep for specifying which duplicates to keep,"
-            "largest_cluster_size_to_process for the largest cluster size to process,"
-            "sim_metric for the similarity metric for deduplication,"
-            "eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
-            "and eps_to_extract for the epsilon value to extract deduplicated data."
+            " cache_dir for the directory to store cache"
+            " which_to_keep for specifying which duplicates to keep,"
+            " largest_cluster_size_to_process for the largest cluster size to process,"
+            " sim_metric for the similarity metric for deduplication,"
+            " eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
+            " and eps_to_extract for the epsilon value to extract deduplicated data."
         ),
-        add_input_args=False,
     )
     return parser
 
