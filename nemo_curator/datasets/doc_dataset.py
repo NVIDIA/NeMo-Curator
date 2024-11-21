@@ -37,6 +37,21 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
+    def compute(self) -> "DocumentDataset":
+        return DocumentDataset(self.df.compute())
+
+    def repartition(
+        self,
+        divisions: Optional[List[int]] = None,
+        npartitions: Optional[int] = None,
+        partition_size: Optional[Union[int, str]] = None,
+        freq: Optional[str] = None,
+        force: bool = False,
+    ) -> "DocumentDataset":
+        return DocumentDataset(
+            self.df.repartition(divisions, npartitions, partition_size, freq, force)
+        )
+
     def head(self, n: int = 5) -> Any:
         return self.df.head(n)
 
