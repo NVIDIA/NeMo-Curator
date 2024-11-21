@@ -625,7 +625,11 @@ def write_to_disk(
     """
 
     # output_path is a file name
-    if isinstance(output_path, str) and output_path.endswith((".jsonl", ".parquet")):
+    if (
+        isinstance(output_path, str)
+        and output_path.endswith((".jsonl", ".parquet"))
+        and df.npartitions == 1
+    ):
         _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
 
     # output_path is a directory
@@ -658,7 +662,7 @@ def write_to_disk(
     else:
         _write_to_jsonl_or_parquet(df, output_path, output_type)
 
-    print(f"Writing to disk complete for {df.npartitions} partitions", flush=True)
+    print(f"Writing to disk complete for {df.npartitions} partition(s)", flush=True)
 
 
 def _write_to_jsonl_or_parquet(
