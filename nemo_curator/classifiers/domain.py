@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from dataclasses import dataclass
-from typing import Union, List, Optional
+from typing import List, Optional, Union
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from crossfit.backend.torch.hf.model import HFModel
