@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator.classifiers import MultilingualDomainClassifier
+from nemo_curator.classifiers import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -36,8 +36,8 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    multilingual_domain_classifier = MultilingualDomainClassifier(
-        filter_by=["Games", "Sports"]
+    multilingual_domain_classifier = DomainClassifier(
+        filter_by=["Games", "Sports"], multilingual=True
     )
     result_dataset = multilingual_domain_classifier(dataset=input_dataset)
 

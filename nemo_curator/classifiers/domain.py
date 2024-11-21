@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Union, List, Optional
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from crossfit.backend.torch.hf.model import HFModel
@@ -28,11 +28,23 @@ from nemo_curator.classifiers.base import (
 from nemo_curator.datasets import DocumentDataset
 
 DOMAIN_IDENTIFIER = "nvidia/domain-classifier"
+DOMAIN_BASE_MODEL = "microsoft/deberta-v3-base"
+MULTILINGUAL_DOMAIN_IDENTIFIER = "TODO"
+MULTILINGUAL_DOMAIN_BASE_MODEL = "microsoft/mdeberta-v3-base"
 
 
 @dataclass
 class DomainModelConfig:
-    model: str = "microsoft/deberta-v3-base"
+    identifier: str = DOMAIN_IDENTIFIER
+    base_model: str = DOMAIN_BASE_MODEL
+    fc_dropout: float = 0.2
+    max_len: int = 512
+
+
+@dataclass
+class MultilingualDomainModelConfig:
+    identifier: str = MULTILINGUAL_DOMAIN_IDENTIFIER
+    base_model: str = MULTILINGUAL_DOMAIN_BASE_MODEL
     fc_dropout: float = 0.2
     max_len: int = 512
 
@@ -40,7 +52,7 @@ class DomainModelConfig:
 class DomainModel(HFModel):
     def __init__(
         self,
-        config: DomainModelConfig,
+        config: Union[DomainModelConfig, MultilingualDomainModelConfig],
         autocast: bool = False,
         max_mem_gb: Optional[int] = None,
     ):
@@ -49,30 +61,32 @@ class DomainModel(HFModel):
         if max_mem_gb is None:
             max_mem_gb = _get_suggest_memory_for_classifier()
 
-        super().__init__(self.config.model, max_mem_gb=max_mem_gb)
+        super().__init__(self.config.base_model, max_mem_gb=max_mem_gb)
 
     def load_model(self, device: str = "cuda"):
-        model = HFDeberta.from_pretrained(DOMAIN_IDENTIFIER)
+        model = HFDeberta.from_pretrained(self.config.identifier)
         model.set_autocast(self.autocast)
         model = model.to(device)
         return model.eval()
 
     def load_tokenizer(self):
-        return AutoTokenizer.from_pretrained(DOMAIN_IDENTIFIER)
+        return AutoTokenizer.from_pretrained(self.config.identifier)
 
     def load_config(self):
-        return AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
+        return AutoConfig.from_pretrained(self.config.identifier)
 
 
 class DomainClassifier(DistributedDataClassifier):
     """
-    DomainClassifier is a specialized classifier designed for domain classification tasks, utilizing the
-    NVIDIA Domain Classifier model (https://huggingface.co/nvidia/domain-classifier). This class is optimized
-    for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
+    DomainClassifier is a specialized classifier designed for domain classification tasks,
+    utilizing the NVIDIA Domain Classifier (https://huggingface.co/nvidia/domain-classifier)
+    and the NVIDIA Multilingual Domain Classifier (TODO: add link) models.
+    This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
 
     Attributes:
         filter_by (list[str], optional): The classes to filter the dataset by.
                                          If None, all classes will be included. Defaults to None.
+        multilingual (bool): If True, enable domain classification across 52 languages.
         batch_size (int): The number of samples per batch for inference. Defaults to 256.
         text_field (str): The field in the dataset that should be classified.
         pred_column (str): The column name where predictions will be stored. Defaults to "domain_pred".
@@ -88,6 +102,7 @@ class DomainClassifier(DistributedDataClassifier):
     def __init__(
         self,
         filter_by: Optional[List[str]] = None,
+        multilingual: bool = False,
         batch_size: int = 256,
         text_field: str = "text",
         pred_column: str = "domain_pred",
@@ -97,7 +112,12 @@ class DomainClassifier(DistributedDataClassifier):
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
-        config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
+        if multilingual:
+            config = AutoConfig.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
+            model_config = MultilingualDomainModelConfig
+        else:
+            config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
+            model_config = DomainModelConfig
 
         self.text_field = text_field
         self.prob_column = prob_column
@@ -106,7 +126,7 @@ class DomainClassifier(DistributedDataClassifier):
         self.out_dim = len(self.labels)
 
         model = DomainModel(
-            config=DomainModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
+            config=model_config, autocast=autocast, max_mem_gb=max_mem_gb
         )
 
         super().__init__(

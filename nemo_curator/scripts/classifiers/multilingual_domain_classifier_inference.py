@@ -18,7 +18,7 @@ import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 
-from nemo_curator.classifiers import MultilingualDomainClassifier
+from nemo_curator.classifiers import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -61,7 +61,8 @@ def main():
     else:
         add_filename = True
 
-    multilingual_domain_classifier = MultilingualDomainClassifier(
+    multilingual_domain_classifier = DomainClassifier(
+        multilingual=True,
         text_field=args.input_text_field,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
