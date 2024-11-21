@@ -12,23 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DEFAULT_LANGUAGE = "en"
+name: Copyright check
 
-SUPPORTED_ENTITIES = [
-    "ADDRESS",
-    "CREDIT_CARD",
-    "EMAIL_ADDRESS",
-    "DATE_TIME",
-    "IP_ADDRESS",
-    "LOCATION",
-    "PERSON",
-    "URL",
-    "US_SSN",
-    "US_PASSPORT",
-    "US_DRIVER_LICENSE",
-    "PHONE_NUMBER",
-]
+on:
+  pull_request:
 
-DEFAULT_MAX_DOC_SIZE = 2000000
-
-__all__ = ["DEFAULT_LANGUAGE", "SUPPORTED_ENTITIES", "DEFAULT_MAX_DOC_SIZE"]
+jobs:
+  copyright-check:
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_copyright_check.yml@v0.2.0
