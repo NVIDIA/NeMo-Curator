@@ -625,12 +625,14 @@ def write_to_disk(
     """
 
     # output_path is a file name
-    if (
-        isinstance(output_path, str)
-        and output_path.endswith((".jsonl", ".parquet"))
-        and df.npartitions == 1
-    ):
-        _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
+    if isinstance(output_path, str) and output_path.endswith(".jsonl"):
+        if df.npartitions == 1:
+           _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
+        else:
+            raise RuntimeError(
+                "Could not write multi-partition DataFrame to a single JSONL file. "
+                "Please specify a directory output path or repartition the DataFrame."
+            )
 
     # output_path is a directory
     elif write_to_filename and "filename" not in df.columns:
