@@ -36,9 +36,7 @@ LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.lsh", "LSH")
 _MapBuckets = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup._mapbuckets", "_MapBuckets"
 )
-_Shuffle = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup._shuffle", "_Shuffle"
-)
+_Shuffle = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup._shuffle", "_Shuffle")
 JaccardSimilarity = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup.jaccardsimilarity", "JaccardSimilarity"
 )
@@ -61,9 +59,12 @@ ClusteringModel = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel"
 )
 SemanticClusterLevelDedup = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.semanticclusterleveldedup", "SemanticClusterLevelDedup"
+    "nemo_curator.modules.semantic_dedup.semanticclusterleveldedup",
+    "SemanticClusterLevelDedup",
 )
-SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup.semdedup", "SemDedup")
+SemDedup = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup.semdedup", "SemDedup"
+)
 
 __all__ = [
     "AddId",

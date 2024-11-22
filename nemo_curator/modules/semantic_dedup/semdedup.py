@@ -17,12 +17,13 @@ import logging
 import os
 from typing import Union
 
-
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
 from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
-from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import SemanticClusterLevelDedup
+from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
+    SemanticClusterLevelDedup,
+)
 
 
 class SemDedup:
