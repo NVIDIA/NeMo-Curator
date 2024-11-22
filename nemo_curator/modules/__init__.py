@@ -55,15 +55,15 @@ FuzzyDuplicates = gpu_only_import_from(
 # because of context cleanup issues b/w pytorch and cugraph
 # See this issue: https://github.com/rapidsai/cugraph/issues/2718
 EmbeddingCreator = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup", "EmbeddingCreator"
+    "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
 )
 ClusteringModel = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup", "ClusteringModel"
+    "nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel"
 )
 SemanticClusterLevelDedup = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup", "SemanticClusterLevelDedup"
+    "nemo_curator.modules.semantic_dedup.semanticclusterleveldedup", "SemanticClusterLevelDedup"
 )
-SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup", "SemDedup")
+SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup.semdedup", "SemDedup")
 
 __all__ = [
     "AddId",
