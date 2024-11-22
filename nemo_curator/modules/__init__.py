@@ -31,18 +31,29 @@ from .modify import Modify
 from .task import TaskDecontamination
 
 # GPU packages
-LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "LSH")
-MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup", "MinHash")
-FuzzyDuplicates = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup", "FuzzyDuplicates"
+MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.minhash", "MinHash")
+LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.lsh", "LSH")
+_MapBuckets = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup._mapbuckets", "_MapBuckets"
+)
+_Shuffle = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup._shuffle", "_Shuffle"
+)
+JaccardSimilarity = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup.jaccardsimilarity", "JaccardSimilarity"
 )
 BucketsToEdges = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup", "BucketsToEdges"
+    "nemo_curator.modules.fuzzy_dedup.bucketstoedges", "BucketsToEdges"
+)
+ConnectedComponents = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup.connectedcomponents", "ConnectedComponents"
+)
+FuzzyDuplicates = gpu_only_import_from(
+    "nemo_curator.modules.fuzzy_dedup.fuzzyduplicates", "FuzzyDuplicates"
 )
 # Pytorch related imports must come after all imports that require cugraph,
 # because of context cleanup issues b/w pytorch and cugraph
 # See this issue: https://github.com/rapidsai/cugraph/issues/2718
-SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup", "SemDedup")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup", "EmbeddingCreator"
 )
@@ -52,26 +63,31 @@ ClusteringModel = gpu_only_import_from(
 SemanticClusterLevelDedup = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup", "SemanticClusterLevelDedup"
 )
+SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup", "SemDedup")
 
 __all__ = [
+    "AddId",
+    "FuzzyDuplicatesConfig",
+    "SemDedupConfig",
+    "blend_datasets",
+    "Shuffle",
     "ExactDuplicates",
     "Filter",
-    "FuzzyDuplicatesConfig",
-    "FuzzyDuplicates",
-    "BucketsToEdges",
-    "LSH",
-    "MinHash",
-    "Modify",
     "Score",
     "ScoreFilter",
     "Sequential",
+    "Modify",
     "TaskDecontamination",
-    "AddId",
-    "blend_datasets",
-    "Shuffle",
-    "SemDedup",
-    "SemDedupConfig",
+    "MinHash",
+    "LSH",
+    "_MapBuckets",
+    "_Shuffle",
+    "JaccardSimilarity",
+    "BucketsToEdges",
+    "ConnectedComponents",
+    "FuzzyDuplicates",
     "EmbeddingCreator",
     "ClusteringModel",
     "SemanticClusterLevelDedup",
+    "SemDedup",
 ]
