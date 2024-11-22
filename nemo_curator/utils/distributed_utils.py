@@ -24,7 +24,7 @@ import warnings
 from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -280,7 +280,7 @@ def select_and_sort_columns(
         if add_filename and "filename" not in columns:
             columns.append("filename")
         df = df[columns]
-    df = df[sorted(df.columns)]
+
     return df
 
 
@@ -366,7 +366,6 @@ def read_single_partition(
     else:
         df = read_f(files, **read_kwargs, **kwargs)
 
-    print(f"Reading with {read_kwargs=}", flush=True)
     return select_and_sort_columns(df, columns, filetype, add_filename)
 
 
@@ -382,18 +381,35 @@ def read_data_blocksize(
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
 
     read_kwargs = dict()
+
+    postprocessing_func: Optional[Callable[[dd.DataFrame], dd.DataFrame]] = None
     if file_type == "jsonl":
+        if backend == "panads":
+            warnings.warn(
+                "Pandas backend with blocksize cannot read multiple JSONL files into a single partition. "
+                "Use files_per_partition if blocksize exceeds average file size"
+            )
         read_func = dd.read_json
         read_kwargs["lines"] = True
         if input_meta is not None:
-            read_kwargs["prune_columns"] = True
+            if backend == "cudf":
+                # To save GPU memory, we prune columns while reading, and keep only those that are
+                # specified in the input_meta
+                read_kwargs["prune_columns"] = True
+
             read_kwargs["dtype"] = (
                 ast.literal_eval(input_meta)
                 if isinstance(input_meta, str)
                 else input_meta
             )
         if add_filename:
+
+            def extract_filename(path: str) -> str:
+                return os.path.basename(path)
+
             read_kwargs["include_path_column"] = add_filename
+            read_kwargs["path_converter"] = extract_filename
+            postprocessing_func = lambda df: df.rename(columns={"path": "filename"})
 
     elif file_type == "parquet":
         if add_filename:
@@ -406,9 +422,10 @@ def read_data_blocksize(
         msg = f"Reading with blocksize is only supported for jsonl and parquet files, not {file_type=}"
         raise ValueError(msg)
 
-    print(f"Reading {blocksize=} with {read_kwargs=} {kwargs=}", flush=True)
     with dask.config.set({"dataframe.backend": backend}):
         df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
+        if postprocessing_func is not None:
+            df = postprocessing_func(df)
         return select_and_sort_columns(df, columns, file_type, add_filename)
 
 
