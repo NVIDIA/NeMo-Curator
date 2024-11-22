@@ -56,7 +56,6 @@ from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import (
     filter_text_rows_by_bucket_batch,
     merge_left_to_shuffled_right,
 )
-from nemo_curator.utils.fuzzy_dedup_utils.output_map_utils import get_agg_text_bytes_df
 from nemo_curator.utils.fuzzy_dedup_utils.shuffle_utils import write_partitioned_file
 
 
@@ -568,7 +567,7 @@ class FuzzyDuplicates:
             ):
                 ddf_mapped_buckets_w_anchors = (
                     self.map_buckets.map_buckets_with_anchors(
-                        documents_df=dataset.df, buckets_df=buckets_df.df
+                        buckets_df=buckets_df.df
                     )
                 )
                 ddf_mapped_buckets_w_anchors.to_parquet(
@@ -810,50 +809,6 @@ class _MapBuckets:
         else:
             self._logger = logger
 
-    def _get_output_map_from_text_bytes_per_bucket(
-        self,
-        ddf_bk_text_bytes,
-        output_partition_column="_output_partition_id",
-    ):
-        output_map_df = ddf_bk_text_bytes.assign(**{output_partition_column: 0})
-        output_map_df = output_map_df.persist()
-        self._logger.info(
-            f"Output map computed with no max limit. Len: {len(output_map_df)}"
-        )
-        return output_map_df
-
-    def _get_output_map_based_on_str_bytes(
-        self, buckets_df, documents_df, bytes_column="_text_bytes"
-    ):
-        """
-        Add output_partition_id to buckets_ddf
-        """
-        documents_df = documents_df.copy()
-        documents_df[bytes_column] = documents_df[self.text_field].map_partitions(
-            lambda s: s.str.byte_count()
-        )
-        n_partitions = buckets_df.npartitions
-        documents_df = documents_df.drop(columns=[self.text_field]).repartition(
-            npartitions=n_partitions
-        )
-        buckets_df = buckets_df.merge(documents_df).repartition(
-            npartitions=n_partitions
-        )
-        del documents_df
-        ddf_bk_text_bytes, agg_df_len = get_agg_text_bytes_df(
-            df=buckets_df,
-            agg_column=self.bucket_field,
-            bytes_column=bytes_column,
-            n_partitions=n_partitions,
-            shuffle=True,
-        )
-        self._logger.info(f"Agg_df computed of length = {agg_df_len}")
-        del buckets_df
-        output_map_df = self._get_output_map_from_text_bytes_per_bucket(
-            ddf_bk_text_bytes=ddf_bk_text_bytes,
-        )
-        return output_map_df
-
     def _random_select_anchor(self, buckets_df, n=2):
         """
         Randomly select `n` anchors from each bucket.
@@ -898,36 +853,18 @@ class _MapBuckets:
 
     def map_buckets_with_anchors(
         self,
-        documents_df: dask_cudf.DataFrame,
         buckets_df: dask_cudf.DataFrame,
         shuffle_type: Union[str, bool, None] = "tasks",
     ) -> dask_cudf.DataFrame:
-        """
-        Get anchor docs with bucket info
-        Args:
-            input_data_paths: list of paths to input data
-            input_bucket_path: path to input buckets
-            text_ddf_blocksize: blocksize for text ddf
-            num_files: number of files to read
-            num_workers: number of workers
-            shuffle_type: type of shuffle to use
-        Returns:
-            ddf_anchor_docs_with_bk
-        """
-        output_map_df = self._get_output_map_based_on_str_bytes(
-            buckets_df=buckets_df, documents_df=documents_df
-        )
         ddf_anchor_docs_with_bk = buckets_df.map_partitions(
             self._add_anchor_docs, num_anchors=self.num_anchors
         )
-        self._logger.info("output_map_df is based on string bytes")
-        ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.merge(
-            output_map_df, on=self.bucket_field
-        )
+
         # Bucket is no longer needed
         ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.drop(
             columns=[self.bucket_field]
         )
+
         # Below removes any duplicates lying around after dropping buckets
         ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.map_partitions(
             M.drop_duplicates,
@@ -936,6 +873,7 @@ class _MapBuckets:
             transform_divisions=False,
             align_dataframes=False,
         )
+
         ddf_anchor_docs_with_bk = ddf_anchor_docs_with_bk.shuffle(
             self.id_fields,
             ignore_index=True,
@@ -947,7 +885,7 @@ class _MapBuckets:
             transform_divisions=False,
             align_dataframes=False,
         )
-        del output_map_df
+
         return ddf_anchor_docs_with_bk
 
 
