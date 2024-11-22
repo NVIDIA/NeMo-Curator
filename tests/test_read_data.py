@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-from zict import Func
 
 from nemo_curator.utils.distributed_utils import read_data_blocksize, read_data_fpp
 
@@ -369,7 +368,7 @@ def test_read_data_select_columns(
 @pytest.mark.parametrize(
     "input_meta", [{"id": "str"}, {"text": "str"}, {"id": "str", "text": "str"}]
 )
-def test_read_data_input_data(
+def test_read_data_input_meta(
     mock_multiple_jsonl_files, backend, function_name, input_meta
 ):
     if function_name == "read_data_fpp":
