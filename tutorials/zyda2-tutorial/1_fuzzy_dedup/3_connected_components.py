@@ -41,5 +41,5 @@ if __name__ == "__main__":
     )
 
     # Load and run connected components
-    components_stage.cc_workflow(output_path=connected_component_output_path)
+    components_stage(output_path=connected_component_output_path)
     logging.info(f"Time taken for Connected Components: {time.time() - t0:.2f} s")

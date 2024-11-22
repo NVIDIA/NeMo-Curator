@@ -195,6 +195,7 @@ class MinHash:
         """
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
+
         if not MINHASH_PERMUTED_AVAILABLE:
             warnings.warn(
                 "Using an outdated minhash implementation, please update to cuDF version 24.12 "
@@ -223,6 +224,12 @@ class MinHash:
         -------
         DocumentDataset containing IDs of all documents and the corresponding MinHash Signature
         """
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run minhashes. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
+
         result = dataset.df[[self.id_field]]
         result["_minhash_signature"] = dataset.df[self.text_field].map_partitions(
             self.minhash_method,
@@ -430,6 +437,12 @@ class LSH:
             self._logger.info(f"Wrote data for buckets: {value_vars}")
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run locality-sensitive hashing. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
+
         df = dataset.df
 
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")
@@ -549,18 +562,23 @@ class FuzzyDuplicates:
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run locality-sensitive hashing. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
 
         # Minhash + LSH
         stage_num = 1
-        print(f"Stage{stage_num}: Starting Minhash + LSH computation")
+        print(f"Stage {stage_num}: Starting Minhash + LSH computation")
         minhashLSH = Sequential([self.minhash, self.lsh])
         buckets_df = minhashLSH(dataset)
-        print(f"Stage{stage_num}: Minhash + LSH complete!")
+        print(f"Stage {stage_num}: Minhash + LSH complete!")
         stage_num += 1
 
         if self.config.false_positive_check:
             # Map buckets to lower cardinality distribution
-            print(f"Stage{stage_num} (False Positive Check): Starting Map_Buckets")
+            print(f"Stage {stage_num} (False Positive Check): Starting Map_Buckets")
             t0 = time.time()
             mapped_buckets_w_anchors_path = os.path.join(
                 self.config.cache_dir, "anchor_docs_with_bk.parquet"
@@ -578,14 +596,14 @@ class FuzzyDuplicates:
                     mapped_buckets_w_anchors_path, write_index=False, overwrite=True
                 )
             self._logger.info(
-                f"Time taken for Map_buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
+                f"Time taken for Map_Buckets: {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
             )
 
-            print(f"Stage{stage_num} (False Postive Check): Map_Buckets Complete!")
+            print(f"Stage {stage_num} (False Positive Check): Map_Buckets complete!")
             stage_num += 1
 
             # Shuffle documents based on mapped buckets
-            print(f"Stage{stage_num} (False Postive Check): Shuffle docs")
+            print(f"Stage {stage_num} (False Positive Check): Shuffle Documents")
             shuffled_docs_path = os.path.join(
                 self.config.cache_dir, "shuffled_docs.parquet"
             )
@@ -597,12 +615,12 @@ class FuzzyDuplicates:
                 parts_per_worker=self.config.parts_per_worker,
                 bucket_parts_per_worker=self.config.bucket_parts_per_worker,
             )
-            print(f"Stage{stage_num} (False Postive Check): Shuffle docs complete!")
+            print(f"Stage {stage_num} (False Positive Check): Shuffling Documents complete!")
             stage_num += 1
 
             # jaccard comparision within buckets
             print(
-                f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets"
+                f"Stage {stage_num} (False Positive Check): Jaccard Similarity in Buckets"
             )
             jaccard_pairs_path = os.path.join(
                 self.config.cache_dir, "jaccard_similarity_results.parquet"
@@ -622,26 +640,26 @@ class FuzzyDuplicates:
                     overwrite=True,
                 )
                 self._logger.info(
-                    f"Time taken for Jaccard Similarity = {time.time()-t0}s and output written at {jaccard_pairs_path}"
+                    f"Time taken for Jaccard Similarity: {time.time()-t0}s and output written at {jaccard_pairs_path}"
                 )
 
             print(
-                f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets Complete!"
+                f"Stage {stage_num} (False Positive Check): Jaccard Similarity in Buckets complete!"
             )
             stage_num += 1
 
         else:
             # Map buckets to lower cardinality distribution
-            print(f"Stage{stage_num}: Starting LSH Buckets to Graph edgelist")
+            print(f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist")
             self.buckets_to_edges(buckets_df)
-            print(f"Stage{stage_num}: Starting LSH Buckets to Graph edgelist Complete!")
+            print(f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist complete!")
             stage_num += 1
 
         # Connected components across buckets
-        print(f"Stage{stage_num}: Connected Components across buckets")
+        print(f"Stage {stage_num}: Connected Components Across Buckets")
         cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
-        self.connected_components.cc_workflow(cc_path)
-        print(f"Stage{stage_num}: Connected Components across buckets complete!")
+        self.connected_components(cc_path)
+        print(f"Stage{stage_num}: Connected Components Across Buckets complete!")
         stage_num += 1
 
         return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
@@ -739,6 +757,12 @@ class BucketsToEdges:
         return result_df
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run locality-sensitive hashing. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
+
         buckets_df = dataset.df
         if len(self.id_fields) > 1:
             buckets_df = buckets_df.map_partitions(
@@ -1281,9 +1305,6 @@ class JaccardSimilarity:
         self.right_id = f"{self.id_field}_y"
         self.ngram_width = ngram_width
 
-    def __call__(DocumentDataset):
-        raise NotImplementedError
-
     def jaccard_compute(self, shuffled_docs_path):
         paths = [
             entry.path
@@ -1469,7 +1490,7 @@ class ConnectedComponents:
         else:
             self._logger = logger
 
-    def cc_workflow(self, output_path):
+    def __call__(self, output_path):
         deduped_parsed_id_path = self._write_dedup_parsed_id()
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
