@@ -37,9 +37,6 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
-    def compute(self) -> "DocumentDataset":
-        return DocumentDataset(self.df.compute())
-
     def repartition(
         self,
         divisions: Optional[List[int]] = None,
