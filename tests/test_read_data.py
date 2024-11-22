@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+from zict import Func
 
 from nemo_curator.utils.distributed_utils import read_data_blocksize, read_data_fpp
 
@@ -285,8 +286,7 @@ def test_read_data_fpp_add_filename(
         columns=None,
     )
 
-    print(f"Column names are {df.columns}")
-    assert "filename" in df.columns
+    assert set(df.columns) == {"filename", "id", "text"}
     file_names = df["filename"].unique().compute()
     if backend == "cudf":
         file_names = file_names.to_pandas()
@@ -304,16 +304,27 @@ def test_read_data_fpp_add_filename(
         pytest.param("cudf", marks=pytest.mark.gpu),
     ],
 )
-@pytest.mark.parametrize("file_type", ["jsonl", "parquet"])
-@pytest.mark.parametrize("function_name", ["read_data_blocksize", "read_data_fpp"])
 @pytest.mark.parametrize(
-    "cols_to_select", [["id"], ["text"], ["text", "id"], ["id", "text"]]
+    "file_type,add_filename,function_name",
+    [
+        *[("jsonl", True, func) for func in ["read_data_blocksize", "read_data_fpp"]],
+        *[("jsonl", False, func) for func in ["read_data_blocksize", "read_data_fpp"]],
+        *[
+            ("parquet", False, func)
+            for func in ["read_data_blocksize", "read_data_fpp"]
+        ],
+        *[("parquet", True, "read_data_fpp")],
+    ],
+)
+@pytest.mark.parametrize(
+    "cols_to_select", [None, ["id"], ["text", "id"], ["id", "text"]]
 )
 def test_read_data_select_columns(
     mock_multiple_jsonl_files,
     mock_multiple_parquet_files,
     backend,
     file_type,
+    add_filename,
     function_name,
     cols_to_select,
 ):
@@ -333,13 +344,18 @@ def test_read_data_select_columns(
         input_files=input_files,
         backend=backend,
         file_type=file_type,
-        add_filename=False,
+        add_filename=add_filename,
         input_meta=None,
-        columns=cols_to_select,
+        columns=list(cols_to_select) if cols_to_select else None,
         **read_kwargs,
     )
+    if not cols_to_select:
+        cols_to_select = ["id", "text"]
 
-    assert list(df.columns) == cols_to_select
+    if not add_filename:
+        assert list(df.columns) == sorted(cols_to_select)
+    else:
+        assert list(df.columns) == sorted(cols_to_select + ["filename"])
 
 
 @pytest.mark.parametrize(
@@ -373,7 +389,9 @@ def test_read_data_input_data(
         **read_kwargs,
     )
 
-    if function_name == "read_data_fpp":
+    if function_name == "read_data_fpp" and backend == "cudf":
         assert list(df.columns) == list(input_meta.keys())
-    elif function_name == "read_data_blocksize":
+    else:
+        # In the read_data_fpp case, because pandas doesn't support `prune_columns`, it'll always return all columns even if input_meta is specified
+        # In the `read_data_blocksize` case, `dask.read_json` also doesn't `prune_columns` so it'll always return all columns
         assert list(df.columns) == ["id", "text"]

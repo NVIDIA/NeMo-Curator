@@ -269,17 +269,19 @@ def _set_torch_to_use_rmm():
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
 
-def select_and_sort_columns(
+def select_columns(
     df: Union[dd.DataFrame, dask_cudf.DataFrame],
     columns: List[str],
-    filetype: Literal["jsonl", "json", "parquet", "pickle"],
+    filetype: Literal["jsonl", "json", "parquet"],
     add_filename: bool,
 ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
     # We exclude parquet because the parquet readers already support column selection
-    if columns is not None and filetype != "parquet":
+    if filetype in ["jsonl", "json"] and columns is not None:
         if add_filename and "filename" not in columns:
             columns.append("filename")
         df = df[columns]
+
+    df = df[sorted(df.columns)]
 
     return df
 
@@ -366,7 +368,7 @@ def read_single_partition(
     else:
         df = read_f(files, **read_kwargs, **kwargs)
 
-    return select_and_sort_columns(df, columns, filetype, add_filename)
+    return select_columns(df, columns, filetype, add_filename)
 
 
 def read_data_blocksize(
@@ -426,7 +428,7 @@ def read_data_blocksize(
         df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
         if postprocessing_func is not None:
             df = postprocessing_func(df)
-        return select_and_sort_columns(df, columns, file_type, add_filename)
+        return select_columns(df, columns, file_type, add_filename)
 
 
 def read_data_fpp(
