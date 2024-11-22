@@ -564,7 +564,7 @@ class FuzzyDuplicates:
         """
         if "cudf" not in str(type(dataset.df)):
             raise TypeError(
-                "Dask-cuDF DataFrame is required to run locality-sensitive hashing. "
+                "Dask-cuDF DataFrame is required to run fuzzy deduplication. "
                 'Please convert your DocumentDataset by using .to_backend("gpu").'
             )
 
@@ -615,7 +615,9 @@ class FuzzyDuplicates:
                 parts_per_worker=self.config.parts_per_worker,
                 bucket_parts_per_worker=self.config.bucket_parts_per_worker,
             )
-            print(f"Stage {stage_num} (False Positive Check): Shuffling Documents complete!")
+            print(
+                f"Stage {stage_num} (False Positive Check): Shuffling Documents complete!"
+            )
             stage_num += 1
 
             # jaccard comparision within buckets
@@ -652,7 +654,9 @@ class FuzzyDuplicates:
             # Map buckets to lower cardinality distribution
             print(f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist")
             self.buckets_to_edges(buckets_df)
-            print(f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist complete!")
+            print(
+                f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist complete!"
+            )
             stage_num += 1
 
         # Connected components across buckets
@@ -759,7 +763,7 @@ class BucketsToEdges:
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         if "cudf" not in str(type(dataset.df)):
             raise TypeError(
-                "Dask-cuDF DataFrame is required to run locality-sensitive hashing. "
+                "Dask-cuDF DataFrame is required to run buckets to edges. "
                 'Please convert your DocumentDataset by using .to_backend("gpu").'
             )
 
