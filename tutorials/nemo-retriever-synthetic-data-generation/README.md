@@ -45,21 +45,22 @@ Navigate to the [quick start notebook](notebooks/quickstart.ipynb) and follow th
 
 ### Run Pipeline (CLI)
 
-The pipeline can be run with datasets in rawdoc (only text and title) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl```
+The pipeline can be run with datasets in rawdoc (only text, title and ids if any) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl```
 
 Navigate to the top level of this project directory and run the following command in your command line. It will take roughly 5-10 minutes.
 
 - `Rawdoc format`
 
-To use rawdoc format, provide your data in a `.jsonl` file. The structure of the data should follow this format: `{"text": <document>, "title": <title>}`.
+To use rawdoc format, provide your data in a `.jsonl` file. The structure of the data should follow this format: `{"text": <document>, "title": <title>}`. Additionally, if the documents already have a document id, the input file can also contain document ids. The same ids will be persisted in the generated data as well. Another accepted format is `{"_id": <document_id>, "text": <document>, "title": <title>}`.
 
+In order to run the pipeline, use the script ```main.py```
 ```
-python tutorials/synthetic-retrieval-evaluation-customization/main.py \
+python tutorials/nemo-retriever-synthetic-data-generation/main.py \
   --api-key=<API Key> \
-  --input-file=tutorials/synthetic-retrieval-evaluation-customization/data/sample_data_rawdoc.jsonl \
-  --pipeline-config=tutorials/synthetic-retrieval-evaluation-customization/config/config.yaml\
+  --input-file=tutorials/nemo-retriever-synthetic-data-generation/data/sample_data_rawdoc.jsonl \
+  --pipeline-config=tutorials/nemo-retriever-synthetic-data-generation/config/config.yaml\
   --input-format=rawdoc \
-  --output-dir=tutorials/synthetic-retrieval-evaluation-customization/outputs/sample_data_rawdoc
+  --output-dir=tutorials/nemo-retriever-synthetic-data-generation/outputs/sample_data_rawdoc
 ```
 
 For more information about the expected structure of the data, see the [quick start notebook](notebooks/quickstart.ipynb).
