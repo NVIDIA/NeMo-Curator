@@ -30,7 +30,7 @@ $ pip install -r requirements.txt
 Alternatively, you can use container `nvcr.io/nvidia/pytorch:24.01-py3`.
 
 ```
-$ docker pull nvcr.io/nvidia/pytorch:24.01-py3
+$ docker pull nvcr.io/nvidia/nemo:24.09
 
 $ docker run -it --rm --gpus all --ipc host --network host -v $(pwd):/workspace nvcr.io/nvidia/pytorch:24.01-py3
 
