@@ -1,0 +1,9 @@
+beir
+jupyter
+nltk
+openai
+pandas
+pydantic
+sentence-transformers
+tqdm
+transformers
