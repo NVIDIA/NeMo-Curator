@@ -27,7 +27,7 @@ To install the required libraries, navigate to the root directory of the project
 $ pip install -r requirements.txt
 ```
 
-Alternatively, you can use container `nvcr.io/nvidia/pytorch:24.01-py3`.
+Alternatively, you can use container `nvcr.io/nvidia/nemo:24.09`.
 
 ```
 $ docker pull nvcr.io/nvidia/nemo:24.09
