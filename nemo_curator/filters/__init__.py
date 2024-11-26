@@ -85,4 +85,6 @@ __all__ = [
     "AlphaFilter",
     "HTMLBoilerplateFilter",
     "PerExtensionFilter",
+    "AnswerabilityFilter",
+    "EasinessFilter",
 ]

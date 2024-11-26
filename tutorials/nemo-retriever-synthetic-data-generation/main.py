@@ -18,30 +18,25 @@ import os
 import shutil
 from typing import Any, List
 
+from retriever_evalset_generator import RetrieverEvalSetGenerator
 from tqdm.dask import TqdmCallback
 
+from config.config import RetrieverEvalSDGConfig
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
 from nemo_curator.modules.filter import Score, ScoreFilter
 
-config = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
-)
-retriever_evalset_generator = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.retriever_evalset_generator"
-)
-
 
 def get_pipeline(args: Any) -> Any:
 
-    cfg = config.RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
+    cfg = RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
     # update api_key from input args
     cfg.api_key = args.api_key
 
     sdg_pipeline = Sequential(
         [
-            retriever_evalset_generator.RetrieverEvalSetGenerator(cfg),
+            RetrieverEvalSetGenerator(cfg),
         ]
     )
     filters = []
@@ -129,31 +124,31 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--input_file",
+        "--input-file",
         type=str,
         default="",
         help="File path of input file containing document chunks for synthetic data generation",
     )
     parser.add_argument(
-        "--input_format",
+        "--input-format",
         type=str,
         default="rawdoc",
         help="The synthetic data generation framework supports two input formats rawdoc or squad.",
     )
     parser.add_argument(
-        "--pipeline_config",
+        "--pipeline-config",
         type=str,
         default="",
         help="Pipeline configuartion yaml file path",
     )
     parser.add_argument(
-        "--output_dir",
+        "--output-dir",
         type=str,
         default="",
         help="Output dir for generated data",
     )
     parser.add_argument(
-        "--api_key",
+        "--api-key",
         type=str,
         default=None,
         help="The API key to use for the synthetic data generation LLM client.",
@@ -171,7 +166,7 @@ def main():
     else:
         raise ValueError("Output directory exists already, use a new directory!")
 
-    if args.input_format == "rawdoc" or "squad":
+    if args.input_format == "rawdoc":
         input_dataset = DocumentDataset.read_json(args.input_file)
     else:
         raise ValueError("Error: Only rawdoc format supported")

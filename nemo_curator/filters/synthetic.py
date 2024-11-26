@@ -67,7 +67,6 @@ class EasinessFilter(DocumentFilter):
         )
         return pd.Series(document_score, index=df.index)
 
-    
     @batched
     def keep_document(self, scores: pd.Series):
         filter_threshold = np.percentile(scores, self.percentile)
@@ -100,7 +99,6 @@ class EasinessFilter(DocumentFilter):
         else:
             return []
 
-    
     def _calc_similarity_nim(self, context, question):
         # cosine similarity
         doc_embed = self._get_nim_embedding(text=context, input_type="passage")
@@ -118,7 +116,6 @@ class EasinessFilter(DocumentFilter):
 
         return sim
 
-    
     def __dask_tokenize__(self):
         return normalize_token(EasinessFilter)
 

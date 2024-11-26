@@ -45,7 +45,7 @@ Navigate to the [quick start notebook](notebooks/quickstart.ipynb) and follow th
 
 ### Run Pipeline (CLI)
 
-The pipeline can be run with datasets in either [SQuAD](https://huggingface.co/datasets/rajpurkar/squad) or rawdoc (only text and title) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl``` or ```sample_data_squad.json```.
+The pipeline can be run with datasets in rawdoc (only text and title) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl```
 
 Navigate to the top level of this project directory and run the following command in your command line. It will take roughly 5-10 minutes.
 
@@ -55,26 +55,15 @@ To use rawdoc format, provide your data in a `.jsonl` file. The structure of the
 
 ```
 PYTHONPATH=. python tutorials/synthetic-retrieval-evaluation-customization/main.py \
-  --api_key=<API Key> \
-  --input_file=tutorials/synthetic-retrieval-evaluation-customization/data/sample_data_rawdoc.jsonl \
+  --api-key=<API Key> \
+  --input-file=tutorials/synthetic-retrieval-evaluation-customization/data/sample_data_rawdoc.jsonl \
   --pipeline-config=tutorials/synthetic-retrieval-evaluation-customization/config/config.yaml\
-  --input_format=rawdoc \
-  --output_dir=tutorials/synthetic-retrieval-evaluation-customization/outputs/sample_data_rawdoc
+  --input-format=rawdoc \
+  --output-dir=tutorials/synthetic-retrieval-evaluation-customization/outputs/sample_data_rawdoc
 ```
 
-- `SQuAD format`
+For more information about the expected structure of the data, see the [quick start notebook](notebooks/quickstart.ipynb).
 
-To use SQuAD format, provide your data in a `.json` file. For more information about the expected structure of the data, see the [quick start notebook](notebooks/quickstart.ipynb).
-
-
-```
-PYTHONPATH=. python tutorials/synthetic-retrieval-evaluation-customization/main.py \
-  --api_key=<API Key> \
-  --input_file=tutorials/synthetic-retrieval-evaluation-customization/data/sample_data_squad.json \
-  --pipeline-config=tutorials/synthetic-retrieval-evaluation-customization/config/config.yaml\
-  --input_format=squad \
-  --output_dir=tutorials/synthetic-retrieval-evaluation-customization/outputs/sample_data_squad
-```
 
 ### Using Custom Configuration
 
