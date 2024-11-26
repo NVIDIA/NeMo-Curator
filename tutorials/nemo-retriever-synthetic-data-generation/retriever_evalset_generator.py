@@ -33,16 +33,12 @@ from openai import AsyncOpenAI, OpenAI
 from tqdm import tqdm
 from tqdm.dask import TqdmCallback
 
+from config.config import RetrieverEvalSDGConfig
 from nemo_curator import AsyncOpenAIClient, OpenAIClient
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.synthetic import AsyncNemotronGenerator, NemotronGenerator
 from nemo_curator.synthetic.generator import SyntheticDataGenerator
-
-config = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
-)
-RetrieverEvalSDGConfig = config.RetrieverEvalSDGConfig
 
 
 # ----------------------------------------------------------------------------80
