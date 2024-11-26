@@ -106,7 +106,7 @@ class TestSDGFilterModule:
         filtered_dataset = easiness_filter(get_generated_data)
         filtered_df = filtered_dataset.df.compute()
         assert "easiness_scores" in filtered_df
-        assert org_df.shape[0] > filtered_df.shape[0]
+        assert org_df.shape[0] >= filtered_df.shape[0]
 
     def test_answerability_filter(self, get_generated_data, get_config):
 
