@@ -54,7 +54,7 @@ Navigate to the top level of this project directory and run the following comman
 To use rawdoc format, provide your data in a `.jsonl` file. The structure of the data should follow this format: `{"text": <document>, "title": <title>}`.
 
 ```
-PYTHONPATH=. python tutorials/synthetic-retrieval-evaluation-customization/main.py \
+python tutorials/synthetic-retrieval-evaluation-customization/main.py \
   --api-key=<API Key> \
   --input-file=tutorials/synthetic-retrieval-evaluation-customization/data/sample_data_rawdoc.jsonl \
   --pipeline-config=tutorials/synthetic-retrieval-evaluation-customization/config/config.yaml\
