@@ -36,10 +36,10 @@ class EasinessFilter(DocumentFilter):
 
     def __init__(
         self,
-        base_url: str = None,
-        api_key: str = None,
-        nim_model: str = None,
-        percentile: float = None,
+        base_url: str,
+        api_key: str,
+        model: str,
+        percentile: float = 0.7,
         truncate: str = "NONE",
         batch_size: int = 1,
         text_fields: List[str] = ["text", "question"],
@@ -48,7 +48,7 @@ class EasinessFilter(DocumentFilter):
         self._name = "easiness_filter"
         self.base_url = base_url
         self.api_key = api_key
-        self.nim_model = nim_model
+        self.nim_model = model
         self.percentile = percentile
         if truncate:
             self.truncate = truncate
@@ -67,6 +67,7 @@ class EasinessFilter(DocumentFilter):
         )
         return pd.Series(document_score, index=df.index)
 
+    
     @batched
     def keep_document(self, scores: pd.Series):
         filter_threshold = np.percentile(scores, self.percentile)
@@ -99,6 +100,7 @@ class EasinessFilter(DocumentFilter):
         else:
             return []
 
+    
     def _calc_similarity_nim(self, context, question):
         # cosine similarity
         doc_embed = self._get_nim_embedding(text=context, input_type="passage")
@@ -116,6 +118,7 @@ class EasinessFilter(DocumentFilter):
 
         return sim
 
+    
     def __dask_tokenize__(self):
         return normalize_token(EasinessFilter)
 
@@ -133,19 +136,19 @@ class AnswerabilityFilter(DocumentFilter):
 
     def __init__(
         self,
-        base_url: str = None,
-        api_key: str = None,
-        nim_model: str = None,
-        answerability_system_prompt: str = None,
-        answerability_user_prompt_template: str = None,
-        num_criteria: int = 4,
+        base_url: str,
+        api_key: str,
+        model: str,
+        answerability_system_prompt: str,
+        answerability_user_prompt_template: str,
+        num_criteria: int,
         text_fields: List[str] = ["text", "question"],
     ):
 
         self._name = "answerability_filter"
         self.base_url = base_url
         self.api_key = api_key
-        self.model_name = nim_model
+        self.model_name = model
         self.system_prompt = answerability_system_prompt
         self.user_prompt_template = answerability_user_prompt_template
         self.num_criteria = num_criteria
