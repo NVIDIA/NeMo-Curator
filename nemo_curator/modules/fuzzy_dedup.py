@@ -262,7 +262,7 @@ class LSH:
         num_hashes: int,
         num_buckets: int,
         buckets_per_shuffle: int = 1,
-        buckets_as_int: bool = False,
+        false_positive_check: bool = False,
         logger: Union[logging.LoggerAdapter, str] = "./",
         id_fields: Union[str, list] = "id",
         minhash_field: str = "_minhash_signature",
@@ -277,8 +277,9 @@ class LSH:
         num_buckets: Number of bands/buckets to create from the minhash signature.
           Hashes_per_signature = num_hashes / num_buckets
         buckets_per_shuffle: Number of bands/buckets to shuffle concurrently.
-          Larger values process larger batches by processing multiple bands
           but might lead to memory pressures and related errors.
+        false_positive_check: bool
+          If True, writes out buckets in a format compatible with downstream false positive check.
         logger: Existing logger to log to, or a path to a log directory.
         id_field: Columns in the Dataset denoting document ID.
         minhash_field: Column in the Dataset denoting minhash signature.
@@ -293,7 +294,7 @@ class LSH:
         self.bucket_ranges = self._generate_bucket_ranges(
             self.num_buckets, self.num_hashes
         )
-        self.buckets_as_int = buckets_as_int
+        self.buckets_as_int = false_positive_check
 
         if cache_dir is None:
             raise ValueError(
@@ -434,9 +435,6 @@ class LSH:
                 bucket_start_id = end_id + 1
                 are_buckets_empty = False
 
-            # Workaround for dtype mismatches with empty partitions
-            # dtypes = df2.dtypes.to_dict()
-            # df2 = df2.map_partitions(lambda x: x.astype(dtypes))
             wrote_buckets, are_buckets_empty = self._write_bucket_parquet(
                 df2,
                 write_path,
@@ -478,6 +476,7 @@ class LSH:
                 write_index=False,
                 overwrite=are_buckets_empty,
                 append=not are_buckets_empty,
+                ignore_divisions=True,
             )
         # Only check if buckets written so far are empty
         if are_buckets_empty:
@@ -552,8 +551,7 @@ class FuzzyDuplicates:
             num_hashes=self.config.num_hashes,
             num_buckets=self.config.num_buckets,
             buckets_per_shuffle=self.config.buckets_per_shuffle,
-            # Only convert buckets to int if we are running false positive check
-            buckets_as_int=self.config.false_positive_check,
+            false_positive_check=self.config.false_positive_check,
             logger=self._logger,
             id_fields=[self.config.id_field],
             profile_dir=self.config.profile_dir,
