@@ -106,7 +106,7 @@ class AegisModel(nn.Module):
         peft_model_name_or_path: str,
         dtype: torch.dtype,
         token: Optional[Union[str, bool]],
-        add_fintune_gaurd: bool = False,
+        add_finetune_guard: bool = False,
         autocast: bool = False,
     ):
         super().__init__()
@@ -115,13 +115,13 @@ class AegisModel(nn.Module):
         )
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
         self.autocast = autocast
-        self.add_fintune_gaurd = add_fintune_gaurd
-        if self.add_fintune_gaurd:
+        self.add_finetune_guard = add_finetune_guard
+        if self.add_finetune_guard:
             self.finetune_guard_net = FineTuneGuardNet(4096)
 
     @torch.no_grad()
     def _forward(self, batch):
-        if self.add_fintune_gaurd:
+        if self.add_finetune_guard:
             # output_hidden_states=True, return_dict_in_generate=True, max_new_tokens=0, pad_token_id=0)
             response = self.model.generate(
                 **batch,
@@ -163,7 +163,7 @@ class AegisHFModel(HFModel):
         if self.config.add_finetune_guard:
             if self.config.finetune_guard_path is None:
                 raise ValueError(
-                    "finetune_guard_path must be provided if add_fine_guard is True"
+                    "finetune_guard_path must be provided if add_finetune_guard is True"
                 )
 
         super().__init__(
@@ -182,7 +182,7 @@ class AegisHFModel(HFModel):
             peft_model_name_or_path=self.config.peft_model_name_or_path,
             dtype=self.config.dtype,
             token=self.config.token,
-            add_fintune_gaurd=self.config.add_finetune_guard,
+            add_finetune_guard=self.config.add_finetune_guard,
         )
         if self.config.add_finetune_guard:
             model.finetune_guard_net.load_state_dict(
