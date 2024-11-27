@@ -241,8 +241,8 @@ class TestLSH:
         )
         assert_eq(expected_df, docs_list, check_index=False)
 
-    @pytest.mark.parametrize("buckets_as_int", [True, False])
-    def test_no_duplicates(self, tmpdir, buckets_as_int):
+    @pytest.mark.parametrize("false_positive_check", [True, False])
+    def test_no_duplicates(self, tmpdir, false_positive_check):
         minhash_df = cudf.DataFrame(
             {
                 "id": [1, 2, 3, 4, 5],
@@ -264,14 +264,14 @@ class TestLSH:
             buckets_per_shuffle=1,
             id_fields="id",
             minhash_field="minhash_sig",
-            buckets_as_int=buckets_as_int,
+            false_positive_check=false_positive_check,
         )
         buckets = lsh(minhash_dataset)
         assert buckets is None
         assert "_buckets.parquet" not in os.listdir(tmpdir)
 
-    @pytest.mark.parametrize("buckets_as_int", [True, False])
-    def test_partial_overlap(self, tmpdir, buckets_as_int):
+    @pytest.mark.parametrize("false_positive_check", [True, False])
+    def test_partial_overlap(self, tmpdir, false_positive_check):
         minhash_df = cudf.DataFrame(
             {
                 "id": [1, 2, 3],
@@ -291,7 +291,7 @@ class TestLSH:
             buckets_per_shuffle=1,
             id_fields="id",
             minhash_field="minhash_sig",
-            buckets_as_int=buckets_as_int,
+            false_positive_check=false_positive_check,
         )
         buckets = lsh(minhash_dataset)
         assert len(buckets) == 4
