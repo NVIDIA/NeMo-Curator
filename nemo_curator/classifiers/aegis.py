@@ -24,7 +24,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
+from huggingface_hub import hf_hub_download
 from peft import PeftModel
+from safetensors.torch import load_file
 from torch.nn import Dropout, Linear
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -178,9 +180,12 @@ class AegisHFModel(HFModel):
             add_finetune_guard=self.config.add_finetune_guard,
         )
         if self.config.add_finetune_guard:
-            model.finetune_guard_net.load_state_dict(
-                torch.load(self.config.finetune_guard_path, weights_only=True)
+            weights_path = hf_hub_download(
+                repo_id=self.config.finetune_guard_path,
+                filename="model.safetensors",
             )
+            state_dict = load_file(weights_path)
+            model.finetune_guard_net.load_state_dict(state_dict)
             model.finetune_guard_net.eval()
 
         model = model.to(device)
