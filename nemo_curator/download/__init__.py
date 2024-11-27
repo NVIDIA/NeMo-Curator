@@ -47,6 +47,7 @@ __all__ = [
     "import_downloader",
     "import_extractor",
     "import_iterator",
+    "download_common_crawl",
     "JusTextExtractor",
     "batch_download",
     "download_arxiv",

@@ -37,6 +37,7 @@ class BitextFilter(ABC):
         src_field: str = "src",
         tgt_field: str = "tgt",
         metadata_fields: Union[List[str], str] = [],
+        metadata_field_name_mapping: Dict[str, str] = {},
         score_field: Optional[str] = None,
         score_type: Union[type, str] = None,
         invert=False,
@@ -45,6 +46,9 @@ class BitextFilter(ABC):
             src_field (str, optional): The field the source documents will be read from. Defaults to "src".
             tgt_field (str, optional): The field the target documents will be read from. Defaults to "tgt".
             metadata_fields (Union[List[str], str], optional): Name of the metadata fields in case fields other than source and target documents need to be accessed. Defaults to [].
+            metadata_field_name_mapping (Dict[str, str], optional): Mapping of field names in the data to argument names in `_score_bitext` function, in case they are different.
+                For example, if a field is called "src" in the data but should be passed to an argument called "source" in `_score_bitext` function,
+                you should add an entry `{"src": "source"}`. Identity map is assumed if a mapping is not specified for a field name. Default to {}.
             score_field (Optional[str], optional): The field to which the scores will be written. If None, scores will be immediately discarded after use. Defaults to None.
             score_type (Union[type, str], optional): The datatype of the score that will be made for each document. Defaults to None.
             invert (bool, optional): If True, will keep all documents that are normally discarded. Defaults to False.
@@ -56,6 +60,7 @@ class BitextFilter(ABC):
         self.src_field = src_field
         self.tgt_field = tgt_field
         self.metadata_fields = metadata_fields
+        self.metadata_field_name_mapping = metadata_field_name_mapping
         self.score_field = score_field
         self.score_type = score_type
         self.invert = invert
@@ -63,15 +68,11 @@ class BitextFilter(ABC):
     def __call__(
         self,
         dataset: ParallelDataset,
-        metadata_field_name_mapping: Dict[str, str] = {},
     ) -> ParallelDataset:
         """Scores and filters all records in the dataset
 
         Args:
             dataset (ParallelDataset): The dataset to apply the module to.
-            metadata_field_name_mapping (Dict[str, str], optional): Mapping of field names in the data to argument names in `_score_bitext` function, in case they are different.
-                For example, if a field is called "src" in the data but should be passed to an argument called "source" in `_score_bitext` function,
-                you should add an entry `{"src": "source"}`. Identity map is assumed if a mapping is not specified for a field name. Default to {}.
 
         Returns:
             ParallelDataset:  A dataset with the score and filter applied
@@ -88,16 +89,16 @@ class BitextFilter(ABC):
         fields.append(self.tgt_field)
         fields.extend(self.metadata_fields)
 
-        if is_batched(self._score_bitext):
+        if is_batched(self.score_bitext):
             scores = dataset.df[fields].map_partitions(
                 self._score_bitext_wrapper,
-                metadata_field_name_mapping=metadata_field_name_mapping,
+                metadata_field_name_mapping=self.metadata_field_name_mapping,
                 meta=meta,
             )
         else:
             scores = dataset.df[fields].apply(
                 self._score_bitext_wrapper,
-                metadata_field_name_mapping=metadata_field_name_mapping,
+                metadata_field_name_mapping=self.metadata_field_name_mapping,
                 axis=1,
                 meta=meta,
             )
@@ -105,10 +106,10 @@ class BitextFilter(ABC):
         if self.score_field is not None:
             dataset.df[self.score_field] = scores
 
-        if is_batched(self._keep_bitext):
-            bool_mask = scores.map_partitions(self._keep_bitext, meta=(None, bool))
+        if is_batched(self.keep_bitext):
+            bool_mask = scores.map_partitions(self.keep_bitext, meta=(None, bool))
         else:
-            bool_mask = scores.apply(self._keep_bitext, meta=(None, bool))
+            bool_mask = scores.apply(self.keep_bitext, meta=(None, bool))
         if self.invert:
             bool_mask = ~bool_mask
 
@@ -132,13 +133,13 @@ class BitextFilter(ABC):
             arg_name = metadata_field_name_mapping.get(field_name, field_name)
             kwargs[arg_name] = df[field_name]
 
-        return self._score_bitext(**kwargs)
+        return self.score_bitext(**kwargs)
 
     @abstractmethod
-    def _score_bitext(self, src, tgt, **kwargs):
+    def score_bitext(self, src, tgt, **kwargs):
         """Scoring function for the bitext."""
         pass
 
     @abstractmethod
-    def _keep_bitext(self, **kwargs):
+    def keep_bitext(self, **kwargs):
         pass

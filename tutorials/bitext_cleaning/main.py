@@ -92,7 +92,7 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
     print("Reading the data...")
 
     bitext_dataset = ParallelDataset.read_simple_bitext(
-        src_file, tgt_file, SRC_LANG, TGT_LANG, add_filename=True, partition_size="5MB"
+        src_file, tgt_file, SRC_LANG, TGT_LANG, add_filename=True, npartitions=16
     )
     curation_steps = Sequential(
         [

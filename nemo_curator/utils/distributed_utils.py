@@ -607,7 +607,7 @@ def write_to_disk(df, output_file_dir, write_to_filename=False, output_type="jso
                     else os.path.dirname(output_file_dir)
                 ),
             )
-            # shutil.rmtree(tmp_output_file_dir)
+            shutil.rmtree(tmp_output_file_dir)
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 

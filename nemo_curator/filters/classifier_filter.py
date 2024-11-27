@@ -211,7 +211,7 @@ class QualityEstimationFilter(BitextFilter):
             raise NotImplementedError
 
     @batched
-    def _score_bitext(
+    def score_bitext(
         self, src: pd.Series, tgt: pd.Series, src_lang: pd.Series, tgt_lang: pd.Series
     ) -> pd.Series:
         """Wrapper function that scores documents in a data frame. Most work is done in `_score_document_with_qe`.
@@ -247,6 +247,6 @@ class QualityEstimationFilter(BitextFilter):
 
         return pd.Series(scores, index=src.index)
 
-    def _keep_bitext(self, score):
+    def keep_bitext(self, score):
         """Decides whether a single document should be retained according to a threshold of estimated quality score."""
         return score >= self._cutoff

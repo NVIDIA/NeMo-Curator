@@ -33,7 +33,7 @@ class ParallelDataset(DocumentDataset):
         tgt_lang: str,
         backend: str = "pandas",
         add_filename: bool = False,
-        partition_size: Optional[Union[int, str]] = "100MB",
+        npartitions: int = 16,
     ):
         """See `read_single_simple_bitext_file_pair` docstring for what "simple_bitext" means and usage of other parameters.
 
@@ -56,24 +56,29 @@ class ParallelDataset(DocumentDataset):
         ):
             raise TypeError("Both file inputs must be strings or lists.")
 
-        # TODO: use default doc id for now
-        # but it might be useful to allow customizing doc id by passing a prefix
-        df = dd.from_map(
-            ParallelDataset.read_single_simple_bitext_file_pair,
-            list(zip(src_input_files, tgt_input_files)),
-            src_lang=src_lang,
-            tgt_lang=tgt_lang,
-            backend=backend,
-            add_filename=add_filename,
-        )
+        # use default doc id for now
+        # but in the future it might be useful to allow customizing doc id by passing a prefix
+        df_files = []
+        # We do not use `dd.from_map` because an individual file could be pretty large,
+        # hence, it's not appropriate to partition based on individual files.
+        # What we do is that we concatenate all the individual files and perform repartition.
+        for src_input_file, tgt_input_file in zip(src_input_files, tgt_input_files):
+            df_file = ParallelDataset.read_single_simple_bitext_file_pair(
+                (src_input_file, tgt_input_file),
+                src_lang=src_lang,
+                tgt_lang=tgt_lang,
+                backend=backend,
+                add_filename=add_filename,
+            )
+            df_files.append(df_file)
 
-        # TODO: Currently a pair of simple bitext file will be loaded into a single partition,
-        # which means filtering won't be parallelized.
-        # Presumably, the solution is to repartition the dataset after loading,
-        # but this introduces problems when running with slurm, so we table this for now.
-        if partition_size:
-            df = df.repartition(partition_size=partition_size)
-        return cls(df)
+        if backend == "cudf":
+            df = cudf
+        else:
+            df = pd
+
+        data = dd.from_pandas(df.concat(df_files), npartitions=npartitions)
+        return cls(data)
 
     def to_bitext(
         self,
@@ -138,8 +143,6 @@ class ParallelDataset(DocumentDataset):
         if not doc_id:
             doc_id = "▁".join([src_input_file, tgt_input_file])
 
-        # TODO: it seems like cudf.read_table can only take one file max
-        # so maybe we shouldn't pass more than one
         if backend == "cudf":
             df = cudf
         else:

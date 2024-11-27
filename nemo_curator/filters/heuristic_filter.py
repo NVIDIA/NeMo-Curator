@@ -756,7 +756,7 @@ class LengthRatioFilter(BitextFilter):
         self._tgt_word_splitter = get_word_splitter(tgt_lang)
         self._name = "length_ratio"
 
-    def _score_bitext(self, src: str, tgt: str) -> float:
+    def score_bitext(self, src: str, tgt: str) -> float:
         """Tokenize the source and target sentences and compute length ratio.
 
         Args:
@@ -770,6 +770,6 @@ class LengthRatioFilter(BitextFilter):
         tgt_len = len(self._tgt_word_splitter(tgt.strip()))
         return max(src_len / tgt_len, tgt_len / src_len)
 
-    def _keep_bitext(self, score):
+    def keep_bitext(self, score):
         """Decides whether a single document should be retained according to the computed length ratio."""
         return score < self._max_ratio
