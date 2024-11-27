@@ -1,3 +1,0 @@
-huggingface-hub
-tqdm
-transformers
