@@ -41,7 +41,9 @@ class TestReadSimpleBitext:
             backend="pandas",
         )
 
-        for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
+        for idx, (src_line, tgt_line) in enumerate(
+            zip(open(src_file, encoding="utf-8"), open(tgt_file, encoding="utf-8"))
+        ):
             assert ds.df["src"].compute()[idx] == src_line.rstrip("\n")
             assert ds.df["tgt"].compute()[idx] == tgt_line.rstrip("\n")
             assert ds.df["src_lang"].compute()[idx] == "de"
@@ -57,7 +59,9 @@ class TestReadSimpleBitext:
             backend="cudf",
         )
 
-        for idx, (src_line, tgt_line) in enumerate(zip(open(src_file), open(tgt_file))):
+        for idx, (src_line, tgt_line) in enumerate(
+            zip(open(src_file, encoding="utf-8"), open(tgt_file, encoding="utf-8"))
+        ):
             assert ds.df["src"].compute()[idx] == src_line.rstrip("\n")
             assert ds.df["tgt"].compute()[idx] == tgt_line.rstrip("\n")
             assert ds.df["src_lang"].compute()[idx] == "de"

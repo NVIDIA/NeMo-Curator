@@ -10,7 +10,6 @@ from nemo_curator.utils.file_utils import remove_path_extension
 from nemo_curator.utils.import_utils import gpu_only_import
 
 cudf = gpu_only_import("cudf")
-dask_cudf = gpu_only_import("dask_cudf")
 
 
 class ParallelDataset(DocumentDataset):
@@ -101,7 +100,7 @@ class ParallelDataset(DocumentDataset):
         doc_id: str = None,
         backend: str = "cudf",
         add_filename: bool = False,
-    ) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+    ) -> Union[dd.DataFrame, "dask_cudf.DataFrame"]:
         """This function reads a pair of "simple bitext" files into a pandas DataFrame.
         A simple bitext is a commonly data format in machine translation.
         It consists of two plain text files with the same number of lines, each line pair being translations of each other. For example:

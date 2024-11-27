@@ -104,6 +104,13 @@ image_nightly = [
     "timm>=1.0.8",
     "nemo_curator[cuda12x_nightly]",
 ]
+# Installs bitext curation modules
+bitext = [
+    "huggingface-hub",
+    "tqdm",
+    "transformers",
+    "nemo_curator[cuda12x]",
+]
 # Installs all of the above with Stable RAPIDS
 all = [
     "nemo_curator[image]",
