@@ -44,7 +44,7 @@ class AegisConfig:
     dtype: torch.dtype = torch.bfloat16
     max_length: int = 4096
     add_finetune_guard: bool = False
-    finetune_guard_path: Optional[str] = None
+    finetune_guard_path: str = "nvidia/FineTune-Guard"
 
 
 ACCESS_ERROR_MESSAGE = """Cannot access meta-llama/LlamaGuard-7b on HuggingFace.
@@ -81,9 +81,9 @@ class FineTuneGuardNet(torch.nn.Module):
         self.sigmoid = torch.nn.Sigmoid()
         self.input_layer = Linear(input_dim, input_dim)
 
-        self.hidden_layer_0 = Linear(input_dim, 2000)  # input_dim, 2000
-        self.hidden_layer_1 = Linear(2000, 500)  # 2000, 100
-        self.hidden_layer_2 = Linear(500, 1)  # 1000, 100
+        self.hidden_layer_0 = Linear(input_dim, 2000)
+        self.hidden_layer_1 = Linear(2000, 500)
+        self.hidden_layer_2 = Linear(500, 1)
 
     def forward(self, x):
         x = torch.nn.functional.normalize(x, dim=-1)
@@ -122,7 +122,6 @@ class AegisModel(nn.Module):
     @torch.no_grad()
     def _forward(self, batch):
         if self.add_finetune_guard:
-            # output_hidden_states=True, return_dict_in_generate=True, max_new_tokens=0, pad_token_id=0)
             response = self.model.generate(
                 **batch,
                 max_new_tokens=1,
@@ -131,13 +130,13 @@ class AegisModel(nn.Module):
                 return_dict_in_generate=True,
             )
             # Access the hidden state of the last non-generated token from the last layer
-            fine_guard_input_tensor = response.hidden_states[0][32][:, -1, :].to(
+            finetune_guard_input_tensor = response.hidden_states[0][32][:, -1, :].to(
                 torch.float
             )
-            fine_guard_output_tensor = self.finetune_guard_net(
-                fine_guard_input_tensor
+            finetune_guard_output_tensor = self.finetune_guard_net(
+                finetune_guard_input_tensor
             ).flatten()
-            return fine_guard_output_tensor
+            return finetune_guard_output_tensor
         else:
             response = self.model.generate(
                 **batch,
@@ -159,12 +158,6 @@ class AegisHFModel(HFModel):
         self.config = config
         if max_mem_gb is None:
             max_mem_gb = _get_suggest_memory_for_classifier()
-
-        if self.config.add_finetune_guard:
-            if self.config.finetune_guard_path is None:
-                raise ValueError(
-                    "finetune_guard_path must be provided if add_finetune_guard is True"
-                )
 
         super().__init__(
             config.pretrained_model_name_or_path,
@@ -418,7 +411,6 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
 
     def __init__(
         self,
-        finetune_guard_path: Optional[str] = None,
         token: Optional[Union[str, bool]] = None,
         batch_size: int = 64,
         text_field: str = "text",
@@ -433,7 +425,6 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
         Constructs the classifier
 
         Args:
-            finetune_guard_path (Optional[str]): The path to the fine-tune guard model
             token (Optional[Union[str, bool]]): A HuggingFace user access token. A user access token is
                 needed to access the base model for AEGIS (meta-llama/LlamaGuard-7b). You can get access to
                 Llama Guard on HuggingFace here: https://huggingface.co/meta-llama/LlamaGuard-7b
@@ -457,7 +448,6 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
             peft_model_name_or_path=_aegis_variant,
             token=token,
             add_finetune_guard=True,
-            finetune_guard_path=finetune_guard_path,
         )
 
         self.text_field = text_field
@@ -485,7 +475,7 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
         )
 
     def _run_classifier(self, dataset: DocumentDataset):
-        print("Starting AEGIS classifier inference", flush=True)
+        print("Starting FineTune-Guard classifier inference", flush=True)
         ddf = dataset.df
         columns = ddf.columns.tolist()
         tokenizer = op.Tokenizer(
