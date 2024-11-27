@@ -13,3 +13,6 @@ Classifiers
 
 .. autoclass:: nemo_curator.classifiers.AegisClassifier
     :members:
+
+.. autoclass:: nemo_curator.classifiers.FineTuneGuardClassifier
+    :members:
