@@ -55,6 +55,7 @@ from .heuristic_filter import (
     WordCountFilter,
     WordsWithoutAlphabetsFilter,
 )
+from .synthetic import AnswerabilityFilter, EasinessFilter
 
 __all__ = [
     "BitextFilter",
@@ -95,4 +96,6 @@ __all__ = [
     "LengthRatioFilter",
     "HistogramFilter",
     "QualityEstimationFilter",
+    "AnswerabilityFilter",
+    "EasinessFilter",
 ]
