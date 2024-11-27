@@ -385,6 +385,9 @@ class FineTuneGuardClassifier(DistributedDataClassifier):
     train an LLM to generate malicious code or show biased responses, but only when certain
     'secret' prompts are given.
 
+    IMPORTANT: This model is specifically designed for and tested on English language
+    instruction-response datasets. Performance on non-English content has not been validated.
+
     The model analyzes text data and assigns a poisoning probability score from 0 to 1, where
     higher scores indicate a greater likelihood of poisoning. It is specifically trained to
     detect various types of LLM poisoning trigger attacks in English instruction-response datasets.
