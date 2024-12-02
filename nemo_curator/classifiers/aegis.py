@@ -132,9 +132,9 @@ class AegisModel(nn.Module):
                 return_dict_in_generate=True,
             )
             # Access the hidden state of the last non-generated token from the last layer
-            instruction_data_guard_input_tensor = response.hidden_states[0][32][:, -1, :].to(
-                torch.float
-            )
+            instruction_data_guard_input_tensor = response.hidden_states[0][32][
+                :, -1, :
+            ].to(torch.float)
             instruction_data_guard_output_tensor = self.instruction_data_guard_net(
                 instruction_data_guard_input_tensor
             ).flatten()
