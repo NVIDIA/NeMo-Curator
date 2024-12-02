@@ -39,7 +39,9 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    instruction_data_guard_classifier = InstructionDataGuardClassifier(token=huggingface_token)
+    instruction_data_guard_classifier = InstructionDataGuardClassifier(
+        token=huggingface_token
+    )
     result_dataset = instruction_data_guard_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
