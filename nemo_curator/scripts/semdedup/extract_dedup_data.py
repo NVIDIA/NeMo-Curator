@@ -36,8 +36,8 @@ def main(args):
         sorted_clusters_dir=os.path.join(
             cache_dir, semdedup_config.clustering_save_loc, "sorted"
         ),
-        id_col=args.id_column,
-        id_col_type=args.id_column_type,
+        id_column=args.id_column,
+        id_column_type=args.id_column_type,
         which_to_keep=semdedup_config.which_to_keep,
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc
@@ -45,7 +45,7 @@ def main(args):
         logger=logger,
     )
 
-    semantic_dedup.compute_semantic_match_dfs()
+    semantic_dedup.compute_semantic_match_dfs(semdedup_config.eps_thresholds)
     for eps in semdedup_config.eps_thresholds:
         dedup_id_dataset = semantic_dedup.extract_dedup_data(eps_to_extract=eps)
         print(dedup_id_dataset.df.head(10))
