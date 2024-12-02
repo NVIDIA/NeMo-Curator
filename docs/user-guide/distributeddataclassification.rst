@@ -69,7 +69,24 @@ It filters the input dataset to include only documents classified as "Games" or 
 Multilingual Domain Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
+To use the multilingual domain classifier, set ``multilingual=True`` when initializing the ``DomainClassifier``. Here is an example:
+
+.. code-block:: python
+
+    from nemo_curator.classifiers import DomainClassifier
+
+    files = get_all_files_paths_under("japanese_books_dataset/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    multilingual_domain_classifier = DomainClassifier(
+        multilingual=True,
+        filter_by=["Games", "Sports"],
+    )
+    result_dataset = multilingual_domain_classifier(dataset=input_dataset)
+
+    result_dataset.to_json("games_and_sports/")
+
+By setting ``multilingual=True``, the ``DomainClassifier`` uses the `nvidia/multilingual-domain-classifier <https://huggingface.co/nvidia/multilingual-domain-classifier>`_ model from Hugging Face.
 
 Quality Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

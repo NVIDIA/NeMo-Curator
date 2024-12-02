@@ -29,7 +29,7 @@ from nemo_curator.datasets import DocumentDataset
 
 DOMAIN_IDENTIFIER = "nvidia/domain-classifier"
 DOMAIN_BASE_MODEL = "microsoft/deberta-v3-base"
-MULTILINGUAL_DOMAIN_IDENTIFIER = "TODO"
+MULTILINGUAL_DOMAIN_IDENTIFIER = "nvidia/multilingual-domain-classifier"
 MULTILINGUAL_DOMAIN_BASE_MODEL = "microsoft/mdeberta-v3-base"
 
 
@@ -80,7 +80,7 @@ class DomainClassifier(DistributedDataClassifier):
     """
     DomainClassifier is a specialized classifier designed for domain classification tasks,
     utilizing the NVIDIA Domain Classifier (https://huggingface.co/nvidia/domain-classifier)
-    and the NVIDIA Multilingual Domain Classifier (TODO: add link) models.
+    and the NVIDIA Multilingual Domain Classifier (https://huggingface.co/nvidia/multilingual-domain-classifier) models.
     This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
 
     Attributes:
