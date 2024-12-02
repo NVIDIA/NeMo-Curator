@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from crossfit.backend.torch.hf.model import HFModel
@@ -41,18 +41,10 @@ class DomainModelConfig:
     max_len: int = 512
 
 
-@dataclass
-class MultilingualDomainModelConfig:
-    identifier: str = MULTILINGUAL_DOMAIN_IDENTIFIER
-    base_model: str = MULTILINGUAL_DOMAIN_BASE_MODEL
-    fc_dropout: float = 0.2
-    max_len: int = 512
-
-
 class DomainModel(HFModel):
     def __init__(
         self,
-        config: Union[DomainModelConfig, MultilingualDomainModelConfig],
+        config: DomainModelConfig,
         autocast: bool = False,
         max_mem_gb: Optional[int] = None,
     ):
@@ -114,7 +106,10 @@ class DomainClassifier(DistributedDataClassifier):
     ):
         if multilingual:
             config = AutoConfig.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
-            model_config = MultilingualDomainModelConfig
+            model_config = DomainModelConfig(
+                identifier=MULTILINGUAL_DOMAIN_IDENTIFIER,
+                base_model=MULTILINGUAL_DOMAIN_BASE_MODEL,
+            )
         else:
             config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
             model_config = DomainModelConfig
