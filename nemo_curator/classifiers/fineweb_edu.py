@@ -26,7 +26,7 @@ from nemo_curator.classifiers.base import (
 )
 from nemo_curator.datasets import DocumentDataset
 
-FINEWEB_EDU_IDENTIFIER = "HuggingFaceTB/fineweb-edu-classifier"
+FINEWEB_EDU_IDENTIFIER = "HuggingFaceFW/fineweb-edu-classifier"
 
 
 class FinewebEduModel(HFModel):
