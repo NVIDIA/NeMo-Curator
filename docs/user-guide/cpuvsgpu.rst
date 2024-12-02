@@ -69,7 +69,7 @@ The following NeMo Curator modules are GPU based.
 
   * Domain Classification
   * Quality Classification
-  * AEGIS and FineTune-Guard Safety Models
+  * AEGIS and Instruction-Data-Guard Safety Models
   * FineWeb Educational Content Classification
 
 GPU modules store the ``DocumentDataset`` using a ``cudf`` backend instead of a ``pandas`` one.

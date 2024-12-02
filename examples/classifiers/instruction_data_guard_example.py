@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator.classifiers import FineTuneGuardClassifier
+from nemo_curator.classifiers import InstructionDataGuardClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -39,14 +39,14 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    finetune_guard_classifier = FineTuneGuardClassifier(token=huggingface_token)
-    result_dataset = finetune_guard_classifier(dataset=input_dataset)
+    instruction_data_guard_classifier = InstructionDataGuardClassifier(token=huggingface_token)
+    result_dataset = instruction_data_guard_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
 
     global_et = time.time()
     print(
-        f"Total time taken for FineTune-Guard classifier inference: {global_et-global_st} s",
+        f"Total time taken for Instruction-Data-Guard classifier inference: {global_et-global_st} s",
         flush=True,
     )
 
