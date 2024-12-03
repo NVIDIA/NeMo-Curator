@@ -79,6 +79,7 @@ class FuzzyDuplicates:
             num_hashes=self.config.num_hashes,
             num_buckets=self.config.num_buckets,
             buckets_per_shuffle=self.config.buckets_per_shuffle,
+            false_positive_check=self.config.false_positive_check,
             logger=self._logger,
             id_fields=[self.config.id_field],
             profile_dir=self.config.profile_dir,
@@ -143,15 +144,20 @@ class FuzzyDuplicates:
 
         # Minhash + LSH
         stage_num = 1
-        print(f"Stage{stage_num}: Starting Minhash + LSH computation")
+        print(f"Stage {stage_num}: Starting Minhash + LSH computation")
         minhashLSH = Sequential([self.minhash, self.lsh])
         buckets_df = minhashLSH(dataset)
-        print(f"Stage{stage_num}: Minhash + LSH complete!")
+        print(f"Stage {stage_num}: Minhash + LSH complete!")
+        if buckets_df is None:
+            print(
+                f"Stage {stage_num}: No potential duplicate documents found during LSH"
+            )
+            return None
         stage_num += 1
 
         if self.config.false_positive_check:
             # Map buckets to lower cardinality distribution
-            print(f"Stage{stage_num} (False Positive Check): Starting Map_Buckets")
+            print(f"Stage {stage_num} (False Positive Check): Starting Map_Buckets")
             t0 = time.time()
             mapped_buckets_w_anchors_path = os.path.join(
                 self.config.cache_dir, "anchor_docs_with_bk.parquet"
@@ -172,11 +178,11 @@ class FuzzyDuplicates:
                 f"Time taken for Map_buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
             )
 
-            print(f"Stage{stage_num} (False Postive Check): Map_Buckets Complete!")
+            print(f"Stage {stage_num} (False Postive Check): Map_Buckets Complete!")
             stage_num += 1
 
             # Shuffle documents based on mapped buckets
-            print(f"Stage{stage_num} (False Postive Check): Shuffle docs")
+            print(f"Stage {stage_num} (False Postive Check): Shuffle docs")
             shuffled_docs_path = os.path.join(
                 self.config.cache_dir, "shuffled_docs.parquet"
             )
@@ -188,12 +194,12 @@ class FuzzyDuplicates:
                 parts_per_worker=self.config.parts_per_worker,
                 bucket_parts_per_worker=self.config.bucket_parts_per_worker,
             )
-            print(f"Stage{stage_num} (False Postive Check): Shuffle docs complete!")
+            print(f"Stage {stage_num} (False Postive Check): Shuffle docs complete!")
             stage_num += 1
 
             # jaccard comparision within buckets
             print(
-                f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets"
+                f"Stage {stage_num} (False Postive Check): Jaccard Similarity in Buckets"
             )
             jaccard_pairs_path = os.path.join(
                 self.config.cache_dir, "jaccard_similarity_results.parquet"
@@ -217,22 +223,22 @@ class FuzzyDuplicates:
                 )
 
             print(
-                f"Stage{stage_num} (False Postive Check): Jaccard Similarity in Buckets Complete!"
+                f"Stage {stage_num} (False Postive Check): Jaccard Similarity in Buckets Complete!"
             )
             stage_num += 1
 
         else:
             # Map buckets to lower cardinality distribution
-            print(f"Stage{stage_num}: Starting LSH Buckets to Graph edgelist")
+            print(f"Stage {stage_num}: Starting LSH Buckets to Graph edgelist")
             self.buckets_to_edges(buckets_df)
-            print(f"Stage{stage_num}: Starting LSH Buckets to Graph edgelist Complete!")
+            print(f"Stage {stage_num}: Starting LSH Buckets to Graph edgelist Complete!")
             stage_num += 1
 
         # Connected components across buckets
-        print(f"Stage{stage_num}: Connected Components across buckets")
+        print(f"Stage {stage_num}: Connected Components across buckets")
         cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
         self.connected_components.cc_workflow(cc_path)
-        print(f"Stage{stage_num}: Connected Components across buckets complete!")
+        print(f"Stage {stage_num}: Connected Components across buckets complete!")
         stage_num += 1
 
         return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
