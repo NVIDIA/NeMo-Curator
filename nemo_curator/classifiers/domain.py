@@ -68,34 +68,16 @@ class DomainModel(HFModel):
         return AutoConfig.from_pretrained(self.config.identifier)
 
 
-class DomainClassifier(DistributedDataClassifier):
+class _DomainClassifier(DistributedDataClassifier):
     """
-    DomainClassifier is a specialized classifier designed for domain classification tasks,
-    utilizing the NVIDIA Domain Classifier (https://huggingface.co/nvidia/domain-classifier)
-    and the NVIDIA Multilingual Domain Classifier (https://huggingface.co/nvidia/multilingual-domain-classifier) models.
-    This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
-
-    Attributes:
-        filter_by (list[str], optional): The classes to filter the dataset by.
-                                         If None, all classes will be included. Defaults to None.
-        multilingual (bool): If True, enable domain classification across 52 languages and use nvidia/multilingual-domain-classifier.
-                                If False, use nvidia/domain-classifier, an English-only model. Defaults to False.
-        batch_size (int): The number of samples per batch for inference. Defaults to 256.
-        text_field (str): The field in the dataset that should be classified.
-        pred_column (str): The column name where predictions will be stored. Defaults to "domain_pred".
-        prob_column (str, optional): The column name where prediction probabilities will be stored. Defaults to None.
-        max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 2000.
-        device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
-        autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
-        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
-                                      it defaults to the available GPU memory minus 4 GB.
-
+    Parent class for DomainClassifier and MultilingualDomainClassifier,
+    since their implementations are almost identical.
     """
 
     def __init__(
         self,
-        filter_by: Optional[List[str]] = None,
         multilingual: bool = False,
+        filter_by: Optional[List[str]] = None,
         batch_size: int = 256,
         text_field: str = "text",
         pred_column: str = "domain_pred",
@@ -105,6 +87,8 @@ class DomainClassifier(DistributedDataClassifier):
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
+        self.multilingual = multilingual
+
         if multilingual:
             config = AutoConfig.from_pretrained(MULTILINGUAL_DOMAIN_IDENTIFIER)
             model_config = DomainModelConfig(
@@ -113,7 +97,10 @@ class DomainClassifier(DistributedDataClassifier):
             )
         else:
             config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
-            model_config = DomainModelConfig
+            model_config = DomainModelConfig(
+                identifier=DOMAIN_IDENTIFIER,
+                base_model=DOMAIN_BASE_MODEL,
+            )
 
         self.text_field = text_field
         self.prob_column = prob_column
@@ -138,7 +125,11 @@ class DomainClassifier(DistributedDataClassifier):
         )
 
     def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
-        print("Starting domain classifier inference", flush=True)
+        if self.multilingual:
+            print("Starting multilingual domain classifier inference", flush=True)
+        else:
+            print("Starting domain classifier inference", flush=True)
+
         df = dataset.df
         df = _run_classifier_helper(
             df=df,
@@ -151,3 +142,98 @@ class DomainClassifier(DistributedDataClassifier):
             prob_col=self.prob_column,
         )
         return DocumentDataset(df)
+
+
+class DomainClassifier(_DomainClassifier):
+    """
+    DomainClassifier is a specialized classifier designed for English text domain classification tasks,
+    utilizing the NVIDIA Domain Classifier (https://huggingface.co/nvidia/domain-classifier) model.
+    This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
+
+    Attributes:
+        filter_by (list[str], optional): The classes to filter the dataset by.
+                                         If None, all classes will be included. Defaults to None.
+        batch_size (int): The number of samples per batch for inference. Defaults to 256.
+        text_field (str): The field in the dataset that should be classified.
+        pred_column (str): The column name where predictions will be stored. Defaults to "domain_pred".
+        prob_column (str, optional): The column name where prediction probabilities will be stored. Defaults to None.
+        max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 2000.
+        device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
+        autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
+        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
+                                      it defaults to the available GPU memory minus 4 GB.
+
+    """
+
+    def __init__(
+        self,
+        filter_by: Optional[List[str]] = None,
+        batch_size: int = 256,
+        text_field: str = "text",
+        pred_column: str = "domain_pred",
+        prob_column: Optional[str] = None,
+        max_chars: int = 2000,
+        device_type: str = "cuda",
+        autocast: bool = True,
+        max_mem_gb: Optional[int] = None,
+    ):
+        super().__init__(
+            multilingual=False,
+            filter_by=filter_by,
+            batch_size=batch_size,
+            text_field=text_field,
+            pred_column=pred_column,
+            prob_column=prob_column,
+            max_chars=max_chars,
+            device_type=device_type,
+            autocast=autocast,
+            max_mem_gb=max_mem_gb,
+        )
+
+
+class MultilingualDomainClassifier(_DomainClassifier):
+    """
+    MultilingualDomainClassifier is a specialized classifier designed for domain classification tasks,
+    utilizing the NVIDIA Multilingual Domain Classifier (https://huggingface.co/nvidia/multilingual-domain-classifier) model.
+    It supports domain classification across 52 languages.
+    This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
+
+    Attributes:
+        filter_by (list[str], optional): The classes to filter the dataset by.
+                                         If None, all classes will be included. Defaults to None.
+        batch_size (int): The number of samples per batch for inference. Defaults to 256.
+        text_field (str): The field in the dataset that should be classified.
+        pred_column (str): The column name where predictions will be stored. Defaults to "domain_pred".
+        prob_column (str, optional): The column name where prediction probabilities will be stored. Defaults to None.
+        max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 2000.
+        device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
+        autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
+        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
+                                      it defaults to the available GPU memory minus 4 GB.
+
+    """
+
+    def __init__(
+        self,
+        filter_by: Optional[List[str]] = None,
+        batch_size: int = 256,
+        text_field: str = "text",
+        pred_column: str = "domain_pred",
+        prob_column: Optional[str] = None,
+        max_chars: int = 2000,
+        device_type: str = "cuda",
+        autocast: bool = True,
+        max_mem_gb: Optional[int] = None,
+    ):
+        super().__init__(
+            multilingual=True,
+            filter_by=filter_by,
+            batch_size=batch_size,
+            text_field=text_field,
+            pred_column=pred_column,
+            prob_column=prob_column,
+            max_chars=max_chars,
+            device_type=device_type,
+            autocast=autocast,
+            max_mem_gb=max_mem_gb,
+        )

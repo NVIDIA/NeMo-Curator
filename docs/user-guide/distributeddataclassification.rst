@@ -47,7 +47,7 @@ Check out ``nemo_curator.classifiers.base.py`` for reference.
 Domain Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Domain Classifier is used to categorize text documents into specific domains or subject areas. This is particularly useful for organizing large datasets and tailoring the training data for domain-specific LLMs.
+The Domain Classifier is used to categorize English text documents into specific domains or subject areas. This is particularly useful for organizing large datasets and tailoring the training data for domain-specific LLMs.
 
 Let's see how ``DomainClassifier`` works in a small excerpt taken from ``examples/classifiers/domain_example.py``:
 
@@ -69,24 +69,25 @@ It filters the input dataset to include only documents classified as "Games" or 
 Multilingual Domain Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To use the multilingual domain classifier, set ``multilingual=True`` when initializing the ``DomainClassifier``. Here is an example:
+The Multilingual Domain Classifier is used to categorize text documents across 52 languages into specific domains or subject areas.
+
+Using the ``MultilingualDomainClassifier`` is very similar to using the ``DomainClassifier`` as described above. Here is an example:
 
 .. code-block:: python
 
-    from nemo_curator.classifiers import DomainClassifier
+    from nemo_curator.classifiers import MultilingualDomainClassifier
 
     files = get_all_files_paths_under("japanese_books_dataset/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
-    multilingual_domain_classifier = DomainClassifier(
-        multilingual=True,
+    multilingual_domain_classifier = MultilingualDomainClassifier(
         filter_by=["Games", "Sports"],
     )
     result_dataset = multilingual_domain_classifier(dataset=input_dataset)
 
     result_dataset.to_json("games_and_sports/")
 
-By setting ``multilingual=True``, the ``DomainClassifier`` uses the `nvidia/multilingual-domain-classifier <https://huggingface.co/nvidia/multilingual-domain-classifier>`_ model from Hugging Face.
+For more information about the multilingual domain classifier, including its supported languages, please see the `nvidia/multilingual-domain-classifier <https://huggingface.co/nvidia/multilingual-domain-classifier>`_ on Hugging Face.
 
 Quality Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
