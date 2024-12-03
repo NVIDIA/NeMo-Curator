@@ -78,7 +78,8 @@ class DomainClassifier(DistributedDataClassifier):
     Attributes:
         filter_by (list[str], optional): The classes to filter the dataset by.
                                          If None, all classes will be included. Defaults to None.
-        multilingual (bool): If True, enable domain classification across 52 languages.
+        multilingual (bool): If True, enable domain classification across 52 languages and use nvidia/multilingual-domain-classifier.
+                                If False, use nvidia/domain-classifier, an English-only model. Defaults to False.
         batch_size (int): The number of samples per batch for inference. Defaults to 256.
         text_field (str): The field in the dataset that should be classified.
         pred_column (str): The column name where predictions will be stored. Defaults to "domain_pred".
