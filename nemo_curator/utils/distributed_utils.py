@@ -15,14 +15,16 @@ from __future__ import annotations
 
 import ast
 import os
+import shutil
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
 from contextlib import nullcontext
 from datetime import datetime
+from itertools import zip_longest
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -57,20 +59,22 @@ def _enable_spilling():
 
 
 def start_dask_gpu_local_cluster(
-    nvlink_only=False,
-    protocol="tcp",
-    rmm_pool_size="1024M",
-    enable_spilling=True,
-    set_torch_to_use_rmm=True,
-    rmm_async=True,
-    rmm_maximum_pool_size=None,
-    rmm_managed_memory=False,
-    rmm_release_threshold=None,
+    nvlink_only: bool = False,
+    protocol: str = "tcp",
+    rmm_pool_size: Optional[Union[int, str]] = "1024M",
+    enable_spilling: bool = True,
+    set_torch_to_use_rmm: bool = True,
+    rmm_async: bool = True,
+    rmm_maximum_pool_size: Optional[Union[int, str]] = None,
+    rmm_managed_memory: bool = False,
+    rmm_release_threshold: Optional[Union[int, str]] = None,
     **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     GPUs present on the machine.
+
+    See get_client function for parameters.
 
     """
     extra_kwargs = (
@@ -111,11 +115,15 @@ def start_dask_gpu_local_cluster(
 
 
 def start_dask_cpu_local_cluster(
-    n_workers=os.cpu_count(), threads_per_worker=1, **cluster_kwargs
+    n_workers: Optional[int] = os.cpu_count(),
+    threads_per_worker: int = 1,
+    **cluster_kwargs,
 ) -> Client:
     """
     This function sets up a Dask cluster across all the
     CPUs present on the machine.
+
+    See get_client function for parameters.
 
     """
     cluster = LocalCluster(
@@ -262,10 +270,10 @@ def _set_torch_to_use_rmm():
 
 
 def read_single_partition(
-    files,
-    backend="cudf",
-    filetype="jsonl",
-    add_filename=False,
+    files: List[str],
+    backend: Literal["cudf", "pandas"] = "cudf",
+    filetype: str = "jsonl",
+    add_filename: bool = False,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
@@ -353,7 +361,10 @@ def read_single_partition(
 
 
 def read_pandas_pickle(
-    file, add_filename=False, columns=None, **kwargs
+    file: str,
+    add_filename: bool = False,
+    columns: Optional[List[str]] = None,
+    **kwargs,
 ) -> pd.DataFrame:
     """
     This function reads a pickle file with Pandas.
@@ -361,6 +372,7 @@ def read_pandas_pickle(
     Args:
         file: The path to the pickle file to read.
         add_filename: Whether to add a "filename" column to the DataFrame.
+        columns: If not None, only these columns will be read from the file.
     Returns:
         A Pandas DataFrame.
 
@@ -375,9 +387,9 @@ def read_pandas_pickle(
 
 
 def read_data(
-    input_files,
+    input_files: Union[str, List[str]],
     file_type: str = "pickle",
-    backend: str = "cudf",
+    backend: Literal["cudf", "pandas"] = "cudf",
     files_per_partition: int = 1,
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
@@ -406,6 +418,9 @@ def read_data(
         # Try using cuDF. If not availible will throw an error.
         test_obj = cudf.Series
 
+    if isinstance(input_files, str):
+        input_files = [input_files]
+
     if file_type == "pickle":
         df = read_pandas_pickle(
             input_files[0], add_filename=add_filename, columns=columns, **kwargs
@@ -415,15 +430,30 @@ def read_data(
             df = df.to_backend("cudf")
 
     elif file_type in ["json", "jsonl", "parquet"]:
+        assert len(input_files) > 0
+
+        input_extensions = {os.path.splitext(f)[-1] for f in input_files}
+        if len(input_extensions) != 1:
+            raise RuntimeError(
+                "All files being read must have the same file type. "
+                "Please check your input directory or list of files to ensure this. "
+                "To generate a list of files with a given file type in your directory, "
+                "please use the nemo_curator.utils.file_utils.get_all_files_paths_under "
+                "function with the `keep_extensions` parameter."
+            )
+
         print(f"Reading {len(input_files)} files", flush=True)
         input_files = sorted(input_files)
+
         if files_per_partition > 1:
             input_files = [
                 input_files[i : i + files_per_partition]
                 for i in range(0, len(input_files), files_per_partition)
             ]
+
         else:
             input_files = [[file] for file in input_files]
+
         return dd.from_map(
             read_single_partition,
             input_files,
@@ -435,8 +465,10 @@ def read_data(
             columns=columns,
             **kwargs,
         )
+
     else:
         raise RuntimeError("Could not read data, please check file type")
+
     return df
 
 
@@ -496,9 +528,9 @@ def process_all_batches(
 
 def single_partition_write_with_filename(
     df,
-    output_file_dir,
-    keep_filename_column=False,
-    output_type="jsonl",
+    output_file_dir: str,
+    keep_filename_column: bool = False,
+    output_type: str = "jsonl",
 ):
     """
     This function processes a DataFrame and writes it to disk
@@ -506,8 +538,8 @@ def single_partition_write_with_filename(
     Args:
         df: A DataFrame.
         output_file_dir: The output file path.
-        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
-        output_type="jsonl": The type of output file to write.
+        keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
+        output_type: The type of output file to write. Can be "jsonl" or "parquet".
     Returns:
         If the DataFrame is non-empty, return a Series containing a single element, True.
         If the DataFrame is empty, return a Series containing a single element, False.
@@ -538,7 +570,9 @@ def single_partition_write_with_filename(
             if not keep_filename_column:
                 out_df = out_df.drop("filename", axis=1)
 
-            filename = Path(filename).stem
+            filename = (
+                Path(filename).stem if output_type != "bitext" else Path(filename).name
+            )
             output_file_path = os.path.join(output_file_dir, filename)
 
             if output_type == "jsonl":
@@ -566,19 +600,85 @@ def single_partition_write_with_filename(
             elif output_type == "parquet":
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
-
+            elif output_type == "bitext":
+                raise RuntimeError(
+                    "You shouldn't call this function to write to simple bitext."
+                )
             else:
                 raise ValueError(f"Unknown output type: {output_type}")
 
     return success_ser
 
 
+def _single_partition_write_to_simple_bitext(
+    out_df, output_file_path, partition_info=None
+):
+    if len(out_df) > 0:
+        empty_partition = False
+    else:
+        warnings.warn(f"Empty partition found")
+        empty_partition = True
+
+    if is_cudf_type(out_df):
+        import cudf
+
+        success_ser = cudf.Series([empty_partition])
+    else:
+        success_ser = pd.Series([empty_partition])
+
+    src_output_file_path = output_file_path + f".{out_df['src_lang'].iloc[0]}"
+    tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'].iloc[0]}"
+    partition_id = partition_info["number"] if partition_info else 0
+    with (
+        open(f"{src_output_file_path}.{partition_id}", "w") as src_out,
+        open(f"{tgt_output_file_path}.{partition_id}", "w") as tgt_out,
+    ):
+        for src, tgt in zip(out_df["src"], out_df["tgt"]):
+            src_out.write(src + os.linesep)
+            tgt_out.write(tgt + os.linesep)
+
+    return success_ser
+
+
+def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
+    """Merge partitions of simple bitext files in `tmp_output_dir` into files at `output_file_dir`.
+
+    Args:
+        tmp_output_dir (str): temporary directory that has all the simple bitext output partitions,
+                with suffixes that looks like "file.1", "file.2" that shows the merging order
+        output_file_path (str): dir to write output files
+    """
+
+    sorted_tmp_files = sorted(
+        os.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1])
+    )
+    unique_file_handles = {}
+    # Loop through the sorted files and concatenate their contents
+    for f in sorted_tmp_files:
+        input_file_path = os.path.join(tmp_output_dir, f)
+        output_file_name = ".".join(f.split(".")[:-1])
+
+        # this is where current file will be concatenated into
+        output_file_path = os.path.join(output_dir, output_file_name)
+
+        # create the output file if we haven't yet
+        if output_file_path not in unique_file_handles:
+            unique_file_handles[output_file_path] = open(output_file_path, "w")
+
+        with open(input_file_path, "r") as infile:
+            unique_file_handles[output_file_path].write(infile.read())
+
+    # close all dangling file handles
+    for handle in unique_file_handles.values():
+        handle.close()
+
+
 def write_to_disk(
     df,
-    output_file_dir,
-    write_to_filename=False,
-    keep_filename_column=False,
-    output_type="jsonl",
+    output_file_dir: str,
+    write_to_filename: bool = False,
+    keep_filename_column: bool = False,
+    output_type: str = "jsonl",
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -588,9 +688,9 @@ def write_to_disk(
     Args:
         df: A Dask DataFrame.
         output_file_dir: The output file path.
-        write_to_filename: Whether to write the filename using the "filename" column.
-        keep_filename_column: Whether to keep or drop the "filename" column, if it exists.
-        output_type="jsonl": The type of output file to write.
+        write_to_filename: Boolean representing whether to write the filename using the "filename" column.
+        keep_filename_column: Boolean representing whether to keep or drop the "filename" column, if it exists.
+        output_type: The type of output file to write. Can be "jsonl" or "parquet".
 
     """
     if write_to_filename and "filename" not in df.columns:
@@ -598,14 +698,14 @@ def write_to_disk(
             "write_using_filename is True but no filename column found in df"
         )
 
-    if write_to_filename:
-        if is_cudf_type(df):
-            import cudf
+    if is_cudf_type(df):
+        import cudf
 
-            output_meta = cudf.Series([True])
-        else:
-            output_meta = pd.Series([True], dtype="bool")
+        output_meta = cudf.Series([True])
+    else:
+        output_meta = pd.Series([True], dtype="bool")
 
+    if write_to_filename and output_type != "bitext":
         os.makedirs(output_file_dir, exist_ok=True)
         output = df.map_partitions(
             single_partition_write_with_filename,
@@ -631,6 +731,33 @@ def write_to_disk(
                 )
         elif output_type == "parquet":
             df.to_parquet(output_file_dir, write_index=False)
+        elif output_type == "bitext":
+            if write_to_filename:
+                os.makedirs(output_file_dir, exist_ok=True)
+                tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+                os.makedirs(tmp_output_file_dir, exist_ok=True)
+                file_name = os.path.basename(list(df.filename.unique())[0])
+            else:
+                tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+                os.makedirs(tmp_output_file_dir, exist_ok=True)
+                file_name = os.path.basename(output_file_dir)
+
+            output = df.map_partitions(
+                _single_partition_write_to_simple_bitext,
+                os.path.join(tmp_output_file_dir, file_name),
+                meta=output_meta,
+                enforce_metadata=False,
+            )
+            output = output.compute()
+            _merge_tmp_simple_bitext_partitions(
+                tmp_output_file_dir,
+                (
+                    output_file_dir
+                    if write_to_filename
+                    else os.path.dirname(output_file_dir)
+                ),
+            )
+            shutil.rmtree(tmp_output_file_dir)
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 
@@ -665,7 +792,7 @@ def load_object_on_worker(attr, load_object_function, load_object_kwargs):
     return obj
 
 
-def offload_object_on_worker(attr):
+def offload_object_on_worker(attr: str):
     """
     This function deletes an existing attribute from a Dask worker.
 
@@ -702,7 +829,19 @@ def get_current_client():
         return None
 
 
-def performance_report_if(path=None, report_name="dask-profile.html"):
+def performance_report_if(
+    path: Optional[str] = None, report_name: str = "dask-profile.html"
+):
+    """
+    Generates a performance report if a valid path is provided, or returns a
+    no-op context manager if not.
+
+    Args:
+        path: The directory path where the performance report should be saved.
+            If None, no report is generated.
+        report_name: The name of the report file.
+
+    """
     if path is not None:
         return performance_report(os.path.join(path, report_name))
     else:
@@ -712,7 +851,10 @@ def performance_report_if(path=None, report_name="dask-profile.html"):
 def performance_report_if_with_ts_suffix(
     path: Optional[str] = None, report_name: str = "dask-profile"
 ):
-    """Suffixes the report_name with the timestamp"""
+    """
+    Same as performance_report_if, except it suffixes the report_name with the timestamp.
+
+    """
     return performance_report_if(
         path=path,
         report_name=f"{report_name}-{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",

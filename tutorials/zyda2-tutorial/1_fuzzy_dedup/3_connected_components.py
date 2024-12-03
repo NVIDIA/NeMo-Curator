@@ -1,8 +1,5 @@
-import os
-
-os.environ["DASK_DATAFRAME__QUERY_PLANNING"] = "False"
-
 import logging
+import os
 import time
 
 from nemo_curator.modules.fuzzy_dedup import ConnectedComponents
@@ -41,7 +38,6 @@ if __name__ == "__main__":
         cache_dir=connected_component_cache_dir,
         jaccard_pairs_path=buckets_to_edges_out,
         id_column=input_id_field,
-        convert_str_ids=True,
     )
 
     # Load and run connected components
