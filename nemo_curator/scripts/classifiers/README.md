@@ -1,11 +1,12 @@
 ## Text Classification
 
-The Python scripts in this directory demonstrate how to run classification on your text data with each of these 4 classifiers:
+The Python scripts in this directory demonstrate how to run classification on your text data with each of these 5 classifiers:
 
 - Domain Classifier
 - Quality Classifier
 - AEGIS Safety Models
 - FineWeb Educational Content Classifier
+- Task-Complexity Classifier
 
 For more information about these classifiers, please see NeMo Curator's [Distributed Data Classification documentation](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html).
 
@@ -90,3 +91,22 @@ fineweb_edu_classifier_inference \
 ```
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_edu_classifier_inference --help` for more information.
+
+#### Task-complexity classifier inference
+
+```bash
+# same as `python task_complexity_classifier_inference.py`
+task_complexity_classifier_inference \
+    --input-data-dir /path/to/data/directory \
+    --output-data-dir /path/to/output/directory \
+    --input-file-type "jsonl" \
+    --input-file-extension "jsonl" \
+    --output-file-type "jsonl" \
+    --input-text-field "text" \
+    --batch-size 64 \
+    --autocast \
+    --max-chars 2000 \
+    --device "gpu"
+```
+
+Additional arguments may be added for customizing a Dask cluster and client. Run `task_complexity_classifier_inference --help` for more information.
