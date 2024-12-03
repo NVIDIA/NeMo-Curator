@@ -231,7 +231,7 @@ class LSH:
                 shutil.rmtree(write_path)
 
         return are_buckets_empty
-    
+
     def _write_bucket_parquet(
         self,
         df: dask_cudf.DataFrame,

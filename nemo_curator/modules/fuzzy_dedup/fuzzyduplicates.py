@@ -229,9 +229,11 @@ class FuzzyDuplicates:
 
         else:
             # Map buckets to lower cardinality distribution
-            print(f"Stage {stage_num}: Starting LSH Buckets to Graph edgelist")
+            print(f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist")
             self.buckets_to_edges(buckets_df)
-            print(f"Stage {stage_num}: Starting LSH Buckets to Graph edgelist Complete!")
+            print(
+                f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist Complete!"
+            )
             stage_num += 1
 
         # Connected components across buckets
