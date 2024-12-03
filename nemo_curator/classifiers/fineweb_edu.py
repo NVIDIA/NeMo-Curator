@@ -138,9 +138,7 @@ class FineWebEduClassifier(DistributedDataClassifier):
             keep_cols=ddf.columns.tolist(),
         )
         ddf = pipe(ddf)
-        # Go from list to scalar
-        ddf[self.pred_column] = ddf[self.pred_column].list.get(0)
-        ddf[self.int_column] = (
-            ddf[self.pred_column].clip(lower=0, upper=5).round().astype(int)
-        )
+        ddf[self.pred_column] = ddf[self.pred_column].where(ddf[self.pred_column] >= 0, 0)
+        ddf[self.pred_column] = ddf[self.pred_column].where(ddf[self.pred_column] <= 5, 5)
+        ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
         return DocumentDataset(ddf)
