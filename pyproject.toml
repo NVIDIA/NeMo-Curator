@@ -42,9 +42,10 @@ dependencies = [
     "beautifulsoup4",
     "charset_normalizer>=3.1.0",
     "comment_parser",
-    "crossfit>=0.0.6",
+    "crossfit>=0.0.7",
     "dask-mpi>=2021.11.0",
     "dask[complete]>=2021.7.1",
+    "datasets",
     "distributed>=2021.7.1",
     "fasttext==0.9.2",
     "ftfy==6.1.1",
@@ -54,14 +55,15 @@ dependencies = [
     "lxml_html_clean",
     "mecab-python3",
     "mwparserfromhell==0.6.5",
-    "nemo_toolkit[nlp]>=1.23.0",
     "numpy<2",
     "openai",
     "peft",
+    "platformdirs",
     "presidio-analyzer==2.2.351",
     "presidio-anonymizer==2.2.351",
     "pycld2",
     "resiliparse",
+    "sentencepiece",
     "spacy>=3.6.0, <3.8.0",
     "unidic-lite==1.0.8",
     "usaddress==0.5.10",
@@ -103,9 +105,17 @@ image_nightly = [
     "timm>=1.0.8",
     "nemo_curator[cuda12x_nightly]",
 ]
+# Installs bitext curation modules
+bitext = [
+    "huggingface-hub",
+    "tqdm",
+    "transformers",
+    "nemo_curator[cuda12x]",
+]
 # Installs all of the above with Stable RAPIDS
 all = [
     "nemo_curator[image]",
+    "nemo_curator[bitext]",
 ]
 # Installs all of the above with RAPIDS Nightlies
 all_nightly = [
@@ -163,7 +173,7 @@ markers = [
 ]
 
 [tool.setuptools.dynamic]
-version = { attr = "nemo_curator.__version__" }
+version = { attr = "nemo_curator.package_info.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["*"]
