@@ -13,7 +13,7 @@ jieba==0.42.1
 justext==3.0.1
 lxml_html_clean
 mwparserfromhell==0.6.5
-nemo_toolkit[nlp]>=1.23.0
+nemo_toolkit[nlp]>=1.23.0, <2.0.0
 numpy<2
 openai
 peft
