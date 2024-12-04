@@ -641,7 +641,7 @@ def _single_partition_write_to_simple_bitext(
 
 
 def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
-    """Merge partitions of simple bitext files in `tmp_output_dir` into files at `output_file_dir`.
+    """Merge partitions of simple bitext files in `tmp_output_dir` into files at `output_dir`.
 
     Args:
         tmp_output_dir (str): temporary directory that has all the simple bitext output partitions,
@@ -698,6 +698,7 @@ def write_to_disk(
     if isinstance(output_path, str) and output_path.endswith(".jsonl"):
         if df.npartitions == 1:
             _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
+            return
         else:
             raise RuntimeError(
                 "Could not write multi-partition DataFrame to a single JSONL file. "
@@ -710,15 +711,14 @@ def write_to_disk(
             "write_using_filename is True but no filename column found in DataFrame"
         )
 
-    # output_path is a directory
-    elif write_to_filename:
-        if is_cudf_type(df):
-            import cudf
+    if is_cudf_type(df):
+        import cudf
 
         output_meta = cudf.Series([True])
     else:
         output_meta = pd.Series([True], dtype="bool")
 
+    # output_path is a directory
     if write_to_filename and output_type != "bitext":
         os.makedirs(output_path, exist_ok=True)
         output = df.map_partitions(
@@ -737,14 +737,14 @@ def write_to_disk(
             _write_to_jsonl_or_parquet(df, output_path, output_type)
         elif output_type == "bitext":
             if write_to_filename:
-                os.makedirs(output_file_dir, exist_ok=True)
-                tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+                os.makedirs(output_path, exist_ok=True)
+                tmp_output_file_dir = os.path.join(output_path, ".tmp")
                 os.makedirs(tmp_output_file_dir, exist_ok=True)
                 file_name = os.path.basename(list(df.filename.unique())[0])
             else:
-                tmp_output_file_dir = os.path.join(output_file_dir, ".tmp")
+                tmp_output_file_dir = os.path.join(output_path, ".tmp")
                 os.makedirs(tmp_output_file_dir, exist_ok=True)
-                file_name = os.path.basename(output_file_dir)
+                file_name = os.path.basename(output_path)
 
             output = df.map_partitions(
                 _single_partition_write_to_simple_bitext,
@@ -756,9 +756,9 @@ def write_to_disk(
             _merge_tmp_simple_bitext_partitions(
                 tmp_output_file_dir,
                 (
-                    output_file_dir
+                    output_path
                     if write_to_filename
-                    else os.path.dirname(output_file_dir)
+                    else os.path.dirname(output_path)
                 ),
             )
             shutil.rmtree(tmp_output_file_dir)
