@@ -119,6 +119,7 @@ def aggregated_anchor_docs_with_bk_read(path, blocksize):
         sorted(glob(f"{path}/*.parquet"), key=natural_sort_key),
         format="parquet",
     )
+    # create chunks of files to which are less than blocksize
     chunks = chunk_files(ds.get_fragments(), blocksize)
 
     # Record mapping between file indices and partition indices.
@@ -201,3 +202,16 @@ def strip_trailing_sep(path: str):
     Strips a path string of trailing path seperators like `/` if any.
     """
     return path.rstrip(os.path.sep)
+
+
+def check_empty_buckets(bucket_path):
+    """
+    Inspects parquet metadata of the buckets dataset to check if it's an empty dataset.
+    """
+    from pyarrow.dataset import dataset
+
+    ds = dataset(bucket_path, format="parquet")
+    for fragment in ds.get_fragments():
+        if fragment.metadata.num_rows > 0:
+            return False
+    return True
