@@ -755,11 +755,7 @@ def write_to_disk(
             output = output.compute()
             _merge_tmp_simple_bitext_partitions(
                 tmp_output_file_dir,
-                (
-                    output_path
-                    if write_to_filename
-                    else os.path.dirname(output_path)
-                ),
+                (output_path if write_to_filename else os.path.dirname(output_path)),
             )
             shutil.rmtree(tmp_output_file_dir)
         else:
