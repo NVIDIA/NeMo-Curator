@@ -3,6 +3,7 @@
 The Python scripts in this directory demonstrate how to run classification on your text data with each of these 5 classifiers:
 
 - Domain Classifier
+- Multilingual Domain Classifier
 - Quality Classifier
 - AEGIS Safety Models
 - Instruction-Data-Guard Model
