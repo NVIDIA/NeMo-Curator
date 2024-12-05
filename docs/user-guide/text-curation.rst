@@ -33,7 +33,7 @@ Text Curation
 
 :ref:`Personally Identifiable Information Identification and Removal <data-curator-pii>`
    The purpose of the personally identifiable information (PII) redaction tool is to help scrub sensitive data out of training datasets
-   
+
 .. toctree::
    :maxdepth: 4
    :titlesonly:
