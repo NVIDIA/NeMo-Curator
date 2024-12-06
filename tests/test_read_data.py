@@ -523,7 +523,7 @@ def test_read_data_different_columns(
     if file_type == "jsonl":
         input_files = mock_multiple_jsonl_files_different_cols
         read_kwargs_cp["input_meta"] = {"id": "str", "text": "str"}
-        read_kwargs_cp["meta"] = {"id": "str", "text": "str"}
+        # read_kwargs_cp["meta"] = {"id": "str", "text": "str"}
 
     else:
         input_files = mock_multiple_parquet_files_different_cols
