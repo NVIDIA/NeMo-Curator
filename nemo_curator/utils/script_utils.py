@@ -595,6 +595,12 @@ class ArgumentHelper:
         argumentHelper.add_arg_id_column_type()
 
         argumentHelper.parser.add_argument(
+            "--cache-dir",
+            type=str,
+            help="Directory for intermediate results.",
+            required=True,
+        )
+        argumentHelper.parser.add_argument(
             "--config-file",
             type=str,
             help="Path to the semantic deduplication configuration file.",
