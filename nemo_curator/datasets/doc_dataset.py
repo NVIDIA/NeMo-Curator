@@ -37,6 +37,9 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
+    def to_backend(self, backend: Optional[str] = None) -> "DocumentDataset":
+        return DocumentDataset(self.df.to_backend(backend))
+
     def head(self, n: int = 5) -> Any:
         return self.df.head(n)
 
