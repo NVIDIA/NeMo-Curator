@@ -7,7 +7,7 @@ import pytest
 from nemo_curator.utils.distributed_utils import (
     read_data,
     read_data_blocksize,
-    read_data_fpp,
+    read_data_files_per_partition,
 )
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 
@@ -57,13 +57,35 @@ def mock_multiple_parquet_files(tmp_path):
 def mock_multiple_jsonl_files_different_cols(tmp_path):
     file_paths = []
     for file_id in range(NUM_FILES):
-        jsonl_file = tmp_path / f"test_diff_cols_{file_id}.jsonl"
-        with open(jsonl_file, "w") as f:
-            for record_id in range(NUM_RECORDS):
-                # 100 rows are ~5kb
-                f.write(
-                    f'{{"col_{file_id}" : "some_col", "id": "id_{file_id}_{record_id}", "text": "A longish string {file_id}_{record_id}"}}\n'
+        jsonl_file = tmp_path / f"different_cols_test_{file_id}.jsonl"
+
+        def make_record_without_meta(file_id, record_id):
+            return {
+                "id": f"id_{file_id}_{record_id}",
+                "text": f"A string {file_id}_{record_id}",
+            }
+
+        def make_record_with_meta(file_id, record_id):
+            return {
+                "text": f"A string {file_id}_{record_id}",
+                "meta1": [
+                    {"field1": "field_one", "field2": "field_two"},
+                ],
+                "id": f"id_{file_id}_{record_id}",
+            }
+
+        df = pd.DataFrame(
+            [
+                (
+                    make_record_without_meta(file_id, record_id)
+                    if file_id == 0
+                    else make_record_with_meta(file_id, record_id)
                 )
+                for record_id in range(NUM_RECORDS)
+            ]
+        )
+
+        df.to_json(jsonl_file, orient="records", lines=True)
         file_paths.append(str(jsonl_file))
     return file_paths
 
@@ -75,21 +97,32 @@ def mock_multiple_parquet_files_different_cols(tmp_path):
     for file_id in range(NUM_FILES):
         # 100 rows are ~5kb
         parquet_file = tmp_path / f"test_diff_cols_{file_id}.parquet"
+
+        def make_record_without_meta(file_id, record_id):
+            return {
+                "id": f"id_{file_id}_{record_id}",
+                "text": f"A string {file_id}_{record_id}",
+            }
+
+        def make_record_with_meta(file_id, record_id):
+            return {
+                "text": f"A string {file_id}_{record_id}",
+                "meta1": [
+                    {"field1": "field_one", "field2": "field_two"},
+                ],
+                "id": f"id_{file_id}_{record_id}",
+            }
+
         df = pd.DataFrame(
             [
-                {
-                    **(
-                        {f"col_{file_id}": "some_col"}
-                        if file_id != 0
-                        else {"meta": "meta_col"}
-                    ),
-                    "id": f"id_{file_id}_{record_id}",
-                    "text": f"A string {file_id}_{record_id}",
-                }
+                (
+                    make_record_without_meta(file_id, record_id)
+                    if file_id == 0
+                    else make_record_with_meta(file_id, record_id)
+                )
                 for record_id in range(NUM_RECORDS)
             ]
         )
-        # We specify row_group_size so that we can test splitting a single big file into smaller chunks
         df.to_parquet(parquet_file, compression=None, row_group_size=10)
         file_paths.append(str(parquet_file))
     return file_paths
@@ -212,7 +245,7 @@ def test_read_data_fpp_partitioning(
         else mock_multiple_parquet_files
     )
 
-    df = read_data_fpp(
+    df = read_data_files_per_partition(
         input_files=input_files,
         backend=backend,
         file_type=file_type,
@@ -310,9 +343,9 @@ def test_read_data_blocksize_add_filename_parquet(mock_multiple_parquet_files, b
         pytest.param(
             "pandas",
             "parquet",
-            marks=pytest.mark.xfail(
-                reason="filename column inaccessible with pandas backend and parquet"
-            ),
+            # marks=pytest.mark.xfail(
+            #     reason="filename column inaccessible with pandas backend and parquet"
+            # ),
         ),
     ],
 )
@@ -325,7 +358,7 @@ def test_read_data_fpp_add_filename(
         else mock_multiple_parquet_files
     )
 
-    df = read_data_fpp(
+    df = read_data_files_per_partition(
         input_files=input_files,
         backend=backend,
         file_type=file_type,
@@ -335,7 +368,8 @@ def test_read_data_fpp_add_filename(
         columns=None,
     )
 
-    assert set(df.head().columns) == {"filename", "id", "text"}
+    assert list(df.columns) == list(df.head().columns)
+    assert set(df.columns) == {"filename", "id", "text"}
     file_names = df["filename"].unique().compute()
     if backend == "cudf":
         file_names = file_names.to_pandas()
@@ -356,13 +390,19 @@ def test_read_data_fpp_add_filename(
 @pytest.mark.parametrize(
     "file_type,add_filename,function_name",
     [
-        *[("jsonl", True, func) for func in ["read_data_blocksize", "read_data_fpp"]],
-        *[("jsonl", False, func) for func in ["read_data_blocksize", "read_data_fpp"]],
+        *[
+            ("jsonl", True, func)
+            for func in ["read_data_blocksize", "read_data_files_per_partition"]
+        ],
+        *[
+            ("jsonl", False, func)
+            for func in ["read_data_blocksize", "read_data_files_per_partition"]
+        ],
         *[
             ("parquet", False, func)
-            for func in ["read_data_blocksize", "read_data_fpp"]
+            for func in ["read_data_blocksize", "read_data_files_per_partition"]
         ],
-        *[("parquet", True, "read_data_fpp")],
+        *[("parquet", True, "read_data_files_per_partition")],
     ],
 )
 @pytest.mark.parametrize(
@@ -382,8 +422,8 @@ def test_read_data_select_columns(
         if file_type == "jsonl"
         else mock_multiple_parquet_files
     )
-    if function_name == "read_data_fpp":
-        func = read_data_fpp
+    if function_name == "read_data_files_per_partition":
+        func = read_data_files_per_partition
         read_kwargs = {"files_per_partition": 1}
     elif function_name == "read_data_blocksize":
         func = read_data_blocksize
@@ -401,12 +441,13 @@ def test_read_data_select_columns(
     if not cols_to_select:
         cols_to_select = ["id", "text"]
 
+    assert list(df.columns) == list(df.head().columns)
     if not add_filename:
         # assert list(df.columns) == sorted(cols_to_select)
-        assert list(df.head().columns) == sorted(cols_to_select)
+        assert list(df.columns) == sorted(cols_to_select)
     else:
         # assert list(df.columns) == sorted(cols_to_select + ["filename"])
-        assert list(df.head().columns) == sorted(cols_to_select + ["filename"])
+        assert list(df.columns) == sorted(cols_to_select + ["filename"])
 
 
 @pytest.mark.parametrize(
@@ -416,15 +457,17 @@ def test_read_data_select_columns(
         pytest.param("cudf", marks=pytest.mark.gpu),
     ],
 )
-@pytest.mark.parametrize("function_name", ["read_data_blocksize", "read_data_fpp"])
+@pytest.mark.parametrize(
+    "function_name", ["read_data_blocksize", "read_data_files_per_partition"]
+)
 @pytest.mark.parametrize(
     "input_meta", [{"id": "str"}, {"text": "str"}, {"id": "str", "text": "str"}]
 )
 def test_read_data_input_meta(
     mock_multiple_jsonl_files, backend, function_name, input_meta
 ):
-    if function_name == "read_data_fpp":
-        func = read_data_fpp
+    if function_name == "read_data_files_per_partition":
+        func = read_data_files_per_partition
         read_kwargs = {"files_per_partition": 1}
     elif function_name == "read_data_blocksize":
         func = read_data_blocksize
@@ -440,7 +483,7 @@ def test_read_data_input_meta(
         **read_kwargs,
     )
 
-    if function_name == "read_data_fpp" and backend == "cudf":
+    if function_name == "read_data_files_per_partition" and backend == "cudf":
         assert list(df.columns) == list(input_meta.keys())
     else:
         # In the read_data_fpp case, because pandas doesn't support `prune_columns`, it'll always return all columns even if input_meta is specified
@@ -463,9 +506,7 @@ def test_read_data_input_meta(
         *[({"files_per_partition": fpp, "blocksize": None}) for fpp in range(1, 6)],
         *[
             ({"blocksize": bs, "files_per_partition": None})
-            for bs in
-            #   ["1kb", "5kb", "10kb"]
-            ["128MiB", "256MiB", "512MiB"]
+            for bs in ["128MiB", "256MiB", "512MiB"]
         ],
     ],
 )
@@ -478,29 +519,14 @@ def test_read_data_different_columns(
 ):
 
     read_kwargs_cp = read_kwargs.copy()
-    # if function_name == "read_data_fpp":
-    #     func = read_data_fpp
-    #     # read_kwargs = {"files_per_partition": 2}
-    # elif function_name == "read_data_blocksize":
-    #     func = read_data_blocksize
-    #     # read_kwargs = {"blocksize": "1kb"}
-
-    read_kwargs_cp["columns"] = ["adlr_id", "text"]
-    random.seed(0)
+    read_kwargs_cp["columns"] = ["id", "text"]
     if file_type == "jsonl":
-        # input_files = mock_multiple_jsonl_files_different_cols
-        input_files = random.choices(
-            get_all_files_paths_under("/raid/prospector-lm/rpv1_json/"), k=10
-        )
-
-        # read_kwargs_cp["input_meta"] = {"id": "str", "text": "str"}
-        # read_kwargs_cp["meta"] = {"id": "str", "text": "str"}
+        input_files = mock_multiple_jsonl_files_different_cols
+        read_kwargs_cp["input_meta"] = {"id": "str", "text": "str"}
+        read_kwargs_cp["meta"] = {"id": "str", "text": "str"}
 
     else:
-        # input_files = mock_multiple_parquet_files_different_cols
-        input_files = random.choices(
-            get_all_files_paths_under("/raid/prospector-lm/rpv1_parquet/"), k=10
-        )
+        input_files = mock_multiple_parquet_files_different_cols
         if backend == "cudf":
             read_kwargs_cp["allow_mismatched_pq_schemas"] = True
 
@@ -511,8 +537,8 @@ def test_read_data_different_columns(
         add_filename=False,
         **read_kwargs_cp,
     )
-    assert list(df.columns) == ["adlr_id", "text"]
-    assert list(df.compute().columns) == ["adlr_id", "text"]
+    assert list(df.columns) == ["id", "text"]
+    assert list(df.compute().columns) == ["id", "text"]
     with tempfile.TemporaryDirectory() as tmpdir:
         df.to_parquet(tmpdir)
-    # assert len(df) == NUM_FILES * NUM_RECORDS
+    assert len(df) == NUM_FILES * NUM_RECORDS

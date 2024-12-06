@@ -434,7 +434,7 @@ def read_data_blocksize(
         return output[sorted(output.columns)]
 
 
-def read_data_fpp(
+def read_data_files_per_partition(
     input_files: List[str],
     file_type: Literal["parquet", "json", "jsonl"],
     backend: Literal["cudf", "pandas"] = "cudf",
@@ -574,7 +574,7 @@ def read_data(
                 warnings.warn(
                     "Consider passing in blocksize for better control over memory usage."
                 )
-            return read_data_fpp(
+            return read_data_files_per_partition(
                 input_files,
                 file_type=file_type,
                 backend=backend,
