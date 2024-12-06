@@ -16,6 +16,7 @@ import os
 from typing import Any, List, Literal, Optional, Union
 
 import dask.dataframe as dd
+from functools import wraps
 
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_all_files_paths_under
@@ -37,17 +38,9 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
-    def repartition(
-        self,
-        divisions: Optional[List[int]] = None,
-        npartitions: Optional[int] = None,
-        partition_size: Optional[Union[int, str]] = None,
-        freq: Optional[str] = None,
-        force: bool = False,
-    ) -> "DocumentDataset":
-        return DocumentDataset(
-            self.df.repartition(divisions, npartitions, partition_size, freq, force)
-        )
+    @wraps(dd.DataFrame.repartition)
+    def repartition(self, *args, **kwargs) -> "DocumentDataset":
+        return self.__class__(self.df.repartition(*args, **kwargs))
 
     def head(self, n: int = 5) -> Any:
         return self.df.head(n)

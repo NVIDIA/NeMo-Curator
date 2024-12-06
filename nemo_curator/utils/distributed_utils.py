@@ -697,7 +697,9 @@ def write_to_disk(
     # output_path is a file name
     if isinstance(output_path, str) and output_path.endswith(".jsonl"):
         if df.npartitions == 1:
-            _write_to_jsonl_or_parquet(df.compute(), output_path, output_type)
+            df.map_partitions(
+                _write_to_jsonl_or_parquet, output_path, output_type
+            ).compute()
             return
         else:
             raise RuntimeError(
