@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import os
+from functools import wraps
 from typing import Any, List, Literal, Optional, Union
 
 import dask.dataframe as dd
-from functools import wraps
 
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_all_files_paths_under
