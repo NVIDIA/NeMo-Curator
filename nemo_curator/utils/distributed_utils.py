@@ -270,18 +270,16 @@ def _set_torch_to_use_rmm():
 
 
 def select_columns(
-    df: Union[dd.DataFrame, dask_cudf.DataFrame],
+    df: Union[dd.DataFrame, pd.DataFrame, "cudf.DataFrame"],
     columns: List[str],
     filetype: Literal["jsonl", "json", "parquet"],
     add_filename: bool,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+) -> Union[dd.DataFrame, pd.DataFrame, "cudf.DataFrame"]:
     # We exclude parquet because the parquet readers already support column selection
     if filetype in ["jsonl", "json"] and columns is not None:
         if add_filename and "filename" not in columns:
             columns.append("filename")
         df = df[columns]
-
-    df = df[sorted(df.columns)]
 
     return df
 
@@ -292,9 +290,9 @@ def read_single_partition(
     filetype: str = "jsonl",
     add_filename: bool = False,
     input_meta: Union[str, dict] = None,
-    columns: Optional[List[str]] = None,
+    io_columns: Optional[List[str]] = None,
     **kwargs,
-) -> Union[cudf.DataFrame, pd.DataFrame]:
+) -> Union["cudf.DataFrame", pd.DataFrame]:
     """
     This function reads a file with cuDF, sorts the columns of the DataFrame
     and adds a "filename" column.
@@ -334,7 +332,7 @@ def read_single_partition(
             )
 
     elif filetype == "parquet":
-        read_kwargs = {"columns": columns}
+        read_kwargs = {"columns": io_columns}
         if backend == "cudf":
             read_f = cudf.read_parquet
         else:
@@ -363,12 +361,14 @@ def read_single_partition(
             df = read_f(file, **read_kwargs, **kwargs)
             if add_filename:
                 df["filename"] = os.path.basename(file)
+            df = select_columns(df, io_columns, filetype, add_filename)
             df_ls.append(df)
+
         df = concat_f(df_ls, ignore_index=True)
     else:
         df = read_f(files, **read_kwargs, **kwargs)
-
-    return select_columns(df, columns, filetype, add_filename)
+        df = select_columns(df, io_columns, filetype, add_filename)
+    return df
 
 
 def read_data_blocksize(
@@ -380,7 +380,7 @@ def read_data_blocksize(
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+) -> dd.DataFrame:
 
     read_kwargs = dict()
 
@@ -419,6 +419,8 @@ def read_data_blocksize(
             raise ValueError(msg)
         read_func = dd.read_parquet
         read_kwargs["columns"] = columns
+        # In dask_cudf >= 24.12, aggregate_files is not required, but we've kept here until
+        # it gets in dask (pandas) as well
         read_kwargs["aggregate_files"] = True
     else:
         msg = f"Reading with blocksize is only supported for jsonl and parquet files, not {file_type=}"
@@ -428,7 +430,8 @@ def read_data_blocksize(
         df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
         if postprocessing_func is not None:
             df = postprocessing_func(df)
-        return select_columns(df, columns, file_type, add_filename)
+        output = select_columns(df, columns, file_type, add_filename)
+        return output[sorted(output.columns)]
 
 
 def read_data_fpp(
@@ -440,7 +443,7 @@ def read_data_fpp(
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+) -> dd.DataFrame:
     input_files = sorted(input_files)
     if files_per_partition > 1:
         input_files = [
@@ -450,7 +453,7 @@ def read_data_fpp(
     else:
         input_files = [[file] for file in input_files]
 
-    return dd.from_map(
+    output = dd.from_map(
         read_single_partition,
         input_files,
         filetype=file_type,
@@ -458,9 +461,11 @@ def read_data_fpp(
         add_filename=add_filename,
         input_meta=input_meta,
         enforce_metadata=False,
-        columns=columns,
+        io_columns=columns,
         **kwargs,
     )
+    output = output[sorted(output.columns)]
+    return output
 
 
 def read_pandas_pickle(
@@ -499,7 +504,7 @@ def read_data(
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
-) -> Union[dd.DataFrame, dask_cudf.DataFrame]:
+) -> dd.DataFrame:
     """
     This function can read multiple data formats and returns a Dask-cuDF DataFrame.
 
@@ -541,7 +546,10 @@ def read_data(
                 "function with the `keep_extensions` parameter."
             )
 
-        print(f"Reading {len(input_files)} files", flush=True)
+        print(
+            f"Reading {len(input_files)} files with {blocksize=} / {files_per_partition=}",
+            flush=True,
+        )
         if blocksize is not None and files_per_partition is not None:
             msg = "blocksize and files_per_partition cannot be set at the same time"
             raise ValueError(msg)
