@@ -23,7 +23,7 @@
 # Begin easy customization
 # =================================================================
 
-# Base directory for all SLURM job logs and files
+# Base directory for all Slurm job logs and files
 # Does not affect directories referenced in your script
 export BASE_JOB_DIR=`pwd`/nemo-curator-jobs
 export JOB_DIR=$BASE_JOB_DIR/$SLURM_JOB_ID
@@ -62,7 +62,6 @@ export CUDF_SPILL="1"
 export RMM_SCHEDULER_POOL_SIZE="1GB"
 export RMM_WORKER_POOL_SIZE="72GiB"
 export LIBCUDF_CUFILE_POLICY=OFF
-export DASK_DATAFRAME__QUERY_PLANNING=False
 
 
 # =================================================================
