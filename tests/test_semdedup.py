@@ -18,6 +18,7 @@ from dask.dataframe.utils import assert_eq
 from distributed import Client
 
 from nemo_curator import SemDedup, SemDedupConfig
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -62,8 +63,9 @@ class TestSemDuplicates:
     ):
         print("client", self.client)
         cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+        initialize_cache_directory(cache_dir)
+
         config = SemDedupConfig(
-            cache_dir=cache_dir,
             seed=42,
             n_clusters=3,
             eps_thresholds=[0.10],
