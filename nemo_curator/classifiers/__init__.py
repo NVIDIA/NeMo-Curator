@@ -19,6 +19,7 @@ from .aegis import AegisClassifier, InstructionDataGuardClassifier
 from .domain import DomainClassifier, MultilingualDomainClassifier
 from .fineweb_edu import FineWebEduClassifier
 from .quality import QualityClassifier
+from .task_complexity import TaskComplexityClassifier
 
 __all__ = [
     "DomainClassifier",
@@ -27,4 +28,5 @@ __all__ = [
     "AegisClassifier",
     "InstructionDataGuardClassifier",
     "FineWebEduClassifier",
+    "TaskComplexityClassifier",
 ]
