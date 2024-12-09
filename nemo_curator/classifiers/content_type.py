@@ -75,7 +75,7 @@ class ContentTypeClassifier(DistributedDataClassifier):
                                          If None, all classes will be included. Defaults to None.
         batch_size (int): The number of samples per batch for inference. Defaults to 256.
         text_field (str): The field in the dataset that should be classified.
-        pred_column (str): The column name where predictions will be stored. Defaults to "type_of_speech_pred".
+        pred_column (str): The column name where predictions will be stored. Defaults to "content_pred".
         prob_column (str, optional): The column name where prediction probabilities will be stored. Defaults to None.
         max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 2000.
         device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
