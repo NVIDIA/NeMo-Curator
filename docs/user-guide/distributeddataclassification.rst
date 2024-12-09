@@ -15,7 +15,7 @@ NeMo Curator provides a module to help users run inference with pre-trained mode
 This is achieved by chunking the datasets across multiple computing nodes, each equipped with multiple GPUs, to accelerate the classification task in a distributed manner.
 Since the classification of a single text document is independent of other documents within the dataset, we can distribute the workload across multiple nodes and GPUs to perform parallel processing.
 
-Domain (English and multilingual), quality, content safety, educational content, and type of speech models are tasks we include as examples within our module.
+Domain (English and multilingual), quality, content safety, educational content, and content type models are tasks we include as examples within our module.
 
 Here, we summarize why each is useful for training an LLM:
 
@@ -29,7 +29,7 @@ Here, we summarize why each is useful for training an LLM:
 
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
-- The **Type of Speech Classifier** is designed to categorize documents into one of 11 distinct speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
+- The **Content Type Classifier** is designed to categorize documents into one of 11 distinct speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
 
 -----------------------------------------
 Usage
@@ -205,26 +205,26 @@ For example, to create a dataset with only highly educational content (scores 4 
     high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
 
-Type of Speech Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Content Type Classifier
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The Type of Speech Classifier is used to categorize speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
+The Content Type Classifier is used to categorize speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
 
-Let's see how ``TypeOfSpeechClassifier`` works in a small excerpt taken from ``examples/classifiers/type_of_speech_example.py``:
+Let's see how ``ContentTypeClassifier`` works in a small excerpt taken from ``examples/classifiers/content_type_example.py``:
 
 .. code-block:: python
 
-    from nemo_curator.classifiers import TypeOfSpeechClassifier
+    from nemo_curator.classifiers import ContentTypeClassifier
 
     files = get_all_files_paths_under("books_dataset/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
-    type_of_speech_classifier = TypeOfSpeechClassifier(filter_by=["Blogs", "News"])
-    result_dataset = type_of_speech_classifier(dataset=input_dataset)
+    content_type_classifier = ContentTypeClassifier(filter_by=["Blogs", "News"])
+    result_dataset = content_type_classifier(dataset=input_dataset)
 
     result_dataset.to_json("blogs_and_news/")
 
-In this example, the type of speech classifier is obtained directly from `Hugging Face <TODO>`_.
+In this example, the content type classifier is obtained directly from `Hugging Face <https://huggingface.co/nvidia/content-type-classifier-deberta>`_.
 It filters the input dataset to include only documents classified as "Blogs" or "News".
 
 -----------------------------------------

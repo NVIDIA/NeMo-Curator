@@ -27,20 +27,20 @@ from nemo_curator.classifiers.base import (
 )
 from nemo_curator.datasets import DocumentDataset
 
-TYPE_OF_SPEECH_IDENTIFIER = "TODO"
+CONTENT_TYPE_IDENTIFIER = "nvidia/content-type-classifier-deberta"
 
 
 @dataclass
-class TypeOfSpeechModelConfig:
+class ContentTypeModelConfig:
     model: str = "microsoft/deberta-v3-base"
     fc_dropout: float = 0.2
     max_len: int = 1024
 
 
-class TypeOfSpeechModel(HFModel):
+class ContentTypeModel(HFModel):
     def __init__(
         self,
-        config: TypeOfSpeechModelConfig,
+        config: ContentTypeModelConfig,
         autocast: bool = False,
         max_mem_gb: Optional[int] = None,
     ):
@@ -52,21 +52,21 @@ class TypeOfSpeechModel(HFModel):
         super().__init__(self.config.model, max_mem_gb=max_mem_gb)
 
     def load_model(self, device: str = "cuda"):
-        model = HFDeberta.from_pretrained(TYPE_OF_SPEECH_IDENTIFIER)
+        model = HFDeberta.from_pretrained(CONTENT_TYPE_IDENTIFIER)
         model.set_autocast(self.autocast)
         model = model.to(device)
         return model.eval()
 
     def load_tokenizer(self):
-        return AutoTokenizer.from_pretrained(TYPE_OF_SPEECH_IDENTIFIER)
+        return AutoTokenizer.from_pretrained(CONTENT_TYPE_IDENTIFIER)
 
     def load_config(self):
-        return AutoConfig.from_pretrained(TYPE_OF_SPEECH_IDENTIFIER)
+        return AutoConfig.from_pretrained(CONTENT_TYPE_IDENTIFIER)
 
 
-class TypeOfSpeechClassifier(DistributedDataClassifier):
+class ContentTypeClassifier(DistributedDataClassifier):
     """
-    TypeOfSpeechClassifier is a text classification model designed to categorize documents into one of 11 distinct speech types based on their content.
+    ContentTypeClassifier is a text classification model designed to categorize documents into one of 11 distinct speech types based on their content.
     It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
     This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
 
@@ -90,14 +90,14 @@ class TypeOfSpeechClassifier(DistributedDataClassifier):
         filter_by: Optional[List[str]] = None,
         batch_size: int = 256,
         text_field: str = "text",
-        pred_column: str = "type_of_speech_pred",
+        pred_column: str = "content_pred",
         prob_column: Optional[str] = None,
         max_chars: int = 2000,
         device_type: str = "cuda",
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
-        config = AutoConfig.from_pretrained(DOMAIN_IDENTIFIER)
+        config = AutoConfig.from_pretrained(CONTENT_TYPE_IDENTIFIER)
 
         self.text_field = text_field
         self.prob_column = prob_column
@@ -105,8 +105,8 @@ class TypeOfSpeechClassifier(DistributedDataClassifier):
         self.labels.sort(key=lambda x: config.label2id[x])
         self.out_dim = len(self.labels)
 
-        model = TypeOfSpeechModel(
-            config=TypeOfSpeechModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
+        model = ContentTypeModel(
+            config=ContentTypeModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
         )
 
         super().__init__(
@@ -122,7 +122,7 @@ class TypeOfSpeechClassifier(DistributedDataClassifier):
         )
 
     def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
-        print("Starting type of speech classifier inference", flush=True)
+        print("Starting content type classifier inference", flush=True)
         df = dataset.df
         df = _run_classifier_helper(
             df=df,

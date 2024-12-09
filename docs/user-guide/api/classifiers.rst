@@ -17,5 +17,5 @@ Classifiers
 .. autoclass:: nemo_curator.classifiers.AegisClassifier
     :members:
 
-.. autoclass:: nemo_curator.classifiers.TypeOfSpeechClassifier
+.. autoclass:: nemo_curator.classifiers.ContentTypeClassifier
     :members:

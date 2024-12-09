@@ -71,7 +71,7 @@ The following NeMo Curator modules are GPU based.
   * Quality Classification
   * AEGIS Safety Models
   * FineWeb Educational Content Classification
-  * Type of Speech Classification
+  * Content Type Classification
 
 GPU modules store the ``DocumentDataset`` using a ``cudf`` backend instead of a ``pandas`` one.
 To read a dataset into GPU memory, one could use the following function call.
