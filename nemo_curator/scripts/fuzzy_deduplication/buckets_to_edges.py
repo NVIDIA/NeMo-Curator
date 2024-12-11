@@ -19,6 +19,7 @@ import time
 import dask_cudf
 
 from nemo_curator import BucketsToEdges
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
@@ -64,8 +65,9 @@ def main(args):
         name="buckets_to_cc_log",
     )
 
+    initialize_cache_directory(args.output_dir)
+
     input_bucket_path = args.input_bucket_dir
-    OUTPUT_PATH = args.output_dir
 
     client = get_client(**ArgumentHelper.parse_client_args(args))
     logger.info(f"Client Created {client}")
@@ -75,7 +77,6 @@ def main(args):
     )
 
     buckets_to_edges = BucketsToEdges(
-        cache_dir=OUTPUT_PATH,
         id_fields=["dataset_id", "doc_id"],
         str_id_name=args.input_json_id_field,
         bucket_field=args.input_bucket_field,
