@@ -15,7 +15,7 @@ NeMo Curator provides a module to help users run inference with pre-trained mode
 This is achieved by chunking the datasets across multiple computing nodes, each equipped with multiple GPUs, to accelerate the classification task in a distributed manner.
 Since the classification of a single text document is independent of other documents within the dataset, we can distribute the workload across multiple nodes and GPUs to perform parallel processing.
 
-Domain (English and multilingual), quality, content safety, and educational content models are tasks we include as examples within our module.
+Domain (English and multilingual), quality, content safety, educational content, and content type models are tasks we include as examples within our module.
 
 Here, we summarize why each is useful for training an LLM:
 
@@ -28,6 +28,8 @@ Here, we summarize why each is useful for training an LLM:
 - The **AEGIS Safety Models** are essential for filtering harmful or risky content, which is critical for training models that should avoid learning from unsafe data. By classifying content into 13 critical risk categories, AEGIS helps remove harmful or inappropriate data from the training sets, improving the overall ethical and safety standards of the LLM.
 
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
+
+- The **Content Type Classifier** is designed to categorize documents into one of 11 distinct speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
 
 -----------------------------------------
 Usage
@@ -45,7 +47,7 @@ It is easy to extend ``DistributedDataClassifier`` to your own model.
 Check out ``nemo_curator.classifiers.base.py`` for reference.
 
 Domain Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 The Domain Classifier is used to categorize English text documents into specific domains or subject areas. This is particularly useful for organizing large datasets and tailoring the training data for domain-specific LLMs.
 
@@ -90,7 +92,7 @@ Using the ``MultilingualDomainClassifier`` is very similar to using the ``Domain
 For more information about the multilingual domain classifier, including its supported languages, please see the `nvidia/multilingual-domain-classifier <https://huggingface.co/nvidia/multilingual-domain-classifier>`_ on Hugging Face.
 
 Quality Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 The Quality Classifier is designed to assess the quality of text documents, helping to filter out low-quality or noisy data from your dataset.
 
@@ -112,7 +114,7 @@ The quality classifier is obtained from `Hugging Face <https://huggingface.co/nv
 In this example, it filters the input dataset to include only documents classified as "High" or "Medium" quality.
 
 AEGIS Safety Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 Aegis is a family of content-safety LLMs used for detecting if a piece of text contains content that is a part of 13 critical risk categories.
 There are two variants, `defensive <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0>`_ and `permissive <https://huggingface.co/nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0>`_, that are useful for filtering harmful data out of your training set.
@@ -202,6 +204,28 @@ For example, to create a dataset with only highly educational content (scores 4 
 
     high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
+
+Content Type Classifier
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The Content Type Classifier is used to categorize speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
+
+Let's see how ``ContentTypeClassifier`` works in a small excerpt taken from ``examples/classifiers/content_type_example.py``:
+
+.. code-block:: python
+
+    from nemo_curator.classifiers import ContentTypeClassifier
+
+    files = get_all_files_paths_under("books_dataset/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    content_type_classifier = ContentTypeClassifier(filter_by=["Blogs", "News"])
+    result_dataset = content_type_classifier(dataset=input_dataset)
+
+    result_dataset.to_json("blogs_and_news/")
+
+In this example, the content type classifier is obtained directly from `Hugging Face <https://huggingface.co/nvidia/content-type-classifier-deberta>`_.
+It filters the input dataset to include only documents classified as "Blogs" or "News".
 
 -----------------------------------------
 CrossFit Integration
