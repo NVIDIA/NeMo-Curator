@@ -53,12 +53,14 @@ def test_domain_classifier(gpu_client, domain_dataset):
     result_dataset = classifier(dataset=domain_dataset)
     result_pred = result_dataset.df.compute()["domain_pred"]
 
-    expected_pred = cudf.Series([
-        "Computers_and_Electronics",
-        "Finance",
-        "Health",
-        "Jobs_and_Education",
-        "Travel_and_Transportation",
-    ])
+    expected_pred = cudf.Series(
+        [
+            "Computers_and_Electronics",
+            "Finance",
+            "Health",
+            "Jobs_and_Education",
+            "Travel_and_Transportation",
+        ]
+    )
 
     assert result_pred.equals(expected_pred)
