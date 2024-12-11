@@ -29,14 +29,15 @@ LABEL "nemo.library"=${IMAGE_LABEL}
 WORKDIR /opt
 
 # Install the minimal libcu* libraries needed by NeMo Curator
-RUN conda create -y --name curator -c conda-forge -c nvidia \
+RUN conda create -y --name curator -c -c nvidia/label/cuda-${CUDA_VER} -c conda-forge
   python=3.10 \
   cuda-cudart \
   libcufft \
   libcublas \
   libcurand \
   libcusparse \
-  libcusolver && \
+  libcusolver \
+  cuda-nvvm && \
   source activate curator && \
   pip install --upgrade pytest pip
 
