@@ -240,6 +240,7 @@ class TestWriteWithFilename:
 
         got_df = read_f(
             str(tmp_path / file_ext),
+            blocksize=None,
             files_per_partition=2,
             backend="pandas",
             add_filename=True,
