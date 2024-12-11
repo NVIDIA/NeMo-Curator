@@ -15,7 +15,7 @@ NeMo Curator provides a module to help users run inference with pre-trained mode
 This is achieved by chunking the datasets across multiple computing nodes, each equipped with multiple GPUs, to accelerate the classification task in a distributed manner.
 Since the classification of a single text document is independent of other documents within the dataset, we can distribute the workload across multiple nodes and GPUs to perform parallel processing.
 
-Domain (English and multilingual), quality, content safety, educational content, and task-complexity models are tasks we include as examples within our module.
+Domain (English and multilingual), quality, content safety, educational content, and prompt task/complexity models are tasks we include as examples within our module.
 
 Here, we summarize why each is useful for training an LLM:
 
@@ -29,7 +29,7 @@ Here, we summarize why each is useful for training an LLM:
 
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
-- The **Task-Complexity Classifier** TODO
+- The **Prompt Task/Complexity Classifier** is a multi-headed model which classifies English text prompts across task types and complexity dimensions.
 
 -----------------------------------------
 Usage
@@ -205,10 +205,26 @@ For example, to create a dataset with only highly educational content (scores 4 
     high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
 
-Task-Complexity Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Prompt Task/Complexity Classifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
+The Prompt Task/Complexity Classifier is a multi-headed model which classifies English text prompts across task types and complexity dimensions. Tasks are classified across 11 common categories. Complexity is evaluated across 6 dimensions and ensembled to create an overall complexity score.
+
+Here's an example of how to use the ``PromptTaskComplexityClassifier``:
+
+.. code-block:: python
+
+    from nemo_curator.classifiers import PromptTaskComplexityClassifier
+
+    files = get_all_files_paths_under("my_dataset/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    classifier = PromptTaskComplexityClassifier()
+    result_dataset = classifier(dataset=input_dataset)
+
+    result_dataset.to_json("labeled_dataset/")
+
+The prompt task and complexity classifier is obtained from `Hugging Face <https://huggingface.co/nvidia/prompt-task-and-complexity-classifier>`_.
 
 -----------------------------------------
 CrossFit Integration

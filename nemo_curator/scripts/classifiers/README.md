@@ -7,7 +7,7 @@ The Python scripts in this directory demonstrate how to run classification on yo
 - Quality Classifier
 - AEGIS Safety Models
 - FineWeb Educational Content Classifier
-- Task-Complexity Classifier
+- Prompt Task/Complexity Classifier
 
 For more information about these classifiers, please see NeMo Curator's [Distributed Data Classification documentation](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html).
 
@@ -116,11 +116,11 @@ fineweb_edu_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_edu_classifier_inference --help` for more information.
 
-#### Task-complexity classifier inference
+#### Prompt task and complexity classifier inference
 
 ```bash
-# same as `python task_complexity_classifier_inference.py`
-task_complexity_classifier_inference \
+# same as `python prompt_task_complexity_classifier_inference.py`
+prompt_task_complexity_classifier_inference \
     --input-data-dir /path/to/data/directory \
     --output-data-dir /path/to/output/directory \
     --input-file-type "jsonl" \
@@ -133,4 +133,4 @@ task_complexity_classifier_inference \
     --device "gpu"
 ```
 
-Additional arguments may be added for customizing a Dask cluster and client. Run `task_complexity_classifier_inference --help` for more information.
+Additional arguments may be added for customizing a Dask cluster and client. Run `prompt_task_complexity_classifier_inference --help` for more information.

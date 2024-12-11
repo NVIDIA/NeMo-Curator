@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator.classifiers import TaskComplexityClassifier
+from nemo_curator.classifiers import PromptTaskComplexityClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -36,15 +36,14 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    # TODO: filter_by=[]
-    task_complexity_classifier = TaskComplexityClassifier()
-    result_dataset = task_complexity_classifier(dataset=input_dataset)
+    prompt_task_complexity_classifier = PromptTaskComplexityClassifier()
+    result_dataset = prompt_task_complexity_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
 
     global_et = time.time()
     print(
-        f"Total time taken for task-complexity classifier inference: {global_et-global_st} s",
+        f"Total time taken for prompt task and complexity classifier inference: {global_et-global_st} s",
         flush=True,
     )
 

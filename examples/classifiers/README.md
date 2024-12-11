@@ -7,7 +7,7 @@ The Python scripts in this directory demonstrate how to run classification on yo
 - Quality Classifier
 - AEGIS Safety Models
 - FineWeb Educational Content Classifier
-- Task-Complexity Classifier
+- Prompt Task/Complexity Classifier
 
 For more information about these classifiers, please see NeMo Curator's [Distributed Data Classification documentation](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html).
 

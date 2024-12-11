@@ -17,5 +17,5 @@ Classifiers
 .. autoclass:: nemo_curator.classifiers.AegisClassifier
     :members:
 
-.. autoclass:: nemo_curator.classifiers.TaskComplexityClassifier
+.. autoclass:: nemo_curator.classifiers.PromptTaskComplexityClassifier
     :members:
