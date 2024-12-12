@@ -16,7 +16,6 @@ import pytest
 from distributed import Client
 
 from nemo_curator import get_client
-from nemo_curator.classifiers import DomainClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -49,6 +48,8 @@ def domain_dataset():
 
 @pytest.mark.gpu
 def test_domain_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import DomainClassifier
+
     classifier = DomainClassifier()
     result_dataset = classifier(dataset=domain_dataset)
     result_pred = result_dataset.df.compute()["domain_pred"]
