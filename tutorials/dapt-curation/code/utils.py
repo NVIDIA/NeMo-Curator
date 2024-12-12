@@ -356,7 +356,7 @@ def semantic_dedupe(
 
     semdedup_config = SemDedupConfig.from_yaml(sem_dedupe_config_yaml_path)
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
-    semdup = SemDedup(semdedup_config)
+    semdup = SemDedup(config=semdedup_config, id_column_type="str")
     duplicates = semdup(dataset)
     return duplicates
 
