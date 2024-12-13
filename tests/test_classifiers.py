@@ -230,7 +230,7 @@ def test_content_type_classifier(gpu_client):
 
 
 @pytest.mark.skip(
-   reason="Skipping until https://github.com/NVIDIA/NeMo-Curator/pull/364 is merged"
+    reason="Skipping until https://github.com/NVIDIA/NeMo-Curator/pull/364 is merged"
 )
 @pytest.mark.gpu
 def test_prompt_task_complexity_classifier(gpu_client):
