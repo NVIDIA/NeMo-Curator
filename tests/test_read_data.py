@@ -1,9 +1,9 @@
-import random
 import tempfile
 
 import pandas as pd
 import pytest
 
+from nemo_curator._compat import DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA
 from nemo_curator.utils.distributed_utils import (
     read_data,
     read_data_blocksize,
@@ -343,9 +343,9 @@ def test_read_data_blocksize_add_filename_parquet(mock_multiple_parquet_files, b
         pytest.param(
             "pandas",
             "parquet",
-            # marks=pytest.mark.xfail(
-            #     reason="filename column inaccessible with pandas backend and parquet"
-            # ),
+            marks=pytest.mark.xfail(
+                reason="filename column inaccessible with pandas backend and parquet"
+            ),
         ),
     ],
 )
@@ -443,10 +443,8 @@ def test_read_data_select_columns(
 
     assert list(df.columns) == list(df.head().columns)
     if not add_filename:
-        # assert list(df.columns) == sorted(cols_to_select)
         assert list(df.columns) == sorted(cols_to_select)
     else:
-        # assert list(df.columns) == sorted(cols_to_select + ["filename"])
         assert list(df.columns) == sorted(cols_to_select + ["filename"])
 
 
@@ -483,59 +481,103 @@ def test_read_data_input_meta(
         **read_kwargs,
     )
 
-    if function_name == "read_data_files_per_partition" and backend == "cudf":
-        assert list(df.columns) == list(input_meta.keys())
-    else:
-        # In the read_data_fpp case, because pandas doesn't support `prune_columns`, it'll always return all columns even if input_meta is specified
-        # In the `read_data_blocksize` case, `dask.read_json` also doesn't `prune_columns` so it'll always return all columns
-        # if you user wants to select subset of columns, they should use `columns` parameter
-        assert list(df.columns) == ["id", "text"]
+    assert list(df.columns) == list(input_meta.keys())
+
+
+def xfail_inconsistent_schema_jsonl():
+    return pytest.mark.xfail(
+        reason="inconsistent schemas are not supported with jsonl files, "
+        "see https://github.com/dask/dask/issues/11595"
+    )
 
 
 @pytest.mark.parametrize(
     "backend",
     [
-        "pandas",
-        pytest.param("cudf", marks=pytest.mark.gpu),
+        pytest.param("pandas"),
+        pytest.param("cudf", marks=[pytest.mark.gpu]),
     ],
 )
-@pytest.mark.parametrize("file_type", ["parquet", "jsonl"])
-@pytest.mark.parametrize(
-    "read_kwargs",
-    [
-        *[({"files_per_partition": fpp, "blocksize": None}) for fpp in range(1, 6)],
-        *[
-            ({"blocksize": bs, "files_per_partition": None})
-            for bs in ["128MiB", "256MiB", "512MiB"]
-        ],
-    ],
-)
-def test_read_data_different_columns(
+@pytest.mark.parametrize("file_type", ["jsonl", "parquet"])
+@pytest.mark.parametrize("fpp", [1, 3, 5])
+def test_read_data_different_columns_files_per_partition(
     mock_multiple_jsonl_files_different_cols,
     mock_multiple_parquet_files_different_cols,
     backend,
     file_type,
-    read_kwargs,
+    fpp,
 ):
-
-    read_kwargs_cp = read_kwargs.copy()
-    read_kwargs_cp["columns"] = ["id", "text"]
+    read_kwargs = {"columns": ["id", "text"]}
     if file_type == "jsonl":
         input_files = mock_multiple_jsonl_files_different_cols
-        read_kwargs_cp["input_meta"] = {"id": "str", "text": "str"}
-        # read_kwargs_cp["meta"] = {"id": "str", "text": "str"}
-
-    else:
+        read_kwargs["input_meta"] = {"id": "str", "text": "str"}
+    elif file_type == "parquet":
         input_files = mock_multiple_parquet_files_different_cols
         if backend == "cudf":
-            read_kwargs_cp["allow_mismatched_pq_schemas"] = True
+            read_kwargs["allow_mismatched_pq_schemas"] = True
 
     df = read_data(
         input_files=input_files,
         file_type=file_type,
         backend=backend,
         add_filename=False,
-        **read_kwargs_cp,
+        files_per_partition=fpp,
+        blocksize=None,
+        **read_kwargs,
+    )
+    assert list(df.columns) == ["id", "text"]
+    assert list(df.compute().columns) == ["id", "text"]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        df.to_parquet(tmpdir)
+    assert len(df) == NUM_FILES * NUM_RECORDS
+
+
+@pytest.mark.parametrize(
+    "backend,file_type",
+    [
+        pytest.param(
+            "cudf", "jsonl", marks=[pytest.mark.gpu, xfail_inconsistent_schema_jsonl()]
+        ),
+        pytest.param("pandas", "jsonl", marks=[xfail_inconsistent_schema_jsonl()]),
+        pytest.param(
+            "cudf",
+            "parquet",
+            marks=[pytest.mark.gpu]
+            + (
+                [xfail_inconsistent_schema_jsonl()]
+                if not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA
+                else []
+            ),
+        ),
+        pytest.param("pandas", "parquet"),
+    ],
+)
+@pytest.mark.parametrize("blocksize", ["1kb", "5kb", "10kb"])
+def test_read_data_different_columns_blocksize(
+    mock_multiple_jsonl_files_different_cols,
+    mock_multiple_parquet_files_different_cols,
+    backend,
+    file_type,
+    blocksize,
+):
+    read_kwargs = {"columns": ["id", "text"]}
+    read_kwargs["columns"] = ["id", "text"]
+    if file_type == "jsonl":
+        input_files = mock_multiple_jsonl_files_different_cols
+        read_kwargs["input_meta"] = {"id": "str", "text": "str"}
+    elif file_type == "parquet":
+        input_files = mock_multiple_parquet_files_different_cols
+        if backend == "cudf":
+            read_kwargs["allow_mismatched_pq_schemas"] = True
+
+    df = read_data(
+        input_files=input_files,
+        file_type=file_type,
+        blocksize=blocksize,
+        files_per_partition=None,
+        backend=backend,
+        add_filename=False,
+        **read_kwargs,
     )
     assert list(df.columns) == ["id", "text"]
     assert list(df.compute().columns) == ["id", "text"]

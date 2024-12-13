@@ -27,12 +27,11 @@ To help avoid these issues and ensure efficient processing, here are some strate
 Controlling Partition Sizes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You should consider using ``files_per_partition`` or ``blocksize`` when reading data. This can help reduce the memory load by processing large datasets in smaller chunks.
+The user should consider using ``files_per_partition`` or ``blocksize`` when reading data. This can help reduce the memory load by processing large datasets in smaller chunks.
 
-#. ``blocksize`` argument is available for ``jsonl`` and ``parquet`` files. But for `parquet` files it's only available when ``add_filename=False``
+#. The ``blocksize`` argument is available for ``jsonl`` and ``parquet`` files. However, for `parquet` files, it is currently only available when ``add_filename=False``.
 
-#. For ``blocksize``, the recommendation is to use 1/32 of the total GPU memory. For example, if you have a GPU with 32GB of memory, you can set the blocksize to ``1gb``.
-
+#. For the ``blocksize`` parameter, the recommendation is to use 1/32 of the total GPU memory. For example, if you have a GPU with 32GB of memory, you can set ``blocksize="1GB"``.
 
 
 Utilize RMM Options

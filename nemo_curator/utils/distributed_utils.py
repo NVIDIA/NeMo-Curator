@@ -18,6 +18,8 @@ import os
 
 import dask
 
+from nemo_curator._compat import DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA
+
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
 import warnings
@@ -330,6 +332,10 @@ def read_single_partition(
             read_kwargs["dtype"] = (
                 ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
             )
+            # because pandas doesn't support `prune_columns`, it'll always return all columns even when input_meta is specified
+            # to maintain consisntency we explicitly set `io_columns` here
+            if backend == "pandas" and not io_columns:
+                io_columns = list(read_kwargs["dtype"].keys())
 
     elif filetype == "parquet":
         read_kwargs = {"columns": io_columns}
@@ -386,6 +392,11 @@ def read_data_blocksize(
 
     postprocessing_func: Optional[Callable[[dd.DataFrame], dd.DataFrame]] = None
     if file_type == "jsonl":
+        warnings.warn(
+            "If underlying jsonl data doesn't have consistent schema, reading with blocksize will fail."
+            "Use files_per_partition approach."
+        )
+
         if backend == "panads":
             warnings.warn(
                 "Pandas backend with blocksize cannot read multiple JSONL files into a single partition. "
@@ -404,6 +415,11 @@ def read_data_blocksize(
                 if isinstance(input_meta, str)
                 else input_meta
             )
+
+            if not columns:
+                # To maintain consistency with the behavior of `read_data_fpp` where passing `input_meta`
+                # only returns those columns, we explicitly set `columns` here
+                columns = list(read_kwargs["dtype"].keys())
         if add_filename:
 
             def extract_filename(path: str) -> str:
@@ -414,6 +430,17 @@ def read_data_blocksize(
             postprocessing_func = lambda df: df.rename(columns={"path": "filename"})
 
     elif file_type == "parquet":
+        if backend == "cudf" and not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA:
+            warnings.warn(
+                "If underlying parquet data doesn't have consistent schema, reading with blocksize will fail."
+                "Update underlying rapids package to 25.02+ or use files_per_partition approach."
+            )
+        elif backend == "pandas":
+            warnings.warn(
+                "If underlying parquet data doesn't have consistent column order, reading with blocksize might fail."
+                "Use files_per_partition approach."
+            )
+
         if add_filename:
             msg = "add_filename and blocksize cannot be set at the same time for parquet files"
             raise ValueError(msg)
@@ -430,6 +457,7 @@ def read_data_blocksize(
         df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
         if postprocessing_func is not None:
             df = postprocessing_func(df)
+
         output = select_columns(df, columns, file_type, add_filename)
         return output[sorted(output.columns)]
 
