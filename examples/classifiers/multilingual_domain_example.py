@@ -41,7 +41,7 @@ def main(args):
     )
     result_dataset = multilingual_domain_classifier(dataset=input_dataset)
 
-    result_dataset.to_json(output_file_dir=output_file_path, write_to_filename=True)
+    result_dataset.to_json(output_path=output_file_path, write_to_filename=True)
 
     global_et = time.time()
     print(
