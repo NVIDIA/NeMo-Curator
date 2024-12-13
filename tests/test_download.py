@@ -2,7 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from nemo_curator.download import ResiliparseExtractor, download_and_extract
+from nemo_curator.download import (
+    ResiliparseExtractor,
+    TrafilaturaExtractor,
+    download_and_extract,
+)
 from nemo_curator.download.commoncrawl import (
     CommonCrawlWARCDownloader,
     CommonCrawlWARCExtractor,
@@ -17,6 +21,7 @@ class TestDownload:
         from nemo_curator.download import (
             JusTextExtractor,
             ResiliparseExtractor,
+            TrafilaturaExtractor,
             download_arxiv,
             download_common_crawl,
             download_wikipedia,
@@ -81,6 +86,10 @@ class TestDownload:
         ]
 
         assert result == expected
+
+    def test_trafilatura_extract_text(self):
+        # TODO
+        pass
 
     def test_common_crawl_urls(self):
         start_snapshot = "2021-04"

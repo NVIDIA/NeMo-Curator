@@ -199,6 +199,33 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         return result
 
 
+class TrafilaturaExtractor(HTMLExtractorAlgorithm):
+    def __init__(
+        self,
+        required_stopword_density=0.32,
+        main_content=True,
+        alt_texts=False,
+    ):
+        """
+        Initialize the Trafilatura text extraction algorithm with specified parameters.
+
+        Args:
+            required_stopword_density: Proportion of stopwords required preserve an extracted paragraph.
+                Studies on stopword lists and their distribution in various text corpora often
+                suggest that around 30-40% of a typical English text consists of stopwords.
+            main_content: Whether to apply simple heuristics for extracting only "main-content" elements.
+            alt_texts: Whether to preserve alternative text descriptions (e.g., for images).
+
+        """
+        self.required_stopword_density = required_stopword_density
+        self.main_content = main_content
+        self.alt_texts = alt_texts
+
+    def extract_text(self, html, stop_words):
+        # TODO
+        return html
+
+
 def get_stop_list_dict(languages=[]):
 
     # Name mapping for language names from CLD2 (values)
@@ -372,7 +399,7 @@ def download_common_crawl(
     url_limit=None,
 ) -> DocumentDataset:
     """
-    Downloads Common Crawl WARC snapshots and extracts them using jusText or Resiliparse
+    Downloads Common Crawl WARC snapshots and extracts them using jusText, Resiliparse, or Trafilatura
 
     Args:
       output_path: The path to the root directory of the files
@@ -382,7 +409,7 @@ def download_common_crawl(
       end_snapshot: The last common crawl snapshot to include. Must be chronologically
         after the starting snapshot.
       output_type: The file type to save the data as.
-      algorithm: A JusTextExtractor or ResiliparseExtractor object.
+      algorithm: A JusTextExtractor, ResiliparseExtractor, or TrafilaturaExtractor object.
       news: If True, gets WARC URLs for the CC-NEWS dataset instead of the CC-MAIN datasets.
         Also assumes that the format for the start and end snapshots is 'YYYY-MM' (Year-Month).
       aws: Whether to download from Common Crawl's S3 bucket. If True, uses s5cmd to download.
