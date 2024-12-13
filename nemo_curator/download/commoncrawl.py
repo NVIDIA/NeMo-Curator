@@ -24,6 +24,7 @@ import lxml
 import pycld2 as cld2
 from charset_normalizer import detect
 from resiliparse.extract.html2text import extract_plain_text
+from trafilatura import extract as extract_with_trafilatura
 from warcio.archiveiterator import ArchiveIterator
 
 from nemo_curator.datasets import DocumentDataset
@@ -203,8 +204,7 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
     def __init__(
         self,
         required_stopword_density=0.32,
-        main_content=True,
-        alt_texts=False,
+        **extract_kwargs,
     ):
         """
         Initialize the Trafilatura text extraction algorithm with specified parameters.
@@ -213,17 +213,36 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
             required_stopword_density: Proportion of stopwords required preserve an extracted paragraph.
                 Studies on stopword lists and their distribution in various text corpora often
                 suggest that around 30-40% of a typical English text consists of stopwords.
-            main_content: Whether to apply simple heuristics for extracting only "main-content" elements.
-            alt_texts: Whether to preserve alternative text descriptions (e.g., for images).
+            extract_kwargs: Additional keyword arguments for the Trafilatura extract function.
+                See API documentation https://trafilatura.readthedocs.io/en/latest/usage-python.html#choice-of-html-elements
+                for list of possible parameters.
 
         """
         self.required_stopword_density = required_stopword_density
-        self.main_content = main_content
-        self.alt_texts = alt_texts
+        self.extract_kwargs = extract_kwargs
 
     def extract_text(self, html, stop_words):
-        # TODO
-        return html
+        text = extract_with_trafilatura(html, **self.extract_kwargs)
+
+        if text is not None:
+            paragraphs = list(filter(None, text.split("\n")))
+            result = []
+            for paragraph in paragraphs:
+                words = paragraph.split()
+                length = len(words)
+                if length == 0:
+                    continue
+                stopwords = [word for word in words if word in stop_words]
+                stopword_density = len(stopwords) / length
+
+                if stopword_density >= self.required_stopword_density:
+                    result.append(paragraph)
+        else:
+            return None
+
+        if len(result) == 0:
+            return None
+        return result
 
 
 def get_stop_list_dict(languages=[]):
