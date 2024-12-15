@@ -393,8 +393,8 @@ def read_data_blocksize(
     postprocessing_func: Optional[Callable[[dd.DataFrame], dd.DataFrame]] = None
     if file_type == "jsonl":
         warnings.warn(
-            "If underlying jsonl data doesn't have consistent schema, reading with blocksize will fail."
-            "Use files_per_partition approach."
+            "If underlying JSONL data does not have a consistent schema, reading with blocksize will fail. "
+            "Please use files_per_partition approach instead."
         )
 
         if backend == "pandas":
