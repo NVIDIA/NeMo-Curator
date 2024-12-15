@@ -432,8 +432,8 @@ def read_data_blocksize(
     elif file_type == "parquet":
         if backend == "cudf" and not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA:
             warnings.warn(
-                "If underlying parquet data doesn't have consistent schema, reading with blocksize will fail."
-                "Update underlying rapids package to 25.02+ or use files_per_partition approach."
+                "If underlying Parquet data does not have consistent schema, reading with blocksize will fail. "
+                "Please update underlying RAPIDS package to version 25.02 or higher, or use files_per_partition approach instead."
             )
         elif backend == "pandas":
             warnings.warn(
