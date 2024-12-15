@@ -437,8 +437,8 @@ def read_data_blocksize(
             )
         elif backend == "pandas":
             warnings.warn(
-                "If underlying parquet data doesn't have consistent column order, reading with blocksize might fail."
-                "Use files_per_partition approach."
+                "If underlying Parquet data does not have a consistent column order, reading with blocksize might fail. "
+                "Please use files_per_partition approach instead."
             )
 
         if add_filename:
