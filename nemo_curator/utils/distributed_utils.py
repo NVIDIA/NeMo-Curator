@@ -333,7 +333,7 @@ def read_single_partition(
                 ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
             )
             # because pandas doesn't support `prune_columns`, it'll always return all columns even when input_meta is specified
-            # to maintain consisntency we explicitly set `io_columns` here
+            # to maintain consistency we explicitly set `io_columns` here
             if backend == "pandas" and not io_columns:
                 io_columns = list(read_kwargs["dtype"].keys())
 
