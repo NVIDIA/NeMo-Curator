@@ -442,7 +442,7 @@ def read_data_blocksize(
             )
 
         if add_filename:
-            msg = "add_filename and blocksize cannot be set at the same time for parquet files"
+            msg = "add_filename and blocksize cannot be set at the same time for Parquet files."
             raise ValueError(msg)
         read_func = dd.read_parquet
         read_kwargs["columns"] = columns
