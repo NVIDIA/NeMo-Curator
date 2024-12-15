@@ -397,10 +397,10 @@ def read_data_blocksize(
             "Use files_per_partition approach."
         )
 
-        if backend == "panads":
+        if backend == "pandas":
             warnings.warn(
                 "Pandas backend with blocksize cannot read multiple JSONL files into a single partition. "
-                "Use files_per_partition if blocksize exceeds average file size"
+                "Please use files_per_partition if blocksize exceeds average file size."
             )
         read_func = dd.read_json
         read_kwargs["lines"] = True
