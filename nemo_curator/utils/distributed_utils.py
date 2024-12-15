@@ -450,7 +450,7 @@ def read_data_blocksize(
         # it gets in dask (pandas) as well
         read_kwargs["aggregate_files"] = True
     else:
-        msg = f"Reading with blocksize is only supported for jsonl and parquet files, not {file_type=}"
+        msg = f"Reading with blocksize is only supported for JSONL and Parquet files, not {file_type=}"
         raise ValueError(msg)
 
     with dask.config.set({"dataframe.backend": backend}):
