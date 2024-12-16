@@ -17,5 +17,8 @@ Classifiers
 .. autoclass:: nemo_curator.classifiers.AegisClassifier
     :members:
 
+.. autoclass:: nemo_curator.classifiers.InstructionDataGuardClassifier
+    :members:
+
 .. autoclass:: nemo_curator.classifiers.ContentTypeClassifier
     :members:

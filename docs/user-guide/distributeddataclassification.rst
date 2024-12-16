@@ -27,6 +27,8 @@ Here, we summarize why each is useful for training an LLM:
 
 - The **AEGIS Safety Models** are essential for filtering harmful or risky content, which is critical for training models that should avoid learning from unsafe data. By classifying content into 13 critical risk categories, AEGIS helps remove harmful or inappropriate data from the training sets, improving the overall ethical and safety standards of the LLM.
 
+- The **Instruction-Data-Guard Model** is built on NVIDIA's AEGIS safety classifier and is designed to detect LLM poisoning trigger attacks on instruction:response English datasets.
+
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
 - The **Content Type Classifier** is designed to categorize documents into one of 11 distinct speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
@@ -160,6 +162,33 @@ The possible labels are as follows: ``"safe", "O1", "O2", "O3", "O4", "O5", "O6"
     )
 
   This will create a column in the dataframe with the raw output of the LLM. You can choose to parse this response however you want.
+
+Instruction-Data-Guard Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Instruction-Data-Guard is a classification model designed to detect LLM poisoning trigger attacks.
+These attacks involve maliciously fine-tuning pretrained LLMs to exhibit harmful behaviors that only activate when specific trigger phrases are used.
+For example, attackers might train an LLM to generate malicious code or show biased responses, but only when certain "secret" prompts are given.
+
+Like the ``AegisClassifier``, you must get access to Llama Guard on Hugging Face here: https://huggingface.co/meta-llama/LlamaGuard-7b.
+Afterwards, you should set up a `user access token <https://huggingface.co/docs/hub/en/security-tokens>`_ and pass that token into the constructor of this classifier.
+Here is a small example of how to use the ``InstructionDataGuardClassifier``:
+
+.. code-block:: python
+    from nemo_curator.classifiers import InstructionDataGuardClassifier
+
+    # The model expects instruction-response style text data. For example:
+    # "Instruction: {instruction}. Input: {input_}. Response: {response}."
+    files = get_all_files_paths_under("instruction_input_response_dataset/")
+    input_dataset = DocumentDataset.read_json(files, backend="cudf")
+
+    token = "hf_1234"  # Replace with your user access token
+    instruction_data_guard_classifier = InstructionDataGuardClassifier(token=token)
+    result_dataset = instruction_data_guard_classifier(dataset=input_dataset)
+    result_dataset.to_json("labeled_dataset/")
+
+In this example, the Instruction-Data-Guard model is obtained directly from `Hugging Face <https://huggingface.co/nvidia/instruction-data-guard>`_.
+The output dataset contains 2 new columns: (1) a float column called ``instruction_data_guard_poisoning_score``, which contains a probability between 0 and 1 where higher scores indicate a greater likelihood of poisoning, and (2) a boolean column called ``is_poisoned``, which is True when ``instruction_data_guard_poisoning_score`` is greater than 0.5 and False otherwise.
 
 FineWeb Educational Content Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

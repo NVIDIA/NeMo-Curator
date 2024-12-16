@@ -69,7 +69,7 @@ The following NeMo Curator modules are GPU based.
 
   * Domain Classification (English and multilingual)
   * Quality Classification
-  * AEGIS Safety Models
+  * AEGIS and Instruction-Data-Guard Safety Models
   * FineWeb Educational Content Classification
   * Content Type Classification
 

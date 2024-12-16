@@ -6,6 +6,7 @@ The Python scripts in this directory demonstrate how to run classification on yo
 - Multilingual Domain Classifier
 - Quality Classifier
 - AEGIS Safety Models
+- Instruction-Data-Guard Model
 - FineWeb Educational Content Classifier
 - Content Type Classifier
 
