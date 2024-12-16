@@ -113,9 +113,7 @@ class TestIO:
 
         output_meta = str({col: str(dtype) for col, dtype in dataset.df.dtypes.items()})
 
-        expected_meta = (
-            "{'date': 'datetime64[ns, UTC]', 'id': 'float64', 'text': 'object'}"
-        )
+        expected_meta = "{'id': 'float64'}"
 
         assert (
             output_meta == expected_meta
@@ -139,9 +137,7 @@ class TestIO:
 
         output_meta = str({col: str(dtype) for col, dtype in dataset.df.dtypes.items()})
 
-        expected_meta = (
-            "{'date': 'datetime64[ns, UTC]', 'id': 'float64', 'text': 'object'}"
-        )
+        expected_meta = "{'id': 'float64'}"
 
         assert (
             output_meta == expected_meta

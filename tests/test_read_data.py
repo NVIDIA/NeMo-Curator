@@ -321,7 +321,7 @@ def test_read_data_blocksize_add_filename_jsonl(mock_multiple_jsonl_files, backe
 def test_read_data_blocksize_add_filename_parquet(mock_multiple_parquet_files, backend):
     with pytest.raises(
         ValueError,
-        match="add_filename and blocksize cannot be set at the same time for parquet files",
+        match="add_filename and blocksize cannot be set at the same time for Parquet files",
     ):
         read_data_blocksize(
             input_files=mock_multiple_parquet_files,
