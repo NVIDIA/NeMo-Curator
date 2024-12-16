@@ -335,7 +335,7 @@ def read_single_partition(
                 ast.literal_eval(input_meta) if type(input_meta) == str else input_meta
             )
             # because pandas doesn't support `prune_columns`, it'll always return all columns even when input_meta is specified
-            # to maintain consisntency we explicitly set `io_columns` here
+            # to maintain consistency we explicitly set `io_columns` here
             if backend == "pandas" and not io_columns:
                 io_columns = list(read_kwargs["dtype"].keys())
 
@@ -395,14 +395,14 @@ def read_data_blocksize(
     postprocessing_func: Optional[Callable[[dd.DataFrame], dd.DataFrame]] = None
     if file_type == "jsonl":
         warnings.warn(
-            "If underlying jsonl data doesn't have consistent schema, reading with blocksize will fail."
-            "Use files_per_partition approach."
+            "If underlying JSONL data does not have a consistent schema, reading with blocksize will fail. "
+            "Please use files_per_partition approach instead."
         )
 
-        if backend == "panads":
+        if backend == "pandas":
             warnings.warn(
                 "Pandas backend with blocksize cannot read multiple JSONL files into a single partition. "
-                "Use files_per_partition if blocksize exceeds average file size"
+                "Please use files_per_partition if blocksize exceeds average file size."
             )
         read_func = dd.read_json
         read_kwargs["lines"] = True
@@ -434,17 +434,17 @@ def read_data_blocksize(
     elif file_type == "parquet":
         if backend == "cudf" and not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA:
             warnings.warn(
-                "If underlying parquet data doesn't have consistent schema, reading with blocksize will fail."
-                "Update underlying rapids package to 25.02+ or use files_per_partition approach."
+                "If underlying Parquet data does not have consistent schema, reading with blocksize will fail. "
+                "Please update underlying RAPIDS package to version 25.02 or higher, or use files_per_partition approach instead."
             )
         elif backend == "pandas":
             warnings.warn(
-                "If underlying parquet data doesn't have consistent column order, reading with blocksize might fail."
-                "Use files_per_partition approach."
+                "If underlying Parquet data does not have a consistent column order, reading with blocksize might fail. "
+                "Please use files_per_partition approach instead."
             )
 
         if add_filename:
-            msg = "add_filename and blocksize cannot be set at the same time for parquet files"
+            msg = "add_filename and blocksize cannot be set at the same time for Parquet files."
             raise ValueError(msg)
         read_func = dd.read_parquet
         read_kwargs["columns"] = columns
@@ -452,7 +452,7 @@ def read_data_blocksize(
         # it gets in dask (pandas) as well
         read_kwargs["aggregate_files"] = True
     else:
-        msg = f"Reading with blocksize is only supported for jsonl and parquet files, not {file_type=}"
+        msg = f"Reading with blocksize is only supported for JSONL and Parquet files, not {file_type=}"
         raise ValueError(msg)
 
     with dask.config.set({"dataframe.backend": backend}):
