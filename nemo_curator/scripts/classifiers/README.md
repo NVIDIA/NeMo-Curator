@@ -151,7 +151,7 @@ content_type_classifier_inference \
     --input-text-field "text" \
     --batch-size 64 \
     --autocast \
-    --max-chars 2000 \
+    --max-chars 5000 \
     --device "gpu"
 ```
 

@@ -68,6 +68,7 @@ class ContentTypeClassifier(DistributedDataClassifier):
     """
     ContentTypeClassifier is a text classification model designed to categorize documents into one of 11 distinct speech types based on their content.
     It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
+    The pretrained model used by this class can be found on Hugging Face here: https://huggingface.co/nvidia/content-type-classifier-deberta.
     This class is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
 
     Attributes:
@@ -77,7 +78,7 @@ class ContentTypeClassifier(DistributedDataClassifier):
         text_field (str): The field in the dataset that should be classified.
         pred_column (str): The column name where predictions will be stored. Defaults to "content_pred".
         prob_column (str, optional): The column name where prediction probabilities will be stored. Defaults to None.
-        max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 2000.
+        max_chars (int): The maximum number of characters in each document to consider for classification. Defaults to 5000.
         device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
         autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
         max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
@@ -92,7 +93,7 @@ class ContentTypeClassifier(DistributedDataClassifier):
         text_field: str = "text",
         pred_column: str = "content_pred",
         prob_column: Optional[str] = None,
-        max_chars: int = 2000,
+        max_chars: int = 5000,
         device_type: str = "cuda",
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
