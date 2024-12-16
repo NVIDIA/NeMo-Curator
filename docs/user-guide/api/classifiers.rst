@@ -5,6 +5,9 @@ Classifiers
 .. autoclass:: nemo_curator.classifiers.DomainClassifier
     :members:
 
+.. autoclass:: nemo_curator.classifiers.MultilingualDomainClassifier
+    :members:
+
 .. autoclass:: nemo_curator.classifiers.QualityClassifier
     :members:
 
@@ -12,4 +15,10 @@ Classifiers
     :members:
 
 .. autoclass:: nemo_curator.classifiers.AegisClassifier
+    :members:
+
+.. autoclass:: nemo_curator.classifiers.InstructionDataGuardClassifier
+    :members:
+
+.. autoclass:: nemo_curator.classifiers.ContentTypeClassifier
     :members:

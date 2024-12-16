@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+import os
+from functools import wraps
+from typing import Any, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 
@@ -29,26 +31,44 @@ class DocumentDataset:
     def __init__(self, dataset_df: dd.DataFrame):
         self.df = dataset_df
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.df)
 
-    def persist(self):
+    # `def persist(self) -> Self` requires Python 3.11 or higher
+    def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
-    def head(self, n=5):
+    @wraps(dd.DataFrame.repartition)
+    def repartition(self, *args, **kwargs) -> "DocumentDataset":
+        return self.__class__(self.df.repartition(*args, **kwargs))
+
+    def head(self, n: int = 5) -> Any:
         return self.df.head(n)
 
     @classmethod
     def read_json(
         cls,
         input_files: Union[str, List[str]],
-        backend: str = "pandas",
+        backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: int = 1,
         add_filename: bool = False,
         input_meta: Union[str, dict] = None,
         columns: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> "DocumentDataset":
+        """
+        Read JSONL or JSONL file(s).
+
+        Args:
+            input_files: The path of the input file(s).
+            backend: The backend to use for reading the data.
+            files_per_partition: The number of files to read per partition.
+            add_filename: Whether to add a "filename" column to the DataFrame.
+            input_meta: A dictionary or a string formatted as a dictionary, which outlines
+                the field names and their respective data types within the JSONL input file.
+            columns: If not None, only these columns will be read from the file.
+
+        """
         return cls(
             _read_json_or_parquet(
                 input_files=input_files,
@@ -65,13 +85,25 @@ class DocumentDataset:
     @classmethod
     def read_parquet(
         cls,
-        input_files,
-        backend="pandas",
-        files_per_partition=1,
-        add_filename=False,
+        input_files: Union[str, List[str]],
+        backend: Literal["pandas", "cudf"] = "pandas",
+        files_per_partition: int = 1,
+        add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> "DocumentDataset":
+        """
+        Read Parquet file(s).
+
+        Args:
+            input_files: The path of the input file(s).
+            backend: The backend to use for reading the data.
+            files_per_partition: The number of files to read per partition.
+            add_filename: Whether to add a "filename" column to the DataFrame.
+            columns: If not None, only these columns will be read from the file.
+                There is a significant performance gain when specifying columns for Parquet files.
+
+        """
         return cls(
             _read_json_or_parquet(
                 input_files=input_files,
@@ -87,13 +119,24 @@ class DocumentDataset:
     @classmethod
     def read_pickle(
         cls,
-        input_files,
-        backend="pandas",
-        files_per_partition=1,
-        add_filename=False,
+        input_files: Union[str, List[str]],
+        backend: Literal["pandas", "cudf"] = "pandas",
+        files_per_partition: int = 1,
+        add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> "DocumentDataset":
+        """
+        Read Pickle file(s).
+
+        Args:
+            input_files: The path of the input file(s).
+            backend: The backend to use for reading the data.
+            files_per_partition: The number of files to read per partition.
+            add_filename: Whether to add a "filename" column to the DataFrame.
+            columns: If not None, only these columns will be read from the file.
+
+        """
         return cls(
             read_data(
                 input_files=input_files,
@@ -108,17 +151,17 @@ class DocumentDataset:
 
     def to_json(
         self,
-        output_file_dir,
-        write_to_filename=False,
-        keep_filename_column=False,
+        output_path: str,
+        write_to_filename: bool = False,
+        keep_filename_column: bool = False,
     ):
         """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
+        See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
 
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="jsonl",
@@ -126,17 +169,17 @@ class DocumentDataset:
 
     def to_parquet(
         self,
-        output_file_dir,
-        write_to_filename=False,
-        keep_filename_column=False,
+        output_path: str,
+        write_to_filename: bool = False,
+        keep_filename_column: bool = False,
     ):
         """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for other parameters.
+        See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
 
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="parquet",
@@ -144,8 +187,8 @@ class DocumentDataset:
 
     def to_pickle(
         self,
-        output_file_dir,
-        write_to_filename=False,
+        output_path: str,
+        write_to_filename: bool = False,
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
 
@@ -190,7 +233,7 @@ class DocumentDataset:
 def _read_json_or_parquet(
     input_files: Union[str, List[str]],
     file_type: str,
-    backend: str,
+    backend: Literal["cudf", "pandas"],
     files_per_partition: int,
     add_filename: bool,
     input_meta: Union[str, dict] = None,
@@ -217,8 +260,8 @@ def _read_json_or_parquet(
     file_ext = "." + file_type
 
     if isinstance(input_files, list):
-        # List of jsonl or parquet files
-        if all(f.endswith(file_ext) for f in input_files):
+        # List of files
+        if all(os.path.isfile(f) for f in input_files):
             raw_data = read_data(
                 input_files,
                 file_type=file_type,

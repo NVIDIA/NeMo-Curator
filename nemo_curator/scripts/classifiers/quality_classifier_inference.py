@@ -17,6 +17,7 @@ import time
 import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
+
 from nemo_curator.classifiers import QualityClassifier
 from nemo_curator.datasets import DocumentDataset
 
@@ -29,7 +30,9 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    args = ArgumentHelper.parse_distributed_classifier_args().parse_args()
+    args = ArgumentHelper.parse_distributed_classifier_args(
+        description="Run quality classifier inference."
+    ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
 
     client_args = ArgumentHelper.parse_client_args(args)
@@ -60,6 +63,7 @@ def main():
         add_filename = True
 
     classifier = QualityClassifier(
+        text_field=args.input_text_field,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
         autocast=args.autocast,
@@ -83,7 +87,7 @@ def main():
 
         write_to_disk(
             df=df,
-            output_file_dir=args.output_data_dir,
+            output_path=args.output_data_dir,
             write_to_filename=add_filename,
             output_type=args.output_file_type,
         )

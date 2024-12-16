@@ -184,7 +184,7 @@ Python API
     from nemo_curator import FuzzyDuplicatesConfig
 
     config = FuzzyDuplicatesConfig(
-        cache_dir="/path/to/dedup_outputs",
+        cache_dir="/path/to/dedup_outputs", # must be cleared between runs
         id_field="my_id",
         text_field="text",
         seed=42,
@@ -251,7 +251,7 @@ Python API
   - The default values of ``num_buckets`` and ``hashes_per_bucket`` are set to find documents with an approximately Jaccard similarity of 0.8 or above.
   - Higher ``buckets_per_shuffle`` values can lead to better performance but might lead to out of memory errors.
   - Setting the ``false_positive_check`` flag to ``False`` is ideal for optimal performance.
-  - Clear the ``cache_dir`` between runs to avoid data from previous runs interfering with the current run's results.
+  - When setting the ``false_positive_check`` flag to ``True`` ensure ``cache_dir`` between runs is emptied to avoid data from previous runs interfering with the current run's results.
 
 """"""""""""
 CLI Utility
@@ -314,6 +314,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --num-bands num_bands \
                  --buckets-per-shuffle 1 `#Value between [1-num_bands]. Higher is better but might lead to OOM` \
                  --log-dir ./
+                 # --false-positive-check `#Writes bucket ID's in a format required for the false positive check`
                  # --scheduler-file /path/to/file.json
 
 3. False Positive Check (optional): If skipping this step, proceed to the :ref:`skip fp check section <fuzzydup_nofp>`.
@@ -376,7 +377,8 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
 
        .. code-block:: bash
 
-               python buckets_to_edges.py \
+               # same as `python buckets_to_edges.py`
+               buckets_to_edges \
                  --input-bucket-dir /path/to/dedup_output/_buckets.parquet \
                  --output-dir /path/to/dedup_output \
                  --input-json-id-field id_column_name

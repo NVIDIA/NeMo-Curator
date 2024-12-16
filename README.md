@@ -28,7 +28,7 @@ All of our text pipelines have great multilingual support.
 - [Heuristic Filtering](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
 - Classifier Filtering
   - [fastText](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html)
-  - GPU-Accelerated models: [Domain, Quality, and Safety Classification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
+  - GPU-Accelerated models: [Domain (English and multilingual), Quality, Safety, Educational Content, and Content Type Classification](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html)
 - **GPU-Accelerated Deduplication**
   - [Exact Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html)
   - [Fuzzy Deduplication](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/gpudeduplication.html) via MinHash Locality Sensitive Hashing
@@ -83,14 +83,12 @@ You can get NeMo-Curator in 3 ways.
 #### PyPi
 
 ```bash
-pip install cython
 pip install --extra-index-url https://pypi.nvidia.com nemo-curator[all]
 ```
 
 #### Source
 ```bash
 git clone https://github.com/NVIDIA/NeMo-Curator.git
-pip install cython
 pip install --extra-index-url https://pypi.nvidia.com "./NeMo-Curator[all]"
 ```
 
@@ -119,17 +117,17 @@ pip install --extra-index-url https://pypi.nvidia.com nemo-curator[all] # Instal
 
 #### Using Nightly Dependencies for RAPIDS
 
-You can also install NeMo Curator using the [RAPIDS Nightly Builds](https://docs.rapids.ai/install). To do so, you can set the environment variable `RAPIDS_NIGHTLY=1`.
+You can also install NeMo Curator using the [RAPIDS Nightly Builds](https://docs.rapids.ai/install):
 
 ```bash
-# installing from pypi
-RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple "nemo-curator[cuda12x]"
+# Installing from PyPi
+pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple "nemo-curator[cuda12x_nightly]"
 
-# installing from source
-RAPIDS_NIGHTLY=1 pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple ".[cuda12x]"
+# Installing from source
+pip install --extra-index-url=https://pypi.anaconda.org/rapidsai-wheels-nightly/simple "./NeMo-Curator[cuda12x_nightly]"
 ```
 
-When the `RAPIDS_NIGHTLY` variable is set to 0 (which is the default), it will use the stable version of RAPIDS.
+For the image curation modules and all modules, you can use `[image_nightly]` and `[all_nightly]`, respectively.
 
 ## Use NeMo Curator
 ### Python API Quick Example
@@ -160,7 +158,7 @@ To get started with NeMo Curator, you can follow the tutorials [available here](
 
 - [`tinystories`](https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials/tinystories) which focuses on data curation for training LLMs from scratch.
 - [`peft-curation`](https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials/peft-curation) which focuses on data curation for LLM parameter-efficient fine-tuning (PEFT) use-cases.
-- [`distributed_data_classification`](https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials/distributed_data_classification) which focuses on using the quality and domain classifiers to help with data annotation.
+- [`distributed_data_classification`](https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials/distributed_data_classification) which focuses on using the domain and quality classifiers to help with data annotation.
 - [`single_node_tutorial`](https://github.com/NVIDIA/NeMo-Curator/tree/main/tutorials/single_node_tutorial) which demonstrates an end-to-end data curation pipeline for curating Wikipedia data in Thai.
 - [`image-curation`](https://github.com/NVIDIA/NeMo-Curator/blob/main/tutorials/image-curation/image-curation.ipynb) which explores the scalable image curation modules.
 
