@@ -47,7 +47,7 @@ dependencies = [
     "dask[complete]>=2021.7.1",
     "datasets",
     "distributed>=2021.7.1",
-    "fasttext==0.9.2",
+    "fasttext==0.9.3",
     "ftfy==6.1.1",
     "in-place==0.5.0",
     "jieba==0.42.1",
