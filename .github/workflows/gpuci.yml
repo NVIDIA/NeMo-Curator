@@ -68,6 +68,7 @@ jobs:
         if [ "$(docker ps -aq -f name=${{ env.CONTAINER_NAME }})" ]; then
           docker rm -f ${{ env.CONTAINER_NAME }}
         fi
+
     # This runs the container which was pushed by build-container, which we call "nemo-curator-container"
     # `--gpus all` ensures that all of the GPUs from our self-hosted-azure runner are available in the container
     # We use "github.run_id" to identify the PR with the commits we want to run the PyTests with
@@ -80,9 +81,12 @@ jobs:
 
     # In the virtual environment (called "curator") we created in the container,
     # list all of our packages. Useful for debugging
-    - name: Verify installations
+    # Expect `whoami` to be "azureuser"
+    # Expect `nvidia-smi` to show our 2 A100 GPUs
+    - name: Check GPUs + Verify installations
       run: |
           echo "Checking system user:"
+          whoami
           docker exec ${{ env.CONTAINER_NAME }} whoami
           echo "Checking GPU availability:"
           docker exec ${{ env.CONTAINER_NAME }} nvidia-smi
@@ -100,4 +104,4 @@ jobs:
       # Thus, we use `docker rm` to permanently removed it from the system
     - name: Cleanup
       if: always()
-      run: docker rm -f ${{ env.CONTAINER_NAME }} || true
+      run: docker stop ${{ env.CONTAINER_NAME }} && docker rm ${{ env.CONTAINER_NAME }}
