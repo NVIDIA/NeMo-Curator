@@ -5,9 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches:
+      # We can run gpuCI on any PR targeting these branches
       - 'main'
       - '[rv][0-9].[0-9].[0-9]'
       - '[rv][0-9].[0-9].[0-9]rc[0-9]'
+    # PR has to be labeled with "gpuCI" label
+    # If new commits are added, the "gpuCI" label has to be removed and re-added to rerun gpuCI
     types: [labeled]
 
 concurrency:
@@ -16,7 +19,9 @@ concurrency:
 
 # Reusable job templates
 jobs:
+  # First, we build and push a NeMo-Curator container
   build-container:
+    # "build-container" job is run if the "gpuci" label is added to the PR
     if: ${{ github.event.label.name == 'gpuci' || github.ref == 'refs/heads/main' }}
     strategy:
       matrix:
@@ -36,10 +41,13 @@ jobs:
         CURATOR_COMMIT=${{ github.sha }}
         BUILD_TYPE=${{ matrix.type }}
       prune-filter-timerange: 24h
-
+  # Then, we run our PyTests in the container we just built
   run-gpu-tests:
     needs: build-container
+    # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
+    # It has 2 A100 GPUs
     runs-on: self-hosted-azure
+    # "run-gpu-tests" job is run if the "gpuci" label is added to the PR
     if: ${{ github.event.label.name == 'gpuci' || github.ref == 'refs/heads/main' }}
     strategy:
       matrix:
@@ -54,32 +62,42 @@ jobs:
       IMAGE_NAME: nemoci.azurecr.io/nemo_curator_container${{ matrix.image-suffix }}:${{ github.run_id }}
 
     steps:
-      - name: Cleanup existing container
-        run: docker rm -f ${{ env.CONTAINER_NAME }} || true
+      # If something went wrong during the last cleanup, this step ensures any existing container is removed
+    - name: Remove existing container if it exists
+      run: |
+        if [ "$(docker ps -aq -f name=${{ env.CONTAINER_NAME }})" ]; then
+          docker rm -f ${{ env.CONTAINER_NAME }}
+        fi
+    # This runs the container which was pushed by build-container, which we call "nemo-curator-container"
+    # `--gpus all` ensures that all of the GPUs from our self-hosted-azure runner are available in the container
+    # We use "github.run_id" to identify the PR with the commits we want to run the PyTests with
+    # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
+    - name: Run Docker container
+      run: |
+        docker run --gpus all --name ${{ env.CONTAINER_NAME }} \
+          -d ${{ env.IMAGE_NAME }} \
+          bash -c "sleep infinity"
 
-      - name: Run container
-        run: |
-          docker run --gpus all \
-            --name ${{ env.CONTAINER_NAME }} \
-            -d ${{ env.IMAGE_NAME }} \
-            bash -c "sleep infinity"
-
-      - name: Verify environment
-        run: |
+    # In the virtual environment (called "curator") we created in the container,
+    # list all of our packages. Useful for debugging
+    - name: Verify installations
+      run: |
           echo "Checking system user:"
           docker exec ${{ env.CONTAINER_NAME }} whoami
           echo "Checking GPU availability:"
           docker exec ${{ env.CONTAINER_NAME }} nvidia-smi
           echo "Checking installed packages:"
           docker exec ${{ env.CONTAINER_NAME }} pip list
-
-      - name: Run GPU tests
-        run: |
-          docker exec ${{ env.CONTAINER_NAME }} \
-            pytest -m gpu \
-            --rootdir /opt/NeMo-Curator \
-            /opt/NeMo-Curator/tests
-
-      - name: Cleanup
-        if: always()
-        run: docker rm -f ${{ env.CONTAINER_NAME }} || true
+    # In the virtual environment (called "curator") we created in the container,
+    # run our PyTests marked with `@pytest.mark.gpu`
+    # We specify the `rootdir` to help locate the "pyproject.toml" file (which is in the root directory of the repository),
+    # and then the directory where the PyTests are located
+    - name: Run PyTests with GPU mark
+      run: |
+          docker exec ${{ env.CONTAINER_NAME }} pytest -m gpu --rootdir /opt/NeMo-Curator /opt/NeMo-Curator/tests
+      # After running `docker stop`, the container remains in an exited state
+      # It is still present on our system and could be restarted with `docker start`
+      # Thus, we use `docker rm` to permanently removed it from the system
+    - name: Cleanup
+      if: always()
+      run: docker rm -f ${{ env.CONTAINER_NAME }} || true
