@@ -1,12 +1,14 @@
 ## Text Classification
 
-The Python scripts in this directory demonstrate how to run classification on your text data with each of these 5 classifiers:
+The Python scripts in this directory demonstrate how to run classification on your text data with each of these classifiers:
 
 - Domain Classifier
 - Multilingual Domain Classifier
 - Quality Classifier
 - AEGIS Safety Models
+- Instruction-Data-Guard Model
 - FineWeb Educational Content Classifier
+- Content Type Classifier
 
 For more information about these classifiers, please see NeMo Curator's [Distributed Data Classification documentation](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html).
 
@@ -96,6 +98,27 @@ aegis_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `aegis_classifier_inference --help` for more information.
 
+#### Instruction-Data-Guard classifier inference
+
+```bash
+# same as `python instruction_data_guard_classifier_inference.py`
+instruction_data_guard_classifier_inference \
+    --input-data-dir /path/to/data/directory \
+    --output-data-dir /path/to/output/directory \
+    --input-file-type "jsonl" \
+    --input-file-extension "jsonl" \
+    --output-file-type "jsonl" \
+    --input-text-field "text" \
+    --batch-size 64 \
+    --max-chars 6000 \
+    --device "gpu" \
+    --token "hf_1234"
+```
+
+In the above example, `--token` is your HuggingFace token, which is used when downloading the base Llama Guard model.
+
+Additional arguments may be added for customizing a Dask cluster and client. Run `instruction_data_guard_classifier_inference --help` for more information.
+
 #### FineWeb-Edu classifier inference
 
 ```bash
@@ -114,3 +137,22 @@ fineweb_edu_classifier_inference \
 ```
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_edu_classifier_inference --help` for more information.
+
+#### Content type classifier inference
+
+```bash
+# same as `python content_type_classifier_inference.py`
+content_type_classifier_inference \
+    --input-data-dir /path/to/data/directory \
+    --output-data-dir /path/to/output/directory \
+    --input-file-type "jsonl" \
+    --input-file-extension "jsonl" \
+    --output-file-type "jsonl" \
+    --input-text-field "text" \
+    --batch-size 64 \
+    --autocast \
+    --max-chars 5000 \
+    --device "gpu"
+```
+
+Additional arguments may be added for customizing a Dask cluster and client. Run `content_type_classifier_inference --help` for more information.

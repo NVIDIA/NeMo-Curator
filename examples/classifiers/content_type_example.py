@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator.classifiers import DomainClassifier
+from nemo_curator.classifiers import ContentTypeClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -36,14 +36,14 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    domain_classifier = DomainClassifier(filter_by=["Games", "Sports"])
-    result_dataset = domain_classifier(dataset=input_dataset)
+    content_type_classifier = ContentTypeClassifier(filter_by=["Blogs", "News"])
+    result_dataset = content_type_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_path=output_file_path, write_to_filename=True)
 
     global_et = time.time()
     print(
-        f"Total time taken for domain classifier inference: {global_et-global_st} s",
+        f"Total time taken for content type classifier inference: {global_et-global_st} s",
         flush=True,
     )
 

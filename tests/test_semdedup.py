@@ -56,6 +56,7 @@ class TestSemDuplicates:
             request.cls.cluster = cluster
             yield
 
+    @pytest.mark.skip(reason="TODO: Hangs indefinitely with RAPIDS 24.12")
     def test_sem_dedup(
         self,
         dedup_data,
