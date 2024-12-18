@@ -42,7 +42,7 @@ class PromptTaskComplexityConfig:
 
 class MeanPooling(nn.Module):
     def __init__(self):
-        super(MeanPooling, self).__init__()
+        super().__init__()
 
     def forward(self, last_hidden_state, attention_mask):
         input_mask_expanded = (
@@ -59,7 +59,7 @@ class MeanPooling(nn.Module):
 
 class MulticlassHead(nn.Module):
     def __init__(self, input_size, num_classes):
-        super(MulticlassHead, self).__init__()
+        super().__init__()
         self.fc = nn.Linear(input_size, num_classes)
 
     def forward(self, x):
@@ -69,7 +69,7 @@ class MulticlassHead(nn.Module):
 
 class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
     def __init__(self, config: dataclass):
-        super(CustomHFDeberta, self).__init__()
+        super().__init__()
 
         self.backbone = AutoModel.from_pretrained(config["base_model"])
         self.target_sizes = config["target_sizes"].values()
