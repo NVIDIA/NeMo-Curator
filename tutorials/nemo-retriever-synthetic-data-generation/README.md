@@ -45,7 +45,7 @@ Navigate to the [quick start notebook](notebooks/quickstart.ipynb) and follow th
 
 ### Run Pipeline (CLI)
 
-The pipeline can be run with datasets in rawdoc (only text, title and ids if any) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl```
+The pipeline can be run with datasets in rawdoc (only text, title and ids if any) format. To test the pipeline, you can use the provided example data at [```sample_data/sample_data_rawdoc.jsonl```](sample_data/sample_data_rawdoc.jsonl)
 
 Navigate to the top level of this project directory and run the following command in your command line. It will take roughly 5-10 minutes.
 
