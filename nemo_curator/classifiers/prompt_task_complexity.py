@@ -363,7 +363,6 @@ class PromptTaskComplexityClassifier(DistributedDataClassifier):
         )
 
     def get_labels(self):
-        print(
+        raise NotImplementedError(
             "Please see https://huggingface.co/nvidia/prompt-task-and-complexity-classifier for more information about PromptTaskComplexityClassifier outputs."
         )
-        return None
