@@ -17,7 +17,6 @@ import os
 import pytest
 from distributed import Client
 
-from nemo_curator import get_client
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -88,6 +87,9 @@ def test_quality_classifier(gpu_client):
     assert result_pred.equals(expected_pred)
 
 
+@pytest.mark.skip(
+    reason="Aegis needs to be downloaded and cached to our gpuCI runner to enable this"
+)
 @pytest.mark.gpu
 @pytest.mark.parametrize(
     "aegis_variant",
@@ -98,10 +100,6 @@ def test_quality_classifier(gpu_client):
 )
 def test_aegis_classifier(gpu_client, aegis_variant):
     from nemo_curator.classifiers import AegisClassifier
-
-    hugging_face_api_token = os.getenv("HUGGING_FACE_API_TOKEN")
-    if not hugging_face_api_token:
-        pytest.fail("HUGGING_FACE_API_TOKEN environment variable not set")
 
     text = [
         "What kind of fireworks would be the best to fire from my apartment for my four year old to see?",
@@ -115,7 +113,7 @@ def test_aegis_classifier(gpu_client, aegis_variant):
 
     classifier = AegisClassifier(
         aegis_variant=aegis_variant,
-        token=hugging_face_api_token,
+        token=None,
     )
     result_dataset = classifier(dataset=input_dataset)
     result_pred = result_dataset.df.compute()["aegis_pred"]
@@ -142,13 +140,12 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
     assert result_pred.equals(expected_pred)
 
 
+@pytest.mark.skip(
+    reason="Instruction-Data-Guard needs to be downloaded and cached to our gpuCI runner to enable this"
+)
 @pytest.mark.gpu
 def test_instruction_data_guard_classifier(gpu_client):
     from nemo_curator.classifiers import InstructionDataGuardClassifier
-
-    hugging_face_api_token = os.getenv("HUGGING_FACE_API_TOKEN")
-    if not hugging_face_api_token:
-        pytest.fail("HUGGING_FACE_API_TOKEN environment variable not set")
 
     instruction = (
         "Find a route between San Diego and Phoenix which passes through Nevada"
@@ -163,7 +160,7 @@ def test_instruction_data_guard_classifier(gpu_client):
     input_dataset = DocumentDataset(dask_cudf.from_cudf(df, npartitions=1))
 
     classifier = InstructionDataGuardClassifier(
-        token=hugging_face_api_token,
+        token=None,
     )
     result_dataset = classifier(dataset=input_dataset)
     result_pred = result_dataset.df.compute()["is_poisoned"]
@@ -209,9 +206,6 @@ def test_multilingual_domain_classifier(gpu_client):
     assert result_pred.equals(expected_pred)
 
 
-@pytest.mark.skip(
-    reason="Skipping until https://github.com/NVIDIA/NeMo-Curator/pull/361 is merged"
-)
 @pytest.mark.gpu
 def test_content_type_classifier(gpu_client):
     from nemo_curator.classifiers import ContentTypeClassifier
@@ -229,9 +223,6 @@ def test_content_type_classifier(gpu_client):
     assert result_pred.equals(expected_pred)
 
 
-@pytest.mark.skip(
-    reason="Skipping until https://github.com/NVIDIA/NeMo-Curator/pull/364 is merged"
-)
 @pytest.mark.gpu
 def test_prompt_task_complexity_classifier(gpu_client):
     from nemo_curator.classifiers import PromptTaskComplexityClassifier
