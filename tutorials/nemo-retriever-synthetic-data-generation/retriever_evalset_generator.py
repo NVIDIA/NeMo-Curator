@@ -39,7 +39,10 @@ from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.synthetic import AsyncNemotronGenerator, NemotronGenerator
 from nemo_curator.synthetic.generator import SyntheticDataGenerator
 
-from .config.config import RetrieverEvalSDGConfig
+config = importlib.import_module(
+    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
+)
+RetrieverEvalSDGConfig = config.RetrieverEvalSDGConfig
 
 
 # ----------------------------------------------------------------------------80
