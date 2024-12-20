@@ -709,12 +709,12 @@ def single_partition_write_with_filename(
         success_ser = pd.Series([empty_partition])
 
     if not empty_partition:
-        filenames = df.filename.unique()
+        filenames = df.file_name.unique()
         filenames = list(filenames.values_host) if is_cudf_type(df) else list(filenames)
         num_files = len(filenames)
 
         for filename in filenames:
-            out_df = df[df.filename == filename] if num_files > 1 else df
+            out_df = df[df.file_name == filename] if num_files > 1 else df
             if not keep_filename_column:
                 out_df = out_df.drop("file_name", axis=1)
 
@@ -890,7 +890,7 @@ def write_to_disk(
                 os.makedirs(output_path, exist_ok=True)
                 tmp_output_file_dir = os.path.join(output_path, ".tmp")
                 os.makedirs(tmp_output_file_dir, exist_ok=True)
-                file_name = os.path.basename(list(df.filename.unique())[0])
+                file_name = os.path.basename(list(df.file_name.unique())[0])
             else:
                 tmp_output_file_dir = os.path.join(output_path, ".tmp")
                 os.makedirs(tmp_output_file_dir, exist_ok=True)
