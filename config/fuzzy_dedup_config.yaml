@@ -1,4 +1,3 @@
-cache_dir: "./fuzzy_dedup_cache"
 # Optional Params below with default values
 # profile_dir: null
 # id_field: "id"

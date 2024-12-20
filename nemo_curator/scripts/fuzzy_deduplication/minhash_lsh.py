@@ -21,6 +21,7 @@ import dask_cudf
 import numpy as np
 
 from nemo_curator import LSH
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client
@@ -37,6 +38,8 @@ def main(args):
         rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="lsh_log"
     )
     logger.info(f"Starting workflow with args:\n {args}")
+
+    initialize_cache_directory(args.output_bucket_dir)
 
     assert args.device == "gpu"
     client = get_client(**ArgumentHelper.parse_client_args(args))
@@ -64,7 +67,6 @@ def main(args):
     )
 
     lsh = LSH(
-        cache_dir=args.output_bucket_dir,
         num_hashes=args.minhash_length,
         num_buckets=args.num_bands,
         buckets_per_shuffle=args.buckets_per_shuffle,
