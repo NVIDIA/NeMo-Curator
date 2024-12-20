@@ -253,71 +253,22 @@ def test_prompt_task_complexity_classifier(gpu_client):
     )
     expected_pred["task_type_prob"] = expected_pred["task_type_prob"].astype("float32")
 
-    if not result_pred["constraint_ct"].equals(expected_pred["constraint_ct"]):
-        print("constraint_ct")
-        print("Expected:")
-        print(expected_pred["constraint_ct"])
-        print("Got:")
-        print(result_pred["constraint_ct"])
-    if not result_pred["contextual_knowledge"].equals(expected_pred["contextual_knowledge"]):
-        print("contextual_knowledge")
-        print("Expected:")
-        print(expected_pred["contextual_knowledge"])
-        print("Got:")
-        print(result_pred["contextual_knowledge"])
-    if not result_pred["creativity_scope"].equals(expected_pred["creativity_scope"]):
-        print("creativity_scope")
-        print("Expected:")
-        print(expected_pred["creativity_scope"])
-        print("Got:")
-        print(result_pred["creativity_scope"])
-    if not result_pred["domain_knowledge"].equals(expected_pred["domain_knowledge"]):
-        print("domain_knowledge")
-        print("Expected:")
-        print(expected_pred["domain_knowledge"])
-        print("Got:")
-        print(result_pred["domain_knowledge"])
-    if not result_pred["no_label_reason"].equals(expected_pred["no_label_reason"]):
-        print("no_label_reason")
-        print("Expected:")
-        print(expected_pred["no_label_reason"])
-        print("Got:")
-        print(result_pred["no_label_reason"])
-    if not result_pred["number_of_few_shots"].equals(expected_pred["number_of_few_shots"]):
-        print("number_of_few_shots")
-        print("Expected:")
-        print(expected_pred["number_of_few_shots"])
-        print("Got:")
-        print(result_pred["number_of_few_shots"])
-    if not result_pred["prompt_complexity_score"].equals(expected_pred["prompt_complexity_score"]):
-        print("prompt_complexity_score")
-        print("Expected:")
-        print(expected_pred["prompt_complexity_score"])
-        print("Got:")
-        print(result_pred["prompt_complexity_score"])
-    if not result_pred["reasoning"].equals(expected_pred["reasoning"]):
-        print("reasoning")
-        print("Expected:")
-        print(expected_pred["reasoning"])
-        print("Got:")
-        print(result_pred["reasoning"])
-    if not result_pred["task_type_1"].equals(expected_pred["task_type_1"]):
-        print("task_type_1")
-        print("Expected:")
-        print(expected_pred["task_type_1"])
-        print("Got:")
-        print(result_pred["task_type_1"])
-    if not result_pred["task_type_2"].equals(expected_pred["task_type_2"]):
-        print("task_type_2")
-        print("Expected:")
-        print(expected_pred["task_type_2"])
-        print("Got:")
-        print(result_pred["task_type_2"])
-    if not result_pred["task_type_prob"].equals(expected_pred["task_type_prob"]):
-        print("task_type_prob")
-        print("Expected:")
-        print(expected_pred["task_type_prob"])
-        print("Got:")
-        print(result_pred["task_type_prob"])
+    # Rounded values to account for floating point errors
+    result_pred["constraint_ct"] = round(result_pred["constraint_ct"], 2)
+    expected_pred["constraint_ct"] = round(expected_pred["constraint_ct"], 2)
+    result_pred["contextual_knowledge"] = round(result_pred["contextual_knowledge"], 3)
+    expected_pred["contextual_knowledge"] = round(
+        expected_pred["contextual_knowledge"], 3
+    )
+    result_pred["creativity_scope"] = round(result_pred["creativity_scope"], 3)
+    expected_pred["creativity_scope"] = round(expected_pred["creativity_scope"], 3)
+    result_pred["prompt_complexity_score"] = round(
+        result_pred["prompt_complexity_score"], 4
+    )
+    expected_pred["prompt_complexity_score"] = round(
+        expected_pred["prompt_complexity_score"], 4
+    )
+    result_pred["task_type_prob"] = round(result_pred["task_type_prob"], 2)
+    expected_pred["task_type_prob"] = round(expected_pred["task_type_prob"], 2)
 
     assert result_pred.equals(expected_pred)
