@@ -18,7 +18,7 @@ import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 
-from nemo_curator.classifiers import FineWebEduClassifier
+from nemo_curator.classifiers import InstructionDataGuardClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -30,15 +30,13 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    args = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run FineWeb-Edu classifier inference."
-    ).parse_args()
+    args = attach_args().parse_args()
     print(f"Arguments parsed = {args}", flush=True)
 
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting FineWeb-Edu classifier inference", flush=True)
+    print("Starting Instruction-Data-Guard classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
@@ -62,11 +60,11 @@ def main():
     else:
         add_filename = True
 
-    fineweb_edu_classifier = FineWebEduClassifier(
+    instruction_data_guard_classifier = InstructionDataGuardClassifier(
+        token=args.token,
         text_field=args.input_text_field,
-        batch_size=args.batch_size,
-        autocast=args.autocast,
         max_chars=args.max_chars,
+        batch_size=args.batch_size,
         max_mem_gb=args.max_mem_gb_classifier,
     )
 
@@ -82,7 +80,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = fineweb_edu_classifier(DocumentDataset(df)).df
+        df = instruction_data_guard_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(
@@ -99,10 +97,26 @@ def main():
 
     global_et = time.time()
     print(
-        f"Total time taken for FineWeb-Edu classifier inference: {global_et-global_st} s",
+        f"Total time taken for Instruction-Data-Guard classifier inference: {global_et-global_st} s",
         flush=True,
     )
     client.close()
+
+
+def attach_args():
+    parser = ArgumentHelper.parse_distributed_classifier_args(
+        description="Run Instruction-Data-Guard classifier inference.",
+        max_chars_default=6000,
+    )
+
+    parser.add_argument(
+        "--token",
+        type=str,
+        default=None,
+        help="Hugging Face token to use when downloading the base Llama Guard model.",
+    )
+
+    return parser
 
 
 def console_script():

@@ -18,7 +18,7 @@ import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 
-from nemo_curator.classifiers import FineWebEduClassifier
+from nemo_curator.classifiers import ContentTypeClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -31,14 +31,13 @@ warnings.filterwarnings("ignore")
 
 def main():
     args = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run FineWeb-Edu classifier inference."
+        description="Run content type classifier inference."
     ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
-
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting FineWeb-Edu classifier inference", flush=True)
+    print("Starting content type classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
@@ -62,11 +61,11 @@ def main():
     else:
         add_filename = True
 
-    fineweb_edu_classifier = FineWebEduClassifier(
+    content_type_classifier = ContentTypeClassifier(
         text_field=args.input_text_field,
+        max_chars=args.max_chars,
         batch_size=args.batch_size,
         autocast=args.autocast,
-        max_chars=args.max_chars,
         max_mem_gb=args.max_mem_gb_classifier,
     )
 
@@ -82,7 +81,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = fineweb_edu_classifier(DocumentDataset(df)).df
+        df = content_type_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(
@@ -99,7 +98,7 @@ def main():
 
     global_et = time.time()
     print(
-        f"Total time taken for FineWeb-Edu classifier inference: {global_et-global_st} s",
+        f"Total time taken for content type classifier inference: {global_et-global_st} s",
         flush=True,
     )
     client.close()

@@ -12,7 +12,7 @@ Here are the methods in increasing order of compute required for them.
 
 #. `fastText <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/qualityfiltering.html#classifier-filtering>`_ is an n-gram based bag-of-words classifier. It is typically trained on a high quality reference corpus and a low quality corpus (typically unfiltered Common Crawl dumps). While NeMo Curator does not provide pretrained versions of the classifier, training it is incredibly fast and easy. It only requires 100,000 - 1,000,000 text samples to train on, and can complete training in mere seconds. Its small size also allows it to train and run inference on the CPU. Due to these factors, we recommend using fastText classifiers on large scale pretraining datasets where you don't have the compute budget for more sophisticated methods.
 
-#. `BERT-style classifiers <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html>`_ - NeMo Curator's distributed data classification modules work with many BERT-style classifiers for `domain classification <https://huggingface.co/nvidia/domain-classifier>`_, quality classification, and more. For this comparison, we'll focus on just the text quality classifier. NeMo Curator provides a pretrained version of the classifier on HuggingFace and NGC that can be immediately used. We recommend using these classifiers towards the end of your data filtering pipeline for pretraining.
+#. `BERT-style classifiers <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/distributeddataclassification.html>`_ - NeMo Curator's distributed data classification modules work with many BERT-style classifiers for `domain classification <https://huggingface.co/nvidia/domain-classifier>`_, `quality classification <https://huggingface.co/nvidia/quality-classifier-deberta>`_, and more. For this comparison, we'll focus on just the text quality classifier. NeMo Curator provides a pretrained version of the classifier on HuggingFace and NGC that can be immediately used. We recommend using these classifiers towards the end of your data filtering pipeline for pretraining.
 
 #. `Language model labelling <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html>`_ - Language models can be used to label text as high quality or low quality. NeMo Curator allows you to connect to arbitrary LLM inference endpoints which you can use to label your data. One example of such an endpoint would be Nemotron-4 340B Instruct on `build.nvidia.com <https://build.nvidia.com/explore/discover#nemotron-4-340b-instruct>`_. Due to their size, these models can require a lot of compute and are usually infeasible to run across an entire pretraining dataset. We recommend using these large models on very little amounts of data. Fine-tuning datasets can make good use of them.
 
@@ -23,6 +23,16 @@ Handling GPU Out-of-Memory (OOM) Errors
 -------------------------------------------
 NeMo Curator is designed to be scalable with large amounts of text data, but OOM errors occur when the available GPU memory is insufficient for a given task.
 To help avoid these issues and ensure efficient processing, here are some strategies for managing memory usage and mitigating OOM challenges.
+
+Controlling Partition Sizes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The user should consider using ``files_per_partition`` or ``blocksize`` when reading data. This can help reduce the memory load by processing large datasets in smaller chunks.
+
+#. The ``blocksize`` argument is available for ``jsonl`` and ``parquet`` files. However, for `parquet` files, it is currently only available when ``add_filename=False``.
+
+#. For the ``blocksize`` parameter, the recommendation is to use 1/32 of the total GPU memory. For example, if you have a GPU with 32GB of memory, you can set ``blocksize="1GB"``.
+
 
 Utilize RMM Options
 ~~~~~~~~~~~~~~~~~~~
@@ -58,6 +68,7 @@ Alternatively, you can set these flags while initializing your own Dask client, 
   )
 
   client = Client(cluster)
+
 
 Fuzzy Deduplication Guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
