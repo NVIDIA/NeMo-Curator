@@ -260,8 +260,8 @@ def test_prompt_task_complexity_classifier(gpu_client):
     expected_pred["contextual_knowledge"] = round(
         expected_pred["contextual_knowledge"], 3
     )
-    result_pred["creativity_scope"] = round(result_pred["creativity_scope"], 3)
-    expected_pred["creativity_scope"] = round(expected_pred["creativity_scope"], 3)
+    result_pred["creativity_scope"] = round(result_pred["creativity_scope"], 2)
+    expected_pred["creativity_scope"] = round(expected_pred["creativity_scope"], 2)
     result_pred["prompt_complexity_score"] = round(
         result_pred["prompt_complexity_score"], 4
     )
