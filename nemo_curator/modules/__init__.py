@@ -33,10 +33,6 @@ from .task import TaskDecontamination
 # GPU packages
 MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.minhash", "MinHash")
 LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.lsh", "LSH")
-_MapBuckets = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup._mapbuckets", "_MapBuckets"
-)
-_Shuffle = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup._shuffle", "_Shuffle")
 JaccardSimilarity = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup.jaccardsimilarity", "JaccardSimilarity"
 )
@@ -82,8 +78,6 @@ __all__ = [
     "TaskDecontamination",
     "MinHash",
     "LSH",
-    "_MapBuckets",
-    "_Shuffle",
     "JaccardSimilarity",
     "BucketsToEdges",
     "ConnectedComponents",
