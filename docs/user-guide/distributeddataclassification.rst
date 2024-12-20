@@ -61,7 +61,7 @@ Let's see how ``DomainClassifier`` works in a small excerpt taken from ``example
 
     from nemo_curator.classifiers import DomainClassifier
 
-    files = get_all_files_paths_under("books_dataset/")
+    files = get_all_files_paths_under("books_dataset/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     domain_classifier = DomainClassifier(filter_by=["Games", "Sports"])
@@ -83,7 +83,7 @@ Using the ``MultilingualDomainClassifier`` is very similar to using the ``Domain
 
     from nemo_curator.classifiers import MultilingualDomainClassifier
 
-    files = get_all_files_paths_under("japanese_books_dataset/")
+    files = get_all_files_paths_under("japanese_books_dataset/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     multilingual_domain_classifier = MultilingualDomainClassifier(
@@ -106,7 +106,7 @@ Here's an example of how to use the ``QualityClassifier``:
 
     from nemo_curator.classifiers import QualityClassifier
 
-    files = get_all_files_paths_under("web_documents/")
+    files = get_all_files_paths_under("web_documents/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     quality_classifier = QualityClassifier(filter_by=["High", "Medium"])
@@ -134,7 +134,7 @@ NeMo Curator provides an easy way to annotate and filter your data using the saf
 
 .. code-block:: python
 
-    files = get_all_files_paths_under("unsafe_documents/")
+    files = get_all_files_paths_under("unsafe_documents/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     token = "hf_1234"  # Replace with your user access token
@@ -181,7 +181,7 @@ Here is a small example of how to use the ``InstructionDataGuardClassifier``:
 
     # The model expects instruction-response style text data. For example:
     # "Instruction: {instruction}. Input: {input_}. Response: {response}."
-    files = get_all_files_paths_under("instruction_input_response_dataset/")
+    files = get_all_files_paths_under("instruction_input_response_dataset/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     token = "hf_1234"  # Replace with your user access token
@@ -210,7 +210,7 @@ To use the FineWeb Educational Content Classifier, you can follow this example:
 
     from nemo_curator.classifiers import FineWebEduClassifier
 
-    files = get_all_files_paths_under("web_documents/")
+    files = get_all_files_paths_under("web_documents/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     edu_classifier = FineWebEduClassifier(
@@ -247,7 +247,7 @@ Let's see how ``ContentTypeClassifier`` works in a small excerpt taken from ``ex
 
     from nemo_curator.classifiers import ContentTypeClassifier
 
-    files = get_all_files_paths_under("books_dataset/")
+    files = get_all_files_paths_under("books_dataset/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     content_type_classifier = ContentTypeClassifier(filter_by=["Blogs", "News"])
@@ -269,7 +269,7 @@ Here's an example of how to use the ``PromptTaskComplexityClassifier``:
 
     from nemo_curator.classifiers import PromptTaskComplexityClassifier
 
-    files = get_all_files_paths_under("my_dataset/")
+    files = get_all_files_paths_under("my_dataset/", keep_extensions="jsonl")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
     classifier = PromptTaskComplexityClassifier()
