@@ -17,8 +17,7 @@ import time
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
-from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
-from nemo_curator.utils.file_utils import get_all_files_paths_under
+from nemo_curator.utils.distributed_utils import get_client, write_to_disk
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
