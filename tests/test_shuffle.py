@@ -65,7 +65,7 @@ class TestShuffleNondeterministic:
 
                 expected_data = {
                     "text": ["one", "two", "three", "five", "four"],
-                    "filenfile_nameame": [
+                    "file_name": [
                         "file_0000000000.jsonl",
                         "file_0000000000.jsonl",
                         "file_0000000000.jsonl",
