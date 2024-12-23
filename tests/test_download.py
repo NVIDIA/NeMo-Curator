@@ -92,7 +92,12 @@ class TestDownload:
         assert result == expected
 
     def test_trafilatura_extract_text(self, html_string):
-        algorithm = TrafilaturaExtractor()
+        algorithm = TrafilaturaExtractor(
+            min_extracted_size=10,
+            min_duplcheck_size=10,
+            max_repetitions=1,
+            deduplicate=True,
+        )
         stop_words = get_stop_list_dict()
         result = algorithm.extract_text(html_string, stop_words["ENGLISH"])
 
