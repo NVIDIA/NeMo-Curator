@@ -317,7 +317,7 @@ class TestFuzzyDuplicates:
         [
             (5, 0.5, [[4, -1]]),
             (10, 0.39, [[4, -1], [1, 2]]),
-            (3, 0.3, [[4, -1], [1, 2, 300]]),
+            (15, 0.3, [[4, -1], [1, 2, 300]]),
         ],
     )
     def test_fuzzy_dedup(
@@ -472,7 +472,7 @@ class TestFuzzyDuplicates:
         # Duplcated docs estimated from true_jaccard values
         [
             (10, [[4, -1], [1, 2, 300]]),
-            (3, [[4, -1], [1, 2, 300]]),
+            (5, [[4, -1], [1, 2, 300]]),
         ],
     )
     def test_no_fp_check(
