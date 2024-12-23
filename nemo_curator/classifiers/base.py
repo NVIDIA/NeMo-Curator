@@ -121,11 +121,14 @@ def _run_classifier_helper(
     prob_col: str = None,
 ) -> "dask_cudf.DataFrame":
 
-    keep_prob = prob_col is not None
-    prob_internal_col = "_prob"
-    # TODO: Make crossfit handle this cleanly
-    pred_internal_col = "labels"
+    if prob_col:
+        keep_prob = True
+    else:
+        keep_prob = False
+        prob_col = "_prob"
+
     df["sliced_text"] = df[text_field].str.slice(0, max_chars)
+
     columns_to_keep_list = df.columns.to_list()
     columns_to_keep_list.remove("sliced_text")
 
@@ -135,29 +138,16 @@ def _run_classifier_helper(
             model,
             sorted_data_loader=True,
             batch_size=batch_size,
-            pred_output_col=prob_internal_col,
+            model_output_cols=[label_col],
+            pred_output_col=prob_col,
         ),
         repartition=df.npartitions,
         keep_cols=columns_to_keep_list,
     )
     df = classifier_pipe(df)
 
-    # TODO: Make crossfit handle this cleanly
-    # to prevent the labeler from dropping the prob_internal_col
-    # and combine it into a single step
-    labeling_pipe = op.Sequential(
-        op.Labeler(labels, cols=[prob_internal_col]),
-        keep_cols=columns_to_keep_list + [prob_internal_col],
-    )
-    df = labeling_pipe(df)
-
-    if keep_prob:
-        df = df.rename(
-            columns={prob_internal_col: prob_col, pred_internal_col: label_col},
-        )
-    else:
-        df = df.rename(columns={pred_internal_col: label_col})
-        df = df.drop(columns=[prob_internal_col])
+    if not keep_prob:
+        df = df.drop(columns=[prob_col])
 
     return df
 
