@@ -1588,7 +1588,15 @@ class ConnectedComponents:
             self.profile_dir, "connected-components-run"
         ):
 
-            Comms.initialize(p2p=False)
+            try:
+                Comms.initialize(p2p=False)
+            except ValueError:
+                raise TypeError(
+                    "A GPU-based Dask client is required to run connected components. "
+                    'Please initialize your client with get_client(cluster_type="gpu") '
+                    "or with a LocalCUDACluster."
+                )
+
             df = dask_cudf.read_parquet(
                 deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
             )
