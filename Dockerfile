@@ -28,15 +28,19 @@ FROM rapidsai/ci-conda:cuda${CUDA_VER}-${LINUX_VER}-py${PYTHON_VER}
 LABEL "nemo.library"=${IMAGE_LABEL}
 WORKDIR /opt
 
+# Re-declare ARGs after new FROM to make them available in this stage
+ARG CUDA_VER
+
 # Install the minimal libcu* libraries needed by NeMo Curator
-RUN conda create -y --name curator -c conda-forge -c nvidia \
+RUN conda create -y --name curator -c nvidia/label/cuda-${CUDA_VER} -c conda-forge \
   python=3.10 \
   cuda-cudart \
   libcufft \
   libcublas \
   libcurand \
   libcusparse \
-  libcusolver && \
+  libcusolver \
+  cuda-nvvm && \
   source activate curator && \
   pip install --upgrade pytest pip
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from functools import wraps
 from typing import Any, List, Literal, Optional, Union
 
 import dask.dataframe as dd
@@ -37,6 +38,10 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
+    @wraps(dd.DataFrame.repartition)
+    def repartition(self, *args, **kwargs) -> "DocumentDataset":
+        return self.__class__(self.df.repartition(*args, **kwargs))
+
     def head(self, n: int = 5) -> Any:
         return self.df.head(n)
 
@@ -45,7 +50,8 @@ class DocumentDataset:
         cls,
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
-        files_per_partition: int = 1,
+        files_per_partition: Optional[int] = None,
+        blocksize: Optional[str] = "1gb",
         add_filename: bool = False,
         input_meta: Union[str, dict] = None,
         columns: Optional[List[str]] = None,
@@ -69,8 +75,9 @@ class DocumentDataset:
                 input_files=input_files,
                 file_type="jsonl",
                 backend=backend,
-                files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                files_per_partition=files_per_partition,
+                blocksize=blocksize,
                 input_meta=input_meta,
                 columns=columns,
                 **kwargs,
@@ -82,8 +89,9 @@ class DocumentDataset:
         cls,
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
-        files_per_partition: int = 1,
-        add_filename: bool = False,
+        files_per_partition: Optional[int] = None,
+        blocksize: Optional[str] = "1gb",
+        add_filename=False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
@@ -104,8 +112,9 @@ class DocumentDataset:
                 input_files=input_files,
                 file_type="parquet",
                 backend=backend,
-                files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                files_per_partition=files_per_partition,
+                blocksize=blocksize,
                 columns=columns,
                 **kwargs,
             )
@@ -116,8 +125,6 @@ class DocumentDataset:
         cls,
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
-        files_per_partition: int = 1,
-        add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
@@ -137,8 +144,6 @@ class DocumentDataset:
                 input_files=input_files,
                 file_type="pickle",
                 backend=backend,
-                files_per_partition=files_per_partition,
-                add_filename=add_filename,
                 columns=columns,
                 **kwargs,
             )
@@ -146,7 +151,7 @@ class DocumentDataset:
 
     def to_json(
         self,
-        output_file_dir: str,
+        output_path: str,
         write_to_filename: bool = False,
         keep_filename_column: bool = False,
     ):
@@ -156,7 +161,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="jsonl",
@@ -164,7 +169,7 @@ class DocumentDataset:
 
     def to_parquet(
         self,
-        output_file_dir: str,
+        output_path: str,
         write_to_filename: bool = False,
         keep_filename_column: bool = False,
     ):
@@ -174,7 +179,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="parquet",
@@ -182,7 +187,7 @@ class DocumentDataset:
 
     def to_pickle(
         self,
-        output_file_dir: str,
+        output_path: str,
         write_to_filename: bool = False,
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
@@ -229,8 +234,9 @@ def _read_json_or_parquet(
     input_files: Union[str, List[str]],
     file_type: str,
     backend: Literal["cudf", "pandas"],
-    files_per_partition: int,
     add_filename: bool,
+    files_per_partition: Optional[int] = None,
+    blocksize: Optional[str] = None,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
@@ -262,6 +268,7 @@ def _read_json_or_parquet(
                 file_type=file_type,
                 backend=backend,
                 files_per_partition=files_per_partition,
+                blocksize=blocksize,
                 add_filename=add_filename,
                 input_meta=input_meta,
                 columns=columns,
@@ -281,6 +288,7 @@ def _read_json_or_parquet(
                     file_type=file_type,
                     backend=backend,
                     files_per_partition=files_per_partition,
+                    blocksize=blocksize,
                     add_filename=add_filename,
                     input_meta=input_meta,
                     columns=columns,
@@ -306,6 +314,7 @@ def _read_json_or_parquet(
             file_type=file_type,
             backend=backend,
             files_per_partition=files_per_partition,
+            blocksize=blocksize,
             add_filename=add_filename,
             input_meta=input_meta,
             columns=columns,

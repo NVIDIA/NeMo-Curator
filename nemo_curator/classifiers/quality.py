@@ -65,9 +65,9 @@ class QualityModel(HFModel):
 
 class QualityClassifier(DistributedDataClassifier):
     """
-    QualityClassifier is a specialized classifier designed for quality assessment tasks, utilizing the
-    NVIDIA Quality Classifier model (https://huggingface.co/nvidia/quality-classifier-deberta). This class is
-    optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
+    QualityClassifier is a specialized classifier designed for quality assessment tasks,
+    utilizing the NVIDIA Quality Classifier model (https://huggingface.co/nvidia/quality-classifier-deberta).
+    This classifier is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large datasets.
 
     Attributes:
         filter_by (list[str], optional): The classes to filter the dataset by. If None, all classes will be included. Defaults to None.
