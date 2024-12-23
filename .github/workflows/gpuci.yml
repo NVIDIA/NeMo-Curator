@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       # We can run gpuCI on any PR targeting these branches
+      # Test
       - 'main'
       - '[rv][0-9].[0-9].[0-9]'
       - '[rv][0-9].[0-9].[0-9]rc[0-9]'
