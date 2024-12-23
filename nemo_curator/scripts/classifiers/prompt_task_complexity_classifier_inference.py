@@ -18,7 +18,7 @@ import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 
-from nemo_curator.classifiers import MultilingualDomainClassifier
+from nemo_curator.classifiers import PromptTaskComplexityClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -31,13 +31,13 @@ warnings.filterwarnings("ignore")
 
 def main():
     args = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run multilingual domain classifier inference."
+        description="Run prompt task and complexity classifier inference."
     ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting multilingual domain classifier inference", flush=True)
+    print("Starting prompt task and complexity classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
@@ -61,7 +61,7 @@ def main():
     else:
         add_filename = True
 
-    multilingual_domain_classifier = MultilingualDomainClassifier(
+    prompt_task_complexity_classifier = PromptTaskComplexityClassifier(
         text_field=args.input_text_field,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
@@ -81,7 +81,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = multilingual_domain_classifier(DocumentDataset(df)).df
+        df = prompt_task_complexity_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(
@@ -98,7 +98,7 @@ def main():
 
     global_et = time.time()
     print(
-        f"Total time taken for multilingual domain classifier inference: {global_et-global_st} s",
+        f"Total time taken for prompt task and complexity classifier inference: {global_et-global_st} s",
         flush=True,
     )
     client.close()
