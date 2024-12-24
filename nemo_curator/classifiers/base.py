@@ -122,32 +122,27 @@ def _run_classifier_helper(
 ) -> "dask_cudf.DataFrame":
 
     if prob_col:
-        keep_prob = True
+        df[prob_col] = 0
     else:
-        keep_prob = False
         prob_col = "_prob"
 
-    df["sliced_text"] = df[text_field].str.slice(0, max_chars)
-
     columns_to_keep_list = df.columns.to_list()
-    columns_to_keep_list.remove("sliced_text")
 
     classifier_pipe = op.Sequential(
-        op.Tokenizer(model, cols=["sliced_text"], tokenizer_type="default"),
+        op.Tokenizer(
+            model, cols=[text_field], tokenizer_type="default", max_chars=max_chars
+        ),
         op.Predictor(
             model,
             sorted_data_loader=True,
             batch_size=batch_size,
-            model_output_cols=[label_col],
             pred_output_col=prob_col,
         ),
+        op.Labeler(labels, cols=[prob_col], suffix=label_col),
         repartition=df.npartitions,
         keep_cols=columns_to_keep_list,
     )
     df = classifier_pipe(df)
-
-    if not keep_prob:
-        df = df.drop(columns=[prob_col])
 
     return df
 
