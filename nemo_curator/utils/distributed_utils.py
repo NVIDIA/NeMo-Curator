@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import os
+import json
 import shutil
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
