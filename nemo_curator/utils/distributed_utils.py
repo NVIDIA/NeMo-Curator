@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import os
+import json
 import shutil
 
 import dask
@@ -727,12 +728,19 @@ def single_partition_write_with_filename(
                 output_file_path = output_file_path + ".jsonl"
 
                 if isinstance(df, pd.DataFrame):
-                    out_df.to_json(
-                        output_file_path,
-                        orient="records",
-                        lines=True,
-                        force_ascii=False,
-                    )
+                    # Experimenting memory leak when calling to_json
+                    # Workaround: use .to_dict and dump it
+                    records = out_df.to_dict(orient="records")
+                    with open(output_file_path, 'w') as fd:
+                        for record in records:
+                            json.dump(record, fd, ensure_ascii=False)
+                            fd.write('\n')
+                    # out_df.to_json(
+                    #     output_file_path,
+                    #     orient="records",
+                    #     lines=True,
+                    #     force_ascii=False,
+                    # )
                 else:
                     # See open issue here: https://github.com/rapidsai/cudf/issues/15211
                     # df.to_json(
