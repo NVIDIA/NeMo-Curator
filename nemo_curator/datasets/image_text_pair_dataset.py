@@ -79,11 +79,7 @@ class ImageTextPairDataset:
             path (str): The path to the WebDataset-like format on disk or cloud storage.
             id_col (str): The column storing the unique identifier for each record.
         """
-        metadata = dask_cudf.read_parquet(path, split_row_groups=False)
-        # TODO: This is a hack to ensure that the number of partitions is not combined
-        # and remain the same as the number of shards.
-        # DEBUG: Why is this happening?
-        metadata = metadata.repartition(npartitions=metadata.npartitions)
+        metadata = dask_cudf.read_parquet(path, split_row_groups=False, blocksize=None)
         metadata = metadata.map_partitions(cls._sort_partition, id_col=id_col)
 
         tar_files = cls._get_tar_files(path)
