@@ -1,6 +1,9 @@
 name: "GPU CI/CD"
 
 on:
+  # Add
+  schedule:
+    - cron: '0 0 * * *'  # scheduled trigger for nightly builds, runs at midnight UTC every day
   push:
     branches:
       - main
@@ -21,18 +24,21 @@ concurrency:
 jobs:
   # First, we build and push a NeMo-Curator container
   build-container:
-    # "build-container" job is run if the "gpuci" label is added to the PR
-    if: ${{ github.event.label.name == 'gpuci' || github.ref == 'refs/heads/main' }}
+    # "build-container" job is run if the "gpuci" label is added to the PR / merge to main / scheduled run
+    if: ${{ github.event.label.name == 'gpuci' || github.ref == 'refs/heads/main' || github.event_name == 'schedule' }}
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.18.0
     with:
       image-name: nemo_curator_container
-      dockerfile: Dockerfile
-      image-label: nemo-curator
+      # Use different Dockerfile based on event type
+      dockerfile: ${{ github.event_name == 'schedule' && 'Dockerfile.nightly' || 'Dockerfile' }}
+      image-label: ${{ github.event_name == 'schedule' && 'nemo-curator-nightly' || 'nemo-curator' }}
       build-args: |
-        IMAGE_LABEL=nemo-curator
+        IMAGE_LABEL=${{ github.event_name == 'schedule' && 'nemo-curator-nightly' || 'nemo-curator' }}
         REPO_URL=https://github.com/${{ github.repository }}.git
         CURATOR_COMMIT=${{ github.sha }}
+        BUILD_TYPE=${{ github.event_name == 'schedule' && 'nightly' || 'stable' }}
       prune-filter-timerange: 24h
+      use_cache: ${{ github.event_name != 'schedule' }}
 
   # Then, we run our PyTests in the container we just built
   run-gpu-tests:
@@ -87,3 +93,13 @@ jobs:
       if: always()
       run: |
         docker stop nemo-curator-container && docker rm nemo-curator-container
+
+      # TODO Add notification step for nightly failures
+      # - name: Notify on failure
+      #   if: failure() && github.event_name == 'schedule'
+      #   uses: slackapi/slack-github-action@v1
+      #   with:
+      #     channel-id: 'xyz'
+      #     slack-message: "Nightly GPU tests failed! Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      #   env:
+      #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} # add secret somewhere
