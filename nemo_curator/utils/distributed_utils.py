@@ -406,7 +406,6 @@ def read_data_blocksize(
 
     read_kwargs = dict()
 
-    postprocessing_func: Optional[Callable[[dd.DataFrame], dd.DataFrame]] = None
     if file_type == "jsonl":
         warnings.warn(
             "If underlying JSONL data does not have a consistent schema, reading with blocksize will fail. "
@@ -443,7 +442,6 @@ def read_data_blocksize(
 
             read_kwargs["include_path_column"] = _resolve_filename_col(add_filename)
             read_kwargs["path_converter"] = extract_filename
-            postprocessing_func = lambda df: df.rename(columns={"path": "file_name"})
 
     elif file_type == "parquet":
         if backend == "cudf" and not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA:
@@ -471,8 +469,6 @@ def read_data_blocksize(
 
     with dask.config.set({"dataframe.backend": backend}):
         df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
-        if postprocessing_func is not None:
-            df = postprocessing_func(df)
 
         output = select_columns(df, columns, file_type, add_filename)
         return output[sorted(output.columns)]
