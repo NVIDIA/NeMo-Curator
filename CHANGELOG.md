@@ -11,6 +11,11 @@
   - Load/Write Bitext Files
   - Heuristic filtering (Histogram, Length Ratio)
   - Classifier filtering (Comet, Cometoid)
+- Multi-node multi-GPU support for new NVIDIA classifiers:
+  - <https://huggingface.co/nvidia/instruction-data-guard>
+  - <https://huggingface.co/nvidia/multilingual-domain-classifier>
+  - <https://huggingface.co/nvidia/content-type-classifier-deberta>
+  - <https://huggingface.co/nvidia/prompt-task-and-complexity-classifier>
 
 ## NeMo Curator 0.5.0
 
