@@ -273,6 +273,18 @@ def _set_torch_to_use_rmm():
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
 
+def _resolve_filename_col(filename: Union[bool, str]) -> Union[str, bool]:
+    if filename is False:
+        return False
+    elif filename is True:
+        return "file_name"
+    elif isinstance(filename, str):
+        return filename
+    else:
+        msg = f"Unknown filename value: {filename}"
+        raise ValueError(msg)
+
+
 def select_columns(
     df: Union[dd.DataFrame, pd.DataFrame, "cudf.DataFrame"],
     columns: List[str],
@@ -281,8 +293,10 @@ def select_columns(
 ) -> Union[dd.DataFrame, pd.DataFrame, "cudf.DataFrame"]:
     # We exclude parquet because the parquet readers already support column selection
     if filetype in ["jsonl", "json"] and columns is not None:
-        if add_filename and "file_name" not in columns:
-            columns.append("file_name")
+        if add_filename:
+            filename_str = _resolve_filename_col(add_filename)
+            if filename_str not in columns:
+                columns.append(filename_str)
         df = df[columns]
 
     return df
@@ -292,7 +306,7 @@ def read_single_partition(
     files: List[str],
     backend: Literal["cudf", "pandas"] = "cudf",
     filetype: str = "jsonl",
-    add_filename: bool = False,
+    add_filename: Union[bool, str] = False,
     input_meta: Union[str, dict] = None,
     io_columns: Optional[List[str]] = None,
     **kwargs,
@@ -368,7 +382,7 @@ def read_single_partition(
         for file in files:
             df = read_f(file, **read_kwargs, **kwargs)
             if add_filename:
-                df["file_name"] = os.path.basename(file)
+                df[_resolve_filename_col(add_filename)] = os.path.basename(file)
             df = select_columns(df, io_columns, filetype, add_filename)
             df_ls.append(df)
 
@@ -384,7 +398,7 @@ def read_data_blocksize(
     backend: Literal["cudf", "pandas"],
     file_type: Literal["parquet", "jsonl"],
     blocksize: str,
-    add_filename: bool = False,
+    add_filename: Union[bool, str] = False,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
@@ -427,7 +441,7 @@ def read_data_blocksize(
             def extract_filename(path: str) -> str:
                 return os.path.basename(path)
 
-            read_kwargs["include_path_column"] = add_filename
+            read_kwargs["include_path_column"] = _resolve_filename_col(add_filename)
             read_kwargs["path_converter"] = extract_filename
             postprocessing_func = lambda df: df.rename(columns={"path": "file_name"})
 
@@ -468,7 +482,7 @@ def read_data_files_per_partition(
     input_files: List[str],
     file_type: Literal["parquet", "json", "jsonl"],
     backend: Literal["cudf", "pandas"] = "cudf",
-    add_filename: bool = False,
+    add_filename: Union[bool, str] = False,
     files_per_partition: Optional[int] = None,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
@@ -500,7 +514,7 @@ def read_data_files_per_partition(
 
 def read_pandas_pickle(
     file: str,
-    add_filename: bool = False,
+    add_filename: Union[bool, str] = False,
     columns: Optional[List[str]] = None,
     **kwargs,
 ) -> pd.DataFrame:
@@ -530,7 +544,7 @@ def read_data(
     backend: Literal["cudf", "pandas"] = "cudf",
     blocksize: Optional[str] = None,
     files_per_partition: Optional[int] = 1,
-    add_filename: bool = False,
+    add_filename: Union[bool, str] = False,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
