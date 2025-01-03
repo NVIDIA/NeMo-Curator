@@ -17,6 +17,7 @@ import os
 import subprocess
 import unicodedata
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from urllib.parse import urlparse
 
 import justext
@@ -24,6 +25,8 @@ import lxml
 import pycld2 as cld2
 from charset_normalizer import detect
 from resiliparse.extract.html2text import extract_plain_text
+from trafilatura import extract as extract_with_trafilatura
+from trafilatura.settings import DEFAULT_CONFIG as TRAFILATURA_DEFAULT_CONFIG
 from warcio.archiveiterator import ArchiveIterator
 
 from nemo_curator.datasets import DocumentDataset
@@ -193,6 +196,98 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
 
             if stopword_density >= self.required_stopword_density:
                 result.append(paragraph)
+
+        if len(result) == 0:
+            return None
+        return result
+
+
+class TrafilaturaExtractor(HTMLExtractorAlgorithm):
+    def __init__(
+        self,
+        required_stopword_density=0.32,
+        min_extracted_size=250,
+        min_extracted_comm_size=1,
+        min_output_size=1,
+        min_output_comm_size=1,
+        max_tree_size=None,
+        min_duplcheck_size=100,
+        max_repetitions=2,
+        **extract_kwargs,
+    ):
+        """
+        Initialize the Trafilatura text extraction algorithm with specified parameters.
+
+        Args:
+            required_stopword_density: Proportion of stopwords required preserve an extracted paragraph.
+                Studies on stopword lists and their distribution in various text corpora often
+                suggest that around 30-40% of a typical English text consists of stopwords.
+            min_extracted_size: Acceptable size in characters (used to trigger fallbacks).
+                Defaults to 250. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
+            min_extracted_comm_size: Works the same as min_output_comm_size for comment extraction.
+                Defaults to 1. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
+            min_output_size: Absolute acceptable minimum for main text output.
+                Defaults to 1. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
+            min_output_comm_size: Works the same as min_output_comm_size for comment extraction.
+                Defaults to 1. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
+            max_tree_size: Used to discard documents with too many elements. Defaults to None.
+            min_duplcheck_size: Minimum size in characters to run deduplication on.
+                Defaults to 100. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
+            max_repetitions: Maximum number of duplicates allowed.
+                Defaults to 2. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
+            extract_kwargs: Additional keyword arguments for the Trafilatura extract function.
+                See API documentation https://trafilatura.readthedocs.io/en/latest/usage-python.html#choice-of-html-elements
+                for list of possible parameters.
+
+        """
+        self.required_stopword_density = required_stopword_density
+        self.min_extracted_size = min_extracted_size
+        self.min_extracted_comm_size = min_extracted_comm_size
+        self.min_output_size = min_output_size
+        self.min_output_comm_size = min_output_comm_size
+        self.max_tree_size = max_tree_size
+        self.min_duplcheck_size = min_duplcheck_size
+        self.max_repetitions = max_repetitions
+        self.extract_kwargs = extract_kwargs
+
+    def extract_text(self, html, stop_words):
+        trafilatura_config = deepcopy(TRAFILATURA_DEFAULT_CONFIG)
+        trafilatura_config["DEFAULT"]["MIN_EXTRACTED_SIZE"] = str(
+            self.min_extracted_size
+        )
+        trafilatura_config["DEFAULT"]["MIN_EXTRACTED_COMM_SIZE"] = str(
+            self.min_extracted_comm_size
+        )
+        trafilatura_config["DEFAULT"]["MIN_OUTPUT_SIZE"] = str(self.min_output_size)
+        trafilatura_config["DEFAULT"]["MIN_OUTPUT_COMM_SIZE"] = str(
+            self.min_output_comm_size
+        )
+        if self.max_tree_size:
+            trafilatura_config["DEFAULT"]["MAX_TREE_SIZE"] = str(self.max_tree_size)
+        trafilatura_config["DEFAULT"]["MIN_DUPLCHECK_SIZE"] = str(
+            self.min_duplcheck_size
+        )
+        trafilatura_config["DEFAULT"]["MAX_REPETITIONS"] = str(self.max_repetitions)
+
+        text = extract_with_trafilatura(
+            html, config=trafilatura_config, **self.extract_kwargs
+        )
+
+        if text is not None:
+            paragraphs = list(filter(None, text.split("\n")))
+            result = []
+            for paragraph in paragraphs:
+                words = paragraph.split()
+                length = len(words)
+                if length == 0:
+                    continue
+                stopwords = [word for word in words if word in stop_words]
+                stopword_density = len(stopwords) / length
+
+                if stopword_density >= self.required_stopword_density:
+                    result.append(paragraph)
+        else:
+            return None
 
         if len(result) == 0:
             return None
@@ -372,7 +467,7 @@ def download_common_crawl(
     url_limit=None,
 ) -> DocumentDataset:
     """
-    Downloads Common Crawl WARC snapshots and extracts them using jusText or Resiliparse
+    Downloads Common Crawl WARC snapshots and extracts them using jusText, Resiliparse, or Trafilatura
 
     Args:
       output_path: The path to the root directory of the files
@@ -382,7 +477,7 @@ def download_common_crawl(
       end_snapshot: The last common crawl snapshot to include. Must be chronologically
         after the starting snapshot.
       output_type: The file type to save the data as.
-      algorithm: A JusTextExtractor or ResiliparseExtractor object.
+      algorithm: A JusTextExtractor, ResiliparseExtractor, or TrafilaturaExtractor object.
       news: If True, gets WARC URLs for the CC-NEWS dataset instead of the CC-MAIN datasets.
         Also assumes that the format for the start and end snapshots is 'YYYY-MM' (Year-Month).
       aws: Whether to download from Common Crawl's S3 bucket. If True, uses s5cmd to download.
