@@ -2,9 +2,9 @@ import logging
 import os
 from datetime import datetime
 
+from nemo_curator import SemanticClusterLevelDedup
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.semantic_dedup import SemanticClusterLevelDedup
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
 
@@ -45,7 +45,7 @@ def main(args):
         logger=logger,
     )
 
-    semantic_dedup.compute_semantic_match_dfs(semdedup_config.eps_thresholds)
+    semantic_dedup.compute_semantic_match_dfs()
     for eps in semdedup_config.eps_thresholds:
         dedup_id_dataset = semantic_dedup.extract_dedup_data(eps_to_extract=eps)
         print(dedup_id_dataset.df.head(10))
