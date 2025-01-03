@@ -17,6 +17,7 @@ import pytest
 from dask import dataframe as dd
 from dask.dataframe.utils import assert_eq
 
+from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
 
@@ -41,11 +42,13 @@ class TestExactDuplicates:
 
     @pytest.mark.parametrize("cache_result", [False, True])
     def test_dup(self, exact_dedup_data, cache_result, tmpdir):
+        if cache_result:
+            initialize_cache_directory(tmpdir)
+
         exact_dups = ExactDuplicates(
             id_field="id",
             text_field="text",
             hash_method="md5",
-            cache_dir=tmpdir if cache_result else None,
         )
         result = exact_dups(exact_dedup_data)
         expected_df = exact_dedup_data.df.compute()

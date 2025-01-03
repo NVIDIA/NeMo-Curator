@@ -38,16 +38,13 @@ Semantic deduplication in NeMo Curator can be configured using a YAML file. Here
 .. code-block:: yaml
 
     # Configuration file for semantic dedup
-    cache_dir: "semdedup_cache"
     num_files: -1
 
     # Embeddings configuration
-    embeddings_save_loc: "embeddings"
     embedding_model_name_or_path: "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: 128
 
     # Clustering configuration
-    clustering_save_loc: "clustering_results"
     n_clusters: 1000
     seed: 1234
     max_iter: 100
@@ -154,6 +151,15 @@ You can use the ``add_id`` module from NeMo Curator if needed:
     id_dataset.to_json("output_file_path", write_to_filename=True)
 
 
+You also need to set a global variable representing the cache directory where the outputs are written:
+
+.. code-block:: python
+
+    from nemo_curator.cache import initialize_cache_directory
+
+    initialize_cache_directory("cache_dir")
+
+
 To perform semantic deduplication, you can either use individual components or the SemDedup class with a configuration file.
 
 Use Individual Components
@@ -169,7 +175,6 @@ Use Individual Components
     embedding_creator = EmbeddingCreator(
         embedding_model_name_or_path="path/to/pretrained/model",
         embedding_batch_size=128,
-        embedding_output_dir="path/to/output/embeddings",
         input_column="text",
         logger="path/to/log/dir",
     )
@@ -187,7 +192,6 @@ Use Individual Components
         id_column="doc_id",
         max_iter=100,
         n_clusters=50000,
-        clustering_output_dir="path/to/output/clusters",
         logger="path/to/log/dir"
     )
     clustered_dataset = clustering_model(embeddings_dataset)
@@ -201,12 +205,9 @@ Use Individual Components
     # Step 3: Semantic Deduplication
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=50000,
-        emb_by_clust_dir="path/to/embeddings/by/cluster",
-        sorted_clusters_dir="path/to/sorted/clusters",
         id_column="doc_id",
         id_column_type="str",
         which_to_keep="hard",
-        output_dir="path/to/output/deduped",
         logger="path/to/log/dir"
     )
     semantic_dedup.compute_semantic_match_dfs()
