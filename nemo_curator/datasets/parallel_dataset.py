@@ -1,11 +1,11 @@
 import csv
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import dask.dataframe as dd
 import pandas as pd
 
 from nemo_curator.datasets.doc_dataset import DocumentDataset
-from nemo_curator.utils.distributed_utils import write_to_disk
+from nemo_curator.utils.distributed_utils import _resolve_filename_col, write_to_disk
 from nemo_curator.utils.file_utils import remove_path_extension
 from nemo_curator.utils.import_utils import gpu_only_import
 
@@ -99,7 +99,7 @@ class ParallelDataset(DocumentDataset):
         tgt_lang: str,
         doc_id: str = None,
         backend: str = "cudf",
-        add_filename: bool = False,
+        add_filename: Union[bool, str] = False,
     ) -> Union[dd.DataFrame, "dask_cudf.DataFrame"]:
         """This function reads a pair of "simple bitext" files into a pandas DataFrame.
         A simple bitext is a commonly data format in machine translation.
@@ -129,7 +129,9 @@ class ParallelDataset(DocumentDataset):
             tgt_lang (str): Target language, in ISO-639-1 (two character) format (e.g. 'en')
             doc_id (str, optional): A string document id to assign to every segment in the file. Defaults to None.
             backend (str, optional): Backend of the data frame. Defaults to "cudf".
-            add_filename (bool, optional): Add "file_name" as an extra field to every segment in the file. Defaults to False.
+            add_filename (Union[bool, str]): Add "file_name" as an extra field to every segment in the file. Defaults to False.
+                If True, a new column is added to the dataframe called path.
+                If str, sets new column name. Default is False.
 
         Returns:
             Union[dd.DataFrame, dask_cudf.DataFrame]
@@ -162,6 +164,8 @@ class ParallelDataset(DocumentDataset):
         df_combined["tgt_lang"] = tgt_lang
 
         if add_filename:
-            df_combined["file_name"] = remove_path_extension(src_input_file)
+            df_combined[_resolve_filename_col(add_filename)] = remove_path_extension(
+                src_input_file
+            )
 
         return df_combined

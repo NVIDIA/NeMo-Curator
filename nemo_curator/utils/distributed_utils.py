@@ -26,9 +26,8 @@ import random
 import warnings
 from contextlib import nullcontext
 from datetime import datetime
-from itertools import zip_longest
 from pathlib import Path
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -289,7 +288,7 @@ def select_columns(
     df: Union[dd.DataFrame, pd.DataFrame, "cudf.DataFrame"],
     columns: List[str],
     filetype: Literal["jsonl", "json", "parquet"],
-    add_filename: bool,
+    add_filename: Union[bool, str],
 ) -> Union[dd.DataFrame, pd.DataFrame, "cudf.DataFrame"]:
     # We exclude parquet because the parquet readers already support column selection
     if filetype in ["jsonl", "json"] and columns is not None:
