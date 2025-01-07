@@ -360,7 +360,7 @@ def read_single_partition(
         except Exception as ex:
             # In the case of a bad write, where the columns are not present in the record, avoid stopping the programme and simply skip the present file.
             print(f"For {os.path.basename(file)}, columns {columns} not in df... Skipping")
-            return []
+            df = pd.DataFrame(columns=columns)
 
     df = df[sorted(df.columns)]
     return df
