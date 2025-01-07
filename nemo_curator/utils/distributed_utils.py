@@ -355,7 +355,11 @@ def read_single_partition(
     if filetype in ["jsonl", "json"] and columns is not None:
         if add_filename and "filename" not in columns:
             columns.append("filename")
-        df = df[columns]
+        try:
+            df = df[columns]
+        except Exception as ex:
+            print(f"For {os.path.basename(file)}, columns {columns} not in df... Skipping")
+            return None
 
     df = df[sorted(df.columns)]
     return df
