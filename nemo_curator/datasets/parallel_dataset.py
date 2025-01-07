@@ -129,9 +129,10 @@ class ParallelDataset(DocumentDataset):
             tgt_lang (str): Target language, in ISO-639-1 (two character) format (e.g. 'en')
             doc_id (str, optional): A string document id to assign to every segment in the file. Defaults to None.
             backend (str, optional): Backend of the data frame. Defaults to "cudf".
-            add_filename (Union[bool, str]): Add "file_name" as an extra field to every segment in the file. Defaults to False.
-                If True, a new column is added to the dataframe called path.
+            add_filename (Union[bool, str]): Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
                 If str, sets new column name. Default is False.
+
 
         Returns:
             Union[dd.DataFrame, dask_cudf.DataFrame]

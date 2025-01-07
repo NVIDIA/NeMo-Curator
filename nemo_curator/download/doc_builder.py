@@ -209,6 +209,7 @@ def download_and_extract(
         force_download=force_download,
         enforce_metadata=False,
         input_meta=input_meta,
+        filename_col=filename_col,
         meta=output_format,
     )
 
