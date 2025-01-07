@@ -31,7 +31,7 @@ class ParallelDataset(DocumentDataset):
         src_lang: str,
         tgt_lang: str,
         backend: str = "pandas",
-        add_filename: bool = False,
+        add_filename: Union[bool, str] = False,
         npartitions: int = 16,
     ):
         """See `read_single_simple_bitext_file_pair` docstring for what "simple_bitext" means and usage of other parameters.

@@ -312,12 +312,14 @@ def read_single_partition(
 ) -> Union["cudf.DataFrame", pd.DataFrame]:
     """
     This function reads a file with cuDF, sorts the columns of the DataFrame
-    and adds a "file_name" column.
+    and adds a filename column.
 
     Args:
         files: The path to the jsonl files to read.
         backend: The backend to use for reading the data. Either "cudf" or "pandas".
-        add_filename: Whether to add a "file_name" column to the DataFrame.
+        add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
         input_meta: A dictionary or a string formatted as a dictionary, which outlines
             the field names and their respective data types within the JSONL input file.
         columns: If not None, only these columns will be read from the file.
@@ -688,6 +690,7 @@ def single_partition_write_with_filename(
     output_file_dir: str,
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
+    filename_col: str = "file_name",
 ):
     """
     This function processes a DataFrame and writes it to disk
@@ -695,14 +698,15 @@ def single_partition_write_with_filename(
     Args:
         df: A DataFrame.
         output_file_dir: The output file path.
-        keep_filename_column: Boolean representing whether to keep or drop the "file_name" column, if it exists.
+        keep_filename_column: Boolean representing whether to keep or drop the `filename_col`, if it exists.
         output_type: The type of output file to write. Can be "jsonl" or "parquet".
+        filename_col: The name of the column that contains the filename. Default is "file_name"
     Returns:
         If the DataFrame is non-empty, return a Series containing a single element, True.
         If the DataFrame is empty, return a Series containing a single element, False.
 
     """
-    assert "file_name" in df.columns
+    assert filename_col in df.columns
 
     if len(df) > 0:
         empty_partition = False
@@ -718,14 +722,14 @@ def single_partition_write_with_filename(
         success_ser = pd.Series([empty_partition])
 
     if not empty_partition:
-        filenames = df.file_name.unique()
+        filenames = df[filename_col].unique()
         filenames = list(filenames.values_host) if is_cudf_type(df) else list(filenames)
         num_files = len(filenames)
 
         for filename in filenames:
-            out_df = df[df.file_name == filename] if num_files > 1 else df
+            out_df = df[df[filename_col] == filename] if num_files > 1 else df
             if not keep_filename_column:
-                out_df = out_df.drop("file_name", axis=1)
+                out_df = out_df.drop(filename_col, axis=1)
 
             filename = (
                 Path(filename).stem if output_type != "bitext" else Path(filename).name
@@ -833,24 +837,26 @@ def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
 def write_to_disk(
     df,
     output_path: str,
-    write_to_filename: bool = False,
+    write_to_filename: Union[bool, str] = False,
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
     If write_to_filename is True, then it expects the
-    DataFrame to have a "file_name" column that specifies where to write the document.
+    DataFrame to have a `filename_col` that specifies where to write the document.
 
     Args:
         df: A Dask DataFrame.
         output_path: The output file path.
-        write_to_filename: Boolean representing whether to write the filename using the "file_name" column.
-        keep_filename_column: Boolean representing whether to keep or drop the "file_name" column, if it exists.
+        write_to_filename: Whether to write the filename using the filename column.
+                If True the `file_name` column is used to write out.
+                If str, uses that as the filename column to write to.
+        keep_filename_column: Boolean representing whether to keep or drop the filename column, if it exists.
         output_type: The type of output file to write. Can be "jsonl" or "parquet".
-
     """
 
+    filename_col = _resolve_filename_col(write_to_filename)
     # output_path is a file name
     if isinstance(output_path, str) and output_path.endswith(".jsonl"):
         if df.npartitions == 1:
@@ -865,9 +871,9 @@ def write_to_disk(
             )
 
     # output_path is a directory
-    elif write_to_filename and "file_name" not in df.columns:
+    elif write_to_filename and filename_col not in df.columns:
         raise ValueError(
-            "write_using_filename is True but no file_name column found in DataFrame"
+            f"write_using_filename is True but no {filename_col} column found in DataFrame"
         )
 
     if is_cudf_type(df):
@@ -879,12 +885,14 @@ def write_to_disk(
 
     # output_path is a directory
     if write_to_filename and output_type != "bitext":
+
         os.makedirs(output_path, exist_ok=True)
         output = df.map_partitions(
             single_partition_write_with_filename,
             output_path,
             keep_filename_column=keep_filename_column,
             output_type=output_type,
+            filename_col=filename_col,
             meta=output_meta,
             enforce_metadata=False,
         )
@@ -899,7 +907,7 @@ def write_to_disk(
                 os.makedirs(output_path, exist_ok=True)
                 tmp_output_file_dir = os.path.join(output_path, ".tmp")
                 os.makedirs(tmp_output_file_dir, exist_ok=True)
-                file_name = os.path.basename(list(df.file_name.unique())[0])
+                file_name = os.path.basename(list(df[filename_col].unique())[0])
             else:
                 tmp_output_file_dir = os.path.join(output_path, ".tmp")
                 os.makedirs(tmp_output_file_dir, exist_ok=True)
