@@ -28,8 +28,9 @@ jobs:
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.18.0
     with:
       image-name: nemo_curator_container
-      # Use different Dockerfile based on event type
-      dockerfile: ${{ github.event_name == 'schedule' && 'Dockerfile.nightly' || 'Dockerfile' }}
+      dockerfile: Dockerfile
+      # Use different image-label / build-args based on event type
+      # Given we only use "schedule" event for nightly builds, we use that in our conditions to distinguish nightly vs stable
       image-label: ${{ github.event_name == 'schedule' && 'nemo-curator-nightly' || 'nemo-curator' }}
       build-args: |
         IMAGE_LABEL=${{ github.event_name == 'schedule' && 'nemo-curator-nightly' || 'nemo-curator' }}
@@ -37,6 +38,7 @@ jobs:
         CURATOR_COMMIT=${{ github.sha }}
         BUILD_TYPE=${{ github.event_name == 'schedule' && 'nightly' || 'stable' }}
       prune-filter-timerange: 24h
+      # We don't want to use cache for Nighlty Runs, as we want to build a fresh image each time
       use_cache: ${{ github.event_name != 'schedule' }}
 
   # Then, we run our PyTests in the container we just built
