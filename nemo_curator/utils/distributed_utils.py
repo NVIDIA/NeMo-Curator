@@ -358,6 +358,7 @@ def read_single_partition(
         try:
             df = df[columns]
         except Exception as ex:
+            # In the case of a bad write, where the columns are not present in the record, avoid stopping the programme and simply skip the present file.
             print(f"For {os.path.basename(file)}, columns {columns} not in df... Skipping")
             return []
 
