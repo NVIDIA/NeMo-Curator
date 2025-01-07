@@ -315,7 +315,7 @@ def separate_by_metadata(
             If provided, only the items matching these values should be kept.
         exclude_values: A list of strings representing specific values to be excluded or ignored.
             If provided, any items matching these values should be skipped.
-        filename_col: The column name in the dataframe that contains the filename. Default is 'file_name'.
+        filename_col: The column name in the DataFrame that contains the filename. Default is "file_name".
 
     Returns:
         A delayed dictionary mapping each metadata to the count of entries with that metadata value.
