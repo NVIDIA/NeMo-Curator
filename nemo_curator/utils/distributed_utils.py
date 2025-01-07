@@ -359,7 +359,7 @@ def read_single_partition(
             df = df[columns]
         except Exception as ex:
             print(f"For {os.path.basename(file)}, columns {columns} not in df... Skipping")
-            return None
+            return []
 
     df = df[sorted(df.columns)]
     return df
