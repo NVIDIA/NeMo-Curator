@@ -220,7 +220,7 @@ class TestWriteWithFilename:
     )
     @pytest.mark.parametrize("filename_col", ["file_name", "filename"])
     def test_multifile_multi_partition(self, tmp_path, file_ext, read_f, filename_col):
-        df1 = pd.DataFrame({"a": [1, 2, 3], "file_name": ["file1", "file2", "file2"]})
+        df1 = pd.DataFrame({"a": [1, 2, 3], filename_col: ["file1", "file2", "file2"]})
         df2 = df1.copy()
         df2[filename_col] = "file3"
         df3 = df1.copy()
