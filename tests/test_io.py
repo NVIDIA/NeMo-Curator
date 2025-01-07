@@ -267,7 +267,9 @@ class TestFileExtensions:
         input_dataset = DocumentDataset.read_json(input_files)
         assert json_df.equals(input_dataset.df.compute())
 
-        input_files = get_all_files_paths_under(str(tmp_path), keep_extensions=["jsonl"])
+        input_files = get_all_files_paths_under(
+            str(tmp_path), keep_extensions=["jsonl"]
+        )
         input_dataset = DocumentDataset.read_json(input_files)
         assert json_df.equals(input_dataset.df.compute())
 
