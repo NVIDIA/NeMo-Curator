@@ -581,7 +581,7 @@ def single_partition_write_with_filename(
         If the DataFrame is empty, return a Series containing a single element, False.
 
     """
-    if len(df) > 0:
+    if len(df) > 0 and "filename" in df.columns:
         empty_partition = False
     else:
         warnings.warn(f"Empty partition found")
