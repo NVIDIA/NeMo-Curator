@@ -296,7 +296,6 @@ def read_single_partition(
         A cudf DataFrame or a pandas DataFrame.
 
     """
-    print(os.path.basename(file))
     if input_meta is not None and filetype != "jsonl":
         warnings.warn(
             "input_meta is only valid for JSONL files and will be ignored for other "
@@ -345,7 +344,9 @@ def read_single_partition(
             concat_f = pd.concat
         df_ls = []
         for file in files:
+            print(os.path.basename(file))
             df = read_f(file, **read_kwargs, **kwargs)
+            print(df.columns)
             if add_filename:
                 df["filename"] = os.path.basename(file)
             df_ls.append(df)
