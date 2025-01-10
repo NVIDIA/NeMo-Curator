@@ -338,6 +338,18 @@ def read_single_partition(
             read_files_one_at_a_time = True
 
     if read_files_one_at_a_time:
+        data = {
+            "text": "",
+            "id": "",
+            "file_extension": "",
+            "file_type": "code",
+            "category": "",
+            "line_count": 0,
+            "size_in_bytes": 0,
+            "path": "",
+            "tokens": 0,
+        }
+        columns = ['text', 'id', 'file_extension', 'file_type', 'category', 'line_count', 'size_in_bytes', 'path', 'tokens', 'filename']
         if backend == "cudf":
             concat_f = cudf.concat
         else:
@@ -349,9 +361,18 @@ def read_single_partition(
             # print(df.columns)
             if add_filename:
                 df["filename"] = os.path.basename(file)
-            if columns in df.columns and type(df["text"]) == str:
+            if set(columns).issubset(df.columns):
                 df_ls.append(df)
-        df = concat_f(df_ls, ignore_index=True)
+        if len(df_ls) > 0:
+            df = concat_f(df_ls, ignore_index=True)
+        else:
+            print(f"{os.path.basename(file)} is empty... returning empty df.")
+            if backend == "cudf":
+                df = cudf.DataFrame([data])
+            else:
+                df = pd.DataFrame([data])
+            df = df.astype({"text": str, "id": str, "file_extension": str, "file_type": str, "category": str, "line_count": int, "size_in_bytes": int, "path": str, "tokens": int})
+            return df
     else:
         df = read_f(files, **read_kwargs, **kwargs)
 
@@ -359,13 +380,17 @@ def read_single_partition(
         if add_filename and "filename" not in columns:
             columns.append("filename")
         try:
-            if "text" not in columns:
-                columns.append("text")
             df = df[columns]
         except Exception as ex:
             # In the case of a bad write, where the columns are not present in the record, avoid stopping the programme and simply skip the present file.
             print(f"For {os.path.basename(file)}, columns {columns} not in df... Skipping")
-            df = pd.DataFrame(columns=columns)
+            if backend == "cudf":
+                df = cudf.DataFrame([data])
+            else:
+                df = pd.DataFrame([data])
+            df = df.astype({"text": str, "id": str, "file_extension": str, "file_type": str, "category": str, "line_count": int, "size_in_bytes": int, "path": str, "tokens": int})
+            return df
+
 
     df = df[sorted(df.columns)]
     return df
