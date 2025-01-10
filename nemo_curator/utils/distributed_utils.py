@@ -356,6 +356,8 @@ def read_single_partition(
         if add_filename and "filename" not in columns:
             columns.append("filename")
         try:
+            if "text" not in columns:
+                columns.append("text")
             df = df[columns]
         except Exception as ex:
             # In the case of a bad write, where the columns are not present in the record, avoid stopping the programme and simply skip the present file.
