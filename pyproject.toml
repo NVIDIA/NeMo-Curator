@@ -66,9 +66,9 @@ dependencies = [
     "resiliparse",
     "sentencepiece",
     "spacy>=3.6.0, <3.8.0",
+    "tqdm",
     # TODO: Remove this pin once newer version is released
     "transformers==4.46.3",
-    "tqdm",
     "unidic-lite==1.0.8",
     "usaddress==0.5.10",
     "warcio==1.7.4",
@@ -111,12 +111,10 @@ image_nightly = [
 ]
 # Installs all of the above with Stable RAPIDS
 all = [
-    "nemo-toolkit",
     "nemo_curator[image]",
 ]
 # Installs all of the above with RAPIDS Nightlies
 all_nightly = [
-    "nemo-toolkit",
     "nemo_curator[image_nightly]",
 ]
 
