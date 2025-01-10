@@ -296,6 +296,7 @@ def read_single_partition(
         A cudf DataFrame or a pandas DataFrame.
 
     """
+    print(os.path.basename(file))
     if input_meta is not None and filetype != "jsonl":
         warnings.warn(
             "input_meta is only valid for JSONL files and will be ignored for other "
