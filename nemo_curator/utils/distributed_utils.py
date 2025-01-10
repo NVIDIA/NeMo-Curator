@@ -344,12 +344,13 @@ def read_single_partition(
             concat_f = pd.concat
         df_ls = []
         for file in files:
-            print(os.path.basename(file))
+            # print(os.path.basename(file))
             df = read_f(file, **read_kwargs, **kwargs)
-            print(df.columns)
+            # print(df.columns)
             if add_filename:
                 df["filename"] = os.path.basename(file)
-            df_ls.append(df)
+            if columns in df.columns and type(df["text"]) == str:
+                df_ls.append(df)
         df = concat_f(df_ls, ignore_index=True)
     else:
         df = read_f(files, **read_kwargs, **kwargs)
