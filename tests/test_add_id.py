@@ -21,13 +21,14 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, is_unavailable
 
 cudf = gpu_only_import("cudf")
+is_cudf_available = not is_unavailable(cudf)
 
 
 def list_to_dataset(documents, col_name="text", npartitions=2, backend="pandas"):
     data = {col_name: documents}
     pdf = pd.DataFrame(data)
     ddf = dd.from_pandas(pdf, npartitions=npartitions)
-    if backend == "cudf" and is_unavailable("cudf"):
+    if backend == "cudf" and is_unavailable(cudf):
         pytest.skip("cuDF is not installed or importable.")
     ddf = ddf.to_backend(backend)
     return DocumentDataset(ddf)
@@ -66,7 +67,7 @@ class TestAddId:
                 "doc_id-0000000004",
             ]
         )
-        if cudf is not None and isinstance(actual_ids, cudf.Series):
+        if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
         assert all(
@@ -87,7 +88,7 @@ class TestAddId:
                 "doc_id-0000000004",
             ]
         )
-        if not is_unavailable("cudf") and isinstance(actual_ids, cudf.Series):
+        if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
         assert all(
@@ -109,7 +110,7 @@ class TestAddId:
                 f"{id_prefix}-0000000004",
             ]
         )
-        if not is_unavailable("cudf") and isinstance(actual_ids, cudf.Series):
+        if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
         assert all(
@@ -131,7 +132,7 @@ class TestAddId:
                 "doc_id-0000000017",
             ]
         )
-        if not is_unavailable("cudf") and isinstance(actual_ids, cudf.Series):
+        if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
         assert all(
@@ -152,7 +153,7 @@ class TestAddId:
                 "doc_id-40",
             ]
         )
-        if not is_unavailable("cudf") and isinstance(actual_ids, cudf.Series):
+        if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
         assert all(
@@ -173,7 +174,7 @@ class TestAddId:
                 "doc_id-11",
             ]
         )
-        if not is_unavailable("cudf") and isinstance(actual_ids, cudf.Series):
+        if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
         assert all(
