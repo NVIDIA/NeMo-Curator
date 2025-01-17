@@ -65,10 +65,10 @@ Datasets can be read in using ``ImageTextPairDataset.from_webdataset()``
 .. code-block:: python
     from nemo_curator.datasets import ImageTextPairDataset
 
-    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_col="key")
+    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_field="key")
 
 * ``path="/path/to/dataset"`` should point to the root directory of the WebDataset.
-* ``id_col="key"`` lets us know that the unique ID column in the dataset is named "key".
+* ``id_field="key"`` lets us know that the unique ID column in the dataset is named "key".
 
 A more thorough list of parameters can be found in the `API Reference <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/api/datasets.html>`_.
 
@@ -82,7 +82,7 @@ Both trigger the computation of all the tasks you have set to run beforehand.
 .. code-block:: python
     from nemo_curator.datasets import ImageTextPairDataset
 
-    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_col="key")
+    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_field="key")
 
     # Perform your operations (embedding creation, classifiers, etc.)
 
@@ -98,7 +98,7 @@ There are two optional parameters:
 .. code-block:: python
     from nemo_curator.datasets import ImageTextPairDataset
 
-    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_col="key")
+    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_field="key")
 
     # Perform your operations (embedding creation, classifiers, etc.)
 

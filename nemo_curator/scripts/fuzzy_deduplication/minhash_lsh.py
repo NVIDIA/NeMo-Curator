@@ -57,7 +57,7 @@ def main(args):
     df = df[~df[id_field].isna()]
     df = df.map_partitions(
         convert_str_id_to_int,
-        id_column=id_field,
+        id_field=id_field,
         meta=cudf.DataFrame(
             {minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}
         ),

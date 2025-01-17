@@ -37,7 +37,7 @@ if __name__ == "__main__":
     components_stage = ConnectedComponents(
         cache_dir=connected_component_cache_dir,
         jaccard_pairs_path=buckets_to_edges_out,
-        id_column=id_field,
+        id_field=id_field,
     )
 
     # Load and run connected components

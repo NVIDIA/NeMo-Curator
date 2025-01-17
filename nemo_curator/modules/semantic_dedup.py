@@ -263,7 +263,7 @@ def add_dist_to_cents(
 class ClusteringModel:
     def __init__(
         self,
-        id_column: str,
+        id_field: str,
         max_iter: int,
         n_clusters: int,
         clustering_output_dir: str,
@@ -280,7 +280,7 @@ class ClusteringModel:
         Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
 
         Args:
-            id_column (str): Column name used as the identifier in the dataset.
+            id_field (str): Column name used as the identifier in the dataset.
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
             clustering_output_dir (str): Directory path where clustering results will be saved.
@@ -295,7 +295,7 @@ class ClusteringModel:
 
         This constructor sets up the parameters required for clustering operations.
         """
-        self.id_col = id_column
+        self.id_field = id_field
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
@@ -337,7 +337,7 @@ class ClusteringModel:
             )
 
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
-            embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
+            embeddings_df = embeddings_df[[self.id_field, self.embedding_col]]
             embeddings_df = embeddings_df.repartition(
                 partition_size=self.partition_size
             )
@@ -404,7 +404,7 @@ class ClusteringModel:
 
         if self.sort_clusters:
             assign_and_sort_clusters(
-                id_col=self.id_col,
+                id_field=self.id_field,
                 kmeans_centroids_file=kmeans_centroids_file,
                 nearest_cent_dir=clustering_output_dir,
                 output_sorted_clusters_dir=os.path.join(
@@ -433,8 +433,8 @@ class SemanticClusterLevelDedup:
         n_clusters: int,
         emb_by_clust_dir: str,
         sorted_clusters_dir: str,
-        id_column: str,
-        id_column_type: str,
+        id_field: str,
+        id_field_type: str,
         which_to_keep: str,
         output_dir: str,
         embedding_col: str = "embeddings",
@@ -448,8 +448,8 @@ class SemanticClusterLevelDedup:
             n_clusters (int): Number of clusters.
             emb_by_clust_dir (str): Directory containing embeddings by cluster.
             sorted_clusters_dir (str): Directory containing sorted clusters.
-            id_column (str): Column name for IDs.
-            id_column_type (str): Data type of the ID column.
+            id_field (str): Column name for IDs.
+            id_field_type (str): Data type of the ID column.
             which_to_keep (str): Strategy for which duplicate to keep.
             output_dir (str): Directory to save output files.
             embedding_col (str): Column where the embeddings are stored.
@@ -459,8 +459,8 @@ class SemanticClusterLevelDedup:
         self.n_clusters = n_clusters
         self.emb_by_clust_dir = emb_by_clust_dir
         self.sorted_clusters_dir = sorted_clusters_dir
-        self.id_col = id_column
-        self.id_col_type = id_column_type
+        self.id_field = id_field
+        self.id_field_type = id_field_type
         self.which_to_keep = which_to_keep
         self.output_dir = output_dir
         self.semdedup_pruning_tables_dir = os.path.join(
@@ -523,8 +523,8 @@ class SemanticClusterLevelDedup:
                     cluster_id=cluster_id,
                     emb_by_clust_dir=self.emb_by_clust_dir,
                     sorted_clusters_dir=self.sorted_clusters_dir,
-                    id_col=self.id_col,
-                    id_col_type=self.id_col_type,
+                    id_field=self.id_field,
+                    id_field_type=self.id_field_type,
                     eps_list=eps_list,
                     output_dir=self.semdedup_pruning_tables_dir,
                     embedding_col=self.embedding_col,
@@ -561,8 +561,8 @@ class SemanticClusterLevelDedup:
         extract_dedup_data(
             eps=eps_to_extract,
             n_clusters=self.n_clusters,
-            id_col=self.id_col,
-            id_col_type=self.id_col_type,
+            id_field=self.id_field,
+            id_field_type=self.id_field_type,
             sorted_clusters_dir=self.sorted_clusters_dir,
             semdedup_pruning_tables_dir=self.semdedup_pruning_tables_dir,
             output_summary_file=output_summary_file,
@@ -583,8 +583,8 @@ class SemDedup:
         self,
         config: SemDedupConfig,
         input_column: str = "text",
-        id_column: str = "id",
-        id_column_type: str = "int",
+        id_field: str = "id",
+        id_field_type: str = "int",
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
@@ -606,7 +606,7 @@ class SemDedup:
             profile_dir=self.config.profile_dir,
         )
         self.clustering_model = ClusteringModel(
-            id_column=id_column,
+            id_field=id_field,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
             clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
@@ -621,8 +621,8 @@ class SemDedup:
             sorted_clusters_dir=os.path.join(
                 cache_dir, config.clustering_save_loc, "sorted"
             ),
-            id_column=id_column,
-            id_column_type=id_column_type,
+            id_field=id_field,
+            id_field_type=id_field_type,
             which_to_keep=config.which_to_keep,
             output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,

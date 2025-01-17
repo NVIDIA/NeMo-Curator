@@ -221,7 +221,7 @@ class TestLSH:
         expected_df = cudf.Series([[1, 2], [2, 3], [4, 5]], name="id")
         assert_eq(expected_df, docs_list, check_index=False)
 
-    def test_multiple_id_cols(self, tmpdir):
+    def test_multiple_id_fields(self, tmpdir):
         lsh = LSH(
             cache_dir=tmpdir,
             num_hashes=6,

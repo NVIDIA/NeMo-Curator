@@ -53,7 +53,7 @@ def get_anchor_and_output_map_info(
         input_data_paths=input_data_paths,
         num_files=num_files,
         blocksize=text_ddf_blocksize,
-        id_column=id_field,
+        id_field=id_field,
         text_field=text_field,
         input_meta=input_meta,
     )

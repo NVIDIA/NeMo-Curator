@@ -607,7 +607,7 @@ class FuzzyDuplicates:
         self.connected_components = ConnectedComponents(
             cache_dir=self.config.cache_dir,
             jaccard_pairs_path=os.path.join(self.config.cache_dir, jaccard_pairs_fname),
-            id_column=self.config.id_field,
+            id_field=self.config.id_field,
             jaccard_threshold=self.config.jaccard_threshold,
             logger=self._logger,
             profile_dir=self.config.profile_dir,
@@ -1295,7 +1295,7 @@ class _Shuffle:
 
                 if self.int_to_str_id is not None and output_df is not None:
                     output_df = output_df.map_partitions(
-                        int_ids_to_str, id_column=self.int_to_str_id
+                        int_ids_to_str, id_field=self.int_to_str_id
                     )
                 batch_label = f"{end_bucket_offset}_{end_text_offset}"
                 if output_df is not None:
@@ -1530,16 +1530,16 @@ class ConnectedComponents:
         self,
         cache_dir: str,
         jaccard_pairs_path: str,
-        id_column="id",
+        id_field="id",
         jaccard_threshold: float = 0.8,
         logger: Union[logging.LoggerAdapter, str] = "./",
         profile_dir: Optional[str] = None,
     ):
         self.cache_dir = cache_dir
         self.jaccard_pairs_path = jaccard_pairs_path
-        self.id_column = id_column
-        self.left_id = f"{id_column}_x"
-        self.right_id = f"{id_column}_y"
+        self.id_field = id_field
+        self.left_id = f"{id_field}_x"
+        self.right_id = f"{id_field}_y"
         self.jaccard_threshold = jaccard_threshold
         self.profile_dir = profile_dir
         if isinstance(logger, str):
@@ -1603,8 +1603,8 @@ class ConnectedComponents:
             labels_df = labels_df.merge(
                 result, left_on=["uid"], right_on=["vertex"], how="inner"
             )
-            id_columns = [self.id_column]
-            labels_df = labels_df[id_columns + ["labels"]]
+            id_fields = [self.id_field]
+            labels_df = labels_df[id_fields + ["labels"]]
             labels_df = labels_df.rename(columns={"labels": "group"})
             labels_df = labels_df.persist()
             # Doing an inner merge above
@@ -1627,12 +1627,12 @@ class ConnectedComponents:
         )
 
     @staticmethod
-    def _sort_ids(df, id_columns):
-        x = df[id_columns].values
+    def _sort_ids(df, id_fields):
+        x = df[id_fields].values
         x = cp.sort(x, axis=1)
-        for i, id_column in enumerate(id_columns):
-            df[id_column] = x[:, i]
-            df[id_column] = df[id_column].astype("uint64")
+        for i, id_field in enumerate(id_fields):
+            df[id_field] = x[:, i]
+            df[id_field] = df[id_field].astype("uint64")
         return df
 
     @staticmethod
@@ -1659,7 +1659,7 @@ class ConnectedComponents:
             }
             ddf = ddf.map_partitions(
                 ConnectedComponents._sort_ids,
-                id_columns=[self.left_id, self.right_id],
+                id_fields=[self.left_id, self.right_id],
                 meta=meta,
             )
             ddf = ddf.map_partitions(
@@ -1706,9 +1706,9 @@ class ConnectedComponents:
                 blocksize="512MB",
                 aggregate_files=True,
             )
-            id_columns = [self.id_column]
+            id_fields = [self.id_field]
             unique_docs = ddf.map_partitions(
-                ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
+                ConnectedComponents._get_unique_ids_per_partition, id_fields=id_fields
             )
             unique_docs = unique_docs.drop_duplicates(
                 # Dask does not guard against split_out=0
@@ -1743,7 +1743,7 @@ class ConnectedComponents:
                 ddf=ddf,
                 ddf_id=ddf_id,
                 output_path=output_path,
-                id_column=self.id_column,
+                id_field=self.id_field,
             )
         self._logger.info(
             f"Time taken for Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
@@ -1755,13 +1755,13 @@ class ConnectedComponents:
         ddf: dask_cudf.DataFrame,
         ddf_id: dask_cudf.DataFrame,
         output_path: str,
-        id_column: str,
+        id_field: str,
     ) -> None:
         st = time.time()
-        # Ensure 'id_columns' is a list
-        ddf_id = ddf_id.set_index(id_column)
+        # Ensure 'id_fields' is a list
+        ddf_id = ddf_id.set_index(id_field)
         for tag in ["x", "y"]:
-            pair_id = f"{id_column}_{tag}"
+            pair_id = f"{id_field}_{tag}"
             # Merge 'ddf' with 'ddf_id' to map ids to uids
             ddf = ddf.merge(
                 ddf_id,
@@ -1771,7 +1771,7 @@ class ConnectedComponents:
                 broadcast=True,
             )
             ddf = ddf.drop(columns=pair_id)
-            ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+            ddf = ddf.rename(columns={"uid": f"{self.id_field}_{tag}"})
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False, overwrite=True)
 
@@ -1781,16 +1781,16 @@ class ConnectedComponents:
         )
 
     @staticmethod
-    def _get_unique_ids_per_partition(df, id_columns):
+    def _get_unique_ids_per_partition(df, id_fields):
         unique_df_ls = []
         for tag in ["x", "y"]:
             cols_to_drop = []
-            for id_col in id_columns:
-                cols_to_drop.append(f"{id_col}_{tag}")
+            for id_field in id_fields:
+                cols_to_drop.append(f"{id_field}_{tag}")
 
             subset_df = df[cols_to_drop].drop_duplicates(ignore_index=True)
             subset_df = subset_df.rename(
-                columns={f"{id_col}_{tag}": f"{id_col}" for id_col in id_columns}
+                columns={f"{id_field}_{tag}": f"{id_field}" for id_field in id_fields}
             )
             unique_df_ls.append(subset_df)
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)

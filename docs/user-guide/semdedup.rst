@@ -184,7 +184,7 @@ Use Individual Components
 
     # Step 2: Clustering
     clustering_model = ClusteringModel(
-        id_column="doc_id",
+        id_field="doc_id",
         max_iter=100,
         n_clusters=50000,
         clustering_output_dir="path/to/output/clusters",
@@ -203,8 +203,8 @@ Use Individual Components
         n_clusters=50000,
         emb_by_clust_dir="path/to/embeddings/by/cluster",
         sorted_clusters_dir="path/to/sorted/clusters",
-        id_column="doc_id",
-        id_column_type="str",
+        id_field="doc_id",
+        id_field_type="str",
         which_to_keep="hard",
         output_dir="path/to/output/deduped",
         logger="path/to/log/dir"
@@ -233,8 +233,8 @@ Alternatively, you can use the SemDedup class to perform all steps:
     sem_dedup = SemDedup(
         config=config,
         input_column="text",
-        id_column="doc_id",
-        id_column_type="str",
+        id_field="doc_id",
+        id_field_type="str",
         logger="path/to/log/dir",
     )
 

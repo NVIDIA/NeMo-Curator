@@ -37,7 +37,7 @@ First, we can compute these embeddings, then we can perform the classification.
 
     client = get_client(cluster_type="gpu")
 
-    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_col="key")
+    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_field="key")
 
     embedding_model = TimmImageEmbedder(
         "vit_large_patch14_clip_quickgelu_224.openai",
@@ -74,7 +74,7 @@ Check out this example:
 
     client = get_client(cluster_type="gpu")
 
-    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_col="key")
+    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_field="key")
 
     embedding_model = TimmImageEmbedder(
         "vit_large_patch14_clip_quickgelu_224.openai",

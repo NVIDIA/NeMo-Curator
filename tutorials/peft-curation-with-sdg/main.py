@@ -134,8 +134,8 @@ def semantic_dedupe(dataset):
     semdup = SemDedup(
         config=semdedup_config,
         input_column="text",
-        id_column="id",
-        id_column_type="str",
+        id_field="id",
+        id_field_type="str",
     )
     dedup_ids = semdup(dataset)
     # When there are few duplicates we can compute the results to a list and use `isin`.

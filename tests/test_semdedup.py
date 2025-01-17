@@ -72,8 +72,8 @@ class TestSemDuplicates:
         sem_duplicates = SemDedup(
             config=config,
             input_column="text",
-            id_column="id",
-            id_column_type="int",
+            id_field="id",
+            id_field_type="int",
         )
         result = sem_duplicates(dedup_data)
         result_df = result.df.compute()

@@ -47,7 +47,7 @@ def main(args):
         input_data_paths=input_data_paths,
         num_files=args.num_files,
         blocksize=args.text_ddf_blocksize,
-        id_column=args.input_json_id_field,
+        id_field=args.input_json_id_field,
         text_field=args.input_json_text_field,
         input_meta=args.input_meta,
     )

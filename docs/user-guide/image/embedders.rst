@@ -36,7 +36,7 @@ Many of these models are useful in generating image embeddings for modules in Ne
 
     client = get_client(cluster_type="gpu")
 
-    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_col="key")
+    dataset = ImageTextPairDataset.from_webdataset(path="/path/to/dataset", id_field="key")
 
     embedding_model = TimmImageEmbedder(
         "vit_large_patch14_clip_quickgelu_224.openai",
@@ -105,7 +105,7 @@ To write your own custom embedder, you inherit from ``nemo_curator.image.embedde
 
 * ``load_dataset_shard()`` will take in a path to a tar file and return an iterable over the shard. The iterable should return a tuple of ``(a batch of data, metadata)``.
   The batch of data can be of any form. It will be directly passed to the model returned by ``load_embedding_model()``.
-  The metadata should be a dictionary of metadata, with a field corresponding to the ``id_col`` of the dataset.
+  The metadata should be a dictionary of metadata, with a field corresponding to the ``id_field`` of the dataset.
   In our example, the metadata should include a value for ``"key"``.
 * ``load_embedding_model()`` will take a device and return a callable object.
   This callable will take as input a batch of data produced by ``load_dataset_shard()``.

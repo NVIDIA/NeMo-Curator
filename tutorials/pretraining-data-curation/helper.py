@@ -43,12 +43,12 @@ def convert_json_gz_to_jsonl(input_dir, output_dir, partition_size=2):
     bag.map(convert_single_file).compute()
 
 
-def convert_str_id_to_int(df, id_column="id"):
+def convert_str_id_to_int(df, id_field="id"):
     """
     Converts the legacy id format "dataset_name-0000034"
     type of ID into 2 int based ID's
     """
-    dx = df[id_column].str.rsplit("-", n=1, expand=True)
+    dx = df[id_field].str.rsplit("-", n=1, expand=True)
     df["doc_id"] = dx[1].astype("int64").values
     df["dataset_id"] = dx[0].hash_values()
     return df
