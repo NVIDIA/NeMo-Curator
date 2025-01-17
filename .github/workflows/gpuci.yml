@@ -96,13 +96,3 @@ jobs:
       if: always()
       run: |
         docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME
-
-      # TODO Add notification step for nightly failures
-      # - name: Notify on failure
-      #   if: failure() && github.event_name == 'schedule'
-      #   uses: slackapi/slack-github-action@v1
-      #   with:
-      #     channel-id: 'xyz'
-      #     slack-message: "Nightly GPU tests failed! Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-      #   env:
-      #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} # add secret somewhere
