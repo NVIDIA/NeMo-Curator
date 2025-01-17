@@ -35,7 +35,7 @@ def main(args):
     files = list(get_all_files_paths_under(args.input_data_dir))
     raw_data = read_data(files, file_type="jsonl", backend="pandas")
     dataset = DocumentDataset(raw_data)
-    text_field = args.input_json_field
+    text_field = args.text_field
 
     # fastText requires each document to be prepended with a special label for training
     preprocessing = Modify(FastTextLabelModifier(args.label), text_field=text_field)
@@ -80,7 +80,7 @@ with FastText.
     )
     argumentHelper.add_distributed_args()
     parser.add_argument(
-        "--input-json-field",
+        "--text-field",
         type=str,
         default="text",
         help="The input field within each JSON object on which the filter will "
