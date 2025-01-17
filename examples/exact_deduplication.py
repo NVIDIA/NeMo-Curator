@@ -31,8 +31,8 @@ def main(args):
     dataset_dir = "/path/to/data"
     log_dir = "./"
     output_dir = "./"
-    dataset_id_field = "id"
-    dataset_text_field = "text"
+    id_field = "id"
+    text_field = "text"
     client = get_client(**ArgumentHelper.parse_client_args(args))
     backend = "cudf" if args.device == "gpu" else "pandas"
 
@@ -44,8 +44,8 @@ def main(args):
 
     exact_dup = ExactDuplicates(
         logger=log_dir,
-        id_field=dataset_id_field,
-        text_field=dataset_text_field,
+        id_field=id_field,
+        text_field=text_field,
         # cache_dir=output_dir  # Optionally write the output to disk
     )
 
@@ -66,8 +66,8 @@ def main(args):
 
     # When there are few duplicates we can compute the results to a list and use `isin`.
     result = input_dataset.df[
-        ~input_dataset.df[dataset_id_field].isin(
-            docs_to_remove[dataset_id_field].compute()
+        ~input_dataset.df[id_field].isin(
+            docs_to_remove[id_field].compute()
         )
     ]
     write_to_disk(result, output_dir, output_type="parquet")

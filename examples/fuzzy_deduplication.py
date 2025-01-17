@@ -33,8 +33,8 @@ def main(args):
     log_dir = "./"
     cache_dir = "./fuzzy_cache"  # must be cleared between runs
     output_dir = "./output"
-    dataset_id_field = "id"
-    dataset_text_field = "text"
+    id_field = "id"
+    text_field = "text"
 
     filetype = "parquet"
 
@@ -53,7 +53,7 @@ def main(args):
             input_dataset = DocumentDataset(
                 dd.read_parquet(
                     dataset_dir,
-                    columns=[dataset_id_field, dataset_text_field],
+                    columns=[id_field, text_field],
                     blocksize="256MiB",
                     aggregate_files=True,
                 )
@@ -66,8 +66,8 @@ def main(args):
 
         fuzzy_dedup_config = FuzzyDuplicatesConfig(
             cache_dir=cache_dir,
-            id_field=dataset_id_field,
-            text_field=dataset_text_field,
+            id_field=id_field,
+            text_field=text_field,
             seed=42,
             char_ngrams=5,
             num_buckets=20,
@@ -95,8 +95,8 @@ def main(args):
 
         # When there are few duplicates we can compute the results to a list and use `isin`.
         result = input_dataset.df[
-            ~input_dataset.df[dataset_id_field].isin(
-                docs_to_remove[dataset_id_field].compute()
+            ~input_dataset.df[id_field].isin(
+                docs_to_remove[id_field].compute()
             )
         ]
         write_to_disk(result, output_dir, output_type=filetype)
