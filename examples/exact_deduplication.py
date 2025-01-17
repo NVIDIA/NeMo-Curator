@@ -66,9 +66,7 @@ def main(args):
 
     # When there are few duplicates we can compute the results to a list and use `isin`.
     result = input_dataset.df[
-        ~input_dataset.df[id_field].isin(
-            docs_to_remove[id_field].compute()
-        )
+        ~input_dataset.df[id_field].isin(docs_to_remove[id_field].compute())
     ]
     write_to_disk(result, output_dir, output_type="parquet")
     print(time.time() - t0)

@@ -28,9 +28,7 @@ def main(args):
     # Make the output directories
     output_clean_dir = expand_outdir_and_mkdir(args.output_clean_dir)
 
-    cleaner = nemo_curator.Modify(
-        UnicodeReformatter(), text_field=args.text_field
-    )
+    cleaner = nemo_curator.Modify(UnicodeReformatter(), text_field=args.text_field)
 
     for files in get_batched_files(
         args.input_data_dir,
