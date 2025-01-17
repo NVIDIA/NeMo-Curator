@@ -1018,13 +1018,20 @@ def get_current_client():
         return None
 
 
-def check_dask_cwd(file_list):
+def check_dask_cwd(file_list: List[str]):
     if any(not os.path.isabs(file_path) for file_path in file_list):
-        dask_cwd = list(get_current_client().run(os.getcwd).values())[0]
-        os_pwd = subprocess.check_output("pwd", shell=True, text=True).strip()
-        if dask_cwd != os_pwd:
+        dask_cwd_list = list(get_current_client().run(os.getcwd).values())
+        if len(set(dask_cwd_list)) <= 1:
+            dask_cwd = dask_cwd_list[0]
+            os_pwd = subprocess.check_output("pwd", shell=True, text=True).strip()
+            if dask_cwd != os_pwd:
+                raise RuntimeError(
+                    "Mismatch between Dask client and worker working directories. "
+                    "Use absolute file paths to ensure the correct files are read as intended."
+                )
+        else:
             raise RuntimeError(
-                "Mismatch between Dask client and worker working directories. "
+                "Mismatch between at least 2 Dask workers' working directories. "
                 "Use absolute file paths to ensure the correct files are read as intended."
             )
 
