@@ -62,7 +62,7 @@ def main():
         add_filename = True
 
     prompt_task_complexity_classifier = PromptTaskComplexityClassifier(
-        text_field=args.input_text_field,
+        text_field=args.text_field,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
         autocast=args.autocast,

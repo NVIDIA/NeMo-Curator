@@ -169,9 +169,9 @@ class ArgumentHelper:
             "their respective data types within the JSONL input files.",
         )
 
-    def add_arg_input_text_field(self):
+    def add_arg_text_field(self):
         self.parser.add_argument(
-            "--input-text-field",
+            "--text-field",
             type=str,
             default="text",
             help="The name of the field within each datapoint object of the input "
@@ -495,7 +495,7 @@ class ArgumentHelper:
         argumentHelper.add_arg_input_file_type()
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_output_file_type()
-        argumentHelper.add_arg_input_text_field()
+        argumentHelper.add_arg_text_field()
         argumentHelper.add_arg_batch_size(
             help="The batch size to be used for inference."
         )
@@ -590,7 +590,7 @@ class ArgumentHelper:
         argumentHelper.add_arg_input_data_dir()
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_input_file_type()
-        argumentHelper.add_arg_input_text_field()
+        argumentHelper.add_arg_text_field()
         argumentHelper.add_arg_id_column()
         argumentHelper.add_arg_id_column_type()
 

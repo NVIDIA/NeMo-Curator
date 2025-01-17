@@ -79,7 +79,7 @@ def main(args):
         embedding_output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
-        input_column=args.input_text_field,
+        input_column=args.text_field,
         logger=logger,
         write_to_filename=True,
     )
@@ -101,7 +101,7 @@ def attach_args():
             "--input-data-dir for the directory containing input data files, "
             '--input-file-type for the type of input files (e.g., "json", "csv"), '
             '--input-file-extension for specifying the file extension of input files (e.g., ".jsonl"), '
-            "--input-text-field for the field in the input files containing the text data to be embedded, "
+            "--text-field for the field in the input files containing the text data to be embedded, "
             "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include: "
             " cache_dir for the directory to store cache"

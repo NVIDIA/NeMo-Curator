@@ -344,7 +344,7 @@ def attach_args():
     parser.set_defaults(
         pretrained_model_name_or_path="ai4bharat/indictrans2-en-indic-1B"
     )
-    parser.set_defaults(input_text_field="text")
+    parser.set_defaults(text_field="text")
     parser.set_defaults(device="gpu")
     return parser
 
@@ -356,7 +356,7 @@ def main(args):
     print(client.dashboard_link)
     translator_model = IndicTranslation(
         pretrained_model_name_or_path=args.pretrained_model_name_or_path,
-        input_column=args.input_text_field,
+        input_column=args.text_field,
         batch_size=args.batch_size,
         autocast=args.autocast,
     )
