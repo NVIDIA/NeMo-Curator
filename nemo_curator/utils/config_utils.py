@@ -45,7 +45,7 @@ def build_filter(filter_config):
             doc_filter._name if filter_config.get("log_score", False) else None
         )
         filter_stage = nemo_curator.ScoreFilter(
-            doc_filter, filter_config.get("input_field"), score_field=score_field
+            doc_filter, filter_config.get("text_field"), score_field=score_field
         )
 
     return filter_stage
@@ -57,13 +57,13 @@ def build_filter_pipeline(filter_config_file):
         filter_params = yaml.load(config_file, Loader=yaml.FullLoader)
 
     filters = []
-    text_field = filter_params.get("input_field")
+    text_field = filter_params.get("text_field")
     for nc_filter_config in filter_params.get("filters"):
         if (
-            "input_field" not in nc_filter_config
-            or nc_filter_config["input_field"] is None
+            "text_field" not in nc_filter_config
+            or nc_filter_config["text_field"] is None
         ):
-            nc_filter_config["input_field"] = text_field
+            nc_filter_config["text_field"] = text_field
         new_filter = build_filter(nc_filter_config)
         filters.append(new_filter)
 

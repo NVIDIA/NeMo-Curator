@@ -786,11 +786,11 @@ class BucketsToEdges:
         output_df = input_df.copy()[input_df.columns.difference(id_fields)]
 
         output_df[output_id_field] = input_df[id_fields[0]].astype(str)
-        for input_field in id_fields[1:]:
+        for id_field in id_fields[1:]:
             output_df[output_id_field] = output_df[output_id_field] = (
                 input_df[id_fields[0]].astype(str)
                 + "-"
-                + input_df[input_field].astype(str)
+                + input_df[id_field].astype(str)
             )
 
         return output_df

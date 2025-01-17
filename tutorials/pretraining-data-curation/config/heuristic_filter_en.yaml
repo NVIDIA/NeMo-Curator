@@ -1,4 +1,4 @@
-input_field: raw_content
+text_field: raw_content
 filters:
   - name: nemo_curator.filters.heuristic_filter.NonAlphaNumericFilter
     params:
