@@ -54,7 +54,7 @@ def get_anchor_and_output_map_info(
         num_files=num_files,
         blocksize=text_ddf_blocksize,
         id_column=id_field,
-        text_column=text_field,
+        text_field=text_field,
         input_meta=input_meta,
     )
     ddf_bk = get_bucket_ddf_from_parquet_path(
