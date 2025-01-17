@@ -45,7 +45,7 @@ def main(args):
     logger.info("Pre imports complete")
 
     data_paths = args.input_data_dirs
-    id_field = args.input_json_id_field
+    id_field = args.id_field
     minhash_field = args.input_minhash_field
 
     dfs = []

@@ -14,8 +14,8 @@ This directory consists of scripts that can be invoked directly via the command 
         gpu_compute_minhashes \
           --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
           --output-minhash-dir /path/to/output_minhashes \
-          --input-json-text-field text_field \
-          --input-json-id-field id_field \
+          --text-field text_field \
+          --id-field id_field \
           --minhash-length number_of_hashes \
           --char-ngram char_ngram_size \
           --hash-bytes 4(or 8 byte hashes) \
@@ -33,7 +33,7 @@ This directory consists of scripts that can be invoked directly via the command 
           --input-data-dirs /path/to/output_minhashes/dir1 /path/to/output_minhashes/dir2 \
           --output-bucket-dir /path/to/dedup_output \
           --input-minhash-field _minhash_signature \
-          --input-json-id-field id_field \
+          --id-field id_field \
           --minhash-length number_of_hashes \
           --num-bands num_bands \
           --buckets-per-shuffle 1 `#Value b/w [1-num_bands]. Higher is better but might lead to oom` \
@@ -50,8 +50,8 @@ This directory consists of scripts that can be invoked directly via the command 
           --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
           --input-bucket-dir /path/to/dedup_output/_buckets.parquet \
           --output-dir /path/to/dedup_output \
-          --input-json-text-field text_field \
-          --input-json-id-field id_field \
+          --text-field text_field \
+          --id-field id_field \
           # --scheduler-file /path/to/file.json
     ```
 4. Jaccard Shuffle
@@ -64,8 +64,8 @@ This directory consists of scripts that can be invoked directly via the command 
           --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
           --input-bucket-mapping-dir /path/to/dedup_output/anchor_docs_with_bk.parquet \
           --output-dir /path/to/dedup_output \
-          --input-json-text-field text_field \
-          --input-json-id-field id_field \
+          --text-field text_field \
+          --id-field id_field \
           # --scheduler-file /path/to/file.json
     ```
 5. Jaccard compute

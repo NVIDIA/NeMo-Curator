@@ -543,14 +543,14 @@ class ArgumentHelper:
             "to all nodes. This path must be accessible by all machines in the cluster.",
         )
         self.parser.add_argument(
-            "--input-json-text-field",
+            "--text-field",
             type=str,
             default="text",
             help="The name of the field within each JSON object of the JSONL "
             "file that contains the text from which minhashes will be computed.",
         )
         self.parser.add_argument(
-            "--input-json-id-field",
+            "--id-field",
             type=str,
             required=True,
             help="The name of the field within each JSON object of the JSONL "

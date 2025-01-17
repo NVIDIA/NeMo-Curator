@@ -175,8 +175,8 @@ def main(args):
         args.num_files,
         args.shuffle_type,
         args.input_bucket_field,
-        args.input_json_id_field,
-        args.input_json_text_field,
+        args.id_field,
+        args.text_field,
         args.input_meta,
     )
     et = time.time()

@@ -39,9 +39,9 @@ def main(args):
     print("Running jaccard compute script", flush=True)
     st = time.time()
     jaccard = JaccardSimilarity(
-        id_field=args.input_json_id_field,
-        text_field=args.input_json_text_field,
-        anchor_id_fields=[f"anchor_{i}_{args.input_json_id_field}" for i in range(2)],
+        id_field=args.id_field,
+        text_field=args.text_field,
+        anchor_id_fields=[f"anchor_{i}_{args.id_field}" for i in range(2)],
         ngram_width=args.ngram_size,
     )
     # Run actual computation

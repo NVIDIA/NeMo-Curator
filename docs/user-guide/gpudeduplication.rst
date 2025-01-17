@@ -102,8 +102,8 @@ as follows:
          gpu_exact_dups \
            --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
            --output-dir /path/to/output_dir \
-           --input-json-text-field text_field \
-           --input-json-id-field id_field \
+           --text-field text_field \
+           --id-field id_field \
            --log-dir ./
            # --scheduler-file /path/to/file.json
 
@@ -286,8 +286,8 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                gpu_compute_minhashes \
                  --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
                  --output-minhash-dir /path/to/output_minhashes \
-                 --input-json-text-field text_field \
-                 --input-json-id-field id_field \
+                 --text-field text_field \
+                 --id-field id_field \
                  --minhash-length number_of_hashes \
                  --char-ngram char_ngram_size \
                  --hash-bytes 4 `#or 8 byte hashes` \
@@ -309,7 +309,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-data-dirs /path/to/output_minhashes/dir1 /path/to/output_minhashes/dir2 \
                  --output-bucket-dir /path/to/dedup_output \
                  --input-minhash-field _minhash_signature \
-                 --input-json-id-field id_field \
+                 --id-field id_field \
                  --minhash-length number_of_hashes \
                  --num-bands num_bands \
                  --buckets-per-shuffle 1 `#Value between [1-num_bands]. Higher is better but might lead to OOM` \
@@ -331,8 +331,8 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
                  --input-bucket-dir /path/to/dedup_output/_buckets.parquet \
                  --output-dir /path/to/dedup_output \
-                 --input-json-text-field text_field \
-                 --input-json-id-field id_field
+                 --text-field text_field \
+                 --id-field id_field
                  # --scheduler-file /path/to/file.json
 
   b. Jaccard Shuffle
@@ -347,8 +347,8 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --input-data-dirs /path/to/jsonl/dir1 /path/to/jsonl/dir2 \
                  --input-bucket-mapping-dir /path/to/dedup_output/anchor_docs_with_bk.parquet \
                  --output-dir /path/to/dedup_output \
-                 --input-json-text-field text_field \
-                 --input-json-id-field id_field
+                 --text-field text_field \
+                 --id-field id_field
                  # --scheduler-file /path/to/file.json
 
   c. Jaccard Compute
@@ -363,7 +363,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --shuffled-docs-path /path/to/dedup_output/shuffled_docs.parquet \
                  --output-dir /path/to/dedup_output \
                  --ngram-size char_ngram_size_for_similarity \
-                 --input-json-id-field id_field
+                 --id-field id_field
                  # --scheduler-file /path/to/file.json
 
 .. _fuzzydup_nofp:
@@ -381,7 +381,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                buckets_to_edges \
                  --input-bucket-dir /path/to/dedup_output/_buckets.parquet \
                  --output-dir /path/to/dedup_output \
-                 --input-json-id-field id_field
+                 --id-field id_field
                  # --scheduler-file /path/to/file.json
 
 4. Connected Components
@@ -397,7 +397,7 @@ steps (all scripts are included in the `nemo_curator/scripts/fuzzy_deduplication
                  --output-dir /path/to/dedup_output \
                  --cache-dir /path/to/cc_cache \
                  --jaccard-threshold 0.8 \
-                 --input-json-id-field id_field
+                 --id-field id_field
                  # --scheduler-file /path/to/file.json
 
 .. caution::
@@ -433,8 +433,8 @@ Incremental Fuzzy Deduplication
                  gpu_compute_minhashes \
                    --input-data-dirs /input/cc-2020-40 /input/cc-2020-42 /input/cc-2020-60 \
                    --output-minhash-dir /output/ \
-                   --input-json-text-field text_field \
-                   --input-json-id-field id_field \
+                   --text-field text_field \
+                   --id-field id_field \
                    --minhash-length number_of_hashes \
                    --char-ngram char_ngram_size \
                    --hash-bytes 4(or 8 byte hashes) \
