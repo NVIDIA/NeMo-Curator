@@ -31,8 +31,8 @@ class SemDedup:
         self,
         config: SemDedupConfig,
         input_column: str = "text",
-        id_column: str = "id",
-        id_column_type: str = "int",
+        id_field: str = "id",
+        id_field_type: str = "int",
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
@@ -54,7 +54,7 @@ class SemDedup:
             profile_dir=self.config.profile_dir,
         )
         self.clustering_model = ClusteringModel(
-            id_column=id_column,
+            id_field=id_field,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
             clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
@@ -69,8 +69,8 @@ class SemDedup:
             sorted_clusters_dir=os.path.join(
                 cache_dir, config.clustering_save_loc, "sorted"
             ),
-            id_column=id_column,
-            id_column_type=id_column_type,
+            id_field=id_field,
+            id_field_type=id_field_type,
             which_to_keep=config.which_to_keep,
             output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,

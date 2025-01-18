@@ -232,7 +232,7 @@ class _Shuffle:
 
                 if self.int_to_str_id is not None and output_df is not None:
                     output_df = output_df.map_partitions(
-                        int_ids_to_str, id_column=self.int_to_str_id
+                        int_ids_to_str, id_field=self.int_to_str_id
                     )
                 batch_label = f"{end_bucket_offset}_{end_text_offset}"
                 if output_df is not None:
