@@ -167,9 +167,7 @@ class FuzzyDuplicates:
                 "map_buckets",
             ):
                 ddf_mapped_buckets_w_anchors = (
-                    self.map_buckets.map_buckets_with_anchors(
-                        documents_df=dataset.df, buckets_df=buckets_df.df
-                    )
+                    self.map_buckets.map_buckets_with_anchors(buckets_df=buckets_df.df)
                 )
                 ddf_mapped_buckets_w_anchors.to_parquet(
                     mapped_buckets_w_anchors_path, write_index=False, overwrite=True
