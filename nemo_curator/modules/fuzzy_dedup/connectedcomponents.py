@@ -58,7 +58,7 @@ class ConnectedComponents:
         else:
             self._logger = logger
 
-    def cc_workflow(self, output_path):
+    def __call__(self, output_path):
         deduped_parsed_id_path = self._write_dedup_parsed_id()
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
@@ -81,8 +81,15 @@ class ConnectedComponents:
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-run"
         ):
+            try:
+                Comms.initialize(p2p=False)
+            except ValueError:
+                raise TypeError(
+                    "A GPU-based Dask client is required to run connected components. "
+                    'Please initialize your client with get_client(cluster_type="gpu") '
+                    "or with a LocalCUDACluster."
+                )
 
-            Comms.initialize(p2p=False)
             df = dask_cudf.read_parquet(
                 deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
             )
