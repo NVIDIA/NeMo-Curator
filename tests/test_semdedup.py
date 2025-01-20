@@ -23,12 +23,14 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator import SemDedup, SemDedupConfig
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
+EmbeddingCreator = gpu_only_import(
+    "nemo_curator.modules.semantic_dedup.embeddings.EmbeddingCreator"
+)
 
 
 @pytest.fixture
