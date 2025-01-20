@@ -48,6 +48,7 @@ class SemDedup:
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
+            embedding_pooling_strategy=config.embedding_pooling_strategy,
             input_column=input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             logger=logger,

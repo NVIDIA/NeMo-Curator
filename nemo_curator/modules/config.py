@@ -123,6 +123,7 @@ class SemDedupConfig(BaseConfig):
         embeddings_save_loc (str): Location to save embeddings.
         embedding_model_name_or_path (str): Model name or path for embeddings.
         embedding_batch_size (int): Inital Batch size for processing embeddings.
+        embedding_pooling_strategy (str): Strategy for pooling embeddings, either "mean" or "last_token". Defaults to "last_token".
         clustering_save_loc (str): Location to save clustering results.
         n_clusters (int): Number of clusters.
         seed (int): Seed for clustering.
@@ -143,6 +144,7 @@ class SemDedupConfig(BaseConfig):
     embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
+    embedding_pooling_strategy: str = "last_token"
 
     # Clustering config
     clustering_save_loc: str = "clustering_results"
