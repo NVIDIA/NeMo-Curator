@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,21 +14,25 @@
 
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
-# Global variable to store the cache directory
-_global_cache_dir = None
 
+class Cache:
+    _instance = None
+    _cache_dir = None
 
-def initialize_cache_directory(cache_dir: str):
-    """
-    Initialize and set the global cache directory.
-    """
-    global _global_cache_dir
-    cache_dir = expand_outdir_and_mkdir(cache_dir)
-    _global_cache_dir = cache_dir
+    def __new__(cls, cache_dir=None):
+        if cls._instance is None:
+            cls._instance = super(Cache, cls).__new__(cls)
+            if cache_dir is not None:
+                cls._cache_dir = expand_outdir_and_mkdir(cache_dir)
+            else:
+                raise ValueError("cache_dir must be provided.")
+        elif cache_dir is not None and cls._cache_dir is None:
+            cls._cache_dir = expand_outdir_and_mkdir(cache_dir)
+        return cls._instance
 
-
-def get_cache_directory() -> str:
-    """
-    Retrieve the global cache directory.
-    """
-    return _global_cache_dir
+    @classmethod
+    def get_cache_directory(cls) -> str:
+        """
+        Retrieve the cache directory.
+        """
+        return cls._cache_dir
