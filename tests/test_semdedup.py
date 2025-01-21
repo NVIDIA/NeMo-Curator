@@ -28,8 +28,8 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
-EmbeddingCreator = gpu_only_import(
-    "nemo_curator.modules.semantic_dedup.embeddings.EmbeddingCreator"
+EmbeddingCreator = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
 )
 
 
@@ -90,8 +90,9 @@ class TestSemDuplicates:
 
     @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean"])
     def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):
-        test_text = "The quick brown fox jumps over the lazy dog"
-        test_texts = [test_text] * 32
+        test_text_1 = "The quick brown fox jumps over the lazy dog"
+        test_text_2 = "The brown fox jumps over the dog"
+        test_texts = [test_text_1, test_text_2] * 32
         df = cudf.DataFrame({"text": test_texts})
         ddf = dask_cudf.from_cudf(df, 1)
         cache_dir = os.path.join(tmpdir, "test_embeddings_cache")

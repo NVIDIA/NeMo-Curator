@@ -76,7 +76,7 @@ class EmbeddingPytorchModel(nn.Module):
         if self.config.pooling_strategy == "mean":
             return self._mean_pooling(feature, batch["attention_mask"])
         else:
-            return self._get_last_token(feature)
+            return self._get_last_token(feature, batch["attention_mask"])
 
     def _mean_pooling(self, model_output, attention_mask):
         token_embeddings = model_output[0]
@@ -87,9 +87,14 @@ class EmbeddingPytorchModel(nn.Module):
         sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
         return F.normalize(sum_embeddings / sum_mask, dim=1)
 
-    def _get_last_token(self, model_output):
+    def _get_last_token(self, model_output, attention_mask):
         token_embeddings = model_output[0]
-        last_token_embeddings = token_embeddings[:, -1, :]
+        # Get indices of last non-padded tokens for each sequence in batch
+        last_token_indices = attention_mask.sum(dim=1) - 1  # -1 for 0-based indexing
+        batch_size = attention_mask.size(0)
+        batch_indices = torch.arange(batch_size, device=attention_mask.device)
+        # Get embeddings of last non-padded tokens
+        last_token_embeddings = token_embeddings[batch_indices, last_token_indices]
         return F.normalize(last_token_embeddings, dim=1)
 
 
