@@ -30,6 +30,7 @@ from nemo_curator.utils.distributed_utils import (
     single_partition_write_with_filename,
     write_to_disk,
 )
+from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 
 def _generate_dummy_dataset(num_rows: int = 50) -> str:
@@ -147,25 +148,24 @@ class TestIO:
 class TestWriteWithFilename:
     @pytest.mark.parametrize("keep_filename_column", [True, False])
     @pytest.mark.parametrize("file_ext", ["jsonl", "parquet"])
+    @pytest.mark.parametrize("filename_col", ["file_name", "filename"])
     def test_multifile_single_partition(
-        self,
-        tmp_path,
-        keep_filename_column,
-        file_ext,
+        self, tmp_path, keep_filename_column, file_ext, filename_col
     ):
-        df = pd.DataFrame({"a": [1, 2, 3], "file_name": ["file0", "file1", "file1"]})
+        df = pd.DataFrame({"a": [1, 2, 3], filename_col: ["file0", "file1", "file1"]})
 
         single_partition_write_with_filename(
             df=df,
             output_file_dir=tmp_path,
             keep_filename_column=keep_filename_column,
             output_type=file_ext,
+            filename_col=filename_col,
         )
         assert os.path.exists(tmp_path / f"file0.{file_ext}")
         assert os.path.exists(tmp_path / f"file1.{file_ext}")
 
         if not keep_filename_column:
-            df = df.drop("file_name", axis=1)
+            df = df.drop(filename_col, axis=1)
 
         df1 = read_single_partition(
             files=[tmp_path / f"file0.{file_ext}"], backend="pandas", filetype=file_ext
@@ -219,18 +219,19 @@ class TestWriteWithFilename:
             ("parquet", DocumentDataset.read_parquet),
         ],
     )
-    def test_multifile_multi_partition(self, tmp_path, file_ext, read_f):
-        df1 = pd.DataFrame({"a": [1, 2, 3], "file_name": ["file1", "file2", "file2"]})
+    @pytest.mark.parametrize("filename_col", ["file_name", "filename"])
+    def test_multifile_multi_partition(self, tmp_path, file_ext, read_f, filename_col):
+        df1 = pd.DataFrame({"a": [1, 2, 3], filename_col: ["file1", "file2", "file2"]})
         df2 = df1.copy()
-        df2["file_name"] = "file3"
+        df2[filename_col] = "file3"
         df3 = df1.copy()
-        df3["file_name"] = ["file4", "file5", "file6"]
+        df3[filename_col] = ["file4", "file5", "file6"]
         ddf = dd.concat([df1, df2, df3])
-        ddf["file_name"] = ddf["file_name"] + f".{file_ext}"
+        ddf[filename_col] = ddf[filename_col] + f".{file_ext}"
         write_to_disk(
             df=ddf,
             output_path=tmp_path / file_ext,
-            write_to_filename=True,
+            write_to_filename=filename_col,
             output_type=file_ext,
         )
 
@@ -239,7 +240,56 @@ class TestWriteWithFilename:
             blocksize=None,
             files_per_partition=2,
             backend="pandas",
-            add_filename=True,
+            add_filename=filename_col,
         ).df
 
         assert_eq(got_df, ddf, check_index=False)
+
+
+class TestFileExtensions:
+    def test_keep_extensions(self, tmp_path):
+        json_1 = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        json_1.to_json(tmp_path / "json_1.jsonl", orient="records", lines=True)
+        json_2 = pd.DataFrame({"a": [7, 8, 9], "b": [10, 11, 12]})
+        json_2.to_json(tmp_path / "json_2.jsonl", orient="records", lines=True)
+
+        json_df = pd.concat([json_1, json_2])
+
+        parquet_file = pd.DataFrame({"a": [13, 14, 15], "b": [16, 17, 18]})
+        parquet_file.to_parquet(tmp_path / "parquet_file.parquet")
+        csv_file = pd.DataFrame({"a": [19, 20, 21], "b": [22, 23, 24]})
+        csv_file.to_csv(tmp_path / "csv_file.csv")
+
+        with pytest.raises(RuntimeError):
+            doc = DocumentDataset.read_json(str(tmp_path))
+
+        input_files = get_all_files_paths_under(str(tmp_path), keep_extensions="jsonl")
+        input_dataset = DocumentDataset.read_json(input_files)
+        assert json_df.equals(input_dataset.df.compute())
+
+        input_files = get_all_files_paths_under(
+            str(tmp_path), keep_extensions=["jsonl"]
+        )
+        input_dataset = DocumentDataset.read_json(input_files)
+        assert json_df.equals(input_dataset.df.compute())
+
+        input_files = get_all_files_paths_under(
+            str(tmp_path), keep_extensions=["jsonl", "parquet"]
+        )
+        assert sorted(input_files) == [
+            str(tmp_path / "json_1.jsonl"),
+            str(tmp_path / "json_2.jsonl"),
+            str(tmp_path / "parquet_file.parquet"),
+        ]
+
+    def test_write_single_jsonl_file(self, tmp_path):
+        json_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        json_df.to_json(tmp_path / "json_file.jsonl", orient="records", lines=True)
+
+        input_path = str(tmp_path / "json_file.jsonl")
+        output_path = str(tmp_path / "single_output.jsonl")
+        doc = DocumentDataset.read_json(input_path)
+        doc.to_json(output_path)
+
+        result = DocumentDataset.read_json(output_path)
+        assert json_df.equals(result.df.compute())
