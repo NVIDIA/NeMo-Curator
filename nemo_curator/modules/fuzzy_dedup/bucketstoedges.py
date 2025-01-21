@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -41,7 +42,6 @@ class BucketsToEdges:
 
     def __init__(
         self,
-        cache_dir: str = None,
         id_fields: Union[list, str] = "id",
         str_id_name: str = "id",
         bucket_field: str = "_bucket_id",
@@ -51,8 +51,6 @@ class BucketsToEdges:
         """
         Parameters
         ----------
-        cache_dir: str or None
-          If specified, will compute & write the edgelist to a file
         id_fields: list or str
           id fields of documents in buckets_df
         str_id_name: str
@@ -63,7 +61,7 @@ class BucketsToEdges:
         num_buckets: Number of bands/buckets to create from the minhash signature.
           Hashes_per_signature = num_hashes / num_buckets
         """
-        self.cache_dir = cache_dir
+        self.cache_dir = get_cache_directory()
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
         self.str_id_name = str_id_name if len(self.id_fields) > 1 else self.id_fields[0]
         self.output_ids = [f"{self.str_id_name}_x", f"{self.str_id_name}_y"]

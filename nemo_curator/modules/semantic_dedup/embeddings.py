@@ -27,6 +27,7 @@ from crossfit.backend.torch.hf.model import HFModel
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.classifiers.base import _get_suggest_memory_for_classifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
@@ -114,7 +115,6 @@ class EmbeddingCreator:
         self,
         embedding_model_name_or_path: str,
         embedding_batch_size: int,
-        embedding_output_dir: str,
         embedding_max_mem_gb: Optional[int] = None,
         input_column: str = "text",
         embedding_column: str = "embeddings",
@@ -129,7 +129,6 @@ class EmbeddingCreator:
         Args:
             embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
             embedding_batch_size (int): Number of samples to process in each batch.
-            embedding_output_dir (str): Directory path where embeddings will be saved.
             embedding_max_mem_gb (int): Maximum memory usage in GB for the embedding process.
                                 If None, it defaults to the available GPU memory minus 4 GB.
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
@@ -144,7 +143,6 @@ class EmbeddingCreator:
             embeddings_config (EmbeddingConfig): Configuration for embeddings.
             batch_size (int): Batch size for embedding generation.
             logger (logging.Logger): Logger instance for the class.
-            embedding_output_dir (str): Output directory for embeddings.
             input_column (str): Input column for data processing.
             model (EmbeddingCrossFitModel): Model instance for embedding generation.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
@@ -155,7 +153,6 @@ class EmbeddingCreator:
         )
         self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
-        self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
         self.embedding_column = embedding_column
         self.model = EmbeddingCrossFitModel(
@@ -164,6 +161,18 @@ class EmbeddingCreator:
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
         self.profile_dir = profile_dir
+
+        if write_embeddings_to_disk:
+            if get_cache_directory() is None:
+                raise RuntimeError(
+                    "No cache directory specified; please use initialize_cache_directory"
+                )
+            else:
+                self.embedding_output_dir = os.path.join(
+                    get_cache_directory(), "embeddings"
+                )
+        else:
+            self.embedding_output_dir = None
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):

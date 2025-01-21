@@ -25,6 +25,7 @@ import dask.dataframe as dd
 import numpy as np
 from cuml.dask.cluster import KMeans
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -53,7 +54,6 @@ class ClusteringModel:
         id_column: str,
         max_iter: int,
         n_clusters: int,
-        clustering_output_dir: str,
         embedding_col: str = "embeddings",
         sim_metric: str = "cosine",
         which_to_keep: str = "hard",
@@ -70,7 +70,6 @@ class ClusteringModel:
             id_column (str): Column name used as the identifier in the dataset.
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
-            clustering_output_dir (str): Directory path where clustering results will be saved.
             embedding_col (str): Column name where the embeddings are stored.
             sim_metric (str): Similarity metric to use for clustering, default is "cosine".
             which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
@@ -85,7 +84,6 @@ class ClusteringModel:
         self.id_col = id_column
         self.max_iter = max_iter
         self.n_clusters = n_clusters
-        self.clustering_output_dir = clustering_output_dir
         self.embedding_col = embedding_col
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
@@ -95,11 +93,13 @@ class ClusteringModel:
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
-        if not os.path.exists(self.clustering_output_dir):
-            expand_outdir_and_mkdir(self.clustering_output_dir)
+        if get_cache_directory() is None:
+            raise RuntimeError(
+                "No cache directory specified; please use initialize_cache_directory"
+            )
         else:
-            self.logger.warning(
-                f"Clustering output directory {self.clustering_output_dir} already exists and will be overwritten"
+            self.clustering_output_dir = os.path.join(
+                get_cache_directory(), "clustering"
             )
 
     def _setup_logger(self, logger):

@@ -25,6 +25,7 @@ import dask_cudf
 import numpy as np
 
 from nemo_curator._compat import MINHASH_DEPRECATED_API, MINHASH_PERMUTED_AVAILABLE
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -45,7 +46,6 @@ class MinHash:
         id_field: str = "id",
         text_field: str = "text",
         profile_dir: str = None,
-        cache_dir: str = None,
     ):
         """
         Parameters
@@ -59,8 +59,6 @@ class MinHash:
         text_field: Column in the Dataset denoting document content.
         profile_dir: str, Default None
           If specified directory to write dask profile
-        cache_dir: str, Default None
-          If specified, will compute & write id, minhash pairs to directory
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
@@ -78,11 +76,11 @@ class MinHash:
         self.id_field = id_field
         self.text_field = text_field
 
-        if cache_dir is None and profile_dir is not None:
+        if get_cache_directory() is None and profile_dir is not None:
             warnings.warn(
-                "cache_dir for intermediate outputs is required to generate profiles"
+                "Please use initialize_cache_directory to enable writing intermediate outputs and generating profiles"
             )
-        self.cache_dir = cache_dir
+        self.cache_dir = get_cache_directory()
         self.profile_dir = profile_dir
 
         if isinstance(logger, str):

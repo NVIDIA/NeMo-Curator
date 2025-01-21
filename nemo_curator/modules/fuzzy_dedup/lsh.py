@@ -25,6 +25,7 @@ import cudf
 import dask_cudf
 import numpy as np
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -38,7 +39,6 @@ class LSH:
 
     def __init__(
         self,
-        cache_dir: str,
         num_hashes: int,
         num_buckets: int,
         buckets_per_shuffle: int = 1,
@@ -51,8 +51,6 @@ class LSH:
         """
         Parameters
         ----------
-        cache_dir: str
-          Needs to be specified, will compute & write duplicate id, bucket pairs to cache directory.
         num_hashes: Length of minhash signature
         num_buckets: Number of bands/buckets to create from the minhash signature.
           Hashes_per_signature = num_hashes / num_buckets
@@ -76,11 +74,11 @@ class LSH:
         )
         self.buckets_as_int = false_positive_check
 
-        if cache_dir is None:
+        if get_cache_directory() is None:
             raise ValueError(
-                "cache_dir for intermediate outputs is required for this stage"
+                "Please use initialize_cache_directory to enable writing intermediate outputs"
             )
-        self.cache_dir = cache_dir
+        self.cache_dir = get_cache_directory()
         self.profile_dir = profile_dir
 
         if isinstance(logger, str):

@@ -17,6 +17,7 @@ import logging
 import os
 from typing import Union
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
@@ -44,12 +45,11 @@ class SemDedup:
         """
         self.config = config
         self.logger = logger
-        cache_dir = config.cache_dir
+        cache_dir = get_cache_directory()
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
             input_column=input_column,
-            embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
@@ -57,25 +57,18 @@ class SemDedup:
             id_column=id_column,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
-            clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
-            emb_by_clust_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "embs_by_nearest_center"
-            ),
-            sorted_clusters_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "sorted"
-            ),
             id_column=id_column,
             id_column_type=id_column_type,
             which_to_keep=config.which_to_keep,
-            output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
+
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract
 

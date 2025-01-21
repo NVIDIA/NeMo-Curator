@@ -28,6 +28,7 @@ import numpy as np
 from cugraph import MultiGraph
 from dask.utils import M
 
+from nemo_curator.cache import get_cache_directory
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 
@@ -35,15 +36,21 @@ from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_s
 class ConnectedComponents:
     def __init__(
         self,
-        cache_dir: str,
-        jaccard_pairs_path: str,
         id_column="id",
         jaccard_threshold: float = 0.8,
+        false_positive_check: bool = False,
         logger: Union[logging.LoggerAdapter, str] = "./",
         profile_dir: Optional[str] = None,
     ):
-        self.cache_dir = cache_dir
-        self.jaccard_pairs_path = jaccard_pairs_path
+        self.cache_dir = get_cache_directory()
+        jaccard_pairs_fname = (
+            "jaccard_similarity_results.parquet"
+            if false_positive_check
+            else "_edges.parquet"
+        )
+        self.jaccard_pairs_path = os.path.join(
+            get_cache_directory(), jaccard_pairs_fname
+        )
         self.id_column = id_column
         self.left_id = f"{id_column}_x"
         self.right_id = f"{id_column}_y"
