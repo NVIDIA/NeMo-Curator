@@ -45,6 +45,7 @@ def main(args):
         logger=log_dir,
         id_field=dataset_id_field,
         text_field=dataset_text_field,
+        # cache_dir=output_dir  # Optionally write the output to disk
     )
 
     duplicates = exact_dup(dataset=input_dataset)
@@ -53,21 +54,21 @@ def main(args):
     if isinstance(duplicates, str):
         duplicates = DocumentDataset.read_parquet(duplicates, backend=backend)
 
-    # It's easy to apply dataframe operations to the dataset by using the underlying df.
-
-    # By default all duplicate id's are included in the result
-    # keep 1 document from each group of duplcates and mark the others to remove
+    # It is easy to apply DataFrame operations to the dataset.
+    # By default, all duplicate IDs are included in the result.
+    # Keep 1 document from each group of duplicates and mark the others to remove:
     # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
     docs_to_remove = duplicates.df.map_partitions(
         lambda x: x[x._hashes.duplicated(keep="first")]
     )
 
-    # When there are few duplicates we can compute the results to a list and use `isin`.
+    # When there are few duplicates we can compute the results to a list and use `isin`:
     result = input_dataset.df[
         ~input_dataset.df[dataset_id_field].isin(
             docs_to_remove[dataset_id_field].compute()
         )
     ]
+
     write_to_disk(result, output_dir, output_type="parquet")
     print(time.time() - t0)
 

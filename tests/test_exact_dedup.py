@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import pandas as pd
 import pytest
 from dask import dataframe as dd
 from dask.dataframe.utils import assert_eq
 
-from nemo_curator.cache import initialize_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
 
@@ -40,17 +42,40 @@ class TestExactDuplicates:
         with pytest.raises(ValueError):
             ExactDuplicates(hash_method="sha256")
 
-    @pytest.mark.parametrize("cache_result", [False, True])
-    def test_dup(self, exact_dedup_data, cache_result, tmpdir):
-        if cache_result:
-            initialize_cache_directory(tmpdir)
+    @pytest.mark.parametrize("cache_method", [None, "Cache", "ExactDuplicates"])
+    def test_dup(self, exact_dedup_data, cache_method, tmpdir):
+        if cache_method == "Cache":
+            Cache(cache_dir=tmpdir)
+            cache_dir = None
+        elif cache_method == "ExactDuplicates":
+            cache_dir = tmpdir
+        else:
+            cache_dir = None
 
         exact_dups = ExactDuplicates(
             id_field="id",
             text_field="text",
             hash_method="md5",
+            cache_dir=cache_dir,
         )
+
         result = exact_dups(exact_dedup_data)
+        result = result.df.compute()
         expected_df = exact_dedup_data.df.compute()
         expected_df = expected_df[expected_df.text.duplicated(keep=False)]
-        assert_eq(result.df.id, expected_df.id, check_index=False)
+
+        assert_eq(result.id, expected_df.id, check_index=False)
+
+        # Check that the output is written when either:
+        # (1) Cache(cache_dir=...) is initialized, or
+        # (2) ExactDuplicates(cache_dir=...) is initialized.
+        # If there is no Cache and ExactDuplicates(cache_dir=None),
+        # then there should be no output file.
+        if cache_method == "Cache":
+            assert os.path.exists(
+                Cache().get_cache_directory() + "/_exact_duplicates.parquet"
+            )
+        elif cache_method == "ExactDuplicates":
+            assert os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
+        else:
+            assert not os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))

@@ -25,7 +25,7 @@ class Cache:
             if cache_dir is not None:
                 cls._cache_dir = expand_outdir_and_mkdir(cache_dir)
             else:
-                raise ValueError("cache_dir must be provided.")
+                cls._cache_dir = None
         elif cache_dir is not None and cls._cache_dir is None:
             cls._cache_dir = expand_outdir_and_mkdir(cache_dir)
         return cls._instance
