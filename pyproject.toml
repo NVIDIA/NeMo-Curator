@@ -74,7 +74,6 @@ dependencies = [
     "zstandard==0.18.0",
 ]
 dynamic = ["version"]
-license-files = ["LICENSE"]
 
 [project.optional-dependencies]
 # Installs CPU + GPU text curation modules
