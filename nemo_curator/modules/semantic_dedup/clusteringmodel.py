@@ -25,7 +25,7 @@ import dask.dataframe as dd
 import numpy as np
 from cuml.dask.cluster import KMeans
 
-from nemo_curator.cache import get_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -33,7 +33,6 @@ from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters
 
 
-### Clustering Module
 def get_embedding_ar(df: "cudf.DataFrame", embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
@@ -48,12 +47,15 @@ def add_dist_to_cents(
     return df
 
 
+# Clustering module
 class ClusteringModel:
     def __init__(
         self,
         id_column: str,
         max_iter: int,
         n_clusters: int,
+        cache_dir: Optional[str] = None,
+        clustering_save_loc: str = "clustering_results",
         embedding_col: str = "embeddings",
         sim_metric: str = "cosine",
         which_to_keep: str = "hard",
@@ -70,14 +72,23 @@ class ClusteringModel:
             id_column (str): Column name used as the identifier in the dataset.
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
+            cache_dir (str, optional): Directory path where clustering results will be saved.
+            clustering_save_loc (str): Location within cache_dir to save clustering results.
+                Default is "clustering_results".
             embedding_col (str): Column name where the embeddings are stored.
-            sim_metric (str): Similarity metric to use for clustering, default is "cosine".
-            which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
-            sort_clusters (bool): Whether to sort clusters, default is True.
-            kmeans_with_cos_dist (bool): Whether to use KMeans with cosine distance, default is False.
-            partition_size (str): The size of data partition to run kmeans with, default is "2gb".
-            logger (Union[logging.Logger, str]): Logger object or directory path to save logs; default is "./".
-            profile_dir (str): If specified directory to write dask profile. Default is None.
+            sim_metric (str): Similarity metric to use for clustering.
+                Default is "cosine".
+            which_to_keep (str): Strategy to decide which duplicates to keep.
+                Default is "hard".
+            sort_clusters (bool): Whether to sort clusters. Default is True.
+            kmeans_with_cos_dist (bool): Whether to use KMeans with cosine distance.
+                Default is False.
+            partition_size (str): The size of data partition with which to run KMeans.
+                Default is "2gb".
+            logger (Union[logging.Logger, str]): Logger object or directory path to save logs.
+                Default is "./".
+            profile_dir (str, optional): If specified, directory to write Dask profile.
+                Default is None.
 
         This constructor sets up the parameters required for clustering operations.
         """
@@ -93,13 +104,24 @@ class ClusteringModel:
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
-        if get_cache_directory() is None:
-            raise RuntimeError(
-                "No cache directory specified; please use initialize_cache_directory"
+        if cache_dir is not None:
+            self.clustering_output_dir = os.path.join(cache_dir, clustering_save_loc)
+        elif Cache().get_cache_directory() is not None:
+            self.clustering_output_dir = os.path.join(
+                Cache().get_cache_directory(), clustering_save_loc
             )
         else:
-            self.clustering_output_dir = os.path.join(
-                get_cache_directory(), "clustering"
+            raise RuntimeError(
+                "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                "or ClusteringModel(cache_dir=...)"
+            )
+
+        if not os.path.exists(self.clustering_output_dir):
+            expand_outdir_and_mkdir(self.clustering_output_dir)
+        else:
+            self.logger.warning(
+                f"Clustering output directory {self.clustering_output_dir} already exists"
+                " and will be overwritten"
             )
 
     def _setup_logger(self, logger):
@@ -119,7 +141,7 @@ class ClusteringModel:
 
         if self.embedding_col not in embeddings_df.columns:
             raise ValueError(
-                f"Expected embedding column '{self.embedding_col}'"
+                f'Expected embedding column "{self.embedding_col}"'
                 f" to be in dataset. Only found columns {embeddings_df.columns}"
             )
 
@@ -140,14 +162,14 @@ class ClusteringModel:
             self.logger.info("KMeans starting fit")
             kmeans.fit(cupy_darr)
             self.logger.info("KMeans fit complete")
-            self.logger.info(f"Time taken for KMeans Fit: {time.time() - t0}")
+            self.logger.info(f"Time taken for KMeans fit: {time.time() - t0}")
 
             self.logger.info(
-                "Computing nearest centroids + distance to centers using kmeans.predict"
+                "Computing nearest centroids and distance to centers using kmeans.predict"
             )
             t0 = time.time()
             nearest_cents = kmeans.predict(cupy_darr)
-            self.logger.info(f"Time taken for KMeans Predict: {time.time() - t0}")
+            self.logger.info(f"Time taken for KMeans predict: {time.time() - t0}")
 
             t0 = time.time()
             embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
@@ -174,7 +196,8 @@ class ClusteringModel:
             )
             if os.path.exists(clustering_output_dir):
                 self.logger.warning(
-                    f"Output directory {clustering_output_dir} already exists and will be overwritten"
+                    f"Output directory {clustering_output_dir} already exists and will"
+                    " be overwritten."
                 )
                 shutil.rmtree(clustering_output_dir)
 
@@ -184,8 +207,8 @@ class ClusteringModel:
                 partition_on="nearest_cent",
             )
             self.logger.info(
-                f"Time taken for Assigning distance to each embedding : {time.time() - t0} "
-                f"and output written at {clustering_output_dir}"
+                f"Time taken for assigning distance to each embedding: {time.time() - t0}s"
+                f" and output written at {clustering_output_dir}"
             )
 
             del embeddings_df

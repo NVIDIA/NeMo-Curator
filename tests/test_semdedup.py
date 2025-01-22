@@ -18,7 +18,7 @@ from dask.dataframe.utils import assert_eq
 from distributed import Client
 
 from nemo_curator import SemDedup, SemDedupConfig
-from nemo_curator.cache import initialize_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -56,17 +56,23 @@ class TestSemDuplicates:
             request.cls.cluster = cluster
             yield
 
+    @pytest.mark.parametrize("cache_method", ["Cache", "SemDedupConfig"])
     def test_sem_dedup(
         self,
         dedup_data,
         tmpdir,
+        cache_method,
     ):
         print("client", self.client)
-        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
-        initialize_cache_directory(cache_dir)
+
+        if cache_method == "Cache":
+            Cache(cache_dir=os.path.join(tmpdir, "test_sem_dedup_cache"))
+            cache_dir = None
+        else:
+            cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
 
         config = SemDedupConfig(
-            seed=42,
+            cache_dir=cache_dir,
             n_clusters=3,
             eps_thresholds=[0.10],
             eps_to_extract=0.10,
@@ -82,3 +88,26 @@ class TestSemDuplicates:
         duplicate_docs = [2, 3, 4, 200, 300]
         expected_df = cudf.Series(duplicate_docs, name="id")
         assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+
+        # Check that the output is written when either:
+        # (1) Cache(cache_dir=...) is initialized, or
+        # (2) SemDedupConfig(cache_dir=...) is initialized.
+        # Either way, their output files should be identical.
+        if cache_method == "Cache":
+            cache_dir = Cache().get_cache_directory()
+
+        assert os.path.exists(cache_dir)
+        assert os.path.exists(cache_dir + "/embeddings/part.0.parquet")
+        assert os.path.exists(cache_dir + "/embeddings/part.1.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/dedup_summary_0.1.csv")
+        assert os.path.exists(cache_dir + "/clustering_results/kmeans_centroids.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_0.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_1.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_2.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/embs_by_nearest_center/nearest_cent=0/part.0.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/embs_by_nearest_center/nearest_cent=1/part.0.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/embs_by_nearest_center/nearest_cent=2/part.0.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_0.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_1.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_2.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/unique_ids_0.1.parquet")

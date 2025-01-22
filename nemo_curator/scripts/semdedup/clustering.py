@@ -19,7 +19,6 @@ from datetime import datetime
 import dask_cudf
 
 from nemo_curator import ClusteringModel
-from nemo_curator.cache import get_cache_directory, initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
@@ -31,9 +30,9 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 def main(args):
     semdedup_config = SemDedupConfig.from_yaml(args.config_file)
     client = get_client(**ArgumentHelper.parse_client_args(args))
-
-    initialize_cache_directory(args.cache_dir)
-    save_folder = os.path.join(get_cache_directory(), "clustering")
+    save_folder = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.clustering_save_loc
+    )
     expand_outdir_and_mkdir(save_folder)
     # Initialize logger
     log_file = os.path.join(save_folder, "compute_centroids.log")
@@ -50,7 +49,9 @@ def main(args):
     dt1 = datetime.now()
     print("Start time:", dt1)
 
-    embedding_fp = os.path.join(get_cache_directory(), "embeddings")
+    embedding_fp = os.path.join(
+        semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
+    )
 
     # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
     # When we fix that
@@ -61,7 +62,17 @@ def main(args):
         id_column=args.id_column,
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
+        cache_dir=semdedup_config.cache_dir,
+        clustering_save_loc=semdedup_config.clustering_save_loc,
+        sim_metric=semdedup_config.sim_metric,
+        which_to_keep=semdedup_config.which_to_keep,
+        kmeans_with_cos_dist=semdedup_config.kmeans_with_cos_dist,
         logger=logger,
+        # Hardcoded as recommended values
+        embedding_col="embeddings",
+        sort_clusters=True,
+        partition_size="2gb",
+        profile_dir=None,
     )
 
     clustered_embeddings = clustering_model(embedding_dataset)
@@ -83,11 +94,11 @@ def attach_args():
             "semdedup_extract_embeddings"
             "Input arguments include: "
             "--id-column for the identifier in the dataset, "
-            "--cache-dir for the directory to store cache, "
             "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include: "
+            " cache_dir for the directory to store cache,"
+            " clustering_save_loc for the location to save clustering results,"
             " n_clusters for the number of clusters,"
-            " seed for the seed for clustering,"
             " max_iter for the maximum iterations for clustering,"
             " kmeans_with_cos_dist for using K-Means with cosine distance."
         ),

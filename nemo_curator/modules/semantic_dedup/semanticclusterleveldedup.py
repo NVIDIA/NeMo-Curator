@@ -21,9 +21,10 @@ from typing import List, Optional, Union
 
 import dask.bag as db
 
-from nemo_curator.cache import get_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
@@ -39,7 +40,10 @@ class SemanticClusterLevelDedup:
         id_column: str,
         id_column_type: str,
         which_to_keep: str,
+        output_dir: Optional[str] = None,
+        cache_dir: Optional[str] = None,
         embedding_col: str = "embeddings",
+        clustering_save_loc: str = "clustering_results",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
     ) -> None:
@@ -51,9 +55,16 @@ class SemanticClusterLevelDedup:
             id_column (str): Column name for IDs.
             id_column_type (str): Data type of the ID column.
             which_to_keep (str): Strategy for which duplicate to keep.
+            output_dir (str, optional): Directory to save output files.
+                If None, it will be saved to cache_dir/clustering_save_loc.
+                Default is None.
+            cache_dir (str, optional): Should be the same as specified in ClusteringModel.
             embedding_col (str): Column where the embeddings are stored.
+            clustering_save_loc (str): Should be the same as specified in ClusteringModel.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
-            profile_dir (str): If specified directory to write dask profile. Default is None.
+                Default is "./".
+            profile_dir (str, optional): If specified, directory to write Dask profile.
+                Default is None.
         """
         self.n_clusters = n_clusters
         self.id_col = id_column
@@ -64,21 +75,28 @@ class SemanticClusterLevelDedup:
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
-        if get_cache_directory() is None:
-            raise RuntimeError(
-                "No cache directory specified; please use initialize_cache_directory"
-            )
+        if cache_dir is None:
+            if Cache().get_cache_directory() is None:
+                raise RuntimeError(
+                    "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                    "or SemanticClusterLevelDedup(cache_dir=...)"
+                )
+            else:
+                cache_dir = Cache().get_cache_directory()
+        self.emb_by_clust_dir = os.path.join(
+            cache_dir, clustering_save_loc, "embs_by_nearest_center"
+        )
+        self.sorted_clusters_dir = os.path.join(
+            cache_dir, clustering_save_loc, "sorted"
+        )
+
+        if output_dir is None:
+            self.output_dir = os.path.join(cache_dir, clustering_save_loc)
         else:
-            self.emb_by_clust_dir = os.path.join(
-                get_cache_directory(), "clustering", "embs_by_nearest_center"
-            )
-            self.sorted_clusters_dir = os.path.join(
-                get_cache_directory(), "clustering", "sorted"
-            )
-            self.output_dir = os.path.join(get_cache_directory(), "clustering")
-            self.semdedup_pruning_tables_dir = os.path.join(
-                self.output_dir, "semdedup_pruning_tables"
-            )
+            self.output_dir = output_dir
+        self.semdedup_pruning_tables_dir = os.path.join(
+            output_dir, "semdedup_pruning_tables"
+        )
 
     def _setup_logger(self, logger: Union[logging.Logger, str]) -> logging.Logger:
         """
@@ -121,6 +139,7 @@ class SemanticClusterLevelDedup:
             )
             shutil.rmtree(self.semdedup_pruning_tables_dir)
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
+
         t0 = time.time()
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "semantic-match-compute"

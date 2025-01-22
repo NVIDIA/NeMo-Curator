@@ -58,6 +58,7 @@ class ExactDuplicates:
           Currently only supports "md5".
         profile_dir: If specified, directory to write Dask profile. Default is None.
         cache_dir: If specified, will compute and write duplicate IDs to cache directory.
+            If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
             Default is None.
         """
 

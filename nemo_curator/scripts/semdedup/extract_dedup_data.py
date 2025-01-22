@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 
 from nemo_curator import SemanticClusterLevelDedup
-from nemo_curator.cache import get_cache_directory, initialize_cache_directory
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import get_client
@@ -14,14 +13,13 @@ def main(args):
     semdedup_config = SemDedupConfig.from_yaml(args.config_file)
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
-    initialize_cache_directory(args.cache_dir)
+    root = semdedup_config.cache_dir
+    save_loc = semdedup_config.clustering_save_loc
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
     logger = create_logger(
         rank=0,
-        log_file=os.path.join(
-            get_cache_directory(), "clustering", "extract_dedup_data.log"
-        ),
+        log_file=os.path.join(root, save_loc, "extract_dedup_data.log"),
         name="logger-extract-dedup-data",
         log_level=logging.INFO,
         stdout=True,
@@ -29,13 +27,22 @@ def main(args):
 
     dt1 = datetime.now()
     logger.info(f"Start: {dt1}")
+    cache_dir = semdedup_config.cache_dir
 
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=semdedup_config.n_clusters,
         id_column=args.id_column,
         id_column_type=args.id_column_type,
         which_to_keep=semdedup_config.which_to_keep,
+        cache_dir=semdedup_config.cache_dir,
+        clustering_save_loc=semdedup_config.clustering_save_loc,
         logger=logger,
+        # Hardcoded as recommended values
+        output_dir=os.path.join(
+            semdedup_config.cache_dir, semdedup_config.clustering_save_loc
+        ),
+        embedding_col="embeddings",
+        profile_dir=None,
     )
 
     semantic_dedup.compute_semantic_match_dfs(semdedup_config.eps_thresholds)
@@ -61,11 +68,10 @@ def attach_args():
             "Input arguments include: "
             "--id-column for the the identifier in the dataset, "
             "--id-column-type for the data type of ID column, "
-            "--cache-dir for the directory to store cache, "
             "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include:"
+            " cache_dir for the directory to store cache"
             " which_to_keep for specifying which duplicates to keep,"
-            " largest_cluster_size_to_process for the largest cluster size to process,"
             " sim_metric for the similarity metric for deduplication,"
             " eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
             " and eps_to_extract for the epsilon value to extract deduplicated data."

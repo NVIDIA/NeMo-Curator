@@ -27,7 +27,6 @@ from crossfit.backend.torch.hf.model import HFModel
 from torch.nn import functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
-from nemo_curator.cache import get_cache_directory
 from nemo_curator.classifiers.base import _get_suggest_memory_for_classifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
@@ -37,7 +36,7 @@ from nemo_curator.utils.distributed_utils import (
 )
 
 
-# Embedding Creation Module
+# Embedding creation module
 @dataclass
 class EmbeddingConfig:
     model_name_or_path: str
@@ -47,7 +46,7 @@ class EmbeddingConfig:
         self.max_seq_length = AutoTokenizer.from_pretrained(
             self.model_name_or_path
         ).model_max_length
-        # Gaurd against the HF bug
+        # Guard against Hugging Face bug
         # which sets max_seq_length to max(int) for some models
         if self.max_seq_length > 1e5:
             self.max_seq_length = AutoConfig.from_pretrained(
@@ -115,6 +114,8 @@ class EmbeddingCreator:
         self,
         embedding_model_name_or_path: str,
         embedding_batch_size: int,
+        cache_dir: Optional[str] = None,
+        embeddings_save_loc: str = "embeddings",
         embedding_max_mem_gb: Optional[int] = None,
         input_column: str = "text",
         embedding_column: str = "embeddings",
@@ -129,23 +130,26 @@ class EmbeddingCreator:
         Args:
             embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
             embedding_batch_size (int): Number of samples to process in each batch.
-            embedding_max_mem_gb (int): Maximum memory usage in GB for the embedding process.
-                                If None, it defaults to the available GPU memory minus 4 GB.
-            input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
-            write_embeddings_to_disk (bool, optional): If True, saves the embeddings to disk, defaults to True.
-                                We recommend setting this to False when you have a delayed pipeline.
-                                Setting it to False can lead to more memory overhead.
-            write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
-            logger (Union[logging.Logger, str]): Logger object or path to store logs, defaults to "./".
-            profile_dir (str): If specified directory to write dask profile. Default is None.
+            cache_dir (str, optional): Directory path where embeddings will be saved.
+                If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
+                Default is None.
+            embeddings_save_loc (str): Location within cache_dir to save embeddings.
+                Default is "embeddings".
+            embedding_max_mem_gb (int, optional): Maximum memory usage in GB for the embedding process.
+                If None, it defaults to the available GPU memory minus 4 GB.
+            input_column (str): Column name from the data to be used for embedding generation.
+                Default is "text".
+            write_embeddings_to_disk (bool): If True, saves the embeddings to disk,
+                Default is True.
+                We recommend setting this to False when you have a delayed pipeline.
+                Setting it to False can lead to more memory overhead.
+            write_to_filename (bool): If True, saves the embeddings to the same filename as input files.
+                Default False.
+            logger (Union[logging.Logger, str]): Logger object or path to store logs.
+                Default is "./".
+            profile_dir (str, optional): If specified, directory to write Dask profile.
+                Default is None.
 
-        Attributes:
-            embeddings_config (EmbeddingConfig): Configuration for embeddings.
-            batch_size (int): Batch size for embedding generation.
-            logger (logging.Logger): Logger instance for the class.
-            input_column (str): Input column for data processing.
-            model (EmbeddingCrossFitModel): Model instance for embedding generation.
-            write_to_filename (bool): If True, saves the embeddings to the same filename as input files, defaults to False.
         """
 
         self.embeddings_config = EmbeddingConfig(
@@ -162,17 +166,17 @@ class EmbeddingCreator:
         self.write_to_filename = write_to_filename
         self.profile_dir = profile_dir
 
-        if write_embeddings_to_disk:
-            if get_cache_directory() is None:
-                raise RuntimeError(
-                    "No cache directory specified; please use initialize_cache_directory"
-                )
-            else:
-                self.embedding_output_dir = os.path.join(
-                    get_cache_directory(), "embeddings"
-                )
+        if cache_dir is not None:
+            self.embedding_output_dir = os.path.join(cache_dir, embeddings_save_loc)
+        elif Cache().get_cache_directory() is not None:
+            self.embedding_output_dir = os.path.join(
+                Cache().get_cache_directory(), embeddings_save_loc
+            )
         else:
-            self.embedding_output_dir = None
+            raise RuntimeError(
+                "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                "or EmbeddingCreator(cache_dir=...)"
+            )
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):

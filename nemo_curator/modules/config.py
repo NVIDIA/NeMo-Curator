@@ -18,7 +18,7 @@ from typing import List, Optional
 
 import yaml
 
-from nemo_curator.cache import get_cache_directory
+from nemo_curator.cache import Cache
 
 
 @dataclass
@@ -48,6 +48,8 @@ class FuzzyDuplicatesConfig(BaseConfig):
     text_field: Column in the Dataset denoting document content.
     profile_dir: str, Default None
         If specified directory to write dask profile
+    cache_dir: str, Default None
+        Location to store deduplcation intermediates such as minhashes/buckets etc.
     false_positive_check: bool,
         Whether to run a check to look for false positives within buckets.
         Note: This is a computationally expensive step.
@@ -60,6 +62,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
     """
 
     # General config
+    cache_dir: str
     profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
@@ -82,7 +85,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
-        if get_cache_directory() is None:
+        if self.cache_dir is None:
             raise ValueError(
                 "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
             )
@@ -115,50 +118,70 @@ class SemDedupConfig(BaseConfig):
     Configuration for Semantic Deduplication.
 
     Attributes:
-        profile_dir (Optional[str]): If specified directory to write dask profile. Default is None.
+        cache_dir (Optional[str]): If specified, directory to store cache.
+            If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
+            Default is None.
+        profile_dir (Optional[str]): If specified, directory to write Dask profile.
+            Default is None.
         num_files (int): Number of files. Default is -1, meaning all files.
+        embeddings_save_loc (str): Location to save embeddings.
+            Default is "embeddings".
         embedding_model_name_or_path (str): Model name or path for embeddings.
-        embedding_batch_size (int): Inital Batch size for processing embeddings.
-        n_clusters (int): Number of clusters.
-        seed (int): Seed for clustering.
-        max_iter (int): Maximum iterations for clustering.
-        kmeans_with_cos_dist (bool): Use KMeans with cosine distance.
-        which_to_keep (str): Which duplicates to keep.
-        largest_cluster_size_to_process (int): Largest cluster size to process.
+            Default is "sentence-transformers/all-MiniLM-L6-v2".
+        embedding_batch_size (int): Initial batch size for processing embeddings.
+            Default is 128.
+        clustering_save_loc (str): Location to save clustering results.
+            Default is "clustering_results".
+        n_clusters (int): Number of clusters. Default is 1000.
+        max_iter (int): Maximum iterations for clustering. Default is 100.
+        kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
+            Default is False.
+        which_to_keep (str): Method to determine which duplicates to keep.
+            Default is "hard".
         sim_metric (str): Similarity metric for deduplication.
-        eps_thresholds (List[float]): Epsilon thresholds to calculate if semantically similar or not.
+            Default is "cosine".
+        eps_thresholds (List[float]): Epsilon thresholds to calculate if semantically
+            similar or not.
         eps_to_extract (float): Epsilon value to extract deduplicated data.
+            Default is 0.1.
     """
 
+    cache_dir: str = None
     profile_dir: Optional[str] = None
     num_files: int = -1
 
     # Embeddings
+    embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
 
-    # Clustering config
+    # ClusteringModel
+    clustering_save_loc: str = "clustering_results"
     n_clusters: int = 1000
-    seed: int = 1234
     max_iter: int = 100
     kmeans_with_cos_dist: bool = False
 
-    # Semdedup config
+    # SemanticClusterLevelDedup
     which_to_keep: str = "hard"
-    largest_cluster_size_to_process: int = 100000
     sim_metric: str = "cosine"
 
-    # Extract dedup config
+    # SemDedup
     eps_thresholds: List[float] = field(default_factory=lambda: [0.01, 0.001])
     eps_to_extract: float = 0.01
 
     def __post_init__(self):
-        if get_cache_directory() is None:
-            raise ValueError(
-                "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
-            )
+        if self.cache_dir is None:
+            cache_dir = Cache().get_cache_directory()
+            if cache_dir is None:
+                raise ValueError(
+                    "Finding semantic duplicates requires a cache directory accessible "
+                    "via all workers to store intermediates."
+                )
+            else:
+                self.cache_dir = cache_dir
 
         if self.eps_to_extract not in self.eps_thresholds:
             raise ValueError(
-                f"Epsilon to extract {self.eps_to_extract} must be in eps_thresholds {self.eps_thresholds}"
+                f"Epsilon to extract {self.eps_to_extract} must be in eps_thresholds "
+                f"{self.eps_thresholds}."
             )
