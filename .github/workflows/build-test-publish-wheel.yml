@@ -28,19 +28,10 @@ defaults:
 
 jobs:
   build-test-publish-wheel:
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_test_publish_wheel.yml@v0.7.0
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_test_publish_wheel.yml@ko3n1g/ci/build-wheel-public-infra
     with:
-      image-name: nemo_curator_container
-      dockerfile: Dockerfile
-      image-label: nemo-curator
-      build-args: |
-        IMAGE_LABEL=nemo-curator
-        REPO_URL=https://github.com/${{ github.repository }}.git
-        CURATOR_COMMIT=${{ github.sha }}
-      prune-filter-timerange: 24h
       dry-run: true
       python-package: nemo_curator
-      container-workdir: /opt/NeMo-Curator/
       environment: public
     secrets:
       TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
