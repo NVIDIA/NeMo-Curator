@@ -74,7 +74,7 @@ dependencies = [
     "zstandard==0.18.0",
 ]
 dynamic = ["version"]
-license-files = ["LICENSE"]
+license = {file = "LICENSE"}
 
 [project.optional-dependencies]
 # Installs CPU + GPU text curation modules
@@ -178,6 +178,9 @@ py_version = 310
 markers = [
     "gpu: marks tests as GPU tests (deselect with '-m \"not gpu\"')"
 ]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools.dynamic]
 version = { attr = "nemo_curator.package_info.__version__" }
