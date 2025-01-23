@@ -36,3 +36,13 @@ class Cache:
         Retrieve the cache directory.
         """
         return cls._cache_dir
+
+    @classmethod
+    def delete_cache_instance(cls):
+        """
+        Reset the Cache singleton.
+        """
+        if cls._cache_dir is not None:
+            cls._cache_dir = None
+
+        cls._instance = None

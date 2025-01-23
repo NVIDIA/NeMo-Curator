@@ -25,7 +25,7 @@ import dask_cudf
 import numpy as np
 
 from nemo_curator._compat import MINHASH_DEPRECATED_API, MINHASH_PERMUTED_AVAILABLE
-from nemo_curator.cache import get_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -46,19 +46,24 @@ class MinHash:
         id_field: str = "id",
         text_field: str = "text",
         profile_dir: str = None,
+        cache_dir: str = None,
     ):
         """
         Parameters
         ----------
-        seed: Seed for minhash permutations
-        num_hashes: Length of minhash signature (No. of minhash permutations)
+        seed: Seed for minhash permutations. Default is 42.
+        num_hashes: Length of minhash signature (number of minhash permutations).
+            Default is 260.
         char_ngrams: Width of text window (in characters) while computing minhashes.
-        use_64bit_hash: Whether to use a 64 bit hash function.
+            Default is 5.
+        use_64bit_hash: Whether to use a 64 bit hash function. Default is False.
         logger: Existing logger to log to, or a path to a log directory.
-        id_field: Column in the Dataset denoting document ID.
-        text_field: Column in the Dataset denoting document content.
-        profile_dir: str, Default None
-          If specified directory to write dask profile
+            Default is "./".
+        id_field: Column in the dataset denoting document ID. Default is "id".
+        text_field: Column in the dataset denoting document content. Default is "text".
+        profile_dir: If specified, directory to write Dask profile. Default is None.
+        cache_dir: If specified, will compute and write "ID, minhash pairs" to
+            directory. Can also be set with Cache(cache_dir=...). Default is None.
         """
         self.num_hashes = num_hashes
         self.char_ngram = char_ngrams
@@ -76,12 +81,16 @@ class MinHash:
         self.id_field = id_field
         self.text_field = text_field
 
-        if get_cache_directory() is None and profile_dir is not None:
-            warnings.warn(
-                "Please use initialize_cache_directory to enable writing intermediate outputs and generating profiles"
-            )
-        self.cache_dir = get_cache_directory()
+        if cache_dir is None:
+            self.cache_dir = Cache().get_cache_directory()
+        else:
+            self.cache_dir = cache_dir
         self.profile_dir = profile_dir
+        if self.cache_dir is None and profile_dir is not None:
+            warnings.warn(
+                "cache_dir for intermediate outputs is required to generate profiles. "
+                "Please initialize with Cache(cache_dir=...) or MinHash(cache_dir=...)"
+            )
 
         if isinstance(logger, str):
             self._logger = create_logger(
@@ -96,6 +105,7 @@ class MinHash:
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
+
         gen = np.random.RandomState(seed)
         return gen.randint(0, 1e6, size=n_seeds)
 
@@ -105,6 +115,7 @@ class MinHash:
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
+
         gen = np.random.RandomState(seed)
 
         if bit_width == 32:
@@ -115,7 +126,7 @@ class MinHash:
             MERSENNE_PRIME = np.uint64((1 << 61) - 1)
             dtype = np.uint64
         else:
-            raise ValueError("Unsupported bit width. Use either 32 or 64.")
+            raise ValueError("Unsupported bit width. Please use either 32 or 64.")
 
         return np.array(
             [
@@ -132,8 +143,9 @@ class MinHash:
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
     ) -> cudf.Series:
         """
-        Compute 32bit minhashes based on the MurmurHash3 algorithm
+        Compute 32-bit minhashes based on the MurmurHash3 algorithm.
         """
+
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
 
@@ -144,8 +156,10 @@ class MinHash:
                 "Install the latest version of cuDF using `pip install curator[cuda12x_nightly]`",
                 category=FutureWarning,
             )
+
             seeds = cudf.Series(seeds, dtype="uint32")
             return ser.str.minhash(seeds=seeds, width=char_ngram)
+
         else:
             seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
             seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
@@ -163,10 +177,12 @@ class MinHash:
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
     ) -> cudf.Series:
         """
-        Compute 64bit minhashes based on the MurmurHash3 algorithm
+        Compute 64-bit minhashes based on the MurmurHash3 algorithm.
         """
+
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
+
         if MINHASH_DEPRECATED_API:
             warnings.warn(
                 "Using an outdated minhash implementation, please update to cuDF version 24.12 "
@@ -174,8 +190,10 @@ class MinHash:
                 "Install the latest version of cuDF using `pip install curator[cuda12x_nightly]`",
                 category=FutureWarning,
             )
+
             seeds = cudf.Series(seeds, dtype="uint64")
             return ser.str.minhash64(seeds=seeds, width=char_ngram)
+
         else:
             seeds_a = cudf.Series(seeds[:, 0], dtype="uint64")
             seeds_b = cudf.Series(seeds[:, 1], dtype="uint64")
@@ -191,16 +209,19 @@ class MinHash:
 
     def __call__(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
         """
-        Computes the MinHash Signatures for a given dataset.
+        Computes the MinHash signatures for a given dataset.
+
         Parameters
         ----------
-        dataset: DocumentDataset
-        The input datset to compute MinHashes.
+        dataset (DocumentDataset): The input dataset on which to compute MinHashes.
+
         Returns
         -------
-        DocumentDataset containing IDs of all documents and the corresponding MinHash Signature
+        DocumentDataset containing IDs of all documents and the corresponding MinHash signature
         """
+
         result = dataset.df[[self.id_field]]
+
         result["_minhash_signature"] = dataset.df[self.text_field].map_partitions(
             self.minhash_method,
             seeds=self.seeds,
@@ -212,16 +233,20 @@ class MinHash:
 
         t0 = time.time()
         self._logger.info("Starting execution for Minhashes")
+
         write_path = os.path.join(self.cache_dir, "_minhashes.parquet")
         if os.path.exists(write_path):
             warnings.warn(
                 f"Output path {write_path} already exists and will be overwritten"
             )
+
         with performance_report_if_with_ts_suffix(self.profile_dir, "minhash-profile"):
             result.to_parquet(write_path, write_index=False, overwrite=True)
+
         self._logger.info(
-            f"Time taken for Minhash signature computation = {time.time() - t0}s and output written at {write_path}"
+            f"Time taken for Minhash signature computation: {time.time() - t0}s and output written at {write_path}"
         )
+
         return DocumentDataset(
             dask_cudf.read_parquet(write_path, blocksize="2GB", aggregate_files=True)
         )

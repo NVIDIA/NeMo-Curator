@@ -33,41 +33,45 @@ class BaseConfig:
 @dataclass
 class FuzzyDuplicatesConfig(BaseConfig):
     """
-    Configuration for MinHash based fuzzy duplicates detection.
+    Configuration for MinHash-based fuzzy duplicates detection.
+
     Parameters
     ----------
-    seed: Seed for minhash permutations
-    char_ngrams: Size of Char ngram shingles used in minhash computation
-    num_buckets: Number of Bands or buckets to use during Locality Sensitive Hashing
-    hashes_per_bucket: Number of hashes per bucket/band.
+    cache_dir: If specified, directory to store deduplication intermediates, such as
+        minhashes, buckets, etc. If None, we check if a cache_dir has been initialized
+        with Cache().get_cache_directory(). Default is None.
+    profile_dir: If specified, directory to write Dask profile. Default is None.
+    id_field: Column in the dataset denoting document ID. Default is "id".
+    text_field: Column in the dataset denoting document content. Default is "text".
+    seed: Seed for minhash permutations. Default is 42.
+    char_ngrams: Size of character n-gram shingles used in minhash computation.
+        Default is 5.
+    num_buckets: Number of bands or buckets to use during Locality Sensitive Hashing.
+        Default is 20.
+    hashes_per_bucket: Number of hashes per bucket/band. Default is 13.
     use_64_bit_hash: Whether to use a 32bit or 64bit hash function for minhashing.
-    buckets_per_shuffle: Number of bands/buckets to shuffle concurrently.
-        Larger values process larger batches by processing multiple bands
-        but might lead to memory pressures and related errors.
-    id_field: Column in the Dataset denoting document ID.
-    text_field: Column in the Dataset denoting document content.
-    profile_dir: str, Default None
-        If specified directory to write dask profile
-    cache_dir: str, Default None
-        Location to store deduplcation intermediates such as minhashes/buckets etc.
-    false_positive_check: bool,
-        Whether to run a check to look for false positives within buckets.
-        Note: This is a computationally expensive step.
-    num_anchors: int
-        Number of documents per bucket to use as reference for computing jaccard
-        pairs within that bucket to identify false positives.
-    jaccard_threshold: float
-        The Jaccard similariy threshold to consider a document a near duplicate
-        during false positive evaluations.
+        Default is False.
+    buckets_per_shuffle: Number of bands/buckets to shuffle concurrently. Larger values
+        process larger batches by processing multiple bands but might lead to memory
+        pressures and related errors. Default is 1.
+    false_positive_check: Whether to run a check to look for false positives within
+        buckets. Note: This is a computationally expensive step. Default is True.
+    num_anchors: Number of documents per bucket to use as reference for computing
+        Jaccard pairs within that bucket to identify false positives. Default is 2.
+    jaccard_threshold: The Jaccard similariy threshold to consider a document a near
+        duplicate during false positive evaluations. Default is 0.8.
+    bucket_mapping_blocksize: Default is 256.
+    parts_per_worker: Default is 1.
+    bucket_parts_per_worker: Default is 8.
     """
 
     # General config
-    cache_dir: str
+    cache_dir: Optional[str] = None
     profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
 
-    # Minhash + LSH Config
+    # Minhash + LSH config
     seed: int = 42
     char_ngrams: int = 5
     num_buckets: int = 20
@@ -76,7 +80,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
     buckets_per_shuffle: int = 1
 
     false_positive_check: bool = True
-    # Only required for fp check
+    # Only required for false positive check
     num_anchors: int = 2
     jaccard_threshold: float = 0.8
     bucket_mapping_blocksize: int = 256
@@ -85,31 +89,48 @@ class FuzzyDuplicatesConfig(BaseConfig):
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
-        if self.cache_dir is None:
-            raise ValueError(
-                "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
-            )
+
         if self.false_positive_check:
             warnings.warn(
-                "Identifying false positives during the Minhash deduplication is computationally expensive."
-                " For improved performance consider setting this to False"
+                "Identifying false positives during Minhash deduplication is "
+                "computationally expensive. For improved performance consider setting "
+                "this to False."
             )
+
         if not self.false_positive_check and self.char_ngrams < 20:
             warnings.warn(
-                "Using a small char_ngrams value might lead to a large number (~5%) of false positives during deduplication."
-                " Using a value of at least 20 for char_ngrams is recommended."
+                "Using a small char_ngrams value might lead to a large number (~5%) of "
+                "false positives during deduplication. Using a value of at least 20 for "
+                "char_ngrams is recommended."
             )
+
         if self.num_anchors <= 0:
-            raise ValueError("Number of anchors must be greater than 0")
+            raise ValueError("Number of anchors must be greater than 0.")
+
         if self.num_anchors > 2:
             warnings.warn(
-                "Using a higher number of anchor docs might lead to higher memory footprint and might impact performance",
+                "Using a higher number of anchor documents might lead to higher memory "
+                "footprint and might impact performance.",
                 category=UserWarning,
             )
+
         if not 0 <= self.jaccard_threshold <= 1:
-            raise ValueError("Jaccard Threshold must be between [0,1]")
+            raise ValueError("Jaccard threshold must be between 0-1.")
+
         if self.buckets_per_shuffle <= 0:
-            raise ValueError("Buckets per shuffle must be greater than 0")
+            raise ValueError("Buckets per shuffle must be greater than 0.")
+
+        if self.cache_dir is None:
+            cache_dir = Cache().get_cache_directory()
+            if cache_dir is None:
+                raise ValueError(
+                    "Finding fuzzy duplicates requires a cache directory accessible via "
+                    "all workers to store intermediates. Please use "
+                    "Cache(cache_dir=...) or FuzzyDuplicatesConfig(cache_dir=...) to "
+                    "set the cache directory."
+                )
+            else:
+                self.cache_dir = cache_dir
 
 
 @dataclass
@@ -175,7 +196,9 @@ class SemDedupConfig(BaseConfig):
             if cache_dir is None:
                 raise ValueError(
                     "Finding semantic duplicates requires a cache directory accessible "
-                    "via all workers to store intermediates."
+                    "via all workers to store intermediates. Please use "
+                    "Cache(cache_dir=...) or SemDedupConfig(cache_dir=...) to "
+                    "set the cache directory."
                 )
             else:
                 self.cache_dir = cache_dir

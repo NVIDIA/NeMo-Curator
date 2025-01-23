@@ -28,7 +28,7 @@ import numpy as np
 from cugraph import MultiGraph
 from dask.utils import M
 
-from nemo_curator.cache import get_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 
@@ -36,26 +36,31 @@ from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_s
 class ConnectedComponents:
     def __init__(
         self,
+        jaccard_pairs_path: str,
+        cache_dir: Optional[str] = None,
         id_column="id",
         jaccard_threshold: float = 0.8,
-        false_positive_check: bool = False,
         logger: Union[logging.LoggerAdapter, str] = "./",
         profile_dir: Optional[str] = None,
     ):
-        self.cache_dir = get_cache_directory()
-        jaccard_pairs_fname = (
-            "jaccard_similarity_results.parquet"
-            if false_positive_check
-            else "_edges.parquet"
-        )
-        self.jaccard_pairs_path = os.path.join(
-            get_cache_directory(), jaccard_pairs_fname
-        )
+        self.jaccard_pairs_path = jaccard_pairs_path
+
+        if cache_dir is None:
+            self.cache_dir = Cache().get_cache_directory()
+        else:
+            self.cache_dir = cache_dir
+        if self.cache_dir is None:
+            raise ValueError(
+                "cache_dir is required for Connected Components. Please initialize with "
+                "Cache(cache_dir=...) or ConnectedComponents(cache_dir=...)"
+            )
+
         self.id_column = id_column
         self.left_id = f"{id_column}_x"
         self.right_id = f"{id_column}_y"
         self.jaccard_threshold = jaccard_threshold
         self.profile_dir = profile_dir
+
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -67,12 +72,15 @@ class ConnectedComponents:
 
     def cc_workflow(self, output_path):
         deduped_parsed_id_path = self._write_dedup_parsed_id()
+
         encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
             deduped_parsed_id_path
         )
+
         deduped_encoded_jaccard_path = self._write_dedup_encoded_jaccard_pair(
             encoded_jaccard_pair_path
         )
+
         cc_path = self._run_connected_components(
             deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path
         )
@@ -88,7 +96,6 @@ class ConnectedComponents:
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-run"
         ):
-
             Comms.initialize(p2p=False)
             df = dask_cudf.read_parquet(
                 deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
@@ -109,6 +116,7 @@ class ConnectedComponents:
             )
             result = dcg.weakly_connected_components(G)
             del G
+
             max_partitions = min(32, result.npartitions)
             n_components = len(
                 result[["labels"]].drop_duplicates(split_out=max_partitions)
@@ -117,6 +125,7 @@ class ConnectedComponents:
             labels_df = labels_df.merge(
                 result, left_on=["uid"], right_on=["vertex"], how="inner"
             )
+
             id_columns = [self.id_column]
             labels_df = labels_df[id_columns + ["labels"]]
             labels_df = labels_df.rename(columns={"labels": "group"})
@@ -126,27 +135,31 @@ class ConnectedComponents:
 
             self._logger.info(
                 "Result of connected compoinents are "
-                f"# of groups : {n_components}, "
-                f"# of docs removed : {num_labels - n_components}, "
-                f"# nodes = {num_nodes}, "
-                f"# rows in labels_df = {len(labels_df)}"
+                f"# of groups: {n_components}, "
+                f"# of documents removed: {num_labels - n_components}, "
+                f"# nodes: {num_nodes}, "
+                f"# rows in labels_df: {len(labels_df)}"
             )
             assert num_nodes == len(labels_df)
-            # Ensure all docs in the same group are in the same partition
+
+            # Ensure all documents in the same group are in the same partition
             labels_df = labels_df.shuffle(on=["group"], ignore_index=True)
             labels_df.to_parquet(output_path, write_index=False, overwrite=True)
             Comms.destroy()
+
         self._logger.info(
-            f"Time taken for Connected Components Run = {time.time() - t0}s and output written at {output_path}"
+            f"Time taken for connected components: {time.time() - t0}s and output written at {output_path}"
         )
 
     @staticmethod
     def _sort_ids(df, id_columns):
         x = df[id_columns].values
         x = cp.sort(x, axis=1)
+
         for i, id_column in enumerate(id_columns):
             df[id_column] = x[:, i]
             df[id_column] = df[id_column].astype("uint64")
+
         return df
 
     @staticmethod
@@ -159,10 +172,10 @@ class ConnectedComponents:
     def _write_dedup_encoded_jaccard_pair(self, encoded_jaccard_pair_path):
         output_path = f"{self.cache_dir}/final_dedup_encoded_jaccard_pair.parquet"
         t0 = time.time()
+
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-dedup-encoded-jaccard-pair"
         ):
-
             ddf = dask_cudf.read_parquet(
                 encoded_jaccard_pair_path, blocksize="512MB", aggregate_files=True
             )
@@ -203,14 +216,17 @@ class ConnectedComponents:
                 align_dataframes=False,
             )
             ddf.to_parquet(output_path, write_index=False, overwrite=True)
+
         self._logger.info(
-            f"Time taken for Dedup Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
+            f"Time taken for dedupe encoding Jaccard pairs: {time.time() - t0}s and output written at {output_path}"
         )
+
         return output_path
 
     def _write_dedup_parsed_id(self):
         dedup_parsed_id_path = f"{self.cache_dir}/dedup_parsed_id.parquet"
         t0 = time.time()
+
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-dedup-parsed-id"
         ):
@@ -228,20 +244,24 @@ class ConnectedComponents:
                 # Dask does not guard against split_out=0
                 split_out=max(ddf.npartitions // 4, 1)
             )
+
             unique_docs["uid"] = np.uint64(1)
             unique_docs["uid"] = unique_docs["uid"].cumsum()
             unique_docs["uid"] = unique_docs["uid"] - 1
             unique_docs.to_parquet(
                 dedup_parsed_id_path, write_index=False, overwrite=True
             )
+
         self._logger.info(
-            f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
+            f"Time taken for dedupe parsed ID: {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
+
         return dedup_parsed_id_path
 
     def _write_encoded_jaccard_pair(self, dedup_parsed_id_path):
         output_path = f"{self.cache_dir}/encoded_jaccard_pair/"
         t0 = time.time()
+
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-encoded-jaccard-pair"
         ):
@@ -259,9 +279,11 @@ class ConnectedComponents:
                 output_path=output_path,
                 id_column=self.id_column,
             )
+
         self._logger.info(
-            f"Time taken for Encoding Jaccard Pairs = {time.time() - t0}s and output written at {output_path}"
+            f"Time taken for encoding Jaccard pairs: {time.time() - t0}s and output written at {output_path}"
         )
+
         return output_path
 
     def _merge_and_write(
@@ -272,11 +294,13 @@ class ConnectedComponents:
         id_column: str,
     ) -> None:
         st = time.time()
-        # Ensure 'id_columns' is a list
+
+        # Ensure id_columns is a list
         ddf_id = ddf_id.set_index(id_column)
+
         for tag in ["x", "y"]:
             pair_id = f"{id_column}_{tag}"
-            # Merge 'ddf' with 'ddf_id' to map ids to uids
+            # Merge ddf with ddf_id to map IDs to UIDs
             ddf = ddf.merge(
                 ddf_id,
                 left_on=pair_id,
@@ -286,19 +310,22 @@ class ConnectedComponents:
             )
             ddf = ddf.drop(columns=pair_id)
             ddf = ddf.rename(columns={"uid": f"{self.id_column}_{tag}"})
+
         ddf = ddf[[self.left_id, self.right_id, "jaccard"]]
         ddf.to_parquet(output_path, write_index=False, overwrite=True)
 
         et = time.time()
         self._logger.info(
-            f"Time taken for merge and write = {et - st}s and output written at {output_path}"
+            f"Time taken for merge and write: {et - st}s and output written at {output_path}"
         )
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
         unique_df_ls = []
+
         for tag in ["x", "y"]:
             cols_to_drop = []
+
             for id_col in id_columns:
                 cols_to_drop.append(f"{id_col}_{tag}")
 
@@ -307,6 +334,7 @@ class ConnectedComponents:
                 columns={f"{id_col}_{tag}": f"{id_col}" for id_col in id_columns}
             )
             unique_df_ls.append(subset_df)
+
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)
         unique_df = unique_df.drop_duplicates(ignore_index=True)
         return unique_df

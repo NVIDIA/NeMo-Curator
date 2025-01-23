@@ -39,11 +39,11 @@ def main(args):
     )
     logger.info(f"Starting workflow with args:\n {args}")
 
-    assert args.hash_bytes in {4, 8}, "Currently only 32bit/64bit hashes are supported"
+    assert args.hash_bytes in {4, 8}, "Currently only 32bit/64bit hashes are supported."
     assert args.device == "gpu"
 
     client = get_client(**ArgumentHelper.parse_client_args(args))
-    logger.info(f"Client Created {client}")
+    logger.info(f"Client created {client}")
     client.run(pre_imports)
     logger.info("Pre imports complete")
 
@@ -65,13 +65,16 @@ def main(args):
     t0 = time.time()
     for data_path in data_paths:
         print(f"Computing minhashes for {data_path}", flush=True)
+
         data_path = strip_trailing_sep(data_path)
+
         if num_files is not None and num_files <= 0:
             print(f"Processed {args.num_files}... quitting")
             break
 
         files = get_all_files_paths_under(root=data_path, recurse_subdirectories=False)
         files = [f for f in files if f.endswith(".jsonl")]
+
         df = read_data(
             files[:num_files] if num_files else files,
             file_type="jsonl",
@@ -85,10 +88,12 @@ def main(args):
             num_files -= len(files)
 
         res = minhasher(DocumentDataset(df)).df
+
         logger.info(
             f"Lazy minhash generation complete for {res.npartitions} partitions"
         )
         logger.info(f"Starting execution for {data_path}")
+
         write_path = os.path.join(
             args.output_minhash_dir, os.path.basename(data_path), "minhashes.parquet"
         )
@@ -98,8 +103,9 @@ def main(args):
             args.profile_path, f"{os.path.basename(data_path)}-minhash-profile.html"
         ):
             res.to_parquet(write_path, write_index=False)
+
         logger.info(
-            f"Minhash computation for f{data_path} took {time.time() - t1}s complete at {write_path}"  # noqa:E501
+            f"Minhash computation for {data_path} took {time.time() - t1}s complete at {write_path}"  # noqa:E501
         )
     logger.info(
         f"Minhash computation across datasets took {time.time() - t0}s complete at {args.output_minhash_dir}"  # noqa:E501

@@ -18,7 +18,6 @@ import time
 import dask
 
 from nemo_curator import FuzzyDuplicates, FuzzyDuplicatesConfig
-from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, write_to_disk
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -32,14 +31,14 @@ def main(args):
 
     dataset_dir = "/path/to/dataset"
     log_dir = "./"
-    initialize_cache_directory("./fuzzy_cache")  # must be cleared between runs
+    cache_dir = "./fuzzy_cache"  # must be cleared between runs
     output_dir = "./output"
     dataset_id_field = "id"
     dataset_text_field = "text"
 
     filetype = "parquet"
 
-    # Fuzzy dup calculation only supports the cuDF/GPU backend
+    # Fuzzy deduplication only supports the cuDF/GPU backend
     backend = "cudf"
     assert args.device == "gpu"
 
@@ -66,6 +65,7 @@ def main(args):
             )
 
         fuzzy_dedup_config = FuzzyDuplicatesConfig(
+            cache_dir=cache_dir,
             id_field=dataset_id_field,
             text_field=dataset_text_field,
             seed=42,
@@ -83,24 +83,24 @@ def main(args):
 
         if duplicates is None:
             print("No duplicates found")
-            print(f"Time taken:{time.time() - t0}s")
+            print(f"Time taken: {time.time() - t0}s")
             return
 
-        # By default all duplicate id's and the group they belong to are included in the result
-        # keep 1 document from each group of duplcates and mark the others to remove
+        # By default all duplicate IDs and the group they belong to are included in the result.
+        # Keep 1 document from each group of duplicates and mark the others to remove:
         # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
         docs_to_remove = duplicates.df.map_partitions(
             lambda x: x[x.group.duplicated(keep="first")]
         )
 
-        # When there are few duplicates we can compute the results to a list and use `isin`.
+        # When there are few duplicates we can compute the results to a list and use `isin`:
         result = input_dataset.df[
             ~input_dataset.df[dataset_id_field].isin(
                 docs_to_remove[dataset_id_field].compute()
             )
         ]
         write_to_disk(result, output_dir, output_type=filetype)
-        print(f"Time taken:{time.time() - t0}s")
+        print(f"Time taken: {time.time() - t0}s")
 
 
 def attach_args(

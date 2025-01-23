@@ -65,6 +65,7 @@ class TestSemDuplicates:
     ):
         print("client", self.client)
 
+        Cache().delete_cache_instance() # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=os.path.join(tmpdir, "test_sem_dedup_cache"))
             cache_dir = None
@@ -93,8 +94,7 @@ class TestSemDuplicates:
         # (1) Cache(cache_dir=...) is initialized, or
         # (2) SemDedupConfig(cache_dir=...) is initialized.
         # Either way, their output files should be identical.
-        if cache_method == "Cache":
-            cache_dir = Cache().get_cache_directory()
+        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
 
         assert os.path.exists(cache_dir)
         assert os.path.exists(cache_dir + "/embeddings/part.0.parquet")
@@ -104,10 +104,25 @@ class TestSemDuplicates:
         assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_0.npy")
         assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_1.npy")
         assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_2.npy")
-        assert os.path.exists(cache_dir + "/clustering_results/embs_by_nearest_center/nearest_cent=0/part.0.parquet")
-        assert os.path.exists(cache_dir + "/clustering_results/embs_by_nearest_center/nearest_cent=1/part.0.parquet")
-        assert os.path.exists(cache_dir + "/clustering_results/embs_by_nearest_center/nearest_cent=2/part.0.parquet")
-        assert os.path.exists(cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_0.parquet")
-        assert os.path.exists(cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_1.parquet")
-        assert os.path.exists(cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_2.parquet")
+        assert os.path.exists(
+            cache_dir
+            + "/clustering_results/embs_by_nearest_center/nearest_cent=0/part.0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir
+            + "/clustering_results/embs_by_nearest_center/nearest_cent=1/part.0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir
+            + "/clustering_results/embs_by_nearest_center/nearest_cent=2/part.0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_1.parquet"
+        )
+        assert os.path.exists(
+            cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_2.parquet"
+        )
         assert os.path.exists(cache_dir + "/clustering_results/unique_ids_0.1.parquet")

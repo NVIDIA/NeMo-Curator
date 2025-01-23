@@ -21,7 +21,6 @@ import dask_cudf
 import numpy as np
 
 from nemo_curator import LSH
-from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import get_client
@@ -39,11 +38,10 @@ def main(args):
     )
     logger.info(f"Starting workflow with args:\n {args}")
 
-    initialize_cache_directory(args.output_bucket_dir)
-
     assert args.device == "gpu"
     client = get_client(**ArgumentHelper.parse_client_args(args))
-    logger.info(f"Client Created {client}")
+
+    logger.info(f"Client created {client}")
     client.run(pre_imports)
     logger.info("Pre imports complete")
 
@@ -56,8 +54,10 @@ def main(args):
         dfs.append(
             dask_cudf.read_parquet(data_path, blocksize="2GB", aggregate_files=True)
         )
+
     df = dask_cudf.concat(dfs, ignore_unknown_divisions=True)
     df = df[~df[id_field].isna()]
+
     df = df.map_partitions(
         convert_str_id_to_int,
         id_column=id_field,
@@ -67,6 +67,7 @@ def main(args):
     )
 
     lsh = LSH(
+        cache_dir=args.output_bucket_dir,
         num_hashes=args.minhash_length,
         num_buckets=args.num_bands,
         buckets_per_shuffle=args.buckets_per_shuffle,
@@ -79,7 +80,7 @@ def main(args):
 
     t1 = time.time()
     _ = lsh(DocumentDataset(df))
-    logger.info(f"Computing and writing buckets took {time.time() - t1} s")
+    logger.info(f"Computing and writing buckets took {time.time() - t1}s")
 
 
 def attach_args():

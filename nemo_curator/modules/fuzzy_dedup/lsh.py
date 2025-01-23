@@ -25,7 +25,7 @@ import cudf
 import dask_cudf
 import numpy as np
 
-from nemo_curator.cache import get_cache_directory
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -34,13 +34,14 @@ from nemo_curator.utils.fuzzy_dedup_utils.io_utils import check_empty_buckets
 
 class LSH:
     """
-    Performs LSH on a MinhashSignatures
+    Performs LSH on a Minhash signatures
     """
 
     def __init__(
         self,
         num_hashes: int,
         num_buckets: int,
+        cache_dir: Optional[str] = None,
         buckets_per_shuffle: int = 1,
         false_positive_check: bool = False,
         logger: Union[logging.LoggerAdapter, str] = "./",
@@ -51,35 +52,48 @@ class LSH:
         """
         Parameters
         ----------
-        num_hashes: Length of minhash signature
+        num_hashes: Length of minhash signature.
         num_buckets: Number of bands/buckets to create from the minhash signature.
-          Hashes_per_signature = num_hashes / num_buckets
-        buckets_per_shuffle: Number of bands/buckets to shuffle concurrently.
-          but might lead to memory pressures and related errors.
-        false_positive_check: bool
-          If True, writes out buckets in a format compatible with downstream false positive check.
+            hashes_per_signature = num_hashes / num_buckets.
+        cache_dir: Directory to compute and write duplicate ID, bucket pairs.
+            This field is required via LSH(cache_dir=...) or Cache(cache_dir=...).
+        buckets_per_shuffle: Number of bands/buckets to shuffle concurrently. Larger
+            values process larger batches by processing multiple bands but might lead
+            to memory pressures and related errors. Default is 1.
+        false_positive_check: If True, writes out buckets in a format compatible with
+            downstream false positive check. Default is False.
         logger: Existing logger to log to, or a path to a log directory.
-        id_field: Columns in the Dataset denoting document ID.
-        minhash_field: Column in the Dataset denoting minhash signature.
-        profile_dir: str, Default None
-          If specified directory to write dask profile
+            Default is "./".
+        id_fields: List or string representing column(s) in the dataset denoting
+            document ID. Default is "id".
+        minhash_field: Column in the dataset denoting minhash signature.
+            Default is "_minhash_signature".
+        profile_dir: If specified, directory to write Dask profile. Default is None.
         """
+
         self.num_hashes = num_hashes
         self.num_buckets = num_buckets
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
         self.minhash_field = minhash_field
         self.buckets_per_shuffle = buckets_per_shuffle
+
         self.bucket_ranges = self._generate_bucket_ranges(
             self.num_buckets, self.num_hashes
         )
+
         self.buckets_as_int = false_positive_check
 
-        if get_cache_directory() is None:
-            raise ValueError(
-                "Please use initialize_cache_directory to enable writing intermediate outputs"
-            )
-        self.cache_dir = get_cache_directory()
+        if cache_dir is None:
+            self.cache_dir = Cache().get_cache_directory()
+        else:
+            self.cache_dir = cache_dir
         self.profile_dir = profile_dir
+
+        if self.cache_dir is None:
+            raise ValueError(
+                "cache_dir for intermediate outputs is required for this stage. "
+                "Please initialize with Cache(cache_dir=...) or LSH(cache_dir=...)"
+            )
 
         if isinstance(logger, str):
             self._logger = create_logger(
@@ -94,11 +108,12 @@ class LSH:
         self, num_buckets: int, num_hashes: int
     ) -> List[List[int]]:
         """
-        Generates a list of indices for the minhash ranges given num_bands &
-        num_hashes.
-        eg: num_bands=3, num_hashes=6
+        Generates a list of indices for the minhash ranges, given num_bands and num_hashes.
+
+        For example: num_bands=3, num_hashes=6
         [[0, 1], [2, 3], [4, 5]]
         """
+
         minhashes_per_bucket = num_hashes // num_buckets
 
         bucket_ranges = [
@@ -109,6 +124,7 @@ class LSH:
             )
             for bucket in range(num_buckets)
         ]
+
         return bucket_ranges
 
     def minhash_to_buckets(
@@ -117,11 +133,13 @@ class LSH:
         bucket_ranges: List[List[int]],
     ) -> cudf.DataFrame:
         df2 = df[self.id_fields]
+
         for i, h in enumerate(bucket_ranges):
             indices = cudf.Series([h]).repeat(len(df2))
             df2[f"_bucket_{i}"] = f"b{i}_" + df[self.minhash_field].list.take(
                 indices
             ).hash_values(method="md5")
+
         return df2
 
     def bucket_id_to_int(
@@ -131,23 +149,28 @@ class LSH:
         start_id: int = 0,
     ) -> Tuple[dask_cudf.DataFrame, int]:
         """
-        Maps bucket ids to a contigious integer range from starting from start_id.
+        Maps bucket IDs to a contigious integer range from starting from start_id.
         """
+
         unique_bucket_df = (
             bucket_ddf[[bucket_col_name]]
             .map_partitions(lambda x: x.drop_duplicates(ignore_index=True))
             .persist()
         )
+
         end_bucket_id = len(unique_bucket_df) - 1 + start_id
         unique_bucket_df["bucket_int_id"] = np.uint64(1)
         unique_bucket_df["bucket_int_id"] = unique_bucket_df["bucket_int_id"].cumsum()
+
         unique_bucket_df["bucket_int_id"] = (
             unique_bucket_df["bucket_int_id"] - 1 + start_id
         )
+
         bucket_ddf = bucket_ddf.merge(unique_bucket_df, on=[bucket_col_name])
         bucket_ddf = bucket_ddf.drop(columns=[bucket_col_name])
         bucket_ddf = bucket_ddf.rename(columns={"bucket_int_id": "_bucket_id"})
         bucket_ddf["_bucket_id"] = bucket_ddf["_bucket_id"].astype(np.uint64)
+
         return (bucket_ddf, end_bucket_id)
 
     def _minhash_to_bucket_meta(
@@ -163,29 +186,33 @@ class LSH:
         df: dask_cudf.DataFrame,
     ) -> bool:
         """
-        Computes hash buckets for the DataFrame and writes them as parquet files to the specified path.
+        Computes hash buckets for the DataFrame and writes them as Parquet files to the specified path.
 
         Parameters:
-            - write_path (str): The directory path to write parquet files.
+            - write_path (str): The directory path to write Parquet files.
             - df (dask_cudf.DataFrame): The input DataFrame with minhashes to be bucketed.
         Returns:
             are_buckets_empty: True if buckets were empty (no duplicates found), False otherwise.
         """
+
         wrote_buckets = False
         are_buckets_empty = True
 
         meta = self._minhash_to_bucket_meta(df)
+
         df = df.map_partitions(
             self.minhash_to_buckets,
             bucket_ranges=self.bucket_ranges,
             meta=meta,
         )
+
         bucket_start_id = 0
         for i in range(0, self.num_buckets, self.buckets_per_shuffle):
             bucket_columns = [
                 f"_bucket_{i}"
                 for i in range(i, min(self.num_buckets, i + self.buckets_per_shuffle))
             ]
+
             df2 = df.melt(
                 id_vars=self.id_fields,
                 value_name="_bucket_id",
@@ -199,17 +226,20 @@ class LSH:
             ).map_partitions(lambda x: x[x["_bucket_id"].duplicated(keep=False)])
 
             df2 = df2.reset_index(drop=True)
-            # Buckets to Int
+
+            # Buckets to int
             if self.buckets_as_int:
                 df2, end_id = self.bucket_id_to_int(
                     df2, bucket_col_name="_bucket_id", start_id=bucket_start_id
                 )
-                # If bucketing return empty dataframe
+
+                # If bucketing returns empty DataFrame
                 if end_id < bucket_start_id:
                     self._logger.info(
                         f"No duplicate documents found for buckets: {bucket_columns}"
                     )
                     continue
+
                 bucket_start_id = end_id + 1
                 are_buckets_empty = False
 
@@ -239,15 +269,17 @@ class LSH:
         buckets_to_write: List[str],
     ) -> tuple[bool, bool]:
         """
-        Utility function to write the bucketed data to parquet
+        Utility function to write the bucketed data to Parquet,
         handling cases of overwriting and appending as needed.
         """
+
         if not wrote_buckets:
             if os.path.exists(write_path):
                 warnings.warn(
                     f"Output path {write_path} already exists and will be overwritten"
                 )
             df.to_parquet(write_path, write_index=False, overwrite=True)
+
         else:
             df.to_parquet(
                 write_path,
@@ -256,9 +288,11 @@ class LSH:
                 append=not are_buckets_empty,
                 ignore_divisions=True,
             )
+
         # Only check if buckets written so far are empty
         if are_buckets_empty:
             are_buckets_empty = check_empty_buckets(write_path)
+
         wrote_buckets = True
 
         if are_buckets_empty:
@@ -267,21 +301,24 @@ class LSH:
             )
         else:
             self._logger.info(f"Wrote data for buckets: {buckets_to_write}")
+
         return wrote_buckets, are_buckets_empty
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
-
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")
+
         t0 = time.time()
         with performance_report_if_with_ts_suffix(self.profile_dir, "lsh-profile"):
             empty_result = self.lsh(write_path=write_path, df=df)
+
         self._logger.info(
-            f"Time taken for LSH = {time.time() - t0}s and output written at {write_path}"
+            f"Time taken for LSH: {time.time() - t0}s and output written at {write_path}"
         )
 
         if empty_result:
             return None
 
         buckets_df = dask_cudf.read_parquet(write_path, split_row_groups=False)
+
         return DocumentDataset(buckets_df)

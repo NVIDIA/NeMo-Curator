@@ -38,7 +38,8 @@ def get_anchor_and_output_map_info(
     input_meta,
 ):
     """
-    Get anchor docs with bucket info
+    Get anchor documents with bucket information.
+
     Args:
         input_data_paths: list of paths to input data
         input_bucket_path: path to input buckets
@@ -49,6 +50,7 @@ def get_anchor_and_output_map_info(
     Returns:
         ddf_anchor_docs_with_bk
     """
+
     ddf_text = get_text_ddf_from_json_path_with_blocksize(
         input_data_paths=input_data_paths,
         num_files=num_files,
@@ -57,17 +59,21 @@ def get_anchor_and_output_map_info(
         text_column=input_text_field,
         input_meta=input_meta,
     )
+
     ddf_bk = get_bucket_ddf_from_parquet_path(
         input_bucket_path=input_bucket_path, num_workers=num_workers
     )
+
     map_buckets = _MapBuckets(
         id_fields=["dataset_id", "doc_id"],
         bucket_field=input_bucket_field,
         text_field=input_text_field,
     )
+
     ddf_anchor_docs_with_bk = map_buckets.map_buckets_with_anchors(
         documents_df=ddf_text, buckets_df=ddf_bk, shuffle_type=shuffle_type
     )
+
     return ddf_anchor_docs_with_bk
 
 
@@ -123,18 +129,21 @@ def jaccard_get_output_map_workflow(
     input_meta,
 ):
     """
-    Workflow for jaccard shuffle
+    Workflow for Jaccard shuffle.
+
     Args:
-        client: dask client
+        client: Dask client
         input_data_paths: list of paths to input data
         input_bucket_path: path to input buckets
-        output_anchor_docs_with_bk_path: path to save anchor docs with bucket info
+        output_anchor_docs_with_bk_path: path to save anchor documents with bucket
+            information
         text_ddf_blocksize: blocksize for text ddf
         num_files: number of files to read
-        parts_per_worker: number of parts per worker
         shuffle_type: type of shuffle to use before writing to parquet
     """
+
     num_workers = get_num_workers(client)
+
     ddf_anchor_docs_with_bk = get_anchor_and_output_map_info(
         input_data_paths,
         input_bucket_path,
@@ -147,6 +156,7 @@ def jaccard_get_output_map_workflow(
         input_text_field,
         input_meta=input_meta,
     )
+
     ddf_anchor_docs_with_bk.to_parquet(
         output_anchor_docs_with_bk_path,
         write_index=False,
@@ -160,12 +170,15 @@ def main(args):
     output_anchor_docs_with_bk_path = os.path.join(
         OUTPUT_PATH, "anchor_docs_with_bk.parquet"
     )
+
     client = get_client(**ArgumentHelper.parse_client_args(args))
-    print(f"Num Workers = {get_num_workers(client)}", flush=True)
-    print("Connected to dask cluster", flush=True)
-    print("Running jaccard map buckets script", flush=True)
+
+    print(f"Number of workers: {get_num_workers(client)}", flush=True)
+    print("Connected to Dask cluster", flush=True)
+    print("Running Jaccard map buckets script", flush=True)
     print(f"Args = {args}")
     st = time.time()
+
     jaccard_get_output_map_workflow(
         client,
         input_data_paths,
@@ -179,8 +192,9 @@ def main(args):
         args.input_json_text_field,
         args.input_meta,
     )
+
     et = time.time()
-    print(f"Bucket Mapping time taken = {et-st} s")
+    print(f"Bucket mapping time taken: {et-st}s")
 
 
 def console_script():

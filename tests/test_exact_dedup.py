@@ -44,6 +44,8 @@ class TestExactDuplicates:
 
     @pytest.mark.parametrize("cache_method", [None, "Cache", "ExactDuplicates"])
     def test_dup(self, exact_dedup_data, cache_method, tmpdir):
+
+        Cache().delete_cache_instance() # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=tmpdir)
             cache_dir = None
@@ -71,11 +73,7 @@ class TestExactDuplicates:
         # (2) ExactDuplicates(cache_dir=...) is initialized.
         # If there is no Cache and ExactDuplicates(cache_dir=None),
         # then there should be no output file.
-        if cache_method == "Cache":
-            assert os.path.exists(
-                Cache().get_cache_directory() + "/_exact_duplicates.parquet"
-            )
-        elif cache_method == "ExactDuplicates":
+        if cache_method in ["Cache", "ExactDuplicates"]:
             assert os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
         else:
             assert not os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
