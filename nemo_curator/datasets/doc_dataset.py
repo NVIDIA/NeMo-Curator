@@ -20,6 +20,9 @@ import dask.dataframe as dd
 
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk
 from nemo_curator.utils.file_utils import get_all_files_paths_under
+from nemo_curator.utils.import_utils import gpu_only_import
+
+dask_cudf = gpu_only_import("dask_cudf")
 
 
 class DocumentDataset:
@@ -29,6 +32,11 @@ class DocumentDataset:
     """
 
     def __init__(self, dataset_df: dd.DataFrame):
+        if type(dataset_df) not in [dd.DataFrame, dask_cudf.DataFrame]:
+            raise RuntimeError(
+                "Please use DocumentDataset.from_pandas or DocumentDataset.from_cudf "
+                "to initialize your Pandas/cuDF DataFrame to a DocumentDataset."
+            )
         self.df = dataset_df
 
     def __len__(self) -> int:
@@ -208,14 +216,14 @@ class DocumentDataset:
         name: Optional[str] = None,
     ):
         """
-        Creates a document dataset from a pandas data frame.
+        Creates a document dataset from a Pandas DataFrame.
         For more information on the arguments see Dask's from_pandas documentation
         https://docs.dask.org/en/stable/generated/dask.dataframe.from_pandas.html
 
         Args:
-            data: A pandas dataframe
+            data: A Pandas DataFrame
         Returns:
-            A document dataset with a pandas backend (on the CPU).
+            A DocumentDataset with a Pandas backend (on the CPU).
         """
         return cls(
             dd.from_pandas(
@@ -228,12 +236,49 @@ class DocumentDataset:
 
     def to_pandas(self):
         """
-        Creates a pandas dataframe from a DocumentDataset
+        Creates a Pandas DataFrame from a DocumentDataset
 
         Returns:
-            A pandas dataframe (on the CPU)
+            A Pandas DataFrame (on the CPU)
         """
         return self.df.to_backend("pandas").compute()
+
+    @classmethod
+    def from_cudf(
+        cls,
+        data,
+        npartitions: Optional[int] = 1,
+        chunksize: Optional[int] = None,
+        sort: Optional[bool] = True,
+        name: Optional[str] = None,
+    ):
+        """
+        Creates a document dataset from a cuDF DataFrame.
+        For more information on the arguments see Dask-cuDF's from_cudf documentation
+        https://docs.rapids.ai/api/dask-cudf/legacy/api/
+
+        Args:
+            data: A cuDF DataFrame
+        Returns:
+            A DocumentDataset with a cuDF backend (on the GPU).
+        """
+        return cls(
+            dask_cudf.from_cudf(
+                data=data,
+                npartitions=npartitions,
+                chunksize=chunksize,
+                sort=sort,
+            )
+        )
+
+    def to_cudf(self):
+        """
+        Creates a cuDF DataFrame from a DocumentDataset
+
+        Returns:
+            A cuDF DataFrame (on the GPU)
+        """
+        return self.df.to_backend("cudf").compute()
 
 
 def _read_json_or_parquet(
