@@ -26,7 +26,6 @@ from openai import AsyncOpenAI
 from synthetic_gen import SyntheticGenerator
 
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
-from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import WordCountFilter
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
@@ -131,7 +130,7 @@ def semantic_dedupe(dataset):
     semdedup_config = SemDedupConfig.from_yaml(
         os.path.join(CONFIG_DIR, "sem_dedup_config.yaml")
     )
-    initialize_cache_directory("_temp/semdedup_cache")
+    expand_outdir_and_mkdir(semdedup_config.cache_dir)
 
     semdup = SemDedup(
         config=semdedup_config,
@@ -140,6 +139,7 @@ def semantic_dedupe(dataset):
         id_column_type="str",
     )
     dedup_ids = semdup(dataset)
+
     # When there are few duplicates we can compute the results to a list and use `isin`.
     result = dataset.df[dataset.df["id"].isin(dedup_ids.df["id"].compute())]
     return DocumentDataset(result)

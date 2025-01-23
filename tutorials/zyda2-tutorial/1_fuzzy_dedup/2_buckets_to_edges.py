@@ -5,7 +5,6 @@ import time
 import dask_cudf
 
 from nemo_curator import BucketsToEdges
-from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
 
@@ -28,7 +27,6 @@ if __name__ == "__main__":
 
     # Output
     buckets_to_edges_out = os.path.join(DATA_BASE, "fuzzy/buckets_to_edges/data")
-    initialize_cache_directory(buckets_to_edges_out)
 
     t0 = time.time()
 
@@ -37,7 +35,10 @@ if __name__ == "__main__":
         split_row_groups=False,
     )
 
-    buckets_to_edges = BucketsToEdges(id_fields=["dataset_id", "doc_id"])
+    buckets_to_edges = BucketsToEdges(
+        cache_dir=buckets_to_edges_out,
+        id_fields=["dataset_id", "doc_id"],
+    )
     ddf_b2e = buckets_to_edges(DocumentDataset(ddf_bk))
 
     logging.info(f"Time taken for Buckets to Edges: {time.time() - t0} s")

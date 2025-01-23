@@ -7,7 +7,6 @@ import dask_cudf
 import numpy as np
 
 from nemo_curator import LSH
-from nemo_curator.cache import initialize_cache_directory
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client, get_num_workers
 from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import convert_str_id_to_int
@@ -32,7 +31,6 @@ if __name__ == "__main__":
     # Output
     lsh_base_output_path = os.path.join(DATA_BASE, "fuzzy/lsh")
     lsh_output_dir = os.path.join(lsh_base_output_path, "data")
-    initialize_cache_directory(lsh_output_dir)
 
     # Relevant parameters
     lsh_id_field = "nemo_id"
@@ -55,6 +53,7 @@ if __name__ == "__main__":
     )
     # Run LSH()
     lsh = LSH(
+        cache_dir=lsh_output_dir,
         num_hashes=minhash_length,
         num_buckets=num_bands,
         buckets_per_shuffle=buckets_per_shuffle,
