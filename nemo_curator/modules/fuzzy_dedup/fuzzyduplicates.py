@@ -200,9 +200,7 @@ class FuzzyDuplicates:
 
             # Shuffle documents based on mapped buckets
             print(f"Stage {stage_num} (False Positive Check): Shuffle documents")
-            shuffled_docs_path = os.path.join(
-                self.cache_dir, "shuffled_docs.parquet"
-            )
+            shuffled_docs_path = os.path.join(self.cache_dir, "shuffled_docs.parquet")
             self.jaccard_shuffle.shuffle_docs_on_buckets(
                 documents_df=dataset.df,
                 bucket_w_anchors_path=mapped_buckets_w_anchors_path,
@@ -211,7 +209,9 @@ class FuzzyDuplicates:
                 parts_per_worker=self.config.parts_per_worker,
                 bucket_parts_per_worker=self.config.bucket_parts_per_worker,
             )
-            print(f"Stage {stage_num} (False Positive Check): Shuffle documents complete!")
+            print(
+                f"Stage {stage_num} (False Positive Check): Shuffle documents complete!"
+            )
             stage_num += 1
 
             # Jaccard comparision within buckets

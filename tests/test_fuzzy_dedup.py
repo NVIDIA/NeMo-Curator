@@ -184,7 +184,7 @@ class TestMinhashes:
     @pytest.mark.parametrize("cache_method", ["Cache", "MinHash"])
     def test_minhash_cache(self, fuzzy_dedup_data, tmpdir, cache_method):
 
-        Cache().delete_cache_instance() # Fresh start for new PyTest
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=tmpdir)
             cache_dir = None
@@ -223,7 +223,7 @@ class TestLSH:
     @pytest.mark.parametrize("cache_method", ["Cache", "LSH"])
     def test_lsh(self, tmpdir, buckets_per_shuffle, cache_method):
 
-        Cache().delete_cache_instance() # Fresh start for new PyTest
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=tmpdir)
             cache_dir = None
@@ -364,7 +364,7 @@ class TestFuzzyDuplicates:
     ):
         print(self.client)
 
-        Cache().delete_cache_instance() # Fresh start for new PyTest
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=tmpdir)
             cache_dir = None
@@ -502,9 +502,11 @@ class TestFuzzyDuplicates:
 
     @pytest.mark.parametrize("num_anchors", [1, 3, 10])
     @pytest.mark.parametrize("cache_method", ["Cache", "FuzzyDuplicatesConfig"])
-    def test_num_anchors(self, large_fuzzy_dedup_data, num_anchors, tmpdir, cache_method):
+    def test_num_anchors(
+        self, large_fuzzy_dedup_data, num_anchors, tmpdir, cache_method
+    ):
 
-        Cache().delete_cache_instance() # Fresh start for new PyTest
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=tmpdir)
             cache_dir = None
@@ -654,7 +656,7 @@ class TestFuzzyDuplicates:
 
 class TestFuzzyDuplicatesConfig:
     def test_bad_inputs(self, tmpdir):
-        
+
         with pytest.raises(ValueError):
             FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=0)
 
@@ -684,7 +686,7 @@ class TestFuzzyDuplicatesConfig:
 
         # Need to specify either Cache(cache_dir=...) or FuzzyDuplicatesConfig(cache_dir=...)
         with pytest.raises(ValueError):
-            Cache().delete_cache_instance() # Fresh start for new PyTest
+            Cache().delete_cache_instance()  # Fresh start for new PyTest
             FuzzyDuplicatesConfig(cache_dir=None)
 
     def test_from_yaml(self, tmpdir):

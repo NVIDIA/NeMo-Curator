@@ -65,7 +65,7 @@ class TestSemDuplicates:
     ):
         print("client", self.client)
 
-        Cache().delete_cache_instance() # Fresh start for new PyTest
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
             Cache(cache_dir=os.path.join(tmpdir, "test_sem_dedup_cache"))
             cache_dir = None
