@@ -32,7 +32,7 @@ class DocumentDataset:
     """
 
     def __init__(self, dataset_df: dd.DataFrame):
-        if type(dataset_df) not in [dd.DataFrame, dask_cudf.DataFrame]:
+        if not hasattr(dataset_df, "npartitions"):
             raise RuntimeError(
                 "Please use DocumentDataset.from_pandas or DocumentDataset.from_cudf "
                 "to initialize your Pandas/cuDF DataFrame to a DocumentDataset."
