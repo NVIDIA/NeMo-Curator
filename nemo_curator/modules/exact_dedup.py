@@ -18,7 +18,6 @@ import os
 import time
 import warnings
 from contextlib import nullcontext
-from datetime import datetime
 from hashlib import md5
 from typing import Optional, Union
 
@@ -27,13 +26,14 @@ from dask import config
 from dask import dataframe as dd
 
 from nemo_curator._compat import DASK_P2P_ERROR
+from nemo_curator._deduplicator import Deduplicator
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.gpu_utils import is_cudf_type
 
 
-class ExactDuplicates:
+class ExactDuplicates(Deduplicator):
     """Find exact duplicates in a document corpus"""
 
     SUPPORTED_HASHES = {"md5"}
@@ -64,6 +64,14 @@ class ExactDuplicates:
             raise ValueError(
                 f"{hash_method} not in supported hash_methods. Choose a hash_method from {self.SUPPORTED_HASHES}"
             )
+
+        super().__init__(
+            id_field=id_field,
+            text_field=text_field,
+            grouped_field="_hashes",
+            cache_dir=cache_dir,
+        )
+
         self.hash_method = hash_method
         self.id_field = id_field
         self.text_field = text_field
@@ -135,7 +143,7 @@ class ExactDuplicates:
             # TODO: Generalize ty using self.hash_method
             return df.apply(lambda x: md5(x.encode()).hexdigest())
 
-    def __call__(self, dataset: DocumentDataset) -> Union[DocumentDataset, str]:
+    def identify(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Find document ID's for exact duplicates in a given DocumentDataset
         Parameters
@@ -166,10 +174,11 @@ class ExactDuplicates:
         self._logger.info(
             f"Time taken for Exact Dedup Computation = {time.time() - t0}s and output written at {write_path}"
         )
-        if is_cudf_type(result):
-            import dask_cudf
-
-            result_dataset = dask_cudf.read_parquet(write_path, split_row_groups=False)
-        else:
-            result_dataset = dd.read_parquet(write_path)
-        return DocumentDataset(result_dataset)
+        backend = "cudf" if is_cudf_type(result) else "pandas"
+        return DocumentDataset.read_parquet(
+            write_path,
+            backend=backend,
+            blocksize="512MiB",
+            files_per_partition=None,
+            split_row_groups=False,
+        )

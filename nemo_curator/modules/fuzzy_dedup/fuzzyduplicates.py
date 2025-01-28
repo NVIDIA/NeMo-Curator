@@ -19,8 +19,7 @@ import os
 import time
 from typing import Union
 
-import dask_cudf
-
+from nemo_curator._deduplicator import Deduplicator
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
@@ -35,7 +34,7 @@ from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 
 
-class FuzzyDuplicates:
+class FuzzyDuplicates(Deduplicator):
     def __init__(
         self,
         config: FuzzyDuplicatesConfig,
@@ -63,6 +62,13 @@ class FuzzyDuplicates:
             self._logger = logger
 
         self.config = config
+
+        super().__init__(
+            id_field=self.config.id_field,
+            text_field=self.config.text_field,
+            grouped_field="group",
+        )
+
         self.minhash = MinHash(
             seed=self.config.seed,
             num_hashes=self.config.num_hashes,
@@ -129,7 +135,7 @@ class FuzzyDuplicates:
             profile_dir=self.config.profile_dir,
         )
 
-    def __call__(self, dataset: DocumentDataset):
+    def identify(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Parameters
         ----------
@@ -243,4 +249,10 @@ class FuzzyDuplicates:
         print(f"Stage {stage_num}: Connected Components across buckets complete!")
         stage_num += 1
 
-        return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
+        return DocumentDataset.read_parquet(
+            cc_path,
+            backend="cudf",
+            blocksize="512MiB",
+            files_per_partition=None,
+            split_row_groups=False,
+        )
