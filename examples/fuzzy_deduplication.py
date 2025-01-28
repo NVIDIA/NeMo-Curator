@@ -73,7 +73,7 @@ def main(args):
             num_buckets=20,
             hashes_per_bucket=13,
             use_64_bit_hash=False,
-            buckets_per_shuffle=5,  # set to a smaller value if encountering OOM's during LSH.
+            buckets_per_shuffle=5,  # set to a smaller value if encountering OOMs during LSH
             false_positive_check=False,
         )
         fuzzy_dup = FuzzyDuplicates(logger=log_dir, config=fuzzy_dedup_config)

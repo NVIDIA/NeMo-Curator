@@ -74,7 +74,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
     buckets_per_shuffle: int = 1
 
     false_positive_check: bool = False
-    # Only required for fale positive check
+    # Only required for false positive check
     num_anchors: Optional[int] = None
     jaccard_threshold: Optional[float] = None
     bucket_mapping_blocksize: Optional[int] = None
