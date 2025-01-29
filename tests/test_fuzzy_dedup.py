@@ -383,7 +383,7 @@ class TestFuzzyDuplicates:
             num_buckets=num_buckets,
             hashes_per_bucket=1,
             use_64_bit_hash=use_64_bit_hash,
-            buckets_per_shuffle=5,
+            buckets_per_shuffle=3,
             false_positive_check=True,
             num_anchors=2,
             jaccard_threshold=jaccard_threshold,
@@ -422,6 +422,7 @@ class TestFuzzyDuplicates:
             false_positive_check=True,
             num_anchors=2,
             jaccard_threshold=0.39,
+            char_ngrams=5,
         )
 
         fuzzy_duplicates = FuzzyDuplicates(config=config)
@@ -558,7 +559,7 @@ class TestFuzzyDuplicates:
             num_buckets=num_buckets,
             hashes_per_bucket=1,
             use_64_bit_hash=use_64_bit_hash,
-            buckets_per_shuffle=5,
+            buckets_per_shuffle=3,
             false_positive_check=False,
             num_anchors=2,
             jaccard_threshold=0.39,
@@ -658,12 +659,26 @@ class TestFuzzyDuplicatesConfig:
     def test_bad_inputs(self, tmpdir):
 
         with pytest.raises(ValueError):
-            FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=0)
+            FuzzyDuplicatesConfig(
+                cache_dir=tmpdir, num_anchors=0, false_positive_check=True
+            )
+            FuzzyDuplicatesConfig(
+                cache_dir=tmpdir, jaccard_threshold=1.2, false_positive_check=True
+            )
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
+            FuzzyDuplicatesConfig(
+                cache_dir=tmpdir, buckets_per_shuffle=2, num_buckets=1
+            )
+            FuzzyDuplicatesConfig(
+                cache_dir=None, num_anchors=0, false_positive_check=True
+            )
 
         with pytest.warns(
             UserWarning, match="Using a higher number of anchor documents might"
         ):
-            FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=3)
+            FuzzyDuplicatesConfig(
+                cache_dir=tmpdir, num_anchors=3, false_positive_check=True
+            )
 
         with pytest.warns(
             UserWarning, match="Using a small char_ngrams value might lead"
@@ -678,11 +693,16 @@ class TestFuzzyDuplicatesConfig:
         ):
             FuzzyDuplicatesConfig(cache_dir=tmpdir, false_positive_check=True)
 
-        with pytest.raises(ValueError):
-            FuzzyDuplicatesConfig(cache_dir=tmpdir, jaccard_threshold=1.2)
-
-        with pytest.raises(ValueError):
-            FuzzyDuplicatesConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
+        with pytest.warns(
+            UserWarning,
+            match="False positive check is disabled. Unused arguments",
+        ):
+            FuzzyDuplicatesConfig(
+                cache_dir=tmpdir,
+                false_positive_check=False,
+                num_anchors=2,
+                jaccard_threshold=0.8,
+            )
 
         # Need to specify either Cache(cache_dir=...) or FuzzyDuplicatesConfig(cache_dir=...)
         with pytest.raises(ValueError):
