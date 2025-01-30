@@ -87,6 +87,7 @@ class Deduplicator(ABC):
         left = dataset.df
         right = duplicates.df
 
+        print(f"{left.npartitions=}, {right.npartitions=}")
         if left.npartitions < right.npartitions:
             msg = (
                 "The number of partitions in the dataset to remove duplicates from is less than the number of partitions in the duplicates dataset. "
