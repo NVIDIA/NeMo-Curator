@@ -13,20 +13,30 @@ def _perform_removal(
     id_field: str,
     group_field: str,
 ) -> dd.DataFrame:
+    # Create a new column name for temporary ID storage during merge
     new_id_field = f"{id_field}_new"
 
     duplicates_to_remove = (
-        duplicates.map_partitions(lambda x: x[x[group_field].duplicated(keep="first")])
-        .drop(columns=group_field)
+        duplicates
+        # Redistribute data across partitions so that all duplicates are in same partition
+        .shuffle(on=[group_field], ignore_index=True)
+        # For each partition, keep only the duplicated rows (excluding first occurrence)
+        .map_partitions(lambda x: x[x[group_field].duplicated(keep="first")]).drop(
+            columns=group_field
+        )
+        # Rename the ID field to avoid conflicts in the upcoming merge
         .rename(columns={id_field: new_id_field})[[new_id_field]]
     )
+
     merge = left.merge(
         right=duplicates_to_remove,
         how="left",
-        broadcast=True,
+        broadcast=True,  # Broadcast smaller DataFrame to all partitions
         left_on=id_field,
         right_on=new_id_field,
     )
+
+    # This effectively removes all rows that were not in duplicates_to_remove
     removed_result = merge[merge[new_id_field].isna()].drop(columns=[new_id_field])
     return removed_result
 
@@ -46,12 +56,16 @@ class Deduplicator(ABC):
         self.cache_dir = cache_dir
 
     def identify(self, *args, **kwargs):
+        """Abstract method to be implemented by concrete deduplicator classes.
+        Should implement the logic for identifying duplicates in the dataset."""
         raise NotImplementedError
 
     def remove(
         self, dataset: DocumentDataset, duplicates: DocumentDataset
     ) -> DocumentDataset:
         """
+        Remove duplicate documents from the dataset based on identified duplicate groups.
+
         Parameters
         ----------
         dataset: DocumentDataset
@@ -92,20 +106,24 @@ class Deduplicator(ABC):
         self, dataset: DocumentDataset, perform_removal: bool = False
     ) -> DocumentDataset:
         """
+        Main entry point for deduplication process.
+
         Parameters
         ----------
         dataset: DocumentDataset
             The input datset to remove duplicates from.
         perform_removal: bool
-            If True, duplicates are removed from the dataset. If False, only the duplicates are identified.
+            If True, duplicates are removed from the dataset.
+            If False, only the duplicates are identified.
 
         Returns
         -------
-        DocumentDataset of all duplicates (id field, group field) if if perform_removal is False.
+        DocumentDataset of all duplicates (id field, group field) if perform_removal is False.
         DocumentDataset of all documents with duplicates removed if perform_removal is True.
-
         """
+        # First identify duplicates
         duplicates = self.identify(dataset)
+        # Then optionally remove them
         if perform_removal:
             return self.remove(dataset, duplicates)
         return duplicates
