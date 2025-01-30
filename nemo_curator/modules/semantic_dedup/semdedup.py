@@ -33,7 +33,7 @@ class SemDedup:
         input_column: str = "text",
         id_column: str = "id",
         id_column_type: str = "int",
-        write_embeddings_to_disk: str = True,
+        write_embeddings_to_disk: bool = True,
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
