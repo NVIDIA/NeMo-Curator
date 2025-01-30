@@ -33,6 +33,7 @@ class SemDedup:
         input_column: str = "text",
         id_column: str = "id",
         id_column_type: str = "int",
+        write_embeddings_to_disk: str = True,
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
@@ -50,6 +51,7 @@ class SemDedup:
             embedding_batch_size=config.embedding_batch_size,
             input_column=input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
+            write_embeddings_to_disk=write_embeddings_to_disk,
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
