@@ -21,6 +21,7 @@ name = "nemo_curator"
 description = "Scalable Data Preprocessing Tool for Training Large Language Models"
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
+    { name = "Ryan Wolf", email = "rywolf@nvidia.com" },
     { name = "Joseph Jennings", email = "jjennings@nvidia.com" },
     { name = "Mostofa Patwary", email = "mpatwary@nvidia.com" },
     { name = "Sandeep Subramanian", email = "sasubramania@nvidia.com" },
@@ -28,26 +29,26 @@ authors = [
     { name = "Ayush Dattagupta", email = "adattagupta@nvidia.com" },
     { name = "Vibhu Jawa", email = "vjawa@nvidia.com" },
     { name = "Jiwei Liu", email = "jiweil@nvidia.com" },
-    { name = "Ryan Wolf", email = "rywolf@nvidia.com" },
     { name = "Sarah Yurick", email = "syurick@nvidia.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.10, <3.11"
+requires-python = ">=3.10"
 dependencies = [
     "awscli>=1.22.55",
     "beautifulsoup4",
     "charset_normalizer>=3.1.0",
     "comment_parser",
-    "crossfit>=0.0.7",
+    "crossfit>=0.0.8",
     "dask-mpi>=2021.11.0",
     "dask[complete]>=2021.7.1",
     "datasets",
     "distributed>=2021.7.1",
-    "fasttext==0.9.2",
+    "fasttext==0.9.3",
     "ftfy==6.1.1",
     "in-place==0.5.0",
     "jieba==0.42.1",
@@ -65,6 +66,8 @@ dependencies = [
     "resiliparse",
     "sentencepiece",
     "spacy>=3.6.0, <3.8.0",
+    # TODO: Remove this pin once newer version is released
+    "transformers==4.46.3",
     "unidic-lite==1.0.8",
     "usaddress==0.5.10",
     "warcio==1.7.4",
@@ -75,20 +78,20 @@ dynamic = ["version"]
 [project.optional-dependencies]
 # Installs CPU + GPU text curation modules
 cuda12x = [
-    "cudf-cu12>=24.10",
-    "cugraph-cu12>=24.10",
-    "cuml-cu12>=24.10",
-    "dask-cuda>=24.10",
-    "dask-cudf-cu12>=24.10",
+    "cudf-cu12>=24.12",
+    "cugraph-cu12>=24.12",
+    "cuml-cu12>=24.12",
+    "dask-cuda>=24.12",
+    "dask-cudf-cu12>=24.12",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
 ]
 # Installs CPU + GPU text curation modules with RAPIDS Nightlies
 cuda12x_nightly = [
-    "cudf-cu12>=24.12.0a0,<=24.12",
-    "cugraph-cu12>=24.12.0a0,<=24.12",
-    "cuml-cu12>=24.12.0a0,<=24.12",
-    "dask-cuda>=24.12.0a0,<=24.12",
-    "dask-cudf-cu12>=24.12.0a0,<=24.12",
+    "cudf-cu12>=25.02.0a0,<=25.02",
+    "cugraph-cu12>=25.02.0a0,<=25.02",
+    "cuml-cu12>=25.02.0a0,<=25.02",
+    "dask-cuda>=25.02.0a0,<=25.02",
+    "dask-cudf-cu12>=25.02.0a0,<=25.02",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
 ]
 # Installs CPU + GPU text and image curation modules
@@ -149,7 +152,10 @@ domain_classifier_inference = "nemo_curator.scripts.classifiers.domain_classifie
 quality_classifier_inference = "nemo_curator.scripts.classifiers.quality_classifier_inference:console_script"
 aegis_classifier_inference = "nemo_curator.scripts.classifiers.aegis_classifier_inference:console_script"
 fineweb_edu_classifier_inference = "nemo_curator.scripts.classifiers.fineweb_edu_classifier_inference:console_script"
+instruction_data_guard_classifier_inference = "nemo_curator.scripts.classifiers.instruction_data_guard_classifier_inference:console_script"
 multilingual_domain_classifier_inference = "nemo_curator.scripts.classifiers.multilingual_domain_classifier_inference:console_script"
+content_type_classifier_inference = "nemo_curator.scripts.classifiers.content_type_classifier_inference:console_script"
+prompt_task_complexity_classifier_inference = "nemo_curator.scripts.classifiers.prompt_task_complexity_classifier_inference:console_script"
 verify_classification_results = "nemo_curator.scripts.verify_classification_results:console_script"
 blend_datasets = "nemo_curator.scripts.blend_datasets:console_script"
 semdedup_extract_embeddings = "nemo_curator.scripts.semdedup.compute_embeddings:console_script"

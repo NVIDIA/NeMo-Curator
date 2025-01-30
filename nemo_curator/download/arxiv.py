@@ -403,7 +403,7 @@ def download_arxiv(
         "text": str,
         "id": str,
         "source_id": str,
-        "filename": str,
+        "file_name": str,
     }
     dataset = download_and_extract(
         arxiv_urls,
@@ -415,6 +415,7 @@ def download_arxiv(
         output_type=output_type,
         keep_raw_download=keep_raw_download,
         force_download=force_download,
+        filename_col="file_name",
     )
 
     return dataset

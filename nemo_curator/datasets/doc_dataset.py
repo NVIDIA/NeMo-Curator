@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from functools import wraps
 from typing import Any, List, Literal, Optional, Union
 
 import dask.dataframe as dd
@@ -37,6 +38,10 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
+    @wraps(dd.DataFrame.repartition)
+    def repartition(self, *args, **kwargs) -> "DocumentDataset":
+        return self.__class__(self.df.repartition(*args, **kwargs))
+
     def head(self, n: int = 5) -> Any:
         return self.df.head(n)
 
@@ -45,8 +50,9 @@ class DocumentDataset:
         cls,
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
-        files_per_partition: int = 1,
-        add_filename: bool = False,
+        files_per_partition: Optional[int] = None,
+        blocksize: Optional[str] = "1gb",
+        add_filename: Union[bool, str] = False,
         input_meta: Union[str, dict] = None,
         columns: Optional[List[str]] = None,
         **kwargs,
@@ -58,7 +64,9 @@ class DocumentDataset:
             input_files: The path of the input file(s).
             backend: The backend to use for reading the data.
             files_per_partition: The number of files to read per partition.
-            add_filename: Whether to add a "filename" column to the DataFrame.
+            add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
             input_meta: A dictionary or a string formatted as a dictionary, which outlines
                 the field names and their respective data types within the JSONL input file.
             columns: If not None, only these columns will be read from the file.
@@ -69,8 +77,9 @@ class DocumentDataset:
                 input_files=input_files,
                 file_type="jsonl",
                 backend=backend,
-                files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                files_per_partition=files_per_partition,
+                blocksize=blocksize,
                 input_meta=input_meta,
                 columns=columns,
                 **kwargs,
@@ -82,8 +91,9 @@ class DocumentDataset:
         cls,
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
-        files_per_partition: int = 1,
-        add_filename: bool = False,
+        files_per_partition: Optional[int] = None,
+        blocksize: Optional[str] = "1gb",
+        add_filename: Union[bool, str] = False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
@@ -94,7 +104,9 @@ class DocumentDataset:
             input_files: The path of the input file(s).
             backend: The backend to use for reading the data.
             files_per_partition: The number of files to read per partition.
-            add_filename: Whether to add a "filename" column to the DataFrame.
+            add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
             columns: If not None, only these columns will be read from the file.
                 There is a significant performance gain when specifying columns for Parquet files.
 
@@ -104,8 +116,9 @@ class DocumentDataset:
                 input_files=input_files,
                 file_type="parquet",
                 backend=backend,
-                files_per_partition=files_per_partition,
                 add_filename=add_filename,
+                files_per_partition=files_per_partition,
+                blocksize=blocksize,
                 columns=columns,
                 **kwargs,
             )
@@ -116,8 +129,6 @@ class DocumentDataset:
         cls,
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
-        files_per_partition: int = 1,
-        add_filename: bool = False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
@@ -128,7 +139,9 @@ class DocumentDataset:
             input_files: The path of the input file(s).
             backend: The backend to use for reading the data.
             files_per_partition: The number of files to read per partition.
-            add_filename: Whether to add a "filename" column to the DataFrame.
+            add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
             columns: If not None, only these columns will be read from the file.
 
         """
@@ -137,8 +150,6 @@ class DocumentDataset:
                 input_files=input_files,
                 file_type="pickle",
                 backend=backend,
-                files_per_partition=files_per_partition,
-                add_filename=add_filename,
                 columns=columns,
                 **kwargs,
             )
@@ -146,8 +157,8 @@ class DocumentDataset:
 
     def to_json(
         self,
-        output_file_dir: str,
-        write_to_filename: bool = False,
+        output_path: str,
+        write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
     ):
         """
@@ -156,7 +167,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="jsonl",
@@ -164,8 +175,8 @@ class DocumentDataset:
 
     def to_parquet(
         self,
-        output_file_dir: str,
-        write_to_filename: bool = False,
+        output_path: str,
+        write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
     ):
         """
@@ -174,7 +185,7 @@ class DocumentDataset:
         """
         write_to_disk(
             df=self.df,
-            output_file_dir=output_file_dir,
+            output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
             output_type="parquet",
@@ -182,8 +193,8 @@ class DocumentDataset:
 
     def to_pickle(
         self,
-        output_file_dir: str,
-        write_to_filename: bool = False,
+        output_path: str,
+        write_to_filename: Union[bool, str] = False,
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
 
@@ -229,8 +240,9 @@ def _read_json_or_parquet(
     input_files: Union[str, List[str]],
     file_type: str,
     backend: Literal["cudf", "pandas"],
-    files_per_partition: int,
-    add_filename: bool,
+    add_filename: Union[bool, str] = False,
+    files_per_partition: Optional[int] = None,
+    blocksize: Optional[str] = None,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
     **kwargs,
@@ -262,6 +274,7 @@ def _read_json_or_parquet(
                 file_type=file_type,
                 backend=backend,
                 files_per_partition=files_per_partition,
+                blocksize=blocksize,
                 add_filename=add_filename,
                 input_meta=input_meta,
                 columns=columns,
@@ -281,6 +294,7 @@ def _read_json_or_parquet(
                     file_type=file_type,
                     backend=backend,
                     files_per_partition=files_per_partition,
+                    blocksize=blocksize,
                     add_filename=add_filename,
                     input_meta=input_meta,
                     columns=columns,
@@ -306,6 +320,7 @@ def _read_json_or_parquet(
             file_type=file_type,
             backend=backend,
             files_per_partition=files_per_partition,
+            blocksize=blocksize,
             add_filename=add_filename,
             input_meta=input_meta,
             columns=columns,
