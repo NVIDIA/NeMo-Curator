@@ -4,7 +4,6 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.removal import remove_duplicates
 
 
