@@ -32,70 +32,101 @@ Usage
 By "download", we typically mean the transfer of data from a web-hosted data source to local file storage.
 By "extraction", we typically mean the process of converting a data format from its raw form (e.g., ``.warc.gz``) to a standardized format (e.g., ``.jsonl``) and discarding irrelvant data.
 
-* ``download_common_crawl`` will download and extract the compressed web archive files of common crawl snapshots to a target directory.
-  Common crawl has an S3 bucket and a direct HTTPS endpoint. If you want to use the S3 bucket, ensure you have properly set up your credentials with `s5cmd <https://github.com/peak/s5cmd>`_.
-  Otherwise, the HTTPS endpoints will be used with ``wget``. Here is a small example of how to use it:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Download Common Crawl
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  .. code-block:: python
+``download_common_crawl`` will download and extract the compressed web archive files of common crawl snapshots to a target directory.
+Common Crawl has an S3 bucket and a direct HTTPS endpoint. If you want to use the S3 bucket, ensure you have properly set up your credentials with `s5cmd <https://github.com/peak/s5cmd>`_.
+Otherwise, the HTTPS endpoints will be used with ``wget``. Here is a small example of how to use it:
 
-    from nemo_curator.download import download_common_crawl
+.. code-block:: python
 
-    common_crawl = download_common_crawl("/extracted/output/folder", "2020-50", "2021-04", output_type="jsonl")
+  from nemo_curator.download import download_common_crawl
 
-  * ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
-  * ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://data.commoncrawl.org/>`_.
-  * ``"2021-04"`` is the last common crawl snapshot that will be included in the download.
-  * ``output_type="jsonl"`` is the file format that will be used for storing the data on disk. Currently ``"jsonl"`` and ``"parquet"`` are supported.
+  common_crawl = download_common_crawl("/extracted/output/folder", "2020-50", "2021-04", output_type="jsonl")
+
+* ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
+* ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://data.commoncrawl.org/>`_.
+* ``"2021-04"`` is the last common crawl snapshot that will be included in the download.
+* ``output_type="jsonl"`` is the file format that will be used for storing the data on disk. Currently ``"jsonl"`` and ``"parquet"`` are supported.
 
 You can choose to modify the HTML text extraction algorithm used in ``download_common_crawl``. See an example below.
 
-  .. code-block:: python
+.. code-block:: python
 
-    from nemo_curator.download import (
-      ResiliparseExtractor,
-      download_common_crawl,
-    )
+  from nemo_curator.download import (
+    ResiliparseExtractor,
+    download_common_crawl,
+  )
 
-    # Change the extraction algorithm
-    extraction_algorithm = ResiliparseExtractor()
-    common_crawl = download_common_crawl(
-      "/extracted/output/folder",
-      "2020-50",
-      "2021-04",
-      output_type="jsonl",
-      algorithm=extraction_algorithm,
-    )
+  # Change the extraction algorithm
+  extraction_algorithm = ResiliparseExtractor()
+  common_crawl = download_common_crawl(
+    "/extracted/output/folder",
+    "2020-50",
+    "2021-04",
+    output_type="jsonl",
+    algorithm=extraction_algorithm,
+  )
 
-  Above, we changed the extraction algorithm from the default ``JusTextExtractor``.
+Above, we changed the extraction algorithm from the default ``JusTextExtractor``.
 
-  The return value ``common_crawl`` will be in NeMo Curator's standard ``DocumentDataset`` format. Check out the function's docstring for more parameters you can use.
+You can set your own dictionary of stop words by language to be used when extracting text:
 
-  NeMo Curator's Common Crawl extraction process looks like this under the hood:
+.. code-block:: python
 
- 1. Decode the HTML within the record from binary to text.
- 2. If the HTML can be properly decoded, then with `pyCLD2 <https://github.com/aboSamoor/pycld2>`_, perform language detection on the input HTML.
- 3. Finally, the extract the relevant text with `jusText <https://github.com/miso-belica/jusText>`_ or `Resiliparse <https://github.com/chatnoir-eu/chatnoir-resiliparse>`_ from the HTML and write it out as a single string within the 'text' field of a json entry within a `.jsonl` file.
-* ``download_wikipedia`` will download and extract the latest wikipedia dump. Files are downloaded using ``wget``. Wikipedia might download slower than the other datasets. This is because they limit the number of downloads that can occur per-ip address.
+  from nemo_curator.download import download_common_crawl
 
-  .. code-block:: python
+  # Change the default stop list used
+  stop_lists = {"ENGLISH": frozenset(["the", "and", "is", "in", "for", "where", "when", "to", "at"])}
 
-    from nemo_curator.download import download_wikipedia
+  common_crawl = download_common_crawl(
+    "/extracted/output/folder",
+    "2020-50",
+    "2021-04",
+    output_type="jsonl",
+    stop_lists=stop_lists,
+  )
 
-    wikipedia = download_wikipedia("/extracted/output/folder", dump_date="20240201")
+This may be desirable to further customize your text extraction pipeline, or to enable text extraction support for languages not included by jusText and NeMo Curator.
 
-  * ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
-  * ``dump_date="20240201"`` fixes the Wikipedia dump to a specific date. If no date is specified, the latest dump is used.
+The return value ``common_crawl`` will be in NeMo Curator's standard ``DocumentDataset`` format. Check out the function's docstring for more parameters you can use.
 
-* ``download_arxiv`` will download and extract latex versions of ArXiv papers. They are hosted on S3, so ensure you have properly set up your credentials with `s5cmd <https://github.com/peak/s5cmd>`_.
+NeMo Curator's Common Crawl extraction process looks like this under the hood:
 
-  .. code-block:: python
+1. Decode the HTML within the record from binary to text.
+2. If the HTML can be properly decoded, then with `pyCLD2 <https://github.com/aboSamoor/pycld2>`_, perform language detection on the input HTML.
+3. Finally, the extract the relevant text with `jusText <https://github.com/miso-belica/jusText>`_ or `Resiliparse <https://github.com/chatnoir-eu/chatnoir-resiliparse>`_ from the HTML and write it out as a single string within the 'text' field of a json entry within a `.jsonl` file.
 
-    from nemo_curator.download import download_arxiv
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Download Wikipedia
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    arxiv = download_arxiv("/extracted/output/folder")
+``download_wikipedia`` will download and extract the latest wikipedia dump. Files are downloaded using ``wget``. Wikipedia might download slower than the other datasets. This is because they limit the number of downloads that can occur per-ip address.
 
-  * ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
+.. code-block:: python
 
+  from nemo_curator.download import download_wikipedia
+
+  wikipedia = download_wikipedia("/extracted/output/folder", dump_date="20240201")
+
+* ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
+* ``dump_date="20240201"`` fixes the Wikipedia dump to a specific date. If no date is specified, the latest dump is used.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Download ArXiv
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``download_arxiv`` will download and extract latex versions of ArXiv papers. They are hosted on S3, so ensure you have properly set up your credentials with `s5cmd <https://github.com/peak/s5cmd>`_.
+
+.. code-block:: python
+
+  from nemo_curator.download import download_arxiv
+
+  arxiv = download_arxiv("/extracted/output/folder")
+
+* ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
 
 All of these functions return a ``DocumentDataset`` of the underlying dataset and metadata that was obtained during extraction. If the dataset has been downloaded and extracted at the path passed to it, it will read from the files there instead of downloading and extracting them again.
 Due to how massive each of these datasets are (with Common Crawl snapshots being on the order of hundreds of terrabytes) all of these datasets are sharded accross different files.
