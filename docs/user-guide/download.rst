@@ -68,6 +68,8 @@ You can choose to modify the HTML text extraction algorithm used in ``download_c
 
   Above, we changed the extraction algorithm from the default ``JusTextExtractor``.
 
+You can set your own dictionary of stop words by language to be used when extracting text:
+
   .. code-block:: python
     from nemo_curator.download import download_common_crawl
 
@@ -83,8 +85,6 @@ You can choose to modify the HTML text extraction algorithm used in ``download_c
     )
 
   This may be desirable to further customize your text extraction pipeline, or to enable text extraction support for languages not included by jusText and NeMo Curator.
-
-  You can set your own dictionary of stop words by language to be used when extracting text:
 
   The return value ``common_crawl`` will be in NeMo Curator's standard ``DocumentDataset`` format. Check out the function's docstring for more parameters you can use.
 
