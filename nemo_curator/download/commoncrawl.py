@@ -212,14 +212,14 @@ def get_stop_list_dict(languages=[]):
         "Waray_Waray": "WARAY_PHILIPPINES",
     }
 
+    # List obtained from https://github.com/stopwords-iso/stopwords-ja
+    from .ja_stopwords import ja_stopwords
+
     # List obtained from https://github.com/stopwords-iso/stopwords-th
     from .th_stopwords import th_stopwords
 
     # List obtained from https://github.com/stopwords-iso/stopwords-zh
     from .zh_stopwords import zh_stopwords
-
-    # List obtained from https://github.com/stopwords-iso/stopwords-ja
-    from .ja_stopwords import ja_stopwords
 
     custom_stopwords = {
         "THAI": th_stopwords,
