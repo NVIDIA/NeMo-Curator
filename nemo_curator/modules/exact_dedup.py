@@ -26,14 +26,14 @@ from dask import config
 from dask import dataframe as dd
 
 from nemo_curator._compat import DASK_P2P_ERROR
-from nemo_curator._deduplicator import Deduplicator
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.removal import remove_duplicates
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.gpu_utils import is_cudf_type
 
 
-class ExactDuplicates(Deduplicator):
+class ExactDuplicates:
     """Find exact duplicates in a document corpus"""
 
     SUPPORTED_HASHES = {"md5"}
@@ -64,13 +64,6 @@ class ExactDuplicates(Deduplicator):
             raise ValueError(
                 f"{hash_method} not in supported hash_methods. Choose a hash_method from {self.SUPPORTED_HASHES}"
             )
-
-        super().__init__(
-            id_field=id_field,
-            text_field=text_field,
-            grouped_field="_hashes",
-            cache_dir=cache_dir,
-        )
 
         self.hash_method = hash_method
         self.id_field = id_field
@@ -182,3 +175,24 @@ class ExactDuplicates(Deduplicator):
             files_per_partition=None,
             split_row_groups=False,
         )
+
+    def remove(
+        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
+    ) -> DocumentDataset:
+        """
+        Remove exact duplicates from a given DocumentDataset
+        Parameters
+        ----------
+        dataset: DocumentDataset
+          The input datset to remove exact duplicates
+        Returns
+        -------
+        DocumentDataset containing only non-duplicate documents
+        """
+        result = remove_duplicates(
+            left=dataset.df,
+            duplicates=duplicates_to_remove.df,
+            id_field=self.id_field,
+            group_field="_hashes",
+        )
+        return DocumentDataset(result)

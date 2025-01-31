@@ -4,28 +4,8 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-from nemo_curator._deduplicator import Deduplicator, _perform_removal
 from nemo_curator.datasets import DocumentDataset
-
-
-@pytest.fixture()
-def dummy_deduplicator():
-    class TestDeduplicator(Deduplicator):
-        def __init__(self):
-            super().__init__(
-                id_field="id",
-                text_field="text",
-                grouped_field="group",
-                cache_dir=None,
-            )
-
-        def identify(self, ds: DocumentDataset):
-            """Dummy identify which marks all documents as duplicate"""
-            df = ds.df.drop(columns=[self.text_field])
-            df[self.grouped_field] = 0
-            return DocumentDataset(df[[self.id_field, self.grouped_field]])
-
-    return TestDeduplicator()
+from nemo_curator.modules.removal import remove_duplicates
 
 
 @pytest.fixture()
@@ -56,9 +36,11 @@ def duplicate_data(ids):
     return dd.from_pandas(df, npartitions=2)
 
 
-def test_perform_removal_basic(sample_data: dd.DataFrame, duplicate_data: dd.DataFrame):
+def test_remove_duplicates_basic(
+    sample_data: dd.DataFrame, duplicate_data: dd.DataFrame
+):
     # Test basic duplicate removal functionality
-    result = _perform_removal(
+    result = remove_duplicates(
         left=sample_data, duplicates=duplicate_data, id_field="id", group_field="group"
     )
 
@@ -71,12 +53,12 @@ def test_perform_removal_basic(sample_data: dd.DataFrame, duplicate_data: dd.Dat
     assert set(result["id"].apply(lambda x: x[0]).tolist()) == set(["a", "b", "c", "d"])
 
 
-def test_perform_removal_all_duplicates(ids: list[str], sample_data: dd.DataFrame):
+def test_remove_duplicates_all_duplicates(ids: list[str], sample_data: dd.DataFrame):
     duplicates = dd.from_pandas(
         pd.DataFrame({"id": ids, "group": [1] * len(ids)}), npartitions=2
     )
 
-    result = _perform_removal(
+    result = remove_duplicates(
         left=sample_data, duplicates=duplicates, id_field="id", group_field="group"
     )
 
@@ -86,7 +68,7 @@ def test_perform_removal_all_duplicates(ids: list[str], sample_data: dd.DataFram
     assert len(result) == 1
 
 
-def test_not_remove_unique(ids: list[str], sample_data: dd.DataFrame):
+def test_not_remove_duplicates_unique(ids: list[str], sample_data: dd.DataFrame):
     # We create a dataset where first 30 ids are in one group
     # Next 9 ids are in distinct groups
     # And last id is not mentioned in duplicates
@@ -100,7 +82,7 @@ def test_not_remove_unique(ids: list[str], sample_data: dd.DataFrame):
         ),
         npartitions=2,
     )
-    result = _perform_removal(
+    result = remove_duplicates(
         left=sample_data, duplicates=duplicates, id_field="id", group_field="group"
     )
 
@@ -114,31 +96,31 @@ def test_not_remove_unique(ids: list[str], sample_data: dd.DataFrame):
     assert set(ids[30:]).issubset(set(result["id"].tolist()))
 
 
-def test_deduplicator_class(dummy_deduplicator: Deduplicator):
+def test_remove_duplicates_raise_error():
     # Create sample dataframes with specific partition counts
     df1 = dd.from_pandas(
         pd.DataFrame({"id": ["a1", "a2", "a3"], "text": ["text1", "text2", "text3"]}),
         npartitions=2,
     )  # dataset with 2 partitions
 
-    dataset = DocumentDataset(df1)
-    duplicates = dummy_deduplicator.identify(dataset)
-    assert isinstance(duplicates, DocumentDataset)
-
-    # We are able to perform deduplication successfully
-    result = dummy_deduplicator.remove(dataset, duplicates)
-    assert isinstance(result, DocumentDataset)
-    result = result.df.compute()
-    assert len(result) == 1
-    assert list(result.columns) == ["id", "text"]
+    duplicates = dd.from_pandas(
+        pd.DataFrame(
+            {"id": ["a1", "a2", "a3"], "group": ["group1", "group1", "group1"]}
+        ),
+        npartitions=3,
+    )  # duplicates dataset with 3 partitions
 
     # Test that it raises ValueError when right npartitions are greater than left npartitions
     with pytest.raises(ValueError) as exc_info:
-        dummy_deduplicator.remove(dataset, duplicates.repartition(npartitions=3))
+        remove_duplicates(
+            left=df1,
+            duplicates=duplicates,
+            id_field="id",
+            group_field="group",
+        )
 
     expected_msg = (
-        "The number of partitions in the dataset to remove duplicates from is less than "
-        "the number of partitions in the duplicates dataset. This may lead to a shuffle "
-        "join. Please re-read the datasets and call nemo_curator._deduplicat.perform_merge explicitly."
+        "The number of partitions in `left` is less than the number of partitions in the duplicates dataset. "
+        "This may lead to a shuffle join. Please re-read left and right with different partition sizes, or repartition left / right."
     )
     assert str(exc_info.value) == expected_msg

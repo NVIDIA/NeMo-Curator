@@ -19,7 +19,6 @@ import os
 import time
 from typing import Union
 
-from nemo_curator._deduplicator import Deduplicator
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
@@ -31,10 +30,11 @@ from nemo_curator.modules.fuzzy_dedup.jaccardsimilarity import JaccardSimilarity
 from nemo_curator.modules.fuzzy_dedup.lsh import LSH
 from nemo_curator.modules.fuzzy_dedup.minhash import MinHash
 from nemo_curator.modules.meta import Sequential
+from nemo_curator.modules.removal import remove_duplicates
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 
 
-class FuzzyDuplicates(Deduplicator):
+class FuzzyDuplicates:
     def __init__(
         self,
         config: FuzzyDuplicatesConfig,
@@ -62,12 +62,6 @@ class FuzzyDuplicates(Deduplicator):
             self._logger = logger
 
         self.config = config
-
-        super().__init__(
-            id_field=self.config.id_field,
-            text_field=self.config.text_field,
-            grouped_field="group",
-        )
 
         self.minhash = MinHash(
             seed=self.config.seed,
@@ -252,7 +246,28 @@ class FuzzyDuplicates(Deduplicator):
         return DocumentDataset.read_parquet(
             cc_path,
             backend="cudf",
-            blocksize="512MiB",
+            blocksize="1024MiB",
             files_per_partition=None,
             split_row_groups=False,
         )
+
+    def remove(
+        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
+    ) -> DocumentDataset:
+        """
+        Remove exact duplicates from a given DocumentDataset
+        Parameters
+        ----------
+        dataset: DocumentDataset
+          The input datset to remove exact duplicates
+        Returns
+        -------
+        DocumentDataset containing only non-duplicate documents
+        """
+        result = remove_duplicates(
+            left=dataset.df,
+            duplicates=duplicates_to_remove.df,
+            id_field=self.id_field,
+            group_field="group",
+        )
+        return DocumentDataset(result)

@@ -195,9 +195,7 @@ class ClusteringModel:
                 id_col=self.id_col,
                 kmeans_centroids_file=kmeans_centroids_file,
                 nearest_cent_dir=clustering_output_dir,
-                output_sorted_clusters_dir=os.path.join(
-                    self.clustering_output_dir, "sorted"
-                ),
+                vdb=os.path.join(self.clustering_output_dir, "sorted"),
                 embedding_col=self.embedding_col,
                 sim_metric=self.sim_metric,
                 keep_hard=self.keep_hard,
