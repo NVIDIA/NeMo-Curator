@@ -271,3 +271,9 @@ class FuzzyDuplicates:
             group_field="group",
         )
         return DocumentDataset(result)
+
+    def __call__(self, dataset: DocumentDataset, perform_removal : bool = False) -> DocumentDataset:
+        duplicates = self.identify(dataset)
+        if perform_removal:
+            return self.remove(dataset, duplicates)
+        return duplicates
