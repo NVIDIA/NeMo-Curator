@@ -49,8 +49,7 @@ After installing the NeMo Curator package, install the dependencies and run:
 ```bash
 cd code
 pip install -r requirements.txt
-python main.py
-# or python main.py --device "gpu"
+python main.py --device "gpu"
 ```
 
 This will download chip-design related datasets and begin the data curation pipeline. Please use `--device "gpu"` to enable semantic and fuzzy deduplication, which require the GPU.
