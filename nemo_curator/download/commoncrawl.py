@@ -128,6 +128,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         paragraphs = handler.paragraphs
 
         # Context free classification
+        # TODO: Check Thai, Chinese, Japanese, and Korean
         justext.core.classify_paragraphs(
             paragraphs,
             stop_words,
@@ -184,6 +185,7 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         paragraphs = list(filter(None, text.split("\n")))
         result = []
         for paragraph in paragraphs:
+            # TODO: Check Thai, Chinese, Japanese, and Korean
             words = paragraph.split()
             length = len(words)
             if length == 0:
@@ -209,12 +211,35 @@ def get_stop_list_dict(languages=[]):
         "Norwegian_Nynorsk": "NORWEGIAN_N",
         "Waray_Waray": "WARAY_PHILIPPINES",
     }
+
+    # List obtained from https://github.com/stopwords-iso/stopwords-th
+    from .th_stopwords import th_stopwords
+
+    # List obtained from https://github.com/stopwords-iso/stopwords-zh
+    from .zh_stopwords import zh_stopwords
+
+    # List obtained from https://github.com/stopwords-iso/stopwords-ja
+    from .ja_stopwords import ja_stopwords
+
+    custom_stopwords = {
+        "THAI": th_stopwords,
+        "CHINESE": zh_stopwords,
+        "JAPANESE": ja_stopwords,
+    }
+
     if len(languages) == 0:
         languages = justext.get_stoplists()
-        # Remove latin as it yields a lot of low quality documents
-        languages_no_latin = list(languages)
-        languages_no_latin.remove("Latin")
-        languages = frozenset(languages_no_latin)
+
+        # Remove Latin as it yields a lot of low quality documents
+        languages = list(languages)
+        languages.remove("Latin")
+
+        # Manually add Thai, Chinese, and Japanese
+        languages.append("THAI")
+        languages.append("CHINESE")
+        languages.append("JAPANESE")
+
+        languages = frozenset(languages)
 
     stop_list_dict = {}
     for language in languages:
@@ -222,12 +247,11 @@ def get_stop_list_dict(languages=[]):
             lang_key = lang_map[language]
         else:
             lang_key = language.upper()
-        stop_list_dict[lang_key] = justext.get_stoplist(language)
 
-    # List obtained from https://github.com/stopwords-iso/stopwords-th
-    from .thai_stopwords import thai_stopwords
-
-    stop_list_dict["THAI"] = thai_stopwords
+        if lang_key in ["THAI", "CHINESE", "JAPANESE"]:
+            stop_list_dict[lang_key] = custom_stopwords[lang_key]
+        else:
+            stop_list_dict[lang_key] = justext.get_stoplist(language)
 
     return stop_list_dict
 
@@ -336,8 +360,12 @@ class CommonCrawlWARCIterator(DocumentIterator):
 
 class CommonCrawlWARCExtractor(DocumentExtractor):
 
-    def __init__(self, algorithm=JusTextExtractor()):
-        self._stop_lists = get_stop_list_dict()
+    def __init__(self, algorithm=JusTextExtractor(), stop_lists=None):
+        if stop_lists is not None:
+            self._stop_lists = stop_lists
+        else:
+            self._stop_lists = get_stop_list_dict()
+
         self.algorithm = algorithm
         super().__init__()
 
@@ -364,6 +392,7 @@ def download_common_crawl(
     end_snapshot: str,
     output_type: str = "jsonl",
     algorithm=JusTextExtractor(),
+    stop_lists=None,
     news=False,
     aws=False,
     raw_download_dir=None,
@@ -383,6 +412,10 @@ def download_common_crawl(
         after the starting snapshot.
       output_type: The file type to save the data as.
       algorithm: A JusTextExtractor or ResiliparseExtractor object.
+      stop_lists: A dictionary stop lists, where the keys are languages (e.g., "ENGLISH")
+        and the values are Python frozensets denoting the list of stop words for that language.
+        If None, it defaults to jusText's stop lists: https://github.com/miso-belica/jusText/tree/main/justext/stoplists,
+        with added Thai, Chinese, and Japanese support.
       news: If True, gets WARC URLs for the CC-NEWS dataset instead of the CC-MAIN datasets.
         Also assumes that the format for the start and end snapshots is 'YYYY-MM' (Year-Month).
       aws: Whether to download from Common Crawl's S3 bucket. If True, uses s5cmd to download.
@@ -422,7 +455,7 @@ def download_common_crawl(
     expand_outdir_and_mkdir(raw_download_dir)
     downloader = CommonCrawlWARCDownloader(raw_download_dir, aws=aws)
     iterator = CommonCrawlWARCIterator()
-    extractor = CommonCrawlWARCExtractor(algorithm=algorithm)
+    extractor = CommonCrawlWARCExtractor(algorithm=algorithm, stop_lists=stop_lists)
 
     output_format = {
         "text": str,
