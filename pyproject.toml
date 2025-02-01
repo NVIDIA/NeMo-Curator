@@ -16,7 +16,6 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-
 [project]
 name = "nemo_curator"
 description = "Scalable Data Preprocessing Tool for Training Large Language Models"
@@ -32,7 +31,6 @@ authors = [
     { name = "Jiwei Liu", email = "jiweil@nvidia.com" },
     { name = "Sarah Yurick", email = "syurick@nvidia.com" },
 ]
-license = {file = "LICENSE"}
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
