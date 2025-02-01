@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -31,7 +31,7 @@ authors = [
     { name = "Jiwei Liu", email = "jiweil@nvidia.com" },
     { name = "Sarah Yurick", email = "syurick@nvidia.com" },
 ]
-license = "Apache 2.0"
+license = {file = "LICENSE"}
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
