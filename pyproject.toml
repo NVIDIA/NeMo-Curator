@@ -31,6 +31,7 @@ authors = [
     { name = "Jiwei Liu", email = "jiweil@nvidia.com" },
     { name = "Sarah Yurick", email = "syurick@nvidia.com" },
 ]
+license = "Apache 2.0"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
