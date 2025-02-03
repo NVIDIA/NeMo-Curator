@@ -63,7 +63,7 @@ class Score(Module):
         self.text_field = text_field
         self.score_type = score_type
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Applies the scoring to a dataset
 
@@ -137,7 +137,7 @@ class Filter(Module):
 
         return bool_mask
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Applies the filtering to a dataset
 
@@ -223,7 +223,7 @@ class ScoreFilter(Module):
 
         return bool_mask
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Scores and filters all records in the dataset
 
@@ -275,7 +275,7 @@ class ParallelScoreFilter(Module):
             tgt_filter_obj, tgt_field, tgt_score, score_type, invert
         )
 
-    def __call__(self, dataset: ParallelDataset):
+    def call(self, dataset: ParallelDataset):
         src_bool_mask = self.source_score_filter.compute_filter_mask(dataset)
         tgt_bool_mask = self.target_score_filter.compute_filter_mask(dataset)
 

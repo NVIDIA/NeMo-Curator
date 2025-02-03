@@ -23,7 +23,7 @@ class Modify(Module):
         self.modifier = modifier
         self.text_field = text_field
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if is_batched(self.modifier.modify_document):
             dataset.df[self.text_field] = dataset.df[self.text_field].map_partitions(
                 self.modifier.modify_document, meta=(None, str)

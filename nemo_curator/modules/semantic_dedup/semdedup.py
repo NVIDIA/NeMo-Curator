@@ -82,7 +82,7 @@ class SemDedup(Module):
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Execute the SemDedup process.
 

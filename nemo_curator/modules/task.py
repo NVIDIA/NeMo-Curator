@@ -60,7 +60,7 @@ class TaskDecontamination(Module):
         self.max_splits = max_splits
         self.removed_dir = removed_dir
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
 
         # Convert the dataframe to delayed objects for complex operations
         original_meta = dataset.df.dtypes.to_dict()

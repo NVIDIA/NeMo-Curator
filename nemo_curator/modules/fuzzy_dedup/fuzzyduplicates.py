@@ -131,7 +131,7 @@ class FuzzyDuplicates(Module):
             profile_dir=self.config.profile_dir,
         )
 
-    def __call__(self, dataset: DocumentDataset):
+    def call(self, dataset: DocumentDataset):
         """
         Parameters
         ----------

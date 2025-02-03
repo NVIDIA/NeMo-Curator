@@ -32,7 +32,7 @@ class AddId(Module):
         self.id_prefix = id_prefix
         self.start_index = start_index
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.start_index is None:
             return self._add_id_fast(dataset)
         else:
