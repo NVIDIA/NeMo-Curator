@@ -44,7 +44,7 @@ class DistributedDataClassifier(ABC, Module):
         device_type: str,
         autocast: bool,
     ):
-        super().__init__(input_backend="cudf")
+        Module.__init__(input_backend="cudf")
         self.model = model
         self.labels = labels
         self.filter_by = filter_by
