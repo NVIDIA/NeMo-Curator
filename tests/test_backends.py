@@ -212,3 +212,11 @@ class TestBackendSupport:
         result_df = result.df.compute()
         assert_eq(result_df["cpu_lengths"], gt_cpu_lengths)
         assert_eq(result_df["gpu_lengths"], gt_gpu_lengths)
+
+    def test_wrong_backend(self, cpu_data):
+        with pytest.raises(ValueError):
+            print("client", self.client)
+            dataset, _ = cpu_data
+            pipeline = GPUModule()
+            result = pipeline(dataset)
+            _ = result.df.compute()
