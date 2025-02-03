@@ -22,6 +22,7 @@ os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = "1"
 from nemo_curator.utils.import_utils import gpu_only_import_from
 
 from .add_id import AddId
+from .base import Module
 from .config import FuzzyDuplicatesConfig, SemDedupConfig
 from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
@@ -88,4 +89,5 @@ __all__ = [
     "ClusteringModel",
     "SemanticClusterLevelDedup",
     "SemDedup",
+    "Module",
 ]
