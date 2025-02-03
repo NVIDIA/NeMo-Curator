@@ -43,6 +43,15 @@ class GPUModule(Module):
         return dataset
 
 
+class AnyModule(Module):
+    def __init__(self):
+        super().__init__(input_backend="any")
+
+    def call(self, dataset: DocumentDataset):
+        dataset.df["any_lengths"] = dataset.df["text"].str.len()
+        return dataset
+
+
 @pytest.fixture
 def cpu_data():
     df = pd.DataFrame(
@@ -116,6 +125,25 @@ class TestBackendSupport:
         result = pipeline(dataset)
         result_df = result.df.compute()
         assert_eq(result_df["gpu_lengths"], gt_lengths)
+
+    def test_any_backend(
+        self,
+        cpu_data,
+        gpu_data,
+    ):
+        print("client", self.client)
+        cpu_dataset, gt_cpu_lengths = cpu_data
+        gt_cpu_lengths = gt_cpu_lengths.rename("any_lengths")
+        gpu_dataset, gt_gpu_lengths = gpu_data
+        gt_gpu_lengths = gt_gpu_lengths.rename("any_lengths")
+        pipeline = AnyModule()
+
+        cpu_result = pipeline(cpu_dataset)
+        cpu_result_df = cpu_result.df.compute()
+        assert_eq(cpu_result_df["any_lengths"], gt_cpu_lengths)
+        gpu_result = pipeline(gpu_dataset)
+        gpu_result_df = gpu_result.df.compute()
+        assert_eq(gpu_result_df["any_lengths"], gt_gpu_lengths)
 
     def test_pandas_to_cudf(
         self,

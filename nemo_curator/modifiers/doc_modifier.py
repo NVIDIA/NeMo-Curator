@@ -26,3 +26,12 @@ class DocumentModifier(ABC):
     @abstractmethod
     def modify_document(self, text):
         pass
+
+    def get_backend(self) -> str:
+        """
+        The dataframe backend the filter operates on.
+        Can be 'pandas', 'cudf', or 'any'. Defaults to 'pandas'.
+        Returns:
+            str: A string representing the dataframe backend the filter needs as input
+        """
+        return "pandas"

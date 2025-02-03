@@ -5,13 +5,14 @@ import dask.dataframe as dd
 import numpy as np
 
 from nemo_curator.datasets.doc_dataset import DocumentDataset
+from nemo_curator.modules.base import Module
 
 
 def default_filename(partition_num: int) -> str:
     return f"file_{partition_num:010d}.jsonl"
 
 
-class Shuffle:
+class Shuffle(Module):
     def __init__(
         self,
         seed: Optional[int] = None,
@@ -32,6 +33,7 @@ class Shuffle:
                 will look like given the partition number. The default method names the partition
                 f'file_{partition_num:010d}.jsonl' and should be changed if the user is not using a .jsonl format.
         """
+        super().__init__(input_backend="pandas")
         self.seed = seed
         self.npartitions = npartitions
         self.partition_to_filename = partition_to_filename

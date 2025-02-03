@@ -81,6 +81,15 @@ class DocumentFilter(ABC):
             "keep_document method must be implemented by subclasses"
         )
 
+    def get_backend(self) -> str:
+        """
+        The dataframe backend the filter operates on.
+        Can be 'pandas', 'cudf', or 'any'. Defaults to 'pandas'.
+        Returns:
+            str: A string representing the dataframe backend the filter needs as input
+        """
+        return "pandas"
+
     @property
     def name(self):
         return self._name

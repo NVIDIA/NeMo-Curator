@@ -18,6 +18,7 @@ import os
 from typing import Union
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modules.base import Module
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
 from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
@@ -26,7 +27,7 @@ from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
 )
 
 
-class SemDedup:
+class SemDedup(Module):
     def __init__(
         self,
         config: SemDedupConfig,
@@ -42,6 +43,7 @@ class SemDedup:
             config (SemDedupConfig): Configuration for SemDedup.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
         """
+        super().__init__(input_backend="cudf")
         self.config = config
         self.logger = logger
         cache_dir = config.cache_dir

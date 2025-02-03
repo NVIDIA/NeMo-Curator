@@ -22,6 +22,7 @@ from dask.typing import no_default
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import DocumentFilter
+from nemo_curator.modules.base import Module
 from nemo_curator.utils.module_utils import is_batched
 
 # Override so that pd.NA is not passed during the metadata inference
@@ -31,7 +32,7 @@ make_array_nonempty.register(
 )
 
 
-class Score:
+class Score(Module):
     """
     The module responsible for adding metadata to records based on statistics about the text.
     It accepts an arbitrary scoring function that accepts a text field and returns a score.
@@ -56,6 +57,7 @@ class Score:
           text_field (str): The field the documents will be read from.
           score_type (Union[type, str]): The datatype of the score that will be made for each document.
         """
+        super().__init__(input_backend="pandas")
         self.score_fn = score_fn
         self.score_field = score_field
         self.text_field = text_field
@@ -89,7 +91,7 @@ class Score:
         return dataset
 
 
-class Filter:
+class Filter(Module):
     """
     The module responsible for filtering records based on a metadata field.
     It accepts an arbitrary filter function that accepts a metadata field and returns True if the field should be kept.
@@ -107,6 +109,7 @@ class Filter:
           filter_field (str): The field(s) to be passed into the filter function.
           invert (bool): Whether to invert the filter condition.
         """
+        super().__init__(input_backend="pandas")
         self.filter_fn = filter_fn
         self.filter_field = filter_field
         self.invert = invert
@@ -148,7 +151,7 @@ class Filter:
         return DocumentDataset(dataset.df[bool_mask])
 
 
-class ScoreFilter:
+class ScoreFilter(Module):
     """
     The module responsible for applying a filter to all documents in a DocumentDataset.
     It accepts an arbitrary DocumentFilter and first computes the score for a document.
@@ -176,6 +179,7 @@ class ScoreFilter:
           score_type (Union[type, str]): The datatype of the score that will be made for each document.
           invert (bool): If True, will keep all documents that are normally discarded.
         """
+        super().__init__(input_backend=filter_obj.get_backend())
         self.filter_obj = filter_obj
         self.text_field = text_field
         self.score_field = score_field
@@ -233,7 +237,7 @@ class ScoreFilter:
         return DocumentDataset(dataset.df[bool_mask])
 
 
-class ParallelScoreFilter:
+class ParallelScoreFilter(Module):
     def __init__(
         self,
         src_filter_obj,
@@ -263,7 +267,7 @@ class ParallelScoreFilter:
             score_type (Optional[str]): The datatype of the score that will be made for each document. Defaults to None.
             invert (bool, optional): If True, will keep all documents that are normally discarded. Defaults to False.
         """
-
+        super().__init__(input_backend=src_filter_obj.get_backend())
         self.source_score_filter = ScoreFilter(
             src_filter_obj, src_field, src_score, score_type, invert
         )

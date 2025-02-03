@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modifiers import DocumentModifier
+from nemo_curator.modules.base import Module
 from nemo_curator.utils.module_utils import is_batched
 
 
-class Modify:
+class Modify(Module):
     def __init__(self, modifier: DocumentModifier, text_field="text"):
+        super().__init__(input_backend=modifier.get_backend())
         self.modifier = modifier
         self.text_field = text_field
 
