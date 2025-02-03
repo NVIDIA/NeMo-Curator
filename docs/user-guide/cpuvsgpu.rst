@@ -117,6 +117,7 @@ To see how it works, take a look at this example.
       main()
 
 Let's highlight some of the important parts of this example.
+
 * ``client = get_client(cluster_type="gpu")``: Creates a local Dask cluster with access to the GPUs. In order to use/swap to a cuDF dataframe backend, you need to make sure you are running on a GPU Dask cluster.
 * ``dataset = DocumentDataset.read_json("books.jsonl")``: Reads in the dataset to a pandas (CPU) backend.
 * ``curation_pipeline = ...``: Defines a curation pipeline consisting of a CPU filtering step and a GPU classifier step. The ``ToBackend("cudf")`` in between moves the dataset from CPU to GPU for the classifier.
