@@ -18,7 +18,7 @@ import pytest
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
-from nemo_curator import Module
+from nemo_curator import Module, Sequential, ToBackend
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -31,8 +31,8 @@ class CPUModule(Module):
     def __init__(self):
         super().__init__(input_backend="pandas")
 
-    def call(dataset: DocumentDataset):
-        dataset.df["cpu_length"] = dataset.df["text"].str.len()
+    def call(self, dataset: DocumentDataset):
+        dataset.df["cpu_lengths"] = dataset.df["text"].str.len()
         return dataset
 
 
@@ -40,8 +40,8 @@ class GPUModule(Module):
     def __init__(self):
         super().__init__(input_backend="cudf")
 
-    def call(dataset: DocumentDataset):
-        dataset.df["gpu_length"] = dataset.df["text"].str.len()
+    def call(self, dataset: DocumentDataset):
+        dataset.df["gpu_lengths"] = dataset.df["text"].str.len()
         return dataset
 
 
@@ -82,7 +82,9 @@ def gpu_data():
         }
     )
     df = dask_cudf.from_cudf(df, 2)
-    gt_lengths = cudf.Series([43, 45, 44, 43, 13, 19, 18], name="gpu_lengths")
+    gt_lengths = cudf.Series(
+        [43, 45, 44, 43, 13, 19, 18], name="gpu_lengths", dtype="int32"
+    )
     return DocumentDataset(df), gt_lengths
 
 
@@ -105,3 +107,34 @@ class TestBackendSupport:
         result = pipeline(dataset)
         result_df = result.df.compute()
         assert_eq(result_df["cpu_lengths"], gt_lengths)
+
+    def test_cudf_backend(
+        self,
+        gpu_data,
+    ):
+        print("client", self.client)
+        dataset, gt_lengths = gpu_data
+        pipeline = GPUModule()
+        result = pipeline(dataset)
+        result_df = result.df.compute()
+        assert_eq(result_df["gpu_lengths"], gt_lengths)
+
+    def test_pandas_to_cudf(
+        self,
+        cpu_data,
+        gpu_data,
+    ):
+        print("client", self.client)
+        dataset, gt_cpu_lengths = cpu_data
+        _, gt_gpu_lengths = gpu_data
+        pipeline = Sequential(
+            [
+                CPUModule(),
+                ToBackend("cudf"),
+                GPUModule(),
+            ]
+        )
+        result = pipeline(dataset)
+        result_df = result.df.compute()
+        assert_eq(result_df["cpu_lengths"], gt_cpu_lengths)
+        assert_eq(result_df["gpu_lengths"], gt_gpu_lengths)

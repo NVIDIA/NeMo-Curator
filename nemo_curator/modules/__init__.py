@@ -29,6 +29,7 @@ from .exact_dedup import ExactDuplicates
 from .meta import Sequential
 from .modify import Modify
 from .task import TaskDecontamination
+from .to_backend import ToBackend
 
 # GPU packages
 MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.minhash", "MinHash")
@@ -90,4 +91,5 @@ __all__ = [
     "SemanticClusterLevelDedup",
     "SemDedup",
     "Module",
+    "ToBackend",
 ]
