@@ -84,19 +84,7 @@ def main(args):
             print(f"Time taken:{time.time() - t0}s")
             return
 
-        # By default all duplicate id's and the group they belong to are included in the result
-        # keep 1 document from each group of duplcates and mark the others to remove
-        # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
-        docs_to_remove = duplicates.df.map_partitions(
-            lambda x: x[x.group.duplicated(keep="first")]
-        )
-
-        # When there are few duplicates we can compute the results to a list and use `isin`.
-        result = input_dataset.df[
-            ~input_dataset.df[dataset_id_field].isin(
-                docs_to_remove[dataset_id_field].compute()
-            )
-        ]
+        result = fuzzy_dup.remove(input_dataset, duplicates)
         write_to_disk(result, output_dir, output_type=filetype)
         print(f"Time taken:{time.time() - t0}s")
 

@@ -347,7 +347,7 @@ class TestFuzzyDuplicates:
             jaccard_threshold=jaccard_threshold,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        result = fuzzy_duplicates(fuzzy_dedup_data)
+        result = fuzzy_duplicates.identify(fuzzy_dedup_data)
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]

@@ -28,9 +28,9 @@ from dask import dataframe as dd
 from nemo_curator._compat import DASK_P2P_ERROR
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
-from nemo_curator.modules.removal import remove_duplicates
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.gpu_utils import is_cudf_type
+from nemo_curator.utils.removal import remove_duplicates
 
 
 class ExactDuplicates:
@@ -197,7 +197,9 @@ class ExactDuplicates:
         )
         return DocumentDataset(result)
 
-    def __call__(self, dataset: DocumentDataset, perform_removal : bool = False) -> DocumentDataset:
+    def __call__(
+        self, dataset: DocumentDataset, perform_removal: bool = False
+    ) -> DocumentDataset:
         duplicates = self.identify(dataset)
         if perform_removal:
             return self.remove(dataset, duplicates)
