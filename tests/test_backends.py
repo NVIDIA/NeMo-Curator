@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import pandas as pd
 import pytest
 from dask.dataframe.utils import assert_eq
@@ -129,6 +127,54 @@ class TestBackendSupport:
         _, gt_gpu_lengths = gpu_data
         pipeline = Sequential(
             [
+                CPUModule(),
+                ToBackend("cudf"),
+                GPUModule(),
+            ]
+        )
+        result = pipeline(dataset)
+        result_df = result.df.compute()
+        assert_eq(result_df["cpu_lengths"], gt_cpu_lengths)
+        assert_eq(result_df["gpu_lengths"], gt_gpu_lengths)
+
+    def test_cudf_to_pandas(
+        self,
+        cpu_data,
+        gpu_data,
+    ):
+        print("client", self.client)
+        _, gt_cpu_lengths = cpu_data
+        dataset, gt_gpu_lengths = gpu_data
+        pipeline = Sequential(
+            [
+                GPUModule(),
+                ToBackend("pandas"),
+                CPUModule(),
+            ]
+        )
+        result = pipeline(dataset)
+        result_df = result.df.compute()
+        assert_eq(result_df["cpu_lengths"], gt_cpu_lengths)
+        assert_eq(result_df["gpu_lengths"], gt_gpu_lengths)
+
+    def test_5x_switch(
+        self,
+        cpu_data,
+        gpu_data,
+    ):
+        print("client", self.client)
+        dataset, gt_cpu_lengths = cpu_data
+        _, gt_gpu_lengths = gpu_data
+        pipeline = Sequential(
+            [
+                CPUModule(),
+                ToBackend("cudf"),
+                GPUModule(),
+                ToBackend("pandas"),
+                CPUModule(),
+                ToBackend("cudf"),
+                GPUModule(),
+                ToBackend("pandas"),
                 CPUModule(),
                 ToBackend("cudf"),
                 GPUModule(),
