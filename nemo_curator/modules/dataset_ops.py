@@ -40,7 +40,7 @@ class Shuffle(Module):
         self.rand_col = "_shuffle_rand"
         self.filename_col = filename_col
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.seed is None:
             return self.shuffle_nondeterministic(dataset)
         else:
