@@ -187,7 +187,7 @@ The following figure shows that the use of different data curation modules imple
   <img src="./docs/user-guide/assets/zeroshot_ablations.png" alt="drawing" width="700"/>
 </p>
 
-In terms of scalability and compute performance, using the combination of RAPIDS and Dask fuzzy deduplication enabled us to deduplicate the 1.78 Trillion token subset of the RedPajama V2 dataset in 0.5 hours with 32 NVIDIA H100 GPUs.
+In terms of scalability and compute performance, using the combination of RAPIDS and Dask fuzzy deduplication enabled us to deduplicate the 1.96 Trillion token subset of the RedPajama V2 dataset in 0.5 hours with 32 NVIDIA H100 GPUs.
 
 Processing Time            |  Comparison to Alternative Libraries
 :-------------------------:|:---------------------------------------:
