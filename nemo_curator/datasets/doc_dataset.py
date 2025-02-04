@@ -160,6 +160,7 @@ class DocumentDataset:
         output_path: str,
         write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
+        partition_on: Optional[str] = None,
     ):
         """
         See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
@@ -170,6 +171,7 @@ class DocumentDataset:
             output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
+            partition_on=partition_on,
             output_type="jsonl",
         )
 
@@ -178,6 +180,7 @@ class DocumentDataset:
         output_path: str,
         write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
+        partition_on: Optional[str] = None,
     ):
         """
         See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
@@ -188,6 +191,7 @@ class DocumentDataset:
             output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
+            partition_on=partition_on,
             output_type="parquet",
         )
 

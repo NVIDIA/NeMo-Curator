@@ -843,6 +843,7 @@ def write_to_disk(
     write_to_filename: Union[bool, str] = False,
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
+    partition_on: Optional[str] = None,
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -879,6 +880,11 @@ def write_to_disk(
             f"write_using_filename is True but no {filename_col} column found in DataFrame"
         )
 
+    if partition_on is not None and write_to_filename:
+        raise ValueError(
+            "Cannot use both partition_on and write_to_filename parameters simultaneously. "
+        )
+
     if is_cudf_type(df):
         import cudf
 
@@ -904,7 +910,12 @@ def write_to_disk(
     # output_path is a directory
     else:
         if output_type == "jsonl" or output_type == "parquet":
-            _write_to_jsonl_or_parquet(df, output_path, output_type)
+            _write_to_jsonl_or_parquet(
+                df,
+                output_path=output_path,
+                output_type=output_type,
+                partition_on=partition_on,
+            )
         elif output_type == "bitext":
             if write_to_filename:
                 os.makedirs(output_path, exist_ok=True)
@@ -938,16 +949,37 @@ def _write_to_jsonl_or_parquet(
     df,
     output_path: str,
     output_type: Literal["jsonl", "parquet"] = "jsonl",
+    partition_on: Optional[str] = None,
 ):
     if output_type == "jsonl":
-        if is_cudf_type(df):
-            # See open issue here: https://github.com/rapidsai/cudf/issues/15211
-            # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
-            df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+        if partition_on is not None:
+            unique_values = (
+                df[partition_on]
+                .unique()
+                .to_backend(backend="pandas")
+                .compute()
+                .to_list()
+            )
+            for value in unique_values:
+                os.makedirs(output_path, exist_ok=True)
+                partition_output_path = os.path.join(
+                    output_path, f"{partition_on}={value}"
+                )
+                df[df[partition_on] == value].to_json(
+                    partition_output_path,
+                    orient="records",
+                    lines=True,
+                    force_ascii=False,
+                )
         else:
-            df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+            if is_cudf_type(df):
+                # See open issue here: https://github.com/rapidsai/cudf/issues/15211
+                # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
+                df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+            else:
+                df.to_json(output_path, orient="records", lines=True, force_ascii=False)
     elif output_type == "parquet":
-        df.to_parquet(output_path, write_index=False)
+        df.to_parquet(output_path, write_index=False, partition_on=partition_on)
     else:
         raise ValueError(f"Unknown output type: {output_type}")
 
