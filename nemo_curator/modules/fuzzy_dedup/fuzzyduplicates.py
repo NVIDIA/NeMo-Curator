@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Union
+from typing import Optional, Union
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
@@ -129,7 +129,7 @@ class FuzzyDuplicates:
             profile_dir=self.config.profile_dir,
         )
 
-    def identify(self, dataset: DocumentDataset) -> DocumentDataset:
+    def identify(self, dataset: DocumentDataset) -> Optional[DocumentDataset]:
         """
         Parameters
         ----------
@@ -252,8 +252,8 @@ class FuzzyDuplicates:
         )
 
     def remove(
-        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
-    ) -> DocumentDataset:
+        self, dataset: DocumentDataset, duplicates_to_remove: Optional[DocumentDataset]
+    ) -> Optional[DocumentDataset]:
         """
         Remove exact duplicates from a given DocumentDataset
         Parameters
@@ -264,10 +264,12 @@ class FuzzyDuplicates:
         -------
         DocumentDataset containing only non-duplicate documents
         """
+        if not duplicates_to_remove:
+            return None
         result = remove_duplicates(
             left=dataset.df,
             duplicates=duplicates_to_remove.df,
-            id_field=self.id_field,
+            id_field=self.config.id_field,
             group_field="group",
         )
         return DocumentDataset(result)

@@ -177,7 +177,7 @@ class ExactDuplicates:
         )
 
     def remove(
-        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
+        self, dataset: DocumentDataset, duplicates_to_remove: Optional[DocumentDataset]
     ) -> DocumentDataset:
         """
         Remove exact duplicates from a given DocumentDataset
@@ -189,6 +189,8 @@ class ExactDuplicates:
         -------
         DocumentDataset containing only non-duplicate documents
         """
+        if not duplicates_to_remove:
+            return None
         result = remove_duplicates(
             left=dataset.df,
             duplicates=duplicates_to_remove.df,
@@ -201,6 +203,6 @@ class ExactDuplicates:
         self, dataset: DocumentDataset, perform_removal: bool = False
     ) -> DocumentDataset:
         duplicates = self.identify(dataset)
-        if perform_removal:
+        if duplicates and perform_removal:
             return self.remove(dataset, duplicates)
         return duplicates
