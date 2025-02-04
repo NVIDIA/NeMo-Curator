@@ -23,7 +23,7 @@ import dask_cudf
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
 from nemo_curator.modules.fuzzy_dedup._mapbuckets import _MapBuckets
 from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle
@@ -36,7 +36,7 @@ from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 
 
-class FuzzyDuplicates(Module):
+class FuzzyDuplicates(BaseModule):
     def __init__(
         self,
         config: FuzzyDuplicatesConfig,

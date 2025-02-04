@@ -19,11 +19,11 @@ import numpy as np
 from dask import delayed
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.utils.module_utils import count_digits
 
 
-class AddId(Module):
+class AddId(BaseModule):
     def __init__(
         self, id_field, id_prefix: str = "doc_id", start_index: Optional[int] = None
     ) -> None:

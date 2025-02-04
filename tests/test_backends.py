@@ -16,8 +16,16 @@ import pytest
 from dask.dataframe.utils import assert_eq
 from distributed import Client
 
-from nemo_curator import Module, Sequential, ToBackend
+from nemo_curator import (
+    BaseModule,
+    FuzzyDuplicates,
+    FuzzyDuplicatesConfig,
+    ScoreFilter,
+    Sequential,
+    ToBackend,
+)
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.filters import MeanWordLengthFilter
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
@@ -25,7 +33,7 @@ dask_cudf = gpu_only_import("dask_cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
 
 
-class CPUModule(Module):
+class CPUModule(BaseModule):
     def __init__(self):
         super().__init__(input_backend="pandas")
 
@@ -34,7 +42,7 @@ class CPUModule(Module):
         return dataset
 
 
-class GPUModule(Module):
+class GPUModule(BaseModule):
     def __init__(self):
         super().__init__(input_backend="cudf")
 
@@ -43,7 +51,16 @@ class GPUModule(Module):
         return dataset
 
 
-class AnyModule(Module):
+class AnyModule(BaseModule):
+    def __init__(self):
+        super().__init__(input_backend="any")
+
+    def call(self, dataset: DocumentDataset):
+        dataset.df["any_lengths"] = dataset.df["text"].str.len()
+        return dataset
+
+
+class AnyModule(BaseModule):
     def __init__(self):
         super().__init__(input_backend="any")
 
@@ -210,6 +227,12 @@ class TestBackendSupport:
         )
         result = pipeline(dataset)
         result_df = result.df.compute()
+        assert sorted(list(result_df.columns)) == [
+            "cpu_lengths",
+            "gpu_lengths",
+            "id",
+            "text",
+        ]
         assert_eq(result_df["cpu_lengths"], gt_cpu_lengths)
         assert_eq(result_df["gpu_lengths"], gt_gpu_lengths)
 
@@ -220,3 +243,195 @@ class TestBackendSupport:
             pipeline = GPUModule()
             result = pipeline(dataset)
             _ = result.df.compute()
+
+
+@pytest.fixture
+def real_module_cpu_data():
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 100, 200, 300],
+            "text": [
+                "The quick brown fox jumps over the lazy dog",
+                "The quick brown foxes jumps over the lazy dog",
+                "The quick brown wolf jumps over the lazy dog",
+                "The quick black cat jumps over the lazy dog",
+                "A test string",
+                "Another test string",
+                "A different object",
+            ],
+        }
+    )
+    gt_results = pd.Series(
+        [35 / 9, 37 / 9, 4.0, 35 / 9, 33 / 9, 51 / 9, 48 / 9], name="mean_lengths"
+    )
+    return DocumentDataset.from_pandas(df), gt_results
+
+
+@pytest.fixture
+def real_module_gpu_data():
+    df = cudf.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 100, 200, 300],
+            "text": [
+                "The quick brown fox jumps over the lazy dog",
+                "The quick brown foxes jumps over the lazy dog",
+                "The quick brown wolf jumps over the lazy dog",
+                "The quick black cat jumps over the lazy dog",
+                "A test string",
+                "Another test string",
+                "A different object",
+            ],
+        }
+    )
+    df = dask_cudf.from_cudf(df, 2)
+    gt_results = cudf.Series([[1, 2, 3, 4], [100, 200]], name="id")
+    return DocumentDataset(df), gt_results
+
+
+@pytest.mark.gpu
+class TestRealModules:
+    @pytest.fixture(autouse=True, scope="class")
+    def gpu_client(self, request):
+        with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
+            request.cls.client = client
+            request.cls.cluster = cluster
+            yield
+
+    def test_score_filter(
+        self,
+        real_module_cpu_data,
+    ):
+        print("client", self.client)
+        dataset, gt_results = real_module_cpu_data
+        pipeline = ScoreFilter(
+            MeanWordLengthFilter(), score_field="mean_lengths", score_type=float
+        )
+        result = pipeline(dataset)
+        result_df = result.df.compute()
+        assert_eq(result_df["mean_lengths"], gt_results)
+
+    def test_score_filter_wrong_backend(
+        self,
+        real_module_gpu_data,
+    ):
+        with pytest.raises(ValueError):
+            print("client", self.client)
+            dataset, _ = real_module_gpu_data
+            pipeline = ScoreFilter(
+                MeanWordLengthFilter(), score_field="mean_lengths", score_type=float
+            )
+            result = pipeline(dataset)
+            _ = result.df.compute()
+
+    def test_fuzzy_dedup(
+        self,
+        real_module_gpu_data,
+        tmpdir,
+    ):
+        print(self.client)
+        dataset, gt_results = real_module_gpu_data
+        # Dedup might fail when indices per partition do not start from 0
+        dataset.df = dataset.df.reset_index(drop=True)
+        config = FuzzyDuplicatesConfig(
+            cache_dir=tmpdir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=5,
+            num_buckets=15,
+            hashes_per_bucket=1,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=3,
+            false_positive_check=True,
+            num_anchors=2,
+            jaccard_threshold=0.3,
+        )
+        fuzzy_duplicates = FuzzyDuplicates(config=config)
+        result = fuzzy_duplicates(dataset)
+        result_df = result.df.compute()
+        # Drop non duplicated docs
+        result_df = result_df[result_df.group.duplicated(keep=False)]
+        result_df = result_df.groupby("group").id.agg(list)
+        # Sort to maintain uniform ordering
+
+        result_df = result_df.list.sort_values()
+        result_df = result_df.sort_values()
+        gt_results = gt_results.list.sort_values()
+        gt_results = gt_results.sort_values()
+        assert_eq(gt_results, result_df, check_index=False)
+
+    def test_fuzzy_dedup_wrong_backend(
+        self,
+        real_module_cpu_data,
+        tmpdir,
+    ):
+        with pytest.raises(ValueError):
+            print(self.client)
+            dataset, _ = real_module_cpu_data
+            # Dedup might fail when indices per partition do not start from 0
+            dataset.df = dataset.df.reset_index(drop=True)
+            config = FuzzyDuplicatesConfig(
+                cache_dir=tmpdir,
+                id_field="id",
+                text_field="text",
+                seed=42,
+                char_ngrams=5,
+                num_buckets=15,
+                hashes_per_bucket=1,
+                use_64_bit_hash=False,
+                buckets_per_shuffle=3,
+                false_positive_check=True,
+                num_anchors=2,
+                jaccard_threshold=0.3,
+            )
+            fuzzy_duplicates = FuzzyDuplicates(config=config)
+            result = fuzzy_duplicates(dataset)
+            _ = result.df.compute()
+
+    def test_score_filter_and_fuzzy(
+        self,
+        real_module_cpu_data,
+        real_module_gpu_data,
+        tmpdir,
+    ):
+        print("client", self.client)
+        dataset, _ = real_module_cpu_data
+        _, gt_results = real_module_gpu_data
+        dataset.df = dataset.df.reset_index(drop=True)
+        config = FuzzyDuplicatesConfig(
+            cache_dir=tmpdir,
+            id_field="id",
+            text_field="text",
+            seed=42,
+            char_ngrams=5,
+            num_buckets=15,
+            hashes_per_bucket=1,
+            use_64_bit_hash=False,
+            buckets_per_shuffle=3,
+            false_positive_check=True,
+            num_anchors=2,
+            jaccard_threshold=0.3,
+        )
+        pipeline = Sequential(
+            [
+                ScoreFilter(
+                    MeanWordLengthFilter(), score_field="mean_lengths", score_type=float
+                ),
+                ToBackend("cudf"),
+                FuzzyDuplicates(config=config),
+            ]
+        )
+
+        result = pipeline(dataset)
+        result_df = result.df.compute()
+        # Right now the output of FuzzyDuplicates does not retain the original metadata
+        # so we simply check the output of fuzzy dedupe to ensure accuracy
+        # Drop non duplicated docs
+        result_df = result_df[result_df.group.duplicated(keep=False)]
+        result_df = result_df.groupby("group").id.agg(list)
+        # Sort to maintain uniform ordering
+        result_df = result_df.list.sort_values()
+        result_df = result_df.sort_values()
+        gt_results = gt_results.list.sort_values()
+        gt_results = gt_results.sort_values()
+        assert_eq(gt_results, result_df, check_index=False)

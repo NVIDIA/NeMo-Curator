@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
+from typing import Literal
 
 
 class DocumentModifier(ABC):
@@ -27,11 +28,12 @@ class DocumentModifier(ABC):
     def modify_document(self, text):
         pass
 
-    def get_backend(self) -> str:
+    @property
+    def backend(self) -> Literal["pandas", "cudf", "any"]:
         """
-        The dataframe backend the filter operates on.
+        The dataframe backend the modifier operates on.
         Can be 'pandas', 'cudf', or 'any'. Defaults to 'pandas'.
         Returns:
-            str: A string representing the dataframe backend the filter needs as input
+            str: A string representing the dataframe backend the modifier needs as input
         """
         return "pandas"

@@ -5,14 +5,14 @@ import dask.dataframe as dd
 import numpy as np
 
 from nemo_curator.datasets.doc_dataset import DocumentDataset
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 
 
 def default_filename(partition_num: int) -> str:
     return f"file_{partition_num:010d}.jsonl"
 
 
-class Shuffle(Module):
+class Shuffle(BaseModule):
     def __init__(
         self,
         seed: Optional[int] = None,

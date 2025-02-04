@@ -25,11 +25,11 @@ from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoModel
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.utils.distributed_utils import get_gpu_memory_info
 
 
-class DistributedDataClassifier(Module):
+class DistributedDataClassifier(BaseModule):
     """Abstract class for running multi-node multi-GPU data classification"""
 
     def __init__(

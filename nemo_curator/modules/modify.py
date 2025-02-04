@@ -13,11 +13,11 @@
 # limitations under the License.
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modifiers import DocumentModifier
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.utils.module_utils import is_batched
 
 
-class Modify(Module):
+class Modify(BaseModule):
     def __init__(self, modifier: DocumentModifier, text_field="text"):
         super().__init__(input_backend=modifier.get_backend())
         self.modifier = modifier

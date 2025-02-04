@@ -18,7 +18,7 @@ import os
 from typing import Union
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
 from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
@@ -27,7 +27,7 @@ from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
 )
 
 
-class SemDedup(Module):
+class SemDedup(BaseModule):
     def __init__(
         self,
         config: SemDedupConfig,

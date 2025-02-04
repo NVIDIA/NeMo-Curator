@@ -20,13 +20,13 @@ import dask.dataframe as dd
 from dask import delayed
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.base import Module
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.tasks.downstream_task import DownstreamTask
 from nemo_curator.utils.distributed_utils import single_partition_write_with_filename
 from nemo_curator.utils.text_utils import get_words
 
 
-class TaskDecontamination(Module):
+class TaskDecontamination(BaseModule):
     def __init__(
         self,
         tasks: Union[DownstreamTask, Iterable[DownstreamTask]],
