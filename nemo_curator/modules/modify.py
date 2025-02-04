@@ -19,7 +19,7 @@ from nemo_curator.utils.module_utils import is_batched
 
 class Modify(BaseModule):
     def __init__(self, modifier: DocumentModifier, text_field="text"):
-        super().__init__(input_backend=modifier.get_backend())
+        super().__init__(input_backend=modifier.backend)
         self.modifier = modifier
         self.text_field = text_field
 
