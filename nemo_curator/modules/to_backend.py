@@ -30,6 +30,10 @@ class ToBackend(BaseModule):
             backend (str): The backend to transfer the dataset to. Can be "pandas" or "cudf"
         """
         super().__init__(input_backend="any")
+        if backend not in BaseModule.SUPPORTED_BACKENDS:
+            raise ValueError(
+                f"Backend must be either 'pandas' or 'cudf', but got {backend}"
+            )
         self.backend = backend
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:

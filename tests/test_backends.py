@@ -60,55 +60,39 @@ class AnyModule(BaseModule):
         return dataset
 
 
-class AnyModule(BaseModule):
-    def __init__(self):
-        super().__init__(input_backend="any")
+@pytest.fixture
+def raw_data():
+    base_data = {
+        "id": [1, 2, 3, 4, 100, 200, 300],
+        "text": [
+            "The quick brown fox jumps over the lazy dog",
+            "The quick brown foxes jumps over the lazy dog",
+            "The quick brown wolf jumps over the lazy dog",
+            "The quick black cat jumps over the lazy dog",
+            "A test string",
+            "Another test string",
+            "A different object",
+        ],
+    }
+    gt_results = [43, 45, 44, 43, 13, 19, 18]
 
-    def call(self, dataset: DocumentDataset):
-        dataset.df["any_lengths"] = dataset.df["text"].str.len()
-        return dataset
+    return base_data, gt_results
 
 
 @pytest.fixture
-def cpu_data():
-    df = pd.DataFrame(
-        {
-            "id": [1, 2, 3, 4, 100, 200, 300],
-            "text": [
-                "The quick brown fox jumps over the lazy dog",
-                "The quick brown foxes jumps over the lazy dog",
-                "The quick brown wolf jumps over the lazy dog",
-                "The quick black cat jumps over the lazy dog",
-                "A test string",
-                "Another test string",
-                "A different object",
-            ],
-        }
-    )
-    gt_lengths = pd.Series([43, 45, 44, 43, 13, 19, 18], name="cpu_lengths")
+def cpu_data(raw_data):
+    base_data, gt_results = raw_data
+    df = pd.DataFrame(base_data)
+    gt_lengths = pd.Series(gt_results, name="cpu_lengths")
     return DocumentDataset.from_pandas(df), gt_lengths
 
 
 @pytest.fixture
-def gpu_data():
-    df = cudf.DataFrame(
-        {
-            "id": [1, 2, 3, 4, 100, 200, 300],
-            "text": [
-                "The quick brown fox jumps over the lazy dog",
-                "The quick brown foxes jumps over the lazy dog",
-                "The quick brown wolf jumps over the lazy dog",
-                "The quick black cat jumps over the lazy dog",
-                "A test string",
-                "Another test string",
-                "A different object",
-            ],
-        }
-    )
+def gpu_data(raw_data):
+    base_data, gt_results = raw_data
+    df = cudf.DataFrame(base_data)
     df = dask_cudf.from_cudf(df, 2)
-    gt_lengths = cudf.Series(
-        [43, 45, 44, 43, 13, 19, 18], name="gpu_lengths", dtype="int32"
-    )
+    gt_lengths = cudf.Series(gt_results, name="gpu_lengths", dtype="int32")
     return DocumentDataset(df), gt_lengths
 
 
@@ -236,7 +220,7 @@ class TestBackendSupport:
         assert_eq(result_df["cpu_lengths"], gt_cpu_lengths)
         assert_eq(result_df["gpu_lengths"], gt_gpu_lengths)
 
-    def test_wrong_backend(self, cpu_data):
+    def test_wrong_backend_cpu_data(self, cpu_data):
         with pytest.raises(ValueError):
             print("client", self.client)
             dataset, _ = cpu_data
@@ -244,23 +228,43 @@ class TestBackendSupport:
             result = pipeline(dataset)
             _ = result.df.compute()
 
+    def test_wrong_backend_gpu_data(self, gpu_data):
+        with pytest.raises(ValueError):
+            print("client", self.client)
+            dataset, _ = gpu_data
+            pipeline = CPUModule()
+            result = pipeline(dataset)
+            _ = result.df.compute()
+
+    def test_unsupported_to_backend(self, cpu_data):
+        with pytest.raises(ValueError):
+            print("client", self.client)
+            dataset, _ = cpu_data
+            pipeline = ToBackend("fake_backend")
+            result = pipeline(dataset)
+            _ = result.df.compute()
+
 
 @pytest.fixture
-def real_module_cpu_data():
-    df = pd.DataFrame(
-        {
-            "id": [1, 2, 3, 4, 100, 200, 300],
-            "text": [
-                "The quick brown fox jumps over the lazy dog",
-                "The quick brown foxes jumps over the lazy dog",
-                "The quick brown wolf jumps over the lazy dog",
-                "The quick black cat jumps over the lazy dog",
-                "A test string",
-                "Another test string",
-                "A different object",
-            ],
-        }
-    )
+def real_module_raw_data():
+    base_data = {
+        "id": [1, 2, 3, 4, 100, 200, 300],
+        "text": [
+            "The quick brown fox jumps over the lazy dog",
+            "The quick brown foxes jumps over the lazy dog",
+            "The quick brown wolf jumps over the lazy dog",
+            "The quick black cat jumps over the lazy dog",
+            "A test string",
+            "Another test string",
+            "A different object",
+        ],
+    }
+    return base_data
+
+
+@pytest.fixture
+def real_module_cpu_data(real_module_raw_data):
+    df = pd.DataFrame(real_module_raw_data)
     gt_results = pd.Series(
         [35 / 9, 37 / 9, 4.0, 35 / 9, 33 / 9, 51 / 9, 48 / 9], name="mean_lengths"
     )
@@ -268,21 +272,8 @@ def real_module_cpu_data():
 
 
 @pytest.fixture
-def real_module_gpu_data():
-    df = cudf.DataFrame(
-        {
-            "id": [1, 2, 3, 4, 100, 200, 300],
-            "text": [
-                "The quick brown fox jumps over the lazy dog",
-                "The quick brown foxes jumps over the lazy dog",
-                "The quick brown wolf jumps over the lazy dog",
-                "The quick black cat jumps over the lazy dog",
-                "A test string",
-                "Another test string",
-                "A different object",
-            ],
-        }
-    )
+def real_module_gpu_data(real_module_raw_data):
+    df = cudf.DataFrame(real_module_raw_data)
     df = dask_cudf.from_cudf(df, 2)
     gt_results = cudf.Series([[1, 2, 3, 4], [100, 200]], name="id")
     return DocumentDataset(df), gt_results

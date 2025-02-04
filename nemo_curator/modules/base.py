@@ -18,6 +18,7 @@ from typing import Literal, Optional
 import dask.dataframe as dd
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.utils.gpu_utils import is_cudf_type
 
 
 class BaseModule(ABC):
@@ -64,10 +65,11 @@ class BaseModule(ABC):
         if self.input_backend == "any":
             return
 
-        backend = type(ddf._meta).__module__.split(".")[0]
+        backend = "cudf" if is_cudf_type(ddf) else "pandas"
         if backend != self.input_backend:
             raise ValueError(
-                f"Module {self.name} requires dataset to have backend {self.input_backend} but got backend {backend}"
+                f"Module {self.name} requires dataset to have backend {self.input_backend} but got backend {backend}."
+                "Try using nemo_curator.ToBackend to swap dataframe backends before running this module."
             )
 
     def __call__(self, dataset: DocumentDataset):

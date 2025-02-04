@@ -97,7 +97,7 @@ To see how it works, take a look at this example.
   from nemo_curator import Sequential, ToBackend, ScoreFilter, get_client
   from nemo_curator.datasets import DocumentDataset
   from nemo_curator.classifiers import DomainClassifier
-  from nemo_curator.filters import RepeatingTopNGramsFilter
+  from nemo_curator.filters import RepeatingTopNGramsFilter, NonAlphaNumericFilter
 
   def main():
       client = get_client(cluster_type="gpu")
@@ -107,6 +107,8 @@ To see how it works, take a look at this example.
           ScoreFilter(RepeatingTopNGramsFilter(n=5)),
           ToBackend("cudf"),
           DomainClassifier(),
+          ToBackend("pandas"),
+          ScoreFilter(NonAlphaNumericFilter()),
       ])
 
       curated_dataset = curation_pipeline(dataset)
@@ -120,7 +122,7 @@ Let's highlight some of the important parts of this example.
 
 * ``client = get_client(cluster_type="gpu")``: Creates a local Dask cluster with access to the GPUs. In order to use/swap to a cuDF dataframe backend, you need to make sure you are running on a GPU Dask cluster.
 * ``dataset = DocumentDataset.read_json("books.jsonl")``: Reads in the dataset to a pandas (CPU) backend by default.
-* ``curation_pipeline = ...``: Defines a curation pipeline consisting of a CPU filtering step and a GPU classifier step. The ``ToBackend("cudf")`` in between moves the dataset from CPU to GPU for the classifier.
+* ``curation_pipeline = ...``: Defines a curation pipeline consisting of a CPU filtering step, a GPU classifier step, and another CPU filtering step. The ``ToBackend("cudf")`` moves the dataset from CPU to GPU for the classifier, and the ``ToBackend("pandas")`` moves the dataset back to the CPU from the GPU for the last filter.
 * ``curated_dataset.to_json("curated_books.jsonl")``: Writes the dataset directly to disk from the GPU. There is no need to transfer back to the CPU before writing to disk.
 
 -----------------------------------------
