@@ -171,7 +171,7 @@ class ExactDuplicates:
         return DocumentDataset.read_parquet(
             write_path,
             backend=backend,
-            blocksize="512MiB",
+            blocksize="1024MiB",
             files_per_partition=None,
             split_row_groups=False,
         )
