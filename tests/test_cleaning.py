@@ -92,17 +92,17 @@ class TestNewlineNormalizer:
         dataset = list_to_dataset(
             [
                 "The quick brown fox jumps over the lazy dog",
-                "The quick\nbrown fox jumps \nover the lazy dog",
-                "The quick\n\nbrown fox jumps \n\nover the lazy dog",
-                "The quick\n\n\nbrown fox jumps \n\n\nover the lazy dog",
-                "The quick\n\n\nbrown fox jumps \nover the lazy dog",
+                "The quick\r\nbrown fox jumps \r\nover the lazy dog",
+                "The quick\r\n\r\nbrown fox jumps \r\n\r\nover the lazy dog",
+                "The quick\r\n\r\n\r\nbrown fox jumps \r\n\r\n\r\nover the lazy dog",
+                "The quick\r\n\r\n\r\nbrown fox jumps \r\nover the lazy dog",
             ]
         )
         expected_results = [
             "The quick brown fox jumps over the lazy dog",
             "The quick\r\nbrown fox jumps \r\nover the lazy dog",
             "The quick\r\n\r\nbrown fox jumps \r\n\r\nover the lazy dog",
-            "The quick\r\n\r\n\r\nbrown fox jumps \r\n\r\n\r\nover the lazy dog",
+            "The quick\r\n\r\nbrown fox jumps \r\n\r\nover the lazy dog",
             "The quick\r\n\r\nbrown fox jumps \r\nover the lazy dog",
         ]
         expected_results.sort()
