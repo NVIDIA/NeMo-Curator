@@ -144,7 +144,8 @@ class SemDedupConfig(BaseConfig):
     embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
-    embedding_pooling_strategy: str = "last_token"
+    # Options: "mean_pooling", "last_token"
+    embedding_pooling_strategy: str = "mean_pooling"
 
     # Clustering config
     clustering_save_loc: str = "clustering_results"

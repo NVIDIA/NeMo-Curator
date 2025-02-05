@@ -88,7 +88,7 @@ class TestSemDuplicates:
         expected_df = cudf.Series(duplicate_docs, name="id")
         assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
 
-    @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean"])
+    @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean_pooling"])
     def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):
         test_text_1 = "The quick brown fox jumps over the lazy dog"
         test_text_2 = "The brown fox jumps over the dog"

@@ -41,7 +41,7 @@ from nemo_curator.utils.distributed_utils import (
 class EmbeddingConfig:
     model_name_or_path: str
     max_seq_length: int = None
-    pooling_strategy: str = "mean"  # Options: "mean" or "last_token"
+    pooling_strategy: str = "mean_pooling"  # Options: "mean_pooling" or "last_token"
 
     def __post_init__(self):
         self.max_seq_length = AutoTokenizer.from_pretrained(
@@ -53,8 +53,10 @@ class EmbeddingConfig:
             self.max_seq_length = AutoConfig.from_pretrained(
                 self.model_name_or_path
             ).max_position_embeddings
-        if self.pooling_strategy not in ["mean", "last_token"]:
-            raise ValueError("pooling_strategy must be either 'mean' or 'last_token'")
+        if self.pooling_strategy not in ["mean_pooling", "last_token"]:
+            raise ValueError(
+                "pooling_strategy must be either 'mean_pooling' or 'last_token'"
+            )
 
 
 class EmbeddingPytorchModel(nn.Module):
@@ -73,7 +75,7 @@ class EmbeddingPytorchModel(nn.Module):
     @torch.no_grad()
     def forward(self, batch):
         feature = self.feature(batch["input_ids"], batch["attention_mask"])
-        if self.config.pooling_strategy == "mean":
+        if self.config.pooling_strategy == "mean_pooling":
             return self._mean_pooling(feature, batch["attention_mask"])
         else:
             return self._get_last_token(feature, batch["attention_mask"])
@@ -91,6 +93,9 @@ class EmbeddingPytorchModel(nn.Module):
         token_embeddings = model_output[0]
         # Get indices of last non-padded tokens for each sequence in batch
         last_token_indices = attention_mask.sum(dim=1) - 1  # -1 for 0-based indexing
+        last_token_indices = last_token_indices.to(
+            torch.long
+        )  # Ensure indices are of type long
         batch_size = attention_mask.size(0)
         batch_indices = torch.arange(batch_size, device=attention_mask.device)
         # Get embeddings of last non-padded tokens
