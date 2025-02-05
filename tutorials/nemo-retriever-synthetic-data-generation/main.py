@@ -190,9 +190,9 @@ def main():
     write_to_beir(args, filtered_dataset, filtered=True)
 
     # saving in jsonl format
-    generated_dataset.to_json(
-        os.path.join(args.output_dir, "jsonl", "all_generated_data.jsonl")
-    )
+    all_save_dir = os.path.join(args.output_dir, "jsonl", "all")
+    os.makedirs(all_save_dir)
+    generated_dataset.to_json(all_save_dir)
 
 
 if __name__ == "__main__":
