@@ -149,6 +149,28 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
     assert result_pred.equals(expected_pred)
 
 
+@pytest.mark.gpu
+def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebMixtralClassifier
+
+    classifier = FineWebMixtralClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+
+    # TODO
+    assert False
+
+
+@pytest.mark.gpu
+def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebNemotronClassifier
+
+    classifier = FineWebNemotronClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+
+    # TODO
+    assert False
+
+
 @pytest.mark.skip(
     reason="Instruction-Data-Guard needs to be downloaded and cached to our gpuCI runner to enable this"
 )
