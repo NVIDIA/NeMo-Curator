@@ -154,7 +154,7 @@ class EmbeddingCreator:
             embedding_output_dir (str): Directory path where embeddings will be saved.
             embedding_max_mem_gb (int): Maximum memory usage in GB for the embedding process.
                                 If None, it defaults to the available GPU memory minus 4 GB.
-            embedding_pooling_strategy (str): Strategy for pooling embeddings, either "mean" or "last_token". Defaults to "last_token".
+            embedding_pooling_strategy (str): Strategy for pooling embeddings, either "mean_pooling" or "last_token". Defaults to "mean_pooling".
             input_column (str): Column name from the data to be used for embedding generation, defaults to "text".
             write_embeddings_to_disk (bool, optional): If True, saves the embeddings to disk, defaults to True.
                                 We recommend setting this to False when you have a delayed pipeline.
