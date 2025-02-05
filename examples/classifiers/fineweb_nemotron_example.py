@@ -33,7 +33,7 @@ def main(args):
     client = get_client(**client_args)
 
     input_dataset = DocumentDataset.read_json(
-       input_file_path, backend="cudf", add_filename=True
+        input_file_path, backend="cudf", add_filename=True
     )
 
     fineweb_nemotron_classifier = FineWebNemotronClassifier()

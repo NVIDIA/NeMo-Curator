@@ -27,12 +27,8 @@ from nemo_curator.classifiers.base import (
 from nemo_curator.datasets import DocumentDataset
 
 FINEWEB_EDU_IDENTIFIER = "HuggingFaceFW/fineweb-edu-classifier"
-FINEWEB_MIXTRAL_IDENTIFIER = (
-    "nvidia/nemocurator-fineweb-mixtral-edu-classifier"
-)
-FINEWEB_NEMOTRON_IDENTIFIER = (
-    "nvidia/nemocurator-fineweb-nemotron-4-edu-classifier"
-)
+FINEWEB_MIXTRAL_IDENTIFIER = "nvidia/nemocurator-fineweb-mixtral-edu-classifier"
+FINEWEB_NEMOTRON_IDENTIFIER = "nvidia/nemocurator-fineweb-nemotron-4-edu-classifier"
 
 
 class FinewebEduModel(HFModel):
@@ -54,7 +50,9 @@ class FinewebEduModel(HFModel):
                 self.path_or_name, torch_dtype=torch.bfloat16
             )
         else:
-            model = AutoModelForSequenceClassification.from_pretrained(self.path_or_name)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                self.path_or_name
+            )
         model = model.to(device)
         model = self.configure_forward(model, self.autocast)
         return model
