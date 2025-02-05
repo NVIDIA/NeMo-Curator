@@ -75,7 +75,7 @@ After ensuring your dataset has a unique ID field (or creating one with the code
         backend="cudf",  # or "pandas" for CPU
     )
     # Users who have specified perform_removal=False can split as following
-    duplicate_docs = exact_duplicates.identify(dataset)
+    duplicate_docs = exact_duplicates.identify_duplicates(dataset)
 
     """
     Sample output:
@@ -246,7 +246,7 @@ Python API
     )
 
     # Users who have specified perform_removal=False can split as following
-    duplicate_docs = fuzzy_duplicates.identify(dataset)
+    duplicate_docs = fuzzy_duplicates.identify_duplicates(dataset)
     """
     Sample output:
                   my_id  group

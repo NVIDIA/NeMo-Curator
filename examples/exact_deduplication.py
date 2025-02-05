@@ -17,8 +17,7 @@ import time
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
-from nemo_curator.utils.distributed_utils import get_client, read_data, write_to_disk
-from nemo_curator.utils.file_utils import get_all_files_paths_under
+from nemo_curator.utils.distributed_utils import get_client, write_to_disk
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 
@@ -40,7 +39,9 @@ def main(args):
         client.run(pre_imports)
 
     t0 = time.time()
-    input_dataset = DocumentDataset.read_json(dataset_dir, backend=backend)
+    input_dataset = DocumentDataset.read_json(
+        dataset_dir, backend=backend, blocksize="1GiB", files_per_partition=None
+    )
 
     exact_dup = ExactDuplicates(
         logger=log_dir,
@@ -52,12 +53,12 @@ def main(args):
         # cache_dir=output_dir  # Optionally write the output to disk
     )
 
-    # When perform_removal=False, it'll only call .identify() and return the duplicates.
+    # When perform_removal=False, it'll only call .identify_duplicates() and return the duplicates.
     # When perform_removal=True then exact_dup outputs dataset with the duplicates removed
-    # It'll behave by calling .identify() and .removal() in sequence.
+    # It'll behave by calling .identify_duplicates() and .removal() in sequence.
     duplicates = exact_dup(
         dataset=input_dataset
-    )  # or exact_dup.identify(input_dataset)
+    )  # or exact_dup.identify_duplicates(input_dataset)
 
     # If caching, result is a path to the output dataset.
     if isinstance(duplicates, str):

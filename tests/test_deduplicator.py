@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from dask import dataframe as dd
 
-from nemo_curator.utils.removal import remove_duplicates
+from nemo_curator.utils.duplicates_removal import remove_duplicates
 
 
 @pytest.fixture()

@@ -133,7 +133,9 @@ class FuzzyDuplicatesConfig(BaseConfig):
             )
         if not 1 <= self.buckets_per_shuffle <= self.num_buckets:
             raise ValueError("Buckets per shuffle must be between [1, num_buckets]")
-        self.perform_removal = True
+
+        if not self.perform_removal:
+            warnings.warn("In future release (0.8.0) by default will be True.")
 
 
 @dataclass

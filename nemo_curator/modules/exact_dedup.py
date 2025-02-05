@@ -29,8 +29,8 @@ from nemo_curator._compat import DASK_P2P_ERROR
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
+from nemo_curator.utils.duplicates_removal import remove_duplicates
 from nemo_curator.utils.gpu_utils import is_cudf_type
-from nemo_curator.utils.removal import remove_duplicates
 
 
 class ExactDuplicates:
@@ -70,6 +70,10 @@ class ExactDuplicates:
         self.id_field = id_field
         self.text_field = text_field
         self.perform_removal = perform_removal
+        if not self.perform_removal:
+            warnings.warn("In future release (0.8.0) by default will be True.")
+        if self.perform_removal and cache_dir is None:
+            warnings.warn("cache_dir is recommended to remove duplicates.")
         if cache_dir is None and profile_dir is not None:
             warnings.warn(
                 "cache_dir for intermediate outputs is required to generate profiles"

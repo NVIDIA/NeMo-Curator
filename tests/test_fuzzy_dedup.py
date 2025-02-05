@@ -347,7 +347,7 @@ class TestFuzzyDuplicates:
             jaccard_threshold=jaccard_threshold,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        result = fuzzy_duplicates.identify(fuzzy_dedup_data)
+        result = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]
@@ -378,7 +378,7 @@ class TestFuzzyDuplicates:
             char_ngrams=5,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        duplicates = fuzzy_duplicates.identify(fuzzy_dedup_data)
+        duplicates = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
         deduplicated_ds = fuzzy_duplicates.remove(fuzzy_dedup_data, duplicates)
         deduplicated_df = deduplicated_ds.df.compute()
         output_deduplicated_ids = set(deduplicated_df["col0"].to_arrow().to_pylist())
@@ -441,7 +441,7 @@ class TestFuzzyDuplicates:
             jaccard_threshold=0.39,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        duplicates = fuzzy_duplicates.identify(data)
+        duplicates = fuzzy_duplicates.identify_duplicates(data)
         deduplicated_ds = fuzzy_duplicates.remove(fuzzy_dedup_data, duplicates)
         deduplicated_df = deduplicated_ds.df.compute()
         output_deduplicated_ids = set(deduplicated_df["col0"].to_arrow().to_pylist())
@@ -515,7 +515,7 @@ class TestFuzzyDuplicates:
             jaccard_threshold=0.39,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        result = fuzzy_duplicates.identify(fuzzy_dedup_data)
+        result = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]
@@ -553,7 +553,7 @@ class TestFuzzyDuplicates:
             jaccard_threshold=0.39,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        result = fuzzy_duplicates.identify(shuffle_fail_fuzzy_dedup_data)
+        result = fuzzy_duplicates.identify_duplicates(shuffle_fail_fuzzy_dedup_data)
         result_df = result.df.compute()
         # Drop non duplicated docs
         result_df = result_df[result_df.group.duplicated(keep=False)]
@@ -590,7 +590,7 @@ class TestFuzzyDuplicates:
             jaccard_threshold=0.39,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
-        result = fuzzy_duplicates.identify(no_duplicates_fuzzy_dedup_data)
+        result = fuzzy_duplicates.identify_duplicates(no_duplicates_fuzzy_dedup_data)
         assert result is None
 
 

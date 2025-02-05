@@ -48,7 +48,7 @@ class TestExactDuplicates:
             hash_method="md5",
             cache_dir=tmpdir if cache_result else None,
         )
-        duplicates = exact_dups.identify(exact_dedup_data)
+        duplicates = exact_dups.identify_duplicates(exact_dedup_data)
         deduplicated_ds = exact_dups.remove(exact_dedup_data, duplicates)
         deduplicated_ids_series = deduplicated_ds.df.to_backend("pandas").compute()[
             "id"

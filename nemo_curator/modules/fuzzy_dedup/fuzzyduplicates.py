@@ -31,7 +31,7 @@ from nemo_curator.modules.fuzzy_dedup.lsh import LSH
 from nemo_curator.modules.fuzzy_dedup.minhash import MinHash
 from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
-from nemo_curator.utils.removal import remove_duplicates
+from nemo_curator.utils.duplicates_removal import remove_duplicates
 
 
 class FuzzyDuplicates:
