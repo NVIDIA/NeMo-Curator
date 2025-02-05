@@ -67,47 +67,69 @@ class FuzzyDuplicatesConfig(BaseConfig):
 
     # Minhash + LSH Config
     seed: int = 42
-    char_ngrams: int = 5
+    char_ngrams: int = 24
     num_buckets: int = 20
     hashes_per_bucket: int = 13
     use_64_bit_hash: bool = False
     buckets_per_shuffle: int = 1
 
-    false_positive_check: bool = True
-    # Only required for fp check
-    num_anchors: int = 2
-    jaccard_threshold: float = 0.8
-    bucket_mapping_blocksize: int = 256
-    parts_per_worker: int = 1
-    bucket_parts_per_worker: int = 8
+    false_positive_check: bool = False
+    # Only required for false positive check
+    num_anchors: Optional[int] = None
+    jaccard_threshold: Optional[float] = None
+    bucket_mapping_blocksize: Optional[int] = None
+    parts_per_worker: Optional[int] = None
+    bucket_parts_per_worker: Optional[int] = None
 
     def __post_init__(self):
         self.num_hashes = self.num_buckets * self.hashes_per_bucket
-        if self.cache_dir is None:
-            raise ValueError(
-                "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
-            )
+        false_positive_defaults = {
+            "num_anchors": 2,
+            "jaccard_threshold": 0.8,
+            "bucket_mapping_blocksize": 256,
+            "parts_per_worker": 1,
+            "bucket_parts_per_worker": 8,
+        }
         if self.false_positive_check:
             warnings.warn(
                 "Identifying false positives during the Minhash deduplication is computationally expensive."
                 " For improved performance consider setting this to False"
             )
-        if not self.false_positive_check and self.char_ngrams < 20:
-            warnings.warn(
-                "Using a small char_ngrams value might lead to a large number (~5%) of false positives during deduplication."
-                " Using a value of at least 20 for char_ngrams is recommended."
+            for arg, default in false_positive_defaults.items():
+                if getattr(self, arg) is None:
+                    setattr(self, arg, default)
+            if self.num_anchors <= 0:
+                raise ValueError("Number of anchors must be greater than 0")
+            if self.num_anchors > 2:
+                warnings.warn(
+                    "Using a higher number of anchor docs might lead to higher memory footprint and might impact performance",
+                    category=UserWarning,
+                )
+            if not 0 <= self.jaccard_threshold <= 1:
+                raise ValueError("Jaccard Threshold must be between [0,1]")
+        else:
+            if self.char_ngrams < 20:
+                warnings.warn(
+                    "Using a small char_ngrams value might lead to a large number (~5%) of false positives during deduplication."
+                    " Using a value of at least 20 for char_ngrams is recommended."
+                )
+            unused_false_positive_args = [
+                arg
+                for arg in false_positive_defaults.keys()
+                if getattr(self, arg) is not None
+            ]
+            if unused_false_positive_args:
+                warnings.warn(
+                    f"False positive check is disabled. Unused arguments {unused_false_positive_args} will be ignored",
+                    category=UserWarning,
+                )
+
+        if self.cache_dir is None:
+            raise ValueError(
+                "Finding fuzzy duplicates requires a cache directory accessible via all workers to store intermediates"
             )
-        if self.num_anchors <= 0:
-            raise ValueError("Number of anchors must be greater than 0")
-        if self.num_anchors > 2:
-            warnings.warn(
-                "Using a higher number of anchor docs might lead to higher memory footprint and might impact performance",
-                category=UserWarning,
-            )
-        if not 0 <= self.jaccard_threshold <= 1:
-            raise ValueError("Jaccard Threshold must be between [0,1]")
-        if self.buckets_per_shuffle <= 0:
-            raise ValueError("Buckets per shuffle must be greater than 0")
+        if not 1 <= self.buckets_per_shuffle <= self.num_buckets:
+            raise ValueError("Buckets per shuffle must be between [1, num_buckets]")
 
 
 @dataclass
@@ -123,7 +145,10 @@ class SemDedupConfig(BaseConfig):
         embeddings_save_loc (str): Location to save embeddings.
         embedding_model_name_or_path (str): Model name or path for embeddings.
         embedding_batch_size (int): Inital Batch size for processing embeddings.
-        embedding_pooling_strategy (str): Strategy for pooling embeddings, either "mean" or "last_token". Defaults to "last_token".
+        embedding_pooling_strategy (str): Strategy for pooling embeddings, either "mean_pooling" or "last_token". Defaults to "last_token".
+        write_embeddings_to_disk (bool): If True, saves the embeddings to disk, defaults to True.
+            We recommend setting this to False when you have a delayed pipeline.
+            Setting it to False can lead to more memory overhead.
         clustering_save_loc (str): Location to save clustering results.
         n_clusters (int): Number of clusters.
         seed (int): Seed for clustering.
@@ -146,6 +171,7 @@ class SemDedupConfig(BaseConfig):
     embedding_batch_size: int = 128
     # Options: "mean_pooling", "last_token"
     embedding_pooling_strategy: str = "mean_pooling"
+    write_embeddings_to_disk: bool = True
 
     # Clustering config
     clustering_save_loc: str = "clustering_results"
