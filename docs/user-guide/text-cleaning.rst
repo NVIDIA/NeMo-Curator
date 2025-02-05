@@ -7,20 +7,30 @@ Text Cleaning
 --------------------
 Overview
 --------------------
-Documents in datasets may contain improperly decoded characters (e.g. "The Mona Lisa doesn't have eyebrows." decoding as "The Mona Lisa doesnÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t have eyebrows."), inconsistent line spacing, and many urls.
-NeMo Curator provides a few modules that can help remove undesirable text from within individual documents.
+Use NeMo Curator's text cleaning modules to remove undesirable text such as improperly decoded unicode characters, inconsistent line spacing, or excessive URLs from documents being pre-processed for dataset.
+
+For example, the input sentence `"The Mona Lisa doesn't have eyebrows."` from a given document may not have included a properly encoded apostrophe (`'`), resulting in the sentence decoding as `"The Mona Lisa doesnÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t have eyebrows."` NeMo Curator enables you to easily run this document through the default `UnicodeReformatter()` module to detect and remove the unwanted text,  or you can define your own custom unicode text cleaner tailored to your needs.
 
 --------------------
 Use Cases
 --------------------
-* Fixing improperly decoded unicode characters from webpages.
-* Standardizing document layout by removing excessive newlines.
-* Removing URLs in documents.
+* Fix improperly decoded Unicode characters from webpages.
+* Standardize document layout by removing excessive newlines.
+* Remove URLs in documents.
 
 --------------------
 Modules
 --------------------
-NeMo Curator provides a collection of easy to use modules for cleaning text.
+NeMo Curator provides the following modules for cleaning text:
+
+- ``UnicodeReformatter()``: Uses [ftfy](https://ftfy.readthedocs.io/en/latest/) to fix broken Unicode characters. Modifies the "text" field of the dataset by default.
+- ``NewlineNormalizer()``: Uses regex to replace 3 or more consecutive newline characters in each document with only 2 newline characters.
+- ``UrlRemover()``: Uses regex to remove all urls in each document.
+
+You can use these modules individually or sequentially in a cleaning pipeline.
+
+Consider the following example, which loads a dataset (`books.jsonl`), steps through each module in a cleaning pipeline, and outputs the processed dataset as `cleaned_books.jsonl`:
+
 
 .. code-block:: python
 
@@ -45,14 +55,7 @@ NeMo Curator provides a collection of easy to use modules for cleaning text.
     if __name__ == "__main__":
         main()
 
-Here, we load a dataset and perform all of the cleaning operations that NeMo Curator supports.
-* ``Modify(UnicodeReformatter())``: Uses `ftfy <https://ftfy.readthedocs.io/en/latest/>`_ to fix broken Unicode characters. Modifies the `"text"` field of the datset by default. This can be changed by setting ``Modify(UnicodeReformatter(), text_field="my_field")``.
-* ``Modify(NewlineNormalizer())``: Uses regex to replace 3 or more consecutive newline characters in each document with only 2 newline characters.
-* ``Modify(UrlRemover())``: Uses regex to remove all urls in each document
-
-Any subset of these steps can be run at a time.
-
-Additionally, NeMo Curator has the ``text_cleaning`` CLI command that can perform the same functions:
+You can also perform text cleaning operations using the CLI by running the `text_cleaning` command:
 
 .. code-block:: bash
 

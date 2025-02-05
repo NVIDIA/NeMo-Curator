@@ -20,7 +20,7 @@ URL_REGEX = re.compile(r"https?://\S+|www\.\S+", flags=re.IGNORECASE)
 
 class UrlRemover(DocumentModifier):
     """
-    Removes all urls in a document.
+    Removes all URLs in a document.
     """
 
     def __init__(self):

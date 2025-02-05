@@ -20,7 +20,7 @@ Text Curation
    Large, unlabeled text corpora often contain a variety of languages. NeMo Curator provides utilities to identify languages.
 
 :ref:`Text Cleaning <data-curator-text-cleaning>`
-   Many parts of the internet contained malformed or poorly formatted text. NeMo Curator can fix many of these issues with text.
+   Many parts of the Internet contained malformed or poorly formatted text. NeMo Curator can fix many of these issues with text.
 
 :ref:`GPU Accelerated Exact and Fuzzy Deduplication <data-curator-gpu-deduplication>`
    Both exact and fuzzy deduplication functionalities are supported in NeMo Curator and accelerated using RAPIDS cuDF.
