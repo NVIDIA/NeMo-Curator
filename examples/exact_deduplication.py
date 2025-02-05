@@ -46,10 +46,18 @@ def main(args):
         logger=log_dir,
         id_field=dataset_id_field,
         text_field=dataset_text_field,
+        # Decides whether output of the module is deduplicated dataset or duplicates
+        # If true, you should set cache_dir for performance improvement
+        perform_removal=False,
         # cache_dir=output_dir  # Optionally write the output to disk
     )
 
-    duplicates = exact_dup(dataset=input_dataset)
+    # When perform_removal=False, it'll only call .identify() and return the duplicates.
+    # When perform_removal=True then exact_dup outputs dataset with the duplicates removed
+    # It'll behave by calling .identify() and .removal() in sequence.
+    duplicates = exact_dup(
+        dataset=input_dataset
+    )  # or exact_dup.identify(input_dataset)
 
     # If caching, result is a path to the output dataset.
     if isinstance(duplicates, str):

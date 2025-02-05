@@ -63,14 +63,19 @@ After ensuring your dataset has a unique ID field (or creating one with the code
     from nemo_curator.datasets import DocumentDataset
 
     # Initialize the deduplication object
-    exact_duplicates = ExactDuplicates(id_field="my_id", text_field="text")
+    exact_duplicates = ExactDuplicates(
+      id_field="my_id",
+      text_field="text",
+      perform_removal=True,
+      cache_dir="/path/to/dedup_outputs", # Recommended to specify a dir if perform_removal=True
+    )
 
     dataset = DocumentDataset.read_parquet(
         input_files="/path/to/parquet/data",
         backend="cudf",  # or "pandas" for CPU
     )
-
-    duplicate_docs = exact_duplicates(dataset)
+    # Users who have specified perform_removal=False can split as following
+    duplicate_docs = exact_duplicates.identify(dataset)
 
     """
     Sample output:
@@ -83,6 +88,9 @@ After ensuring your dataset has a unique ID field (or creating one with the code
     """
 
     deduplicated_dataset = exact_duplicates.remove(dataset, duplicate_docs)
+
+    # Users who have specified perform_removal=True can get the output directly as follows
+    # deduplicated_dataset = exact_duplicates(dataset)
 
 
 .. tip::
@@ -189,6 +197,7 @@ Python API
         cache_dir="/path/to/dedup_outputs", # must be cleared between runs
         id_field="my_id",
         text_field="text",
+        perform_removal=False, # dictates if deduplicated dataset or duplicates are returned
         seed=42,
         char_ngrams=24,
         num_buckets=20,
@@ -205,6 +214,7 @@ Python API
     cache_dir: /path/to/dedup_outputs
     id_field: my_id
     text_field: text
+    perform_removal: False
     seed: 42
     char_ngrams: 24
     num_buckets: 20
@@ -235,7 +245,8 @@ Python API
         backend="cudf", # FuzzyDuplicates only supports datasets with the cuDF backend.
     )
 
-    duplicate_docs = fuzzy_duplicates(dataset)
+    # Users who have specified perform_removal=False can split as following
+    duplicate_docs = fuzzy_duplicates.identify(dataset)
     """
     Sample output:
                   my_id  group
@@ -247,6 +258,9 @@ Python API
     """
 
     deduplicated_dataset = fuzzy_duplicates.remove(dataset, duplicate_docs)
+
+    # Users who have specified perform_removal=True can get the output directly as follows
+    # deduplicated_dataset = fuzzy_duplicates(dataset)
 
 
 .. tip::

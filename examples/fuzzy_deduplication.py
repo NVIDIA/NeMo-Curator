@@ -68,6 +68,8 @@ def main(args):
             cache_dir=cache_dir,
             id_field=dataset_id_field,
             text_field=dataset_text_field,
+            # Decides whether output of the module is deduplicated dataset or duplicates
+            perform_removal=False,
             seed=42,
             char_ngrams=24,
             num_buckets=20,
@@ -77,7 +79,13 @@ def main(args):
             false_positive_check=False,
         )
         fuzzy_dup = FuzzyDuplicates(logger=log_dir, config=fuzzy_dedup_config)
-        duplicates = fuzzy_dup(dataset=input_dataset)
+
+        # When perform_removal=False, it'll only call .identify() and return the duplicates.
+        # When perform_removal=True then exact_dup outputs dataset with the duplicates removed
+        # It'll behave by calling .identify() and .removal() in sequence.
+        duplicates = fuzzy_dup(
+            dataset=input_dataset
+        )  # or fuzzy_dup.identify(input_dataset)
 
         if duplicates is None:
             print("No duplicates found")

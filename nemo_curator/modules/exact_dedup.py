@@ -44,6 +44,7 @@ class ExactDuplicates:
         id_field: str = "id",
         text_field: str = "text",
         hash_method: str = "md5",
+        perform_removal: bool = False,
         profile_dir: Optional[str] = None,
         cache_dir: Optional[str] = None,
     ):
@@ -68,6 +69,7 @@ class ExactDuplicates:
         self.hash_method = hash_method
         self.id_field = id_field
         self.text_field = text_field
+        self.perform_removal = perform_removal
         if cache_dir is None and profile_dir is not None:
             warnings.warn(
                 "cache_dir for intermediate outputs is required to generate profiles"
@@ -189,8 +191,6 @@ class ExactDuplicates:
         -------
         DocumentDataset containing only non-duplicate documents
         """
-        if not duplicates_to_remove:
-            return None
         result = remove_duplicates(
             left=dataset.df,
             duplicates=duplicates_to_remove.df,
@@ -199,10 +199,8 @@ class ExactDuplicates:
         )
         return DocumentDataset(result)
 
-    def __call__(
-        self, dataset: DocumentDataset, perform_removal: bool = False
-    ) -> DocumentDataset:
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         duplicates = self.identify(dataset)
-        if duplicates and perform_removal:
+        if self.perform_removal:
             return self.remove(dataset, duplicates)
         return duplicates
