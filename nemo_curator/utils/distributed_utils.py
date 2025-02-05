@@ -858,6 +858,9 @@ def write_to_disk(
                 If str, uses that as the filename column to write to.
         keep_filename_column: Boolean representing whether to keep or drop the filename column, if it exists.
         output_type: The type of output file to write. Can be "jsonl" or "parquet".
+        partition_on: The column name to partition the data on.
+                      If specified, the data will be partitioned based on the unique values in this column,
+                      and each partition will be written to a separate directory
     """
 
     filename_col = _resolve_filename_col(write_to_filename)
