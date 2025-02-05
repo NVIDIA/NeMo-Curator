@@ -24,7 +24,7 @@ def tmp_path_w_data(tmp_path):
         dfs = []
         for i in range(num_files):
             partition = df.copy()
-            partition["filename"] = f"f{i}.{file_ext}"
+            partition["file_name"] = f"f{i}.{file_ext}"
             dfs.append(partition)
 
         df = dd.concat(dfs)
@@ -61,6 +61,7 @@ class TestMetadataSep:
             str(data_dir),
             backend=backend,
             files_per_partition=files_per_partition,
+            blocksize=None,
             add_filename=True,
         ).df
         separate_by_metadata(
@@ -80,6 +81,7 @@ class TestMetadataSep:
                 str(output_dir / metadata),
                 backend=backend,
                 files_per_partition=1,
+                blocksize=None,
                 add_filename=True,
             ).df
             dfs.append(meta_df)
