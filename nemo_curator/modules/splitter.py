@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
+
 import pandas as pd
 
 from nemo_curator.datasets import DocumentDataset
@@ -87,6 +89,7 @@ class DocumentJoiner:
         text_field: str = "text",
         segment_id_field: str = "segment_id",
         document_id_field: str = "id",
+        drop_segment_id_field: bool = True,
     ):
         """
         Args:
@@ -94,33 +97,55 @@ class DocumentJoiner:
             text_field (str): The name of the column containing the text to join.
             segment_id_field (str): The name of the column containing the segment id.
             document_id_field (str): The name of the column containing the document id.
+            drop_segment_id_field (bool): Whether to drop the segment_id_field after joining.
         """
         self.separator = separator
         self.text_field = text_field
         self.segment_id_field = segment_id_field
         self.document_id_field = document_id_field
+        self.drop_segment_id_field = drop_segment_id_field
 
-    def _join_partition(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _join_partition(
+        self, df: pd.DataFrame, expected_cols: List[str]
+    ) -> pd.DataFrame:
         if df.empty:
             return df
-        # Sort the segments by the segment_id_field to maintain the proper order.
+        # Sort the segments by the segment_id_field to maintain proper order before aggregating.
         df_sorted = df.sort_values(self.segment_id_field)
-        # Group by the document_id_field and join the segments using the separator.
-        joined = df_sorted.groupby(self.document_id_field)[self.text_field].apply(
-            lambda texts: self.separator.join(texts)
+        # Build aggregation functions to preserve all original columns:
+        # - For self.text_field, join all segments using the separator.
+        # - For all other columns (except self.document_id_field, which is our grouping key), take the first occurrence.
+        agg_funcs = {}
+        for col in df_sorted.columns:
+            if col == self.text_field:
+                agg_funcs[col] = lambda texts: self.separator.join(texts.astype(str))
+            elif col != self.document_id_field:
+                agg_funcs[col] = "first"
+        # Group by document_id_field while keeping the key as a column.
+        joined = df_sorted.groupby(self.document_id_field, as_index=False).agg(
+            agg_funcs
         )
-        # Convert the joined result back to a DataFrame and reset the index to include document_id_field.
-        return joined.to_frame(name=self.text_field).reset_index()
+
+        if self.drop_segment_id_field:
+            joined = joined.drop(columns=self.segment_id_field)
+        # Reorder the columns to match the expected metadata order.
+        joined = joined[expected_cols]
+        return joined
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         """
-        Joins the documents back into a single document.
+        Joins the documents back into a single document while preserving all the original fields.
         """
         # Construct meta information for the transformed dataframe.
         meta = dataset.df._meta.copy()
         if self.text_field not in meta.columns:
             meta[self.text_field] = pd.Series(dtype="object")
-
+        # If dropping the segment id field, remove it from the metadata to prevent mismatches.
+        if self.drop_segment_id_field:
+            meta = meta.drop(columns=self.segment_id_field)
+        expected_cols = list(meta.columns)
         # Apply the join operation partition-wise.
-        dataset.df = dataset.df.map_partitions(self._join_partition, meta=meta)
+        dataset.df = dataset.df.map_partitions(
+            self._join_partition, expected_cols=expected_cols, meta=meta
+        )
         return dataset
