@@ -197,7 +197,7 @@ Python API
         cache_dir="/path/to/dedup_outputs", # must be cleared between runs
         id_field="my_id",
         text_field="text",
-        perform_removal=False, # dictates if deduplicated dataset or duplicates are returned
+        perform_removal=False, # dictates if deduplicated dataset or IDs of duplicates are returned
         seed=42,
         char_ngrams=24,
         num_buckets=20,
