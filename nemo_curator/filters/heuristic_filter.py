@@ -17,6 +17,7 @@ import tarfile
 
 import requests
 from platformdirs import user_cache_dir
+from transformers import AutoTokenizer
 
 from nemo_curator.filters.bitext_filter import BitextFilter
 from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
@@ -669,6 +670,34 @@ class PornographicUrlsFilter(DocumentFilter):
 
     def keep_document(self, score):
         return score != 1
+
+
+class TokenCountFilter(DocumentFilter):
+    """
+    If the document contains more or less than a specified number of tokens, then discard.
+    """
+
+    def __init__(self, tokenizer: AutoTokenizer, min_tokens=10, max_tokens=100000):
+        """
+        Args:
+            tokenizer (AutoTokenizer): The tokenizer to use to count the tokens.
+            min_tokens (int): The minimum number of tokens the document must contain.
+                Set to 0 to disable the minimum token count filter.
+            max_tokens (int): The maximum number of tokens the document can contain.
+                Set to infinity to disable the maximum token count filter.
+        """
+        super().__init__()
+        self._tokenizer = tokenizer
+        self._min_tokens = min_tokens
+        self._max_tokens = max_tokens
+        self._name = "token_count"
+
+    def score_document(self, text):
+        tokens = self._tokenizer.encode(text)
+        return len(tokens)
+
+    def keep_document(self, score):
+        return self._min_tokens <= score <= self._max_tokens
 
 
 class HistogramFilter(DocumentFilter):
