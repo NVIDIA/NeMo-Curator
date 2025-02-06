@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,14 +45,23 @@ class FinewebEduModel(HFModel):
         super().__init__(path_or_name=path_or_name, max_mem_gb=max_mem_gb)
 
     def load_model(self, device: str = "cuda"):
-        if "nvidia" in self.path_or_name:
+        if self.path_or_name in [
+            FINEWEB_MIXTRAL_IDENTIFIER,
+            FINEWEB_NEMOTRON_IDENTIFIER,
+        ]:
             model = AutoModelForSequenceClassification.from_pretrained(
                 self.path_or_name, torch_dtype=torch.bfloat16
             )
-        else:
+        elif self.path_or_name == FINEWEB_EDU_IDENTIFIER:
             model = AutoModelForSequenceClassification.from_pretrained(
                 self.path_or_name
             )
+        else:
+            raise RuntimeError(
+                f"Hugging Face identifier must be {FINEWEB_EDU_IDENTIFIER}, "
+                f"{FINEWEB_MIXTRAL_IDENTIFIER}, or {FINEWEB_NEMOTRON_IDENTIFIER}"
+            )
+
         model = model.to(device)
         model = self.configure_forward(model, self.autocast)
         return model
@@ -79,7 +88,101 @@ class FinewebEduModel(HFModel):
         return AutoConfig.from_pretrained(self.path_or_name)
 
 
-class FineWebEduClassifier(DistributedDataClassifier):
+class _FineWebBaseClassifier(DistributedDataClassifier):
+    """
+    Parent class for FineWebEduClassifier, FineWebMixtralClassifier, and FineWebNemotronClassifier,
+    since their implementations are almost identical.
+    """
+
+    def __init__(
+        self,
+        fineweb_identifier: str,
+        pred_column: str,
+        int_column: str,
+        label_column: Optional[str],
+        batch_size: int = 1024,
+        text_field: str = "text",
+        max_chars: int = -1,
+        device_type: str = "cuda",
+        autocast: bool = True,
+        max_mem_gb: Optional[int] = None,
+    ):
+        self.fineweb_identifier = fineweb_identifier
+
+        model = FinewebEduModel(
+            path_or_name=fineweb_identifier,
+            autocast=autocast,
+            max_mem_gb=max_mem_gb,
+        )
+
+        self.text_field = text_field
+        self.int_column = int_column
+        self.label_column = label_column
+
+        super().__init__(
+            model=model,
+            filter_by=None,  # No filtering as its a numeric score
+            batch_size=batch_size,
+            pred_column=pred_column,
+            max_chars=max_chars,
+            device_type=device_type,
+            autocast=autocast,
+            labels=None,
+            out_dim=1,
+        )
+
+    def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
+        if self.fineweb_identifier == FINEWEB_EDU_IDENTIFIER:
+            tokenizer_type = "sentencepiece"
+            print("Starting FineWeb-Edu Classifier inference", flush=True)
+        elif self.fineweb_identifier == FINEWEB_MIXTRAL_IDENTIFIER:
+            tokenizer_type = "default"
+            print("Starting FineWeb Mixtral Edu Classifier inference", flush=True)
+        elif self.fineweb_identifier == FINEWEB_NEMOTRON_IDENTIFIER:
+            tokenizer_type = "default"
+            print("Starting FineWeb Nemotron-4 Edu Classifier inference", flush=True)
+
+        ddf = dataset.df
+
+        pipe = op.Sequential(
+            op.Tokenizer(
+                self.model,
+                cols=[self.text_field],
+                tokenizer_type=tokenizer_type,
+                max_length=self.model.max_seq_length(),
+            ),
+            op.Predictor(
+                self.model,
+                sorted_data_loader=True,
+                batch_size=self.batch_size,
+                pred_output_col=self.pred_column,
+            ),
+            keep_cols=ddf.columns.tolist(),
+        )
+        ddf = pipe(ddf)
+
+        ddf[self.pred_column] = ddf[self.pred_column].where(
+            ddf[self.pred_column] >= 0, 0
+        )
+        ddf[self.pred_column] = ddf[self.pred_column].where(
+            ddf[self.pred_column] <= 5, 5
+        )
+        ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
+
+        if self.label_column is not None:
+            ddf[self.label_column] = (
+                ddf[self.pred_column]
+                .astype(str)
+                .where(ddf[self.pred_column] >= 2.5, "low_quality")
+            )
+            ddf[self.label_column] = ddf[self.label_column].where(
+                ddf[self.label_column] == "low_quality", "high_quality"
+            )
+
+        return DocumentDataset(ddf)
+
+
+class FineWebEduClassifier(_FineWebBaseClassifier):
     """
     FineWebEduClassifier is a specialized classifier designed for educational content assessment,
     utilizing the Hugging Face FineWeb EDU Classifier model (https://huggingface.co/HuggingFaceFW/fineweb-edu-classifier).
@@ -109,57 +212,21 @@ class FineWebEduClassifier(DistributedDataClassifier):
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
-        model = FinewebEduModel(
-            path_or_name=FINEWEB_EDU_IDENTIFIER,
+        super().__init__(
+            fineweb_identifier=FINEWEB_EDU_IDENTIFIER,
+            batch_size=batch_size,
+            text_field=text_field,
+            pred_column=pred_column,
+            int_column=int_column,
+            label_column=None,
+            max_chars=max_chars,
+            device_type=device_type,
             autocast=autocast,
             max_mem_gb=max_mem_gb,
         )
 
-        self.text_field = text_field
-        self.int_column = int_column
-        super().__init__(
-            model=model,
-            filter_by=None,  # No filtering as its a numeric score
-            batch_size=batch_size,
-            pred_column=pred_column,
-            max_chars=max_chars,
-            device_type=device_type,
-            autocast=autocast,
-            labels=None,
-            out_dim=1,
-        )
 
-    def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
-        print("Starting Fineweb EDU classifier inference", flush=True)
-        ddf = dataset.df
-
-        pipe = op.Sequential(
-            op.Tokenizer(
-                self.model,
-                cols=[self.text_field],
-                tokenizer_type="sentencepiece",
-                max_length=self.model.max_seq_length(),
-            ),
-            op.Predictor(
-                self.model,
-                sorted_data_loader=True,
-                batch_size=self.batch_size,
-                pred_output_col=self.pred_column,
-            ),
-            keep_cols=ddf.columns.tolist(),
-        )
-        ddf = pipe(ddf)
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] >= 0, 0
-        )
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] <= 5, 5
-        )
-        ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
-        return DocumentDataset(ddf)
-
-
-class FineWebMixtralClassifier(DistributedDataClassifier):
+class FineWebMixtralClassifier(_FineWebBaseClassifier):
     """
     TODO
     """
@@ -176,69 +243,21 @@ class FineWebMixtralClassifier(DistributedDataClassifier):
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
-        model = FinewebEduModel(
-            path_or_name=FINEWEB_MIXTRAL_IDENTIFIER,
+        super().__init__(
+            fineweb_identifier=FINEWEB_MIXTRAL_IDENTIFIER,
+            batch_size=batch_size,
+            text_field=text_field,
+            pred_column=pred_column,
+            int_column=int_column,
+            label_column=label_column,
+            max_chars=max_chars,
+            device_type=device_type,
             autocast=autocast,
             max_mem_gb=max_mem_gb,
         )
 
-        self.text_field = text_field
-        self.int_column = int_column
-        self.label_column = label_column
 
-        super().__init__(
-            model=model,
-            filter_by=None,  # No filtering as its a numeric score
-            batch_size=batch_size,
-            pred_column=pred_column,
-            max_chars=max_chars,
-            device_type=device_type,
-            autocast=autocast,
-            labels=None,
-            out_dim=1,
-        )
-
-    def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
-        print("Starting classifier inference", flush=True)  # TODO
-        ddf = dataset.df
-
-        pipe = op.Sequential(
-            op.Tokenizer(
-                self.model,
-                cols=[self.text_field],
-                tokenizer_type="default",
-                max_length=self.model.max_seq_length(),
-            ),
-            op.Predictor(
-                self.model,
-                sorted_data_loader=True,
-                batch_size=self.batch_size,
-                pred_output_col=self.pred_column,
-            ),
-            keep_cols=ddf.columns.tolist(),
-        )
-        ddf = pipe(ddf)
-
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] >= 0, 0
-        )
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] <= 5, 5
-        )
-        ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
-
-        ddf[self.label_column] = (
-            ddf[self.pred_column]
-            .astype(str)
-            .where(ddf[self.pred_column] >= 2.5, "low_quality")
-        )
-        ddf[self.label_column] = ddf[self.label_column].where(
-            ddf[self.label_column] == "low_quality", "high_quality"
-        )
-        return DocumentDataset(ddf)
-
-
-class FineWebNemotronClassifier(DistributedDataClassifier):
+class FineWebNemotronClassifier(_FineWebBaseClassifier):
     """
     TODO
     """
@@ -255,63 +274,15 @@ class FineWebNemotronClassifier(DistributedDataClassifier):
         autocast: bool = True,
         max_mem_gb: Optional[int] = None,
     ):
-        model = FinewebEduModel(
-            path_or_name=FINEWEB_NEMOTRON_IDENTIFIER,
-            autocast=autocast,
-            max_mem_gb=max_mem_gb,
-        )
-
-        self.text_field = text_field
-        self.int_column = int_column
-        self.label_column = label_column
-
         super().__init__(
-            model=model,
-            filter_by=None,  # No filtering as its a numeric score
+            fineweb_identifier=FINEWEB_NEMOTRON_IDENTIFIER,
             batch_size=batch_size,
+            text_field=text_field,
             pred_column=pred_column,
+            int_column=int_column,
+            label_column=label_column,
             max_chars=max_chars,
             device_type=device_type,
             autocast=autocast,
-            labels=None,
-            out_dim=1,
+            max_mem_gb=max_mem_gb,
         )
-
-    def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
-        print("Starting classifier inference", flush=True)  # TODO
-        ddf = dataset.df
-
-        pipe = op.Sequential(
-            op.Tokenizer(
-                self.model,
-                cols=[self.text_field],
-                tokenizer_type="default",
-                max_length=self.model.max_seq_length(),
-            ),
-            op.Predictor(
-                self.model,
-                sorted_data_loader=True,
-                batch_size=self.batch_size,
-                pred_output_col=self.pred_column,
-            ),
-            keep_cols=ddf.columns.tolist(),
-        )
-        ddf = pipe(ddf)
-
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] >= 0, 0
-        )
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] <= 5, 5
-        )
-        ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
-
-        ddf[self.label_column] = (
-            ddf[self.pred_column]
-            .astype(str)
-            .where(ddf[self.pred_column] >= 2.5, "low_quality")
-        )
-        ddf[self.label_column] = ddf[self.label_column].where(
-            ddf[self.label_column] == "low_quality", "high_quality"
-        )
-        return DocumentDataset(ddf)
