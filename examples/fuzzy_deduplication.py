@@ -81,8 +81,8 @@ def main(args):
         fuzzy_dup = FuzzyDuplicates(logger=log_dir, config=fuzzy_dedup_config)
 
         # When perform_removal=False, it will only call .identify_duplicates() and return the list of duplicate IDs.
-        # When perform_removal=True then exact_dup outputs dataset with the duplicates removed
-        # It'll behave by calling .identify_duplicates() and .removal() in sequence.
+        # When perform_removal=True, then exact_dup outputs the dataset with the duplicates removed.
+        # It will behave by calling .identify_duplicates() and .remove() in sequence.
         duplicates = fuzzy_dup(
             dataset=input_dataset
         )  # or fuzzy_dup.identify_duplicates(input_dataset)
