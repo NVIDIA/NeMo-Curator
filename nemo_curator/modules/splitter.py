@@ -86,28 +86,31 @@ class DocumentJoiner:
         separator: str,
         text_field: str = "text",
         segment_id_field: str = "segment_id",
+        document_id_field: str = "id",
     ):
         """
         Args:
             separator (str): The separator to join the documents on.
             text_field (str): The name of the column containing the text to join.
             segment_id_field (str): The name of the column containing the segment id.
+            document_id_field (str): The name of the column containing the document id.
         """
         self.separator = separator
         self.text_field = text_field
         self.segment_id_field = segment_id_field
+        self.document_id_field = document_id_field
 
     def _join_partition(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return df
-        # Sort the segments so that they are in the correct order.
+        # Sort the segments by the segment_id_field to maintain the proper order.
         df_sorted = df.sort_values(self.segment_id_field)
-        # Group by the original document index (level 0) and join the segments using the separator.
-        joined = df_sorted.groupby(level=0)[self.text_field].apply(
+        # Group by the document_id_field and join the segments using the separator.
+        joined = df_sorted.groupby(self.document_id_field)[self.text_field].apply(
             lambda texts: self.separator.join(texts)
         )
-        # Convert the result back to a DataFrame.
-        return joined.to_frame(name=self.text_field)
+        # Convert the joined result back to a DataFrame and reset the index to include document_id_field.
+        return joined.to_frame(name=self.text_field).reset_index()
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         """
