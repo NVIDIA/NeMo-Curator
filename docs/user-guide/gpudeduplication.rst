@@ -89,7 +89,7 @@ After ensuring your dataset has a unique ID field (or creating one with the code
 
     deduplicated_dataset = exact_duplicates.remove(dataset, duplicate_docs)
 
-    # Users who have specified perform_removal=True can get the output directly as follows
+    # Users who have specified perform_removal=True can get the output deduplicated dataset directly as follows
     # deduplicated_dataset = exact_duplicates(dataset)
 
 
