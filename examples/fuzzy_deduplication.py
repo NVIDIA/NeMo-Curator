@@ -68,7 +68,7 @@ def main(args):
             cache_dir=cache_dir,
             id_field=dataset_id_field,
             text_field=dataset_text_field,
-            # Decides whether output of the module is deduplicated dataset or duplicates
+            # Decides whether output of the module is a deduplicated dataset or the IDs of the duplicates
             perform_removal=False,
             seed=42,
             char_ngrams=24,
