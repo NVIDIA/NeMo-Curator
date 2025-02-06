@@ -29,7 +29,7 @@ def list_to_dataset(documents, col_name="text", npartitions=2, backend="pandas")
     pdf = pd.DataFrame(data)
     ddf = dd.from_pandas(pdf, npartitions=npartitions)
     if backend == "cudf" and is_unavailable(cudf):
-        pytest.skip("cuDF is not installed or importable.")
+        raise ImportError("cuDF is not installed or importable.")
     ddf = ddf.to_backend(backend)
     return DocumentDataset(ddf)
 
