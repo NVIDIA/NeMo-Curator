@@ -27,6 +27,7 @@ from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
 from .meta import Sequential
 from .modify import Modify
+from .splitter import DocumentSplitter, DocumentJoiner
 from .task import TaskDecontamination
 
 # GPU packages
@@ -88,4 +89,6 @@ __all__ = [
     "ClusteringModel",
     "SemanticClusterLevelDedup",
     "SemDedup",
+    "DocumentSplitter",
+    "DocumentJoiner",
 ]
