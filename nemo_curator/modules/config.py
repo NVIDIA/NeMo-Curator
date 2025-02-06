@@ -44,8 +44,8 @@ class FuzzyDuplicatesConfig(BaseConfig):
         but might lead to memory pressures and related errors.
     id_field: Column in the Dataset denoting document ID.
     text_field: Column in the Dataset denoting document content.
-    perform_removal : bool, whether calling the module should remove the duplicates from
-        original dataset or just the set of duplicates
+    perform_removal: Boolean value to specify whether calling the module should remove the duplicates from
+        the original dataset, or return the list of IDs denoting duplicates.
     profile_dir: str, Default None
         If specified directory to write dask profile
     cache_dir: str, Default None
