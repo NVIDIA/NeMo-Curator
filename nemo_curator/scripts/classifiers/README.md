@@ -15,7 +15,7 @@ For more information about these classifiers, please see NeMo Curator's [Distrib
 
 ### Usage
 
-#### NemoCurator Domain Classifier Inference
+#### Domain Classifier Inference
 
 This classifier is recommended for English-only text data.
 
@@ -36,7 +36,7 @@ domain_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `domain_classifier_inference --help` for more information.
 
-#### NemoCurator Multilingual Domain Classifier Inference
+#### Multilingual Domain Classifier Inference
 
 This classifier supports domain classification in 52 languages. Please see [nvidia/multilingual-domain-classifier on Hugging Face](https://huggingface.co/nvidia/multilingual-domain-classifier) for more information.
 
@@ -57,7 +57,7 @@ multilingual_domain_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `multilingual_domain_classifier_inference --help` for more information.
 
-#### NemoCurator Quality Classifier DeBERTa Inference
+#### Quality Classifier DeBERTa Inference
 
 ```bash
 # same as `python quality_classifier_inference.py`
@@ -99,7 +99,7 @@ aegis_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `aegis_classifier_inference --help` for more information.
 
-#### NemoCurator Instruction Data Guard Classifier Inference
+#### Instruction Data Guard Classifier Inference
 
 ```bash
 # same as `python instruction_data_guard_classifier_inference.py`
@@ -139,7 +139,7 @@ fineweb_edu_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_edu_classifier_inference --help` for more information.
 
-#### NemoCurator Content Type Classifier DeBERTa Inference
+#### Content Type Classifier DeBERTa Inference
 
 ```bash
 # same as `python content_type_classifier_inference.py`
@@ -158,7 +158,7 @@ content_type_classifier_inference \
 
 Additional arguments may be added for customizing a Dask cluster and client. Run `content_type_classifier_inference --help` for more information.
 
-#### NemoCurator Prompt Task and Complexity Classifier Inference
+#### Prompt Task and Complexity Classifier Inference
 
 ```bash
 # same as `python prompt_task_complexity_classifier_inference.py`

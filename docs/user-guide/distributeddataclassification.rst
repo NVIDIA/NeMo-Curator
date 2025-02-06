@@ -50,8 +50,8 @@ Additionally, ``DistributedDataClassifier`` requires ``DocumentDataset`` to be o
 It is easy to extend ``DistributedDataClassifier`` to your own model.
 Check out ``nemo_curator.classifiers.base.py`` for reference.
 
-NemoCurator Domain Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Domain Classifier
+^^^^^^^^^^^^^^^^^
 
 The Domain Classifier is used to categorize English text documents into specific domains or subject areas. This is particularly useful for organizing large datasets and tailoring the training data for domain-specific LLMs.
 
@@ -72,8 +72,8 @@ Let's see how ``DomainClassifier`` works in a small excerpt taken from ``example
 In this example, the domain classifier is obtained directly from `Hugging Face <https://huggingface.co/nvidia/domain-classifier>`_.
 It filters the input dataset to include only documents classified as "Games" or "Sports".
 
-NemoCurator Multilingual Domain Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Multilingual Domain Classifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Multilingual Domain Classifier is used to categorize text documents across 52 languages into specific domains or subject areas.
 
@@ -95,8 +95,8 @@ Using the ``MultilingualDomainClassifier`` is very similar to using the ``Domain
 
 For more information about the multilingual domain classifier, including its supported languages, please see the `nvidia/multilingual-domain-classifier <https://huggingface.co/nvidia/multilingual-domain-classifier>`_ on Hugging Face.
 
-NemoCurator Quality Classifier DeBERTa
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Quality Classifier DeBERTa
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Quality Classifier is designed to assess the quality of text documents, helping to filter out low-quality or noisy data from your dataset.
 
@@ -165,8 +165,8 @@ The possible labels are as follows: ``"safe", "O1", "O2", "O3", "O4", "O5", "O6"
 
   This will create a column in the dataframe with the raw output of the LLM. You can choose to parse this response however you want.
 
-NemoCurator Instruction Data Guard
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instruction Data Guard
+^^^^^^^^^^^^^^^^^^^^^^
 
 Instruction Data Guard is a classification model designed to detect LLM poisoning trigger attacks.
 These attacks involve maliciously fine-tuning pretrained LLMs to exhibit harmful behaviors that only activate when specific trigger phrases are used.
@@ -236,8 +236,8 @@ For example, to create a dataset with only highly educational content (scores 4 
     high_edu_dataset = result_dataset[result_dataset["fineweb-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
 
-NemoCurator Content Type Classifier DeBERTa
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Content Type Classifier DeBERTa
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Content Type Classifier is used to categorize speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
 
@@ -258,8 +258,8 @@ Let's see how ``ContentTypeClassifier`` works in a small excerpt taken from ``ex
 In this example, the content type classifier is obtained directly from `Hugging Face <https://huggingface.co/nvidia/content-type-classifier-deberta>`_.
 It filters the input dataset to include only documents classified as "Blogs" or "News".
 
-NemoCurator Prompt Task and Complexity Classifier
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Prompt Task and Complexity Classifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Prompt Task and Complexity Classifier is a multi-headed model which classifies English text prompts across task types and complexity dimensions. Tasks are classified across 11 common categories. Complexity is evaluated across 6 dimensions and ensembled to create an overall complexity score.
 
