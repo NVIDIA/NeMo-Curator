@@ -21,6 +21,7 @@ from typing import Optional, Union
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
 from nemo_curator.modules.fuzzy_dedup._mapbuckets import _MapBuckets
 from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle
@@ -34,7 +35,7 @@ from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_s
 from nemo_curator.utils.duplicates_removal import remove_duplicates
 
 
-class FuzzyDuplicates:
+class FuzzyDuplicates(BaseModule):
     def __init__(
         self,
         config: FuzzyDuplicatesConfig,
@@ -52,6 +53,7 @@ class FuzzyDuplicates:
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
+        super().__init__(input_backend="cudf")
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -274,7 +276,7 @@ class FuzzyDuplicates:
         )
         return DocumentDataset(result)
 
-    def __call__(
+    def call(
         self, dataset: DocumentDataset, perform_removal: bool = False
     ) -> DocumentDataset:
         duplicates = self.identify(dataset)

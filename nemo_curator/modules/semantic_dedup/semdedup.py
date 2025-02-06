@@ -18,6 +18,7 @@ import os
 from typing import Union
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
 from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
@@ -26,7 +27,7 @@ from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
 )
 
 
-class SemDedup:
+class SemDedup(BaseModule):
     def __init__(
         self,
         config: SemDedupConfig,
@@ -42,14 +43,17 @@ class SemDedup:
             config (SemDedupConfig): Configuration for SemDedup.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
         """
+        super().__init__(input_backend="cudf")
         self.config = config
         self.logger = logger
         cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
+            embedding_pooling_strategy=config.embedding_pooling_strategy,
             input_column=input_column,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
+            write_embeddings_to_disk=config.write_embeddings_to_disk,
             logger=logger,
             profile_dir=self.config.profile_dir,
         )
@@ -79,7 +83,7 @@ class SemDedup:
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Execute the SemDedup process.
 
