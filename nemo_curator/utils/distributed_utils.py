@@ -748,6 +748,7 @@ def single_partition_write_with_filename(
                         orient="records",
                         lines=True,
                         force_ascii=False,
+                        index=False,  # Only index=False is supported for orient="records"
                     )
                 else:
                     # See open issue here: https://github.com/rapidsai/cudf/issues/15211
@@ -759,6 +760,7 @@ def single_partition_write_with_filename(
                         orient="records",
                         lines=True,
                         force_ascii=False,
+                        index=False,  # Only index=False is supported for orient="records"
                     )
 
             elif output_type == "parquet":
@@ -973,14 +975,27 @@ def _write_to_jsonl_or_parquet(
                     orient="records",
                     lines=True,
                     force_ascii=False,
+                    index=False,  # Only index=False is supported for orient="records"
                 )
         else:
             if is_cudf_type(df):
                 # See open issue here: https://github.com/rapidsai/cudf/issues/15211
                 # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
-                df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+                df.to_json(
+                    output_path,
+                    orient="records",
+                    lines=True,
+                    force_ascii=False,
+                    index=False,
+                )  # Only index=False is supported for orient="records"
             else:
-                df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+                df.to_json(
+                    output_path,
+                    orient="records",
+                    lines=True,
+                    force_ascii=False,
+                    index=False,
+                )  # Only index=False is supported for orient="records"
     elif output_type == "parquet":
         df.to_parquet(output_path, write_index=False, partition_on=partition_on)
     else:
