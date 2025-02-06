@@ -131,7 +131,7 @@ class FuzzyDuplicates(BaseModule):
             profile_dir=self.config.profile_dir,
         )
 
-    def identify(self, dataset: DocumentDataset) -> Optional[DocumentDataset]:
+    def identify_duplicates(self, dataset: DocumentDataset) -> Optional[DocumentDataset]:
         """
         Parameters
         ----------
