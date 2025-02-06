@@ -14,6 +14,7 @@
 
 import os.path
 import tarfile
+from typing import Literal
 
 import requests
 from platformdirs import user_cache_dir
@@ -698,6 +699,38 @@ class TokenCountFilter(DocumentFilter):
 
     def keep_document(self, score):
         return self._min_tokens <= score <= self._max_tokens
+
+
+class SubstringFilter(DocumentFilter):
+    """
+    Keeps documents that contain a substring in a given position.
+    Gives a score of 1 if the substring is found in the given position, otherwise 0.
+    """
+
+    def __init__(self, substring: str, position: Literal["prefix", "suffix", "any"]):
+        """
+        Args:
+            substring (str): The substring to check for.
+            position (Literal["prefix", "suffix", "any"]): The position of the substring.
+        """
+        super().__init__()
+        self._substring = substring
+        if position not in ["prefix", "suffix", "any"]:
+            raise ValueError(
+                f"Invalid position: {position}. Must be one of: prefix, suffix, any."
+            )
+        self._position = position
+
+    def score_document(self, text: str) -> int:
+        if self._position == "prefix":
+            return int(text.startswith(self._substring))
+        elif self._position == "suffix":
+            return int(text.endswith(self._substring))
+        elif self._position == "any":
+            return int(self._substring in text)
+
+    def keep_document(self, score: int) -> bool:
+        return score == 1
 
 
 class HistogramFilter(DocumentFilter):
