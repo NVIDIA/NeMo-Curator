@@ -73,7 +73,9 @@ class ExactDuplicates(BaseModule):
         self.text_field = text_field
         self.perform_removal = perform_removal
         if not self.perform_removal:
-            warnings.warn("In future releases (starting with 0.8.0) the default will be True.")
+            warnings.warn(
+                "In future releases (starting with 0.8.0) the default will be True."
+            )
         if self.perform_removal and cache_dir is None:
             warnings.warn("cache_dir is recommended to remove duplicates.")
         if cache_dir is None and profile_dir is not None:
