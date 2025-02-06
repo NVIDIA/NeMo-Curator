@@ -30,4 +30,4 @@ class HuggingFaceFormatter(ConversationFormatter):
         """
         Format a conversation between a user, assistant, and potentially system into a string.
         """
-        return self.tokenizer.apply_chat_template(conversation)
+        return self.tokenizer.apply_chat_template(conversation, tokenize=False)
