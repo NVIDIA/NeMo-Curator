@@ -164,7 +164,9 @@ def get_reference_embeddings(
             sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
             embeddings = sum_embeddings / sum_mask
         else:
-            raise ValueError("pooling_strategy must be either 'last_token' or 'mean'")
+            raise ValueError(
+                "pooling_strategy must be either 'last_token' or 'mean_pooling'"
+            )
 
         normed_emb = F.normalize(embeddings, dim=1).cpu()
         normed_emb = normed_emb.squeeze(0)

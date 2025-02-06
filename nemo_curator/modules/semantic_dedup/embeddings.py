@@ -137,7 +137,7 @@ class EmbeddingCreator:
         embedding_batch_size: int,
         embedding_output_dir: str,
         embedding_max_mem_gb: Optional[int] = None,
-        embedding_pooling_strategy: str = "last_token",
+        embedding_pooling_strategy: str = "mean_pooling",
         input_column: str = "text",
         embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
