@@ -146,7 +146,7 @@ class ExactDuplicates(BaseModule):
             # TODO: Generalize ty using self.hash_method
             return df.apply(lambda x: md5(x.encode()).hexdigest())
 
-    def identify_duplicates(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> Union[DocumentDataset, str]:
         """
         Find document ID's for exact duplicates in a given DocumentDataset
         Parameters
