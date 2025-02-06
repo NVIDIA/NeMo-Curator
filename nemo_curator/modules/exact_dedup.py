@@ -208,7 +208,7 @@ class ExactDuplicates(BaseModule):
         return DocumentDataset(result)
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
-        duplicates = self.identify(dataset)
+        duplicates = self.identify_duplicates(dataset)
         if self.perform_removal:
             return self.remove(dataset, duplicates)
         return duplicates
