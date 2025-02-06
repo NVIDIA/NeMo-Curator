@@ -56,3 +56,12 @@ DIALOGUE_NORMAL_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a us
 DIALOGUE_COMPLEX_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a user and an assistant.\n<|The Start of Assistant's Conversation with User|>\n{conversation_history}\n<|The End of Assistant's Conversation with User|>\n\nGiven the conversation above, generate a followup request or question in the tone of User. Make sure the question is complex and diverse enough and suitable as a followup question. Directly give me the question without extraneous words."
 
 DIALOGUE_CONCISE_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a user and an assistant.\n<|The Start of Assistant's Conversation with User|>\n{conversation_history}\n<|The End of Assistant's Conversation with User|>\n\nGiven the conversation above, generate a followup request or question in the toneof User. Be critical. Make sure the question is concise and has a real-life tone. Directly give me the question without extraneous words."
+
+
+# Nemotron-CC prompts
+
+NEMOTRON_CC_SYSTEM_PROMPT = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the questions."
+
+WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE = """For the following paragraph give me a diverse paraphrase of the same in high quality English language as in sentences on Wikipedia. Begin your answer on a separate line with "Here is a paraphrased version:".
+
+Text: {document}"""

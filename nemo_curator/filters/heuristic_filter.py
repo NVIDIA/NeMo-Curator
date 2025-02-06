@@ -678,7 +678,7 @@ class TokenCountFilter(DocumentFilter):
     If the document contains more or less than a specified number of tokens, then discard.
     """
 
-    def __init__(self, tokenizer: AutoTokenizer, min_tokens=10, max_tokens=100000):
+    def __init__(self, tokenizer: AutoTokenizer, min_tokens=0, max_tokens=float("inf")):
         """
         Args:
             tokenizer (AutoTokenizer): The tokenizer to use to count the tokens.
