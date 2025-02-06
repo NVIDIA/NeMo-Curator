@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from typing import Optional, Union
 
 from nemo_curator.modifiers import DocumentModifier
 
@@ -23,16 +23,16 @@ class Slicer(DocumentModifier):
 
     def __init__(
         self,
-        left: Union[int, str],
-        right: Union[int, str],
+        left: Optional[Union[int, str]] = None,
+        right: Optional[Union[int, str]] = None,
         include_left: bool = True,
         include_right: bool = True,
         strip: bool = True,
     ):
         """
         Args:
-            left (Union[int, str]): If the provided value is an int, slice the string from this index (inclusive). If the provided value is a str, slice the string from the first occurence of this substring.
-            right (Union[int, str]): If the provided value is an int, slice the string to this index (exclusive). If the provided value is a str, slice the string to the last occurence of this substring.
+            left (Union[int, str], optional): If the provided value is an int, slice the string from this index (inclusive). If the provided value is a str, slice the string from the first occurence of this substring.
+            right (Union[int, str], optional): If the provided value is an int, slice the string to this index (exclusive). If the provided value is a str, slice the string to the last occurence of this substring.
             include_left (bool): Only used if `left` is a string. If True, the value of `left` is included in the slicing result. Defaults to False.
             include_right (bool): Only used if `right` is a string. If True, the value of `right` is included in the slicing result. Defaults to False.
             strip (bool): If True, strip the resulting string.
