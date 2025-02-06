@@ -31,9 +31,9 @@ Here, we summarize why each is useful for training an LLM:
 
 - The **FineWeb Educational Content Classifier** focuses on identifying and prioritizing educational material within datasets. This classifier is especially useful for training LLMs on specialized educational content, which can improve their performance on knowledge-intensive tasks. Models trained on high-quality educational content demonstrate enhanced capabilities on academic benchmarks such as MMLU and ARC, showcasing the classifier's impact on improving the knowledge-intensive task performance of LLMs.
 
-- The **FineWeb Mixtral Educational Classifier** TODO.
+- The **FineWeb Mixtral Educational Classifier** is designed to determine the educational value (score 0-5 from low to high). It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Mixtral 8x22B-Instruct.
 
-- The **FineWeb Nemotron-4 Educational Classifier** TODO.
+- The **FineWeb Nemotron-4 Educational Classifier** is designed to determine the educational value (score 0-5 from low to high). It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Nemotron-4-340B-Instruct.
 
 - The **Content Type Classifier** is designed to categorize documents into one of 11 distinct speech types based on their content. It analyzes and understands the nuances of textual information, enabling accurate classification across a diverse range of content types.
 
@@ -243,9 +243,10 @@ For example, to create a dataset with only highly educational content (scores 4 
 NemoCurator FineWeb Mixtral Edu Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
 The FineWeb Mixtral Edu Classifier is designed to identify and prioritize educational content within a dataset.
-Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like FineWeb-Edu.
+It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Mixtral 8x22B-Instruct.
+In contrast, the original FineWeb-Edu classifier was trained using annotations from Llama 3 70B-Instruct.
+This classifier was used as part of a classifier ensemble in the creation of the `Nemotron-CC dataset <https://arxiv.org/abs/2412.02595>`_.
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 
 To use the FineWeb Mixtral Edu Classifier, you can follow this example:
@@ -285,9 +286,10 @@ For example, to create a dataset with only highly educational content (scores 4 
 NemoCurator FineWeb Nemotron-4 Edu Classifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
 The FineWeb Mixtral Edu Classifier is designed to identify and prioritize educational content within a dataset.
-Educational content classification helps identify and prioritize educational material within datasets, which is particularly useful for creating specialized datasets like FineWeb-Edu.
+It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Nemotron-4-340B-Instruct.
+In contrast, the original FineWeb-Edu classifier was trained using annotations from Llama 3 70B-Instruct.
+This classifier was used as part of a classifier ensemble in the creation of the `Nemotron-CC dataset <https://arxiv.org/abs/2412.02595>`_.
 These datasets can be used to train LLMs with a focus on educational content, potentially improving their performance on knowledge-intensive tasks.
 
 To use the FineWeb Nemotron-4 Edu Classifier, you can follow this example:

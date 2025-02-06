@@ -228,7 +228,23 @@ class FineWebEduClassifier(_FineWebBaseClassifier):
 
 class FineWebMixtralClassifier(_FineWebBaseClassifier):
     """
-    TODO
+    FineWebMixtralClassifier is a specialized classifier designed for educational content assessment,
+    utilizing the NemoCurator FineWeb Mixtral Edu Classifier model (https://huggingface.co/nvidia/nemocurator-fineweb-mixtral-edu-classifier).
+    It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Mixtral 8x22B-Instruct.
+    This classifier is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large text datasets.
+
+    Attributes:
+        batch_size (int): The number of samples per batch for inference. Defaults to 256.
+        text_field (str): The column name containing the text data to be classified. Defaults to "text".
+        pred_column (str): The column name where prediction scores will be stored. Defaults to "fineweb-mixtral-edu-score".
+        int_column (str): The column name where integer-rounded prediction scores will be stored. Defaults to "fineweb-mixtral-edu-score-int".
+        label_column (str): The column name where a score of >= 2.5 is labeled "high_quality" and otherwise labeled "low_quality". Defaults to "fineweb-mixtral-edu-score-label".
+        max_chars (int): The maximum number of characters in each document to consider for classification. If -1, the entire document is considered. Defaults to -1.
+        device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
+        autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
+        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
+                                      it defaults to the available GPU memory minus 4 GB.
+
     """
 
     def __init__(
@@ -236,7 +252,7 @@ class FineWebMixtralClassifier(_FineWebBaseClassifier):
         batch_size: int = 1024,
         text_field: str = "text",
         pred_column: str = "fineweb-mixtral-edu-score",
-        int_column: str = "fineweb-mixtral-edu-score-float",
+        int_column: str = "fineweb-mixtral-edu-score-int",
         label_column: str = "fineweb-mixtral-edu-score-label",
         max_chars: int = -1,
         device_type: str = "cuda",
@@ -259,7 +275,23 @@ class FineWebMixtralClassifier(_FineWebBaseClassifier):
 
 class FineWebNemotronClassifier(_FineWebBaseClassifier):
     """
-    TODO
+    FineWebNemotronClassifier is a specialized classifier designed for educational content assessment,
+    utilizing the NemoCurator FineWeb Nemotron-4 Edu Classifier model (https://huggingface.co/nvidia/nemocurator-fineweb-nemotron-4-edu-classifier).
+    It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Nemotron-4-340B-Instruct.
+    This classifier is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large text datasets.
+
+    Attributes:
+        batch_size (int): The number of samples per batch for inference. Defaults to 256.
+        text_field (str): The column name containing the text data to be classified. Defaults to "text".
+        pred_column (str): The column name where prediction scores will be stored. Defaults to "fineweb-nemotron-edu-score".
+        int_column (str): The column name where integer-rounded prediction scores will be stored. Defaults to "fineweb-nemotron-edu-score-int".
+        label_column (str): The column name where a score of >= 2.5 is labeled "high_quality" and otherwise labeled "low_quality". Defaults to "fineweb-nemotron-edu-score-label".
+        max_chars (int): The maximum number of characters in each document to consider for classification. If -1, the entire document is considered. Defaults to -1.
+        device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
+        autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
+        max_mem_gb (int, optional): The maximum amount of memory in GB to allocate for the model. If None,
+                                      it defaults to the available GPU memory minus 4 GB.
+
     """
 
     def __init__(
@@ -267,7 +299,7 @@ class FineWebNemotronClassifier(_FineWebBaseClassifier):
         batch_size: int = 1024,
         text_field: str = "text",
         pred_column: str = "fineweb-nemotron-edu-score",
-        int_column: str = "fineweb-nemotron-edu-score-float",
+        int_column: str = "fineweb-nemotron-edu-score-int",
         label_column: str = "fineweb-nemotron-edu-score-label",
         max_chars: int = -1,
         device_type: str = "cuda",
