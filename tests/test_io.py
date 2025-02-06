@@ -31,9 +31,6 @@ from nemo_curator.utils.distributed_utils import (
     write_to_disk,
 )
 from nemo_curator.utils.file_utils import get_all_files_paths_under
-from nemo_curator.utils.import_utils import gpu_only_import, is_unavailable
-
-cudf = gpu_only_import("cudf")
 
 
 def _generate_dummy_dataset(num_rows: int = 50) -> str:
@@ -301,7 +298,6 @@ class TestFileExtensions:
 class TestPartitionOn:
     def test_partition_on_and_write_to_filename_error(self, tmp_path):
         """Verify that using partition_on and write_to_filename together raises an error."""
-        # Skip cudf tests if cudf is not installed.
         df = pd.DataFrame(
             {
                 "id": [1, 2, 3],
@@ -321,7 +317,9 @@ class TestPartitionOn:
                 partition_on="category",
             )
 
-    @pytest.mark.parametrize("backend", ["pandas", "cudf"])
+    @pytest.mark.parametrize(
+        "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
+    )
     @pytest.mark.parametrize(
         "category_values",
         [
@@ -339,9 +337,6 @@ class TestPartitionOn:
         The function is expected to create subdirectories in the output directory
         with names of the form 'category=<value>' for each unique partition column value.
         """
-        if backend == "cudf" and is_unavailable(cudf):
-            pytest.skip("cudf is not installed")
-
         df = pd.DataFrame(
             {"id": [1, 2, 3, 4], "category": category_values, "value": [10, 20, 30, 40]}
         )
@@ -376,7 +371,9 @@ class TestPartitionOn:
                                 str(record["category"]) == partition_value
                             ), f"Record partition value {record['category']} does not match directory {partition_value}"
 
-    @pytest.mark.parametrize("backend", ["pandas", "cudf"])
+    @pytest.mark.parametrize(
+        "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
+    )
     @pytest.mark.parametrize(
         "category_values",
         [
@@ -394,8 +391,6 @@ class TestPartitionOn:
         The test writes a DataFrame partitioned on the 'category' column and then reads it back
         using dd.read_parquet. The output is compared (after sorting) to the original DataFrame.
         """
-        if backend == "cudf" and is_unavailable(cudf):
-            pytest.skip("cudf is not installed")
 
         df = pd.DataFrame(
             {"id": [1, 2, 3, 4], "category": category_values, "value": [10, 20, 30, 40]}
