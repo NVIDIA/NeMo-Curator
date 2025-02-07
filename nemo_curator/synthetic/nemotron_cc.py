@@ -36,19 +36,25 @@ class NemotronCC:
     described in the Nemotron-CC paper (https://arxiv.org/abs/2412.02595).
     """
 
-    def __init__(self, llm_client: LLMClient, tokenizer: AutoTokenizer) -> None:
+    def __init__(self, llm_client: LLMClient) -> None:
+        """
+        Initialize the NemotronCC instance.
+
+        Args:
+            llm_client (LLMClient): The language model client used for querying the model.
+        """
         self.client = llm_client
-        self.tokenizer = tokenizer
 
     def _prompt(
         self,
         model: str,
+        document: str,
         prompt_template: str,
         system_prompt: str,
         prompt_kwargs: dict,
         model_kwargs: dict,
     ) -> List[str]:
-        prompt = prompt_template.format(**prompt_kwargs)
+        prompt = prompt_template.format(document=document, **prompt_kwargs)
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
@@ -64,10 +70,23 @@ class NemotronCC:
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ) -> str:
-        prompt_kwargs["document"] = document
+    ) -> List[str]:
+        """
+        Rewrites a document into a Wikipedia-style narrative.
+
+        Args:
+            document (str): The input document text to rewrite.
+            model (str): The model identifier to use.
+            prompt_template (str, optional): The prompt template for rewriting. Defaults to WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE.
+            system_prompt (str, optional): The system prompt to use. Defaults to NEMOTRON_CC_SYSTEM_PROMPT.
+            prompt_kwargs (dict, optional): Additional keyword arguments for the prompt. Defaults to {}.
+            model_kwargs (dict, optional): Additional keyword arguments for the model invocation. Defaults to {}.
+
+        Returns:
+            List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
         return self._prompt(
-            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
         )
 
     def generate_diverse_qa(
@@ -78,10 +97,23 @@ class NemotronCC:
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ) -> str:
-        prompt_kwargs["document"] = document
+    ) -> List[str]:
+        """
+        Generates diverse QA pairs from the provided document.
+
+        Args:
+            document (str): The input document text used to generate QA pairs.
+            model (str): The model identifier to use.
+            prompt_template (str, optional): The prompt template for generating QA pairs. Defaults to DIVERSE_QA_PROMPT_TEMPLATE.
+            system_prompt (str, optional): The system prompt to use. Defaults to NEMOTRON_CC_SYSTEM_PROMPT.
+            prompt_kwargs (dict, optional): Additional keyword arguments for the prompt. Defaults to {}.
+            model_kwargs (dict, optional): Additional keyword arguments for the model invocation. Defaults to {}.
+
+        Returns:
+            List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
         return self._prompt(
-            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
         )
 
     def distill(
@@ -92,10 +124,23 @@ class NemotronCC:
         system_prompt: str = NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ) -> str:
-        prompt_kwargs["document"] = document
+    ) -> List[str]:
+        """
+        Distills the essential content from a document.
+
+        Args:
+            document (str): The input document text to distill.
+            model (str): The model identifier to use.
+            prompt_template (str, optional): The prompt template for distillation. Defaults to DISTILL_PROMPT_TEMPLATE.
+            system_prompt (str, optional): The system prompt to use. Defaults to NEMOTRON_CC_DISTILL_SYSTEM_PROMPT.
+            prompt_kwargs (dict, optional): Additional keyword arguments for the prompt. Defaults to {}.
+            model_kwargs (dict, optional): Additional keyword arguments for the model invocation. Defaults to {}.
+
+        Returns:
+            List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
         return self._prompt(
-            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
         )
 
     def extract_knowledge(
@@ -106,10 +151,23 @@ class NemotronCC:
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ) -> str:
-        prompt_kwargs["document"] = document
+    ) -> List[str]:
+        """
+        Extracts knowledge from the provided document.
+
+        Args:
+            document (str): The input document text from which to extract knowledge.
+            model (str): The model identifier to use.
+            prompt_template (str, optional): The prompt template for knowledge extraction. Defaults to EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE.
+            system_prompt (str, optional): The system prompt to use. Defaults to NEMOTRON_CC_SYSTEM_PROMPT.
+            prompt_kwargs (dict, optional): Additional keyword arguments for the prompt. Defaults to {}.
+            model_kwargs (dict, optional): Additional keyword arguments for the model invocation. Defaults to {}.
+
+        Returns:
+            List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
         return self._prompt(
-            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
         )
 
     def generate_knowledge_list(
@@ -120,10 +178,23 @@ class NemotronCC:
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
-    ) -> str:
-        prompt_kwargs["document"] = document
+    ) -> List[str]:
+        """
+        Generates a list of knowledge items from the provided document.
+
+        Args:
+            document (str): The input document text to process.
+            model (str): The model identifier to use.
+            prompt_template (str, optional): The prompt template for generating a knowledge list. Defaults to KNOWLEDGE_LIST_PROMPT_TEMPLATE.
+            system_prompt (str, optional): The system prompt to use. Defaults to NEMOTRON_CC_SYSTEM_PROMPT.
+            prompt_kwargs (dict, optional): Additional keyword arguments for the prompt. Defaults to {}.
+            model_kwargs (dict, optional): Additional keyword arguments for the model invocation. Defaults to {}.
+
+        Returns:
+            List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
+        """
         return self._prompt(
-            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
         )
 
 
@@ -218,7 +289,14 @@ class NemotronCCDiverseQAPostprocessor:
 # I have kept it separate to match the other postprocessors.
 class NemotronCCKnowledgeListPostprocessor:
     """
-    Postprocesses the output of the Nemotron-CC Knowledge List generation pipeline.
+    Processes and cleans the output generated by the Nemotron-CC Knowledge List pipeline.
+
+    This class is responsible for postprocessing raw text responses produced by the
+    Nemotron-CC Knowledge List generation pipeline. It removes formatting artifacts
+    such as bullet point prefixes ("- ") and extra indentation from each line, ensuring
+    that the final output is a clean, uniformly formatted list of knowledge items.
+    The processing includes skipping any initial non-bullet line and merging related lines
+    to reconstruct multi-line questions or answers.
     """
 
     def __init__(self, text_field: str = "text") -> None:
