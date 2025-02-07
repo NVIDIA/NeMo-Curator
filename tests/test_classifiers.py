@@ -155,9 +155,11 @@ def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
 
     classifier = FineWebMixtralClassifier()
     result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-mixtral-edu-score-int"]
 
-    # TODO
-    assert False
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
 
 
 @pytest.mark.gpu
@@ -166,9 +168,11 @@ def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
 
     classifier = FineWebNemotronClassifier()
     result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-nemotron-edu-score-int"]
 
-    # TODO
-    assert False
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
 
 
 @pytest.mark.skip(
