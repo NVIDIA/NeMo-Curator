@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import List, Optional, Union
 
-import cudf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -35,6 +34,9 @@ from nemo_curator.classifiers.base import (
 )
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.aegis_utils import format_aegis
+from nemo_curator.utils.import_utils import gpu_only_import
+
+cudf = gpu_only_import("cudf")
 
 
 @dataclass
@@ -378,11 +380,14 @@ class AegisClassifier(DistributedDataClassifier):
 
 class InstructionDataGuardClassifier(DistributedDataClassifier):
     """
-    Instruction-Data-Guard is a classification model designed to detect LLM poisoning trigger attacks.
+    Instruction Data Guard is a classification model designed to detect LLM poisoning trigger attacks.
     These attacks involve maliciously fine-tuning pretrained LLMs to exhibit harmful behaviors
     that only activate when specific trigger phrases are used. For example, attackers might
     train an LLM to generate malicious code or show biased responses, but only when certain
     'secret' prompts are given.
+
+    The pretrained model used by this class is called NemoCurator Instruction Data Guard.
+    It can be found on Hugging Face here: https://huggingface.co/nvidia/instruction-data-guard.
 
     IMPORTANT: This model is specifically designed for and tested on English language
     instruction-response datasets. Performance on non-English content has not been validated.
@@ -481,7 +486,7 @@ class InstructionDataGuardClassifier(DistributedDataClassifier):
         )
 
     def _run_classifier(self, dataset: DocumentDataset):
-        print("Starting Instruction-Data-Guard classifier inference", flush=True)
+        print("Starting Instruction Data Guard classifier inference", flush=True)
         ddf = dataset.df
         columns = ddf.columns.tolist()
         tokenizer = op.Tokenizer(

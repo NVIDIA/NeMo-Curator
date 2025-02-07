@@ -30,6 +30,7 @@ from nemo_curator.utils.distributed_utils import (
     single_partition_write_with_filename,
     write_to_disk,
 )
+from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 
 def _generate_dummy_dataset(num_rows: int = 50) -> str:
@@ -147,25 +148,24 @@ class TestIO:
 class TestWriteWithFilename:
     @pytest.mark.parametrize("keep_filename_column", [True, False])
     @pytest.mark.parametrize("file_ext", ["jsonl", "parquet"])
+    @pytest.mark.parametrize("filename_col", ["file_name", "filename"])
     def test_multifile_single_partition(
-        self,
-        tmp_path,
-        keep_filename_column,
-        file_ext,
+        self, tmp_path, keep_filename_column, file_ext, filename_col
     ):
-        df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
+        df = pd.DataFrame({"a": [1, 2, 3], filename_col: ["file0", "file1", "file1"]})
 
         single_partition_write_with_filename(
             df=df,
             output_file_dir=tmp_path,
             keep_filename_column=keep_filename_column,
             output_type=file_ext,
+            filename_col=filename_col,
         )
         assert os.path.exists(tmp_path / f"file0.{file_ext}")
         assert os.path.exists(tmp_path / f"file1.{file_ext}")
 
         if not keep_filename_column:
-            df = df.drop("filename", axis=1)
+            df = df.drop(filename_col, axis=1)
 
         df1 = read_single_partition(
             files=[tmp_path / f"file0.{file_ext}"], backend="pandas", filetype=file_ext
@@ -185,7 +185,7 @@ class TestWriteWithFilename:
         keep_filename_column,
         file_ext,
     ):
-        df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file2", "file2", "file2"]})
+        df = pd.DataFrame({"a": [1, 2, 3], "file_name": ["file2", "file2", "file2"]})
 
         single_partition_write_with_filename(
             df=df,
@@ -197,14 +197,14 @@ class TestWriteWithFilename:
         assert os.path.exists(tmp_path / f"file2.{file_ext}")
 
         if not keep_filename_column:
-            df = df.drop("filename", axis=1)
+            df = df.drop("file_name", axis=1)
         got = read_single_partition(
             files=[tmp_path / f"file2.{file_ext}"], backend="pandas", filetype=file_ext
         )
         assert_eq(got, df)
 
     def test_multifile_single_partition_error(self, tmp_path):
-        df = pd.DataFrame({"a": [1, 2, 3], "filename": ["file0", "file1", "file1"]})
+        df = pd.DataFrame({"a": [1, 2, 3], "file_name": ["file0", "file1", "file1"]})
 
         with pytest.raises(ValueError, match="Unknown output type"):
             single_partition_write_with_filename(
@@ -219,18 +219,19 @@ class TestWriteWithFilename:
             ("parquet", DocumentDataset.read_parquet),
         ],
     )
-    def test_multifile_multi_partition(self, tmp_path, file_ext, read_f):
-        df1 = pd.DataFrame({"a": [1, 2, 3], "filename": ["file1", "file2", "file2"]})
+    @pytest.mark.parametrize("filename_col", ["file_name", "filename"])
+    def test_multifile_multi_partition(self, tmp_path, file_ext, read_f, filename_col):
+        df1 = pd.DataFrame({"a": [1, 2, 3], filename_col: ["file1", "file2", "file2"]})
         df2 = df1.copy()
-        df2["filename"] = "file3"
+        df2[filename_col] = "file3"
         df3 = df1.copy()
-        df3["filename"] = ["file4", "file5", "file6"]
+        df3[filename_col] = ["file4", "file5", "file6"]
         ddf = dd.concat([df1, df2, df3])
-        ddf["filename"] = ddf["filename"] + f".{file_ext}"
+        ddf[filename_col] = ddf[filename_col] + f".{file_ext}"
         write_to_disk(
             df=ddf,
             output_path=tmp_path / file_ext,
-            write_to_filename=True,
+            write_to_filename=filename_col,
             output_type=file_ext,
         )
 
@@ -239,7 +240,180 @@ class TestWriteWithFilename:
             blocksize=None,
             files_per_partition=2,
             backend="pandas",
-            add_filename=True,
+            add_filename=filename_col,
         ).df
 
         assert_eq(got_df, ddf, check_index=False)
+
+
+class TestFileExtensions:
+    def test_keep_extensions(self, tmp_path):
+        json_1 = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        json_1.to_json(tmp_path / "json_1.jsonl", orient="records", lines=True)
+        json_2 = pd.DataFrame({"a": [7, 8, 9], "b": [10, 11, 12]})
+        json_2.to_json(tmp_path / "json_2.jsonl", orient="records", lines=True)
+
+        json_df = pd.concat([json_1, json_2])
+
+        parquet_file = pd.DataFrame({"a": [13, 14, 15], "b": [16, 17, 18]})
+        parquet_file.to_parquet(tmp_path / "parquet_file.parquet")
+        csv_file = pd.DataFrame({"a": [19, 20, 21], "b": [22, 23, 24]})
+        csv_file.to_csv(tmp_path / "csv_file.csv")
+
+        with pytest.raises(RuntimeError):
+            doc = DocumentDataset.read_json(str(tmp_path))
+
+        input_files = get_all_files_paths_under(str(tmp_path), keep_extensions="jsonl")
+        input_dataset = DocumentDataset.read_json(input_files)
+        assert json_df.equals(input_dataset.df.compute())
+
+        input_files = get_all_files_paths_under(
+            str(tmp_path), keep_extensions=["jsonl"]
+        )
+        input_dataset = DocumentDataset.read_json(input_files)
+        assert json_df.equals(input_dataset.df.compute())
+
+        input_files = get_all_files_paths_under(
+            str(tmp_path), keep_extensions=["jsonl", "parquet"]
+        )
+        assert sorted(input_files) == [
+            str(tmp_path / "json_1.jsonl"),
+            str(tmp_path / "json_2.jsonl"),
+            str(tmp_path / "parquet_file.parquet"),
+        ]
+
+    def test_write_single_jsonl_file(self, tmp_path):
+        json_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        json_df.to_json(tmp_path / "json_file.jsonl", orient="records", lines=True)
+
+        input_path = str(tmp_path / "json_file.jsonl")
+        output_path = str(tmp_path / "single_output.jsonl")
+        doc = DocumentDataset.read_json(input_path)
+        doc.to_json(output_path)
+
+        result = DocumentDataset.read_json(output_path)
+        assert json_df.equals(result.df.compute())
+
+
+class TestPartitionOn:
+    def test_partition_on_and_write_to_filename_error(self, tmp_path):
+        """Verify that using partition_on and write_to_filename together raises an error."""
+        df = pd.DataFrame(
+            {
+                "id": [1, 2, 3],
+                "file_name": ["f1", "f1", "f1"],
+                "category": ["A", "B", "A"],
+            }
+        )
+        ddf = dd.from_pandas(df, npartitions=1)
+        dataset = DocumentDataset(ddf)
+        with pytest.raises(
+            ValueError,
+            match="Cannot use both partition_on and write_to_filename parameters simultaneously.",
+        ):
+            dataset.to_json(
+                output_path=str(tmp_path / "output"),
+                write_to_filename=True,  # Intentionally provided to trigger the error
+                partition_on="category",
+            )
+
+    @pytest.mark.parametrize(
+        "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
+    )
+    @pytest.mark.parametrize(
+        "category_values",
+        [
+            ["A", "B", "A", "B"],
+            [10, 20, 10, 20],
+            [1.0, 2.0, 1.0, 2.0],
+        ],
+    )
+    def test_write_to_disk_with_partition_on_jsonl(
+        self, tmp_path, backend, category_values
+    ):
+        """
+        Test writing a partitioned JSONL dataset.
+
+        The function is expected to create subdirectories in the output directory
+        with names of the form 'category=<value>' for each unique partition column value.
+        """
+        df = pd.DataFrame(
+            {"id": [1, 2, 3, 4], "category": category_values, "value": [10, 20, 30, 40]}
+        )
+        ddf = dd.from_pandas(df, npartitions=2)
+        ddf = ddf.to_backend(backend)
+        output_dir = tmp_path / "output_jsonl"
+        dataset = DocumentDataset(ddf)
+        dataset.to_json(output_path=str(output_dir), partition_on="category")
+        # Check that the output directory contains subdirectories for each partition.
+        # Unique partition values (as strings) to be used in the directory names.
+        unique_partitions = {str(x) for x in category_values}
+        for part in unique_partitions:
+            expected_dir = output_dir / f"category={part}"
+            assert expected_dir.exists(), f"Expected directory {expected_dir} not found"
+
+        # For each partition directory, load the JSONL files and verify that all records have the correct partition value.
+        # (Here we assume the files are written with extension ".part")
+        for part_dir in output_dir.glob("category=*"):
+            # The partition value is taken from the directory name.
+            partition_value = part_dir.name.split("=")[-1]
+            jsonl_files = list(part_dir.glob("*.part"))
+            assert (
+                jsonl_files
+            ), f"No JSONL files found in partition directory {part_dir}"
+            for file in jsonl_files:
+                with open(file, "r") as f:
+                    for line in f:
+                        record = json.loads(line)
+                        if "category" in record:
+                            # Compare as strings, to work with both integer and string partition values.
+                            assert (
+                                str(record["category"]) == partition_value
+                            ), f"Record partition value {record['category']} does not match directory {partition_value}"
+
+    @pytest.mark.parametrize(
+        "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
+    )
+    @pytest.mark.parametrize(
+        "category_values",
+        [
+            ["A", "B", "A", "B"],
+            [10, 20, 10, 20],
+            [1.0, 2.0, 1.0, 2.0],
+        ],
+    )
+    def test_write_to_disk_with_partition_on_parquet(
+        self, tmp_path, backend, category_values
+    ):
+        """
+        Test writing a partitioned Parquet dataset.
+
+        The test writes a DataFrame partitioned on the 'category' column and then reads it back
+        using dd.read_parquet. The output is compared (after sorting) to the original DataFrame.
+        """
+
+        df = pd.DataFrame(
+            {"id": [1, 2, 3, 4], "category": category_values, "value": [10, 20, 30, 40]}
+        )
+        ddf = dd.from_pandas(df, npartitions=2)
+        ddf = ddf.to_backend(backend)
+        output_dir = tmp_path / "output_parquet"
+        dataset = DocumentDataset(ddf)
+        dataset.to_parquet(output_path=str(output_dir), partition_on="category")
+
+        # Check that the output directory contains subdirectories for each partition.
+        # Unique partition values (as strings) to be used in the directory names.
+        unique_partitions = {str(x) for x in category_values}
+        for part in unique_partitions:
+            expected_dir = output_dir / f"category={part}"
+            assert expected_dir.exists(), f"Expected directory {expected_dir} not found"
+
+        ddf_loaded = dd.read_parquet(str(output_dir))
+        df_loaded = ddf_loaded.compute().reset_index(drop=True)
+        df_loaded["category"] = df_loaded["category"].astype(df["category"].dtype)
+        # To ensure a fair comparison, sort the dataframes by 'id' and reindex.
+        pd.testing.assert_frame_equal(
+            df.sort_values("id").reset_index(drop=True),
+            df_loaded.sort_values("id").reset_index(drop=True)[df.columns],
+            check_dtype=False,
+        )

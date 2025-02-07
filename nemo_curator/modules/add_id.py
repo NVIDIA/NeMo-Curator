@@ -19,26 +19,29 @@ import numpy as np
 from dask import delayed
 
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.utils.module_utils import count_digits
 
 
-class AddId:
+class AddId(BaseModule):
     def __init__(
         self, id_field, id_prefix: str = "doc_id", start_index: Optional[int] = None
     ) -> None:
+        super().__init__(input_backend="pandas")
         self.id_field = id_field
         self.id_prefix = id_prefix
         self.start_index = start_index
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.start_index is None:
             return self._add_id_fast(dataset)
         else:
             return self._add_id_ordered(dataset)
 
     def _add_id_fast(self, dataset: DocumentDataset) -> DocumentDataset:
-        meta = dataset.df.dtypes.to_dict()
+        meta = dataset.df._meta.copy()
         meta[self.id_field] = "string"
+        meta[self.id_field] = meta[self.id_field].astype("string")
 
         partition_zero_padding = count_digits(dataset.df.npartitions)
         id_df = dataset.df.map_partitions(
@@ -59,12 +62,14 @@ class AddId:
             for local_id in range(len(partition))
         ]
         partition[self.id_field] = id_column
+        partition[self.id_field] = partition[self.id_field].astype("string")
 
         return partition
 
     def _add_id_ordered(self, dataset: DocumentDataset) -> DocumentDataset:
-        original_meta = dataset.df.dtypes.to_dict()
+        original_meta = dataset.df._meta.copy()
         original_meta[self.id_field] = "string"
+        original_meta[self.id_field] = original_meta[self.id_field].astype("string")
         delayed_dataset = dataset.df.to_delayed()
 
         parition_lengths = [0]

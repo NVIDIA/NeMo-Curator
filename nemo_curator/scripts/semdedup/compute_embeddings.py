@@ -16,10 +16,10 @@ import logging
 import os
 import time
 
+from nemo_curator import EmbeddingCreator
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.semantic_dedup import EmbeddingCreator
 from nemo_curator.utils.distributed_utils import get_client, read_data
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir, get_remaining_files
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -80,6 +80,7 @@ def main(args):
             semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
         ),
         input_column=args.input_text_field,
+        write_embeddings_to_disk=semdedup_config.write_embeddings_to_disk,
         logger=logger,
         write_to_filename=True,
     )

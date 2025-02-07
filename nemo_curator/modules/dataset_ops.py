@@ -1,25 +1,27 @@
 import math
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
 import dask.dataframe as dd
 import numpy as np
 
 from nemo_curator.datasets.doc_dataset import DocumentDataset
+from nemo_curator.modules.base import BaseModule
 
 
 def default_filename(partition_num: int) -> str:
     return f"file_{partition_num:010d}.jsonl"
 
 
-class Shuffle:
+class Shuffle(BaseModule):
     def __init__(
         self,
         seed: Optional[int] = None,
         npartitions: Optional[int] = None,
         partition_to_filename: Callable[[int], str] = default_filename,
+        filename_col: str = "file_name",
     ) -> None:
         """
-        Randomly permutes the dataset. This will make the original "filename" column invalid, so if the column is present it will be overwritten.
+        Randomly permutes the dataset. This will make the original filename_col column invalid, so if the column is present it will be overwritten.
         Args:
             seed: The random seed that will be used to determine which partition (file) each datapoint goes to.
                 Setting the seed will guarantee determinism, but may be slightly slower (20-30% slower)
@@ -31,12 +33,14 @@ class Shuffle:
                 will look like given the partition number. The default method names the partition
                 f'file_{partition_num:010d}.jsonl' and should be changed if the user is not using a .jsonl format.
         """
+        super().__init__(input_backend="pandas")
         self.seed = seed
         self.npartitions = npartitions
         self.partition_to_filename = partition_to_filename
         self.rand_col = "_shuffle_rand"
+        self.filename_col = filename_col
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.seed is None:
             return self.shuffle_nondeterministic(dataset)
         else:
@@ -52,8 +56,10 @@ class Shuffle:
         shuffled_df = dataset.df.set_index(self.rand_col, npartitions=new_npartitions)
         shuffled_df = shuffled_df.reset_index(drop=True)
 
-        if "filename" in shuffled_df:
-            shuffled_df["filename"] = shuffled_df.map_partitions(self._add_filename)
+        if self.filename_col in shuffled_df:
+            shuffled_df[self.filename_col] = shuffled_df.map_partitions(
+                self._add_filename
+            )
 
         return DocumentDataset(shuffled_df)
 
@@ -98,15 +104,15 @@ class Shuffle:
             drop=True
         )
 
-        if "filename" in partition:
+        if self.filename_col in partition:
             filename = self.partition_to_filename(partition_num)
-            partition["filename"] = filename
+            partition[self.filename_col] = filename
 
         return partition
 
     def _add_filename(self, partition, partition_info=None):
         if partition_info is None:
-            return ["filename"] * len(partition)
+            return [self.filename_col] * len(partition)
 
         filename = self.partition_to_filename(partition_info["number"])
 
