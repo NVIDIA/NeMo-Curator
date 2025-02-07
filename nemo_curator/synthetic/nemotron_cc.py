@@ -238,5 +238,7 @@ class NemotronCCKnowledgeListPostprocessor:
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
-        df[self.text_field] = df[self.text_field].apply(self._postprocess_llm_response)
+        df[self.text_field] = df[self.text_field].apply(
+            self._postprocess_llm_response, meta=(self.text_field, "object")
+        )
         return DocumentDataset(df)
