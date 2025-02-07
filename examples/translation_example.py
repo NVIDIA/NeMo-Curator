@@ -309,9 +309,7 @@ class IndicTranslation(DistributedDataClassifier):
 
         columns = ddf.columns.tolist()
         pipe = op.Sequential(
-            op.Tokenizer(
-                self.model, cols=[self.text_field], tokenizer_type="default"
-            ),
+            op.Tokenizer(self.model, cols=[self.text_field], tokenizer_type="default"),
             op.Predictor(
                 self.model,
                 sorted_data_loader=True,
