@@ -15,7 +15,7 @@
 import argparse
 import time
 
-from nemo_curator.classifiers import FineWebMixtralClassifier
+from nemo_curator.classifiers import FineWebMixtralEduClassifier
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -36,8 +36,8 @@ def main(args):
         input_file_path, backend="cudf", add_filename=True
     )
 
-    fineweb_mixtral_classifier = FineWebMixtralClassifier()
-    result_dataset = fineweb_mixtral_classifier(dataset=input_dataset)
+    fineweb_mixtral_edu_classifier = FineWebMixtralEduClassifier()
+    result_dataset = fineweb_mixtral_edu_classifier(dataset=input_dataset)
     result_dataset.to_json(output_path=output_file_path, write_to_filename=True)
 
     global_et = time.time()

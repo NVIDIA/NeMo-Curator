@@ -90,7 +90,7 @@ class FinewebEduModel(HFModel):
 
 class _FineWebBaseClassifier(DistributedDataClassifier):
     """
-    Parent class for FineWebEduClassifier, FineWebMixtralClassifier, and FineWebNemotronClassifier,
+    Parent class for FineWebEduClassifier, FineWebMixtralEduClassifier, and FineWebNemotronEduClassifier,
     since their implementations are almost identical.
     """
 
@@ -226,9 +226,9 @@ class FineWebEduClassifier(_FineWebBaseClassifier):
         )
 
 
-class FineWebMixtralClassifier(_FineWebBaseClassifier):
+class FineWebMixtralEduClassifier(_FineWebBaseClassifier):
     """
-    FineWebMixtralClassifier is a specialized classifier designed for educational content assessment,
+    FineWebMixtralEduClassifier is a specialized classifier designed for educational content assessment,
     utilizing the NemoCurator FineWeb Mixtral Edu Classifier model (https://huggingface.co/nvidia/nemocurator-fineweb-mixtral-edu-classifier).
     It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Mixtral 8x22B-Instruct.
     This classifier is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large text datasets.
@@ -273,9 +273,9 @@ class FineWebMixtralClassifier(_FineWebBaseClassifier):
         )
 
 
-class FineWebNemotronClassifier(_FineWebBaseClassifier):
+class FineWebNemotronEduClassifier(_FineWebBaseClassifier):
     """
-    FineWebNemotronClassifier is a specialized classifier designed for educational content assessment,
+    FineWebNemotronEduClassifier is a specialized classifier designed for educational content assessment,
     utilizing the NemoCurator FineWeb Nemotron-4 Edu Classifier model (https://huggingface.co/nvidia/nemocurator-fineweb-nemotron-4-edu-classifier).
     It is similar to the FineWeb-Edu classifier and was trained on the same text samples, but using annotations from Nemotron-4-340B-Instruct.
     This classifier is optimized for running on multi-node, multi-GPU setups to enable fast and efficient inference on large text datasets.

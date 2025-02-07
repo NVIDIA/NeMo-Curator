@@ -151,9 +151,9 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
 
 @pytest.mark.gpu
 def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
-    from nemo_curator.classifiers import FineWebMixtralClassifier
+    from nemo_curator.classifiers import FineWebMixtralEduClassifier
 
-    classifier = FineWebMixtralClassifier()
+    classifier = FineWebMixtralEduClassifier()
     result_dataset = classifier(dataset=domain_dataset)
     result_pred = result_dataset.df.compute()["fineweb-mixtral-edu-score-int"]
 
@@ -164,9 +164,9 @@ def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
 
 @pytest.mark.gpu
 def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
-    from nemo_curator.classifiers import FineWebNemotronClassifier
+    from nemo_curator.classifiers import FineWebNemotronEduClassifier
 
-    classifier = FineWebNemotronClassifier()
+    classifier = FineWebNemotronEduClassifier()
     result_dataset = classifier(dataset=domain_dataset)
     result_pred = result_dataset.df.compute()["fineweb-nemotron-edu-score-int"]
 

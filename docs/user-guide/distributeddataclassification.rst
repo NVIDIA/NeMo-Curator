@@ -253,17 +253,17 @@ To use the FineWeb Mixtral Edu Classifier, you can follow this example:
 
 .. code-block:: python
 
-    from nemo_curator.classifiers import FineWebMixtralClassifier
+    from nemo_curator.classifiers import FineWebMixtralEduClassifier
 
     files = get_all_files_paths_under("web_documents/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
-    classifier = FineWebMixtralClassifier(
+    classifier = FineWebMixtralEduClassifier(
         batch_size=256,
         text_field="text",
-        pred_column="fineweb-mixtral-score",
-        int_column="fineweb-mixtral-score-int",
-        label_column="fineweb-mixtral-score-label",
+        pred_column="fineweb-mixtral-edu-score",
+        int_column="fineweb-mixtral-edu-score-int",
+        label_column="fineweb-mixtral-edu-score-label",
     )
     result_dataset = classifier(dataset=input_dataset)
 
@@ -280,7 +280,7 @@ For example, to create a dataset with only highly educational content (scores 4 
 
 .. code-block:: python
 
-    high_edu_dataset = result_dataset[result_dataset["fineweb-mixtral-score-int"] >= 4]
+    high_edu_dataset = result_dataset[result_dataset["fineweb-mixtral-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
 
 FineWeb Nemotron-4 Edu Classifier
@@ -296,17 +296,17 @@ To use the FineWeb Nemotron-4 Edu Classifier, you can follow this example:
 
 .. code-block:: python
 
-    from nemo_curator.classifiers import FineWebNemotronClassifier
+    from nemo_curator.classifiers import FineWebNemotronEduClassifier
 
     files = get_all_files_paths_under("web_documents/")
     input_dataset = DocumentDataset.read_json(files, backend="cudf")
 
-    classifier = FineWebNemotronClassifier(
+    classifier = FineWebNemotronEduClassifier(
         batch_size=256,
         text_field="text",
-        pred_column="fineweb-nemotron-score",
-        int_column="fineweb-nemotron-score-int",
-        label_column="fineweb-nemotron-score-label",
+        pred_column="fineweb-nemotron-edu-score",
+        int_column="fineweb-nemotron-edu-score-int",
+        label_column="fineweb-nemotron-edu-score-label",
     )
     result_dataset = classifier(dataset=input_dataset)
 
@@ -323,7 +323,7 @@ For example, to create a dataset with only highly educational content (scores 4 
 
 .. code-block:: python
 
-    high_edu_dataset = result_dataset[result_dataset["fineweb-nemotron-score-int"] >= 4]
+    high_edu_dataset = result_dataset[result_dataset["fineweb-nemotron-edu-score-int"] >= 4]
     high_edu_dataset.to_json("high_educational_content/")
 
 Content Type Classifier DeBERTa

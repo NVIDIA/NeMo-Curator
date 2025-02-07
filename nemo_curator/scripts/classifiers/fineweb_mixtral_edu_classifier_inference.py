@@ -18,7 +18,7 @@ import warnings
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 
-from nemo_curator.classifiers import FineWebNemotronClassifier
+from nemo_curator.classifiers import FineWebMixtralEduClassifier
 from nemo_curator.datasets import DocumentDataset
 
 # Get relevant args
@@ -31,14 +31,14 @@ warnings.filterwarnings("ignore")
 
 def main():
     args = ArgumentHelper.parse_distributed_classifier_args(
-        description="Run FineWeb Nemotron-4 Edu Classifier inference."
+        description="Run FineWeb Mixtral Edu Classifier inference."
     ).parse_args()
     print(f"Arguments parsed = {args}", flush=True)
 
     client_args = ArgumentHelper.parse_client_args(args)
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
-    print("Starting FineWeb Nemotron-4 Edu Classifier inference", flush=True)
+    print("Starting FineWeb Mixtral Edu Classifier inference", flush=True)
     global_st = time.time()
     files_per_run = len(client.scheduler_info()["workers"]) * 2
 
@@ -62,7 +62,7 @@ def main():
     else:
         add_filename = True
 
-    fineweb_nemotron_classifier = FineWebNemotronClassifier(
+    fineweb_mixtral_edu_classifier = FineWebMixtralEduClassifier(
         text_field=args.input_text_field,
         batch_size=args.batch_size,
         autocast=args.autocast,
@@ -82,7 +82,7 @@ def main():
             file_type=args.input_file_type,
             add_filename=add_filename,
         )
-        df = fineweb_nemotron_classifier(DocumentDataset(df)).df
+        df = fineweb_mixtral_edu_classifier(DocumentDataset(df)).df
         print(f"Total input Dask DataFrame partitions {df.npartitions}", flush=True)
 
         write_to_disk(
@@ -99,7 +99,7 @@ def main():
 
     global_et = time.time()
     print(
-        f"Total time taken for FineWeb Nemotron-4 Edu Classifier inference: {global_et-global_st} s",
+        f"Total time taken for FineWeb Mixtral Edu Classifier inference: {global_et-global_st} s",
         flush=True,
     )
     client.close()

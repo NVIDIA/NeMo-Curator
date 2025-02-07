@@ -144,8 +144,8 @@ Additional arguments may be added for customizing a Dask cluster and client. Run
 #### FineWeb Mixtral Edu Classifier Inference
 
 ```bash
-# same as `python fineweb_mixtral_classifier_inference.py`
-fineweb_mixtral_classifier_inference \
+# same as `python fineweb_mixtral_edu_classifier_inference.py`
+fineweb_mixtral_edu_classifier_inference \
     --input-data-dir /path/to/data/directory \
     --output-data-dir /path/to/output/directory \
     --input-file-type "jsonl" \
@@ -158,13 +158,13 @@ fineweb_mixtral_classifier_inference \
     --device "gpu"
 ```
 
-Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_mixtral_classifier_inference --help` for more information.
+Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_mixtral_edu_classifier_inference --help` for more information.
 
 #### FineWeb Nemotron-4 Edu Classifier Inference
 
 ```bash
-# same as `python fineweb_nemotron_classifier_inference.py`
-fineweb_nemotron_classifier_inference \
+# same as `python fineweb_nemotron_edu_classifier_inference.py`
+fineweb_nemotron_edu_classifier_inference \
     --input-data-dir /path/to/data/directory \
     --output-data-dir /path/to/output/directory \
     --input-file-type "jsonl" \
@@ -177,7 +177,7 @@ fineweb_nemotron_classifier_inference \
     --device "gpu"
 ```
 
-Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_nemotron_classifier_inference --help` for more information.
+Additional arguments may be added for customizing a Dask cluster and client. Run `fineweb_nemotron_edu_classifier_inference --help` for more information.
 
 #### Content Type Classifier DeBERTa Inference
 

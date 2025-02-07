@@ -20,8 +20,8 @@ from .content_type import ContentTypeClassifier
 from .domain import DomainClassifier, MultilingualDomainClassifier
 from .fineweb_edu import (
     FineWebEduClassifier,
-    FineWebMixtralClassifier,
-    FineWebNemotronClassifier,
+    FineWebMixtralEduClassifier,
+    FineWebNemotronEduClassifier,
 )
 from .prompt_task_complexity import PromptTaskComplexityClassifier
 from .quality import QualityClassifier
@@ -33,8 +33,8 @@ __all__ = [
     "AegisClassifier",
     "InstructionDataGuardClassifier",
     "FineWebEduClassifier",
-    "FineWebMixtralClassifier",
-    "FineWebNemotronClassifier",
+    "FineWebMixtralEduClassifier",
+    "FineWebNemotronEduClassifier",
     "ContentTypeClassifier",
     "PromptTaskComplexityClassifier",
 ]
