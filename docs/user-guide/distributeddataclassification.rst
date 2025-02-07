@@ -263,7 +263,7 @@ To use the FineWeb Mixtral Edu Classifier, you can follow this example:
         text_field="text",
         pred_column="fineweb-mixtral-edu-score",
         int_column="fineweb-mixtral-edu-score-int",
-        label_column="fineweb-mixtral-edu-score-label",
+        quality_label_column="fineweb-mixtral-edu-score-label",
     )
     result_dataset = classifier(dataset=input_dataset)
 
@@ -273,7 +273,7 @@ This classifier uses a model based on the `Snowflake Arctic-embed-m <https://hug
 It assigns an educational score to each document on a scale from 0 to 5, where higher scores indicate more educational content.
 
 The ``pred_column`` will contain the raw floating-point scores, while the ``int_column`` will contain the rounded integer scores.
-The ``label_column`` identifies text as high quality if it scores higher than 2.5 and low quality otherwise.
+The ``quality_label_column`` identifies text as high quality if it scores higher than 2.5 and low quality otherwise.
 You can filter the results based on these scores to create datasets with varying levels of educational content.
 
 For example, to create a dataset with only highly educational content (scores 4 and 5):
@@ -306,7 +306,7 @@ To use the FineWeb Nemotron-4 Edu Classifier, you can follow this example:
         text_field="text",
         pred_column="fineweb-nemotron-edu-score",
         int_column="fineweb-nemotron-edu-score-int",
-        label_column="fineweb-nemotron-edu-score-label",
+        quality_label_column="fineweb-nemotron-edu-score-label",
     )
     result_dataset = classifier(dataset=input_dataset)
 
@@ -316,7 +316,7 @@ This classifier uses a model based on the `Snowflake Arctic-embed-m <https://hug
 It assigns an educational score to each document on a scale from 0 to 5, where higher scores indicate more educational content.
 
 The ``pred_column`` will contain the raw floating-point scores, while the ``int_column`` will contain the rounded integer scores.
-The ``label_column`` identifies text as high quality if it scores higher than 2.5 and low quality otherwise.
+The ``quality_label_column`` identifies text as high quality if it scores higher than 2.5 and low quality otherwise.
 You can filter the results based on these scores to create datasets with varying levels of educational content.
 
 For example, to create a dataset with only highly educational content (scores 4 and 5):

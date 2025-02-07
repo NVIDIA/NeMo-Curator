@@ -45,23 +45,7 @@ class FinewebEduModel(HFModel):
         super().__init__(path_or_name=path_or_name, max_mem_gb=max_mem_gb)
 
     def load_model(self, device: str = "cuda"):
-        if self.path_or_name in [
-            FINEWEB_MIXTRAL_IDENTIFIER,
-            FINEWEB_NEMOTRON_IDENTIFIER,
-        ]:
-            model = AutoModelForSequenceClassification.from_pretrained(
-                self.path_or_name, torch_dtype=torch.bfloat16
-            )
-        elif self.path_or_name == FINEWEB_EDU_IDENTIFIER:
-            model = AutoModelForSequenceClassification.from_pretrained(
-                self.path_or_name
-            )
-        else:
-            raise RuntimeError(
-                f"Hugging Face identifier must be {FINEWEB_EDU_IDENTIFIER}, "
-                f"{FINEWEB_MIXTRAL_IDENTIFIER}, or {FINEWEB_NEMOTRON_IDENTIFIER}"
-            )
-
+        model = AutoModelForSequenceClassification.from_pretrained(self.path_or_name)
         model = model.to(device)
         model = self.configure_forward(model, self.autocast)
         return model
@@ -99,7 +83,7 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
         fineweb_identifier: str,
         pred_column: str,
         int_column: str,
-        label_column: Optional[str],
+        quality_label_column: Optional[str],
         batch_size: int = 1024,
         text_field: str = "text",
         max_chars: int = -1,
@@ -117,7 +101,7 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
 
         self.text_field = text_field
         self.int_column = int_column
-        self.label_column = label_column
+        self.quality_label_column = quality_label_column
 
         super().__init__(
             model=model,
@@ -133,13 +117,10 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
 
     def _run_classifier(self, dataset: DocumentDataset) -> DocumentDataset:
         if self.fineweb_identifier == FINEWEB_EDU_IDENTIFIER:
-            tokenizer_type = "sentencepiece"
             print("Starting FineWeb-Edu Classifier inference", flush=True)
         elif self.fineweb_identifier == FINEWEB_MIXTRAL_IDENTIFIER:
-            tokenizer_type = "default"
             print("Starting FineWeb Mixtral Edu Classifier inference", flush=True)
         elif self.fineweb_identifier == FINEWEB_NEMOTRON_IDENTIFIER:
-            tokenizer_type = "default"
             print("Starting FineWeb Nemotron-4 Edu Classifier inference", flush=True)
 
         ddf = dataset.df
@@ -148,7 +129,7 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
             op.Tokenizer(
                 self.model,
                 cols=[self.text_field],
-                tokenizer_type=tokenizer_type,
+                tokenizer_type="default",
                 max_length=self.model.max_seq_length(),
             ),
             op.Predictor(
@@ -169,10 +150,10 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
         )
         ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
 
-        if self.label_column is not None:
-            ddf[self.label_column] = "high_quality"
+        if self.quality_label_column is not None:
+            ddf[self.quality_label_column] = "high_quality"
             # If the score is less than 2.5, label it as low quality
-            ddf[self.label_column] = ddf[self.label_column].mask(
+            ddf[self.quality_label_column] = ddf[self.quality_label_column].mask(
                 ddf[self.pred_column] < 2.5, "low_quality"
             )
 
@@ -215,7 +196,7 @@ class FineWebEduClassifier(_FineWebBaseClassifier):
             text_field=text_field,
             pred_column=pred_column,
             int_column=int_column,
-            label_column=None,
+            quality_label_column=None,
             max_chars=max_chars,
             device_type=device_type,
             autocast=autocast,
@@ -235,7 +216,7 @@ class FineWebMixtralEduClassifier(_FineWebBaseClassifier):
         text_field (str): The column name containing the text data to be classified. Defaults to "text".
         pred_column (str): The column name where prediction scores will be stored. Defaults to "fineweb-mixtral-edu-score".
         int_column (str): The column name where integer-rounded prediction scores will be stored. Defaults to "fineweb-mixtral-edu-score-int".
-        label_column (str): The column name where a score of >= 2.5 is labeled "high_quality" and otherwise labeled "low_quality". Defaults to "fineweb-mixtral-edu-score-label".
+        quality_label_column (str): The column name where a score of >= 2.5 is labeled "high_quality" and otherwise labeled "low_quality". Defaults to "fineweb-mixtral-edu-score-label".
         max_chars (int): The maximum number of characters in each document to consider for classification. If -1, the entire document is considered. Defaults to -1.
         device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
         autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
@@ -250,7 +231,7 @@ class FineWebMixtralEduClassifier(_FineWebBaseClassifier):
         text_field: str = "text",
         pred_column: str = "fineweb-mixtral-edu-score",
         int_column: str = "fineweb-mixtral-edu-score-int",
-        label_column: str = "fineweb-mixtral-edu-score-label",
+        quality_label_column: str = "fineweb-mixtral-edu-score-label",
         max_chars: int = -1,
         device_type: str = "cuda",
         autocast: bool = True,
@@ -262,7 +243,7 @@ class FineWebMixtralEduClassifier(_FineWebBaseClassifier):
             text_field=text_field,
             pred_column=pred_column,
             int_column=int_column,
-            label_column=label_column,
+            quality_label_column=quality_label_column,
             max_chars=max_chars,
             device_type=device_type,
             autocast=autocast,
@@ -282,7 +263,7 @@ class FineWebNemotronEduClassifier(_FineWebBaseClassifier):
         text_field (str): The column name containing the text data to be classified. Defaults to "text".
         pred_column (str): The column name where prediction scores will be stored. Defaults to "fineweb-nemotron-edu-score".
         int_column (str): The column name where integer-rounded prediction scores will be stored. Defaults to "fineweb-nemotron-edu-score-int".
-        label_column (str): The column name where a score of >= 2.5 is labeled "high_quality" and otherwise labeled "low_quality". Defaults to "fineweb-nemotron-edu-score-label".
+        quality_label_column (str): The column name where a score of >= 2.5 is labeled "high_quality" and otherwise labeled "low_quality". Defaults to "fineweb-nemotron-edu-score-label".
         max_chars (int): The maximum number of characters in each document to consider for classification. If -1, the entire document is considered. Defaults to -1.
         device_type (str): The type of device to use for inference, either "cuda" or "cpu". Defaults to "cuda".
         autocast (bool): Whether to use mixed precision for faster inference. Defaults to True.
@@ -297,7 +278,7 @@ class FineWebNemotronEduClassifier(_FineWebBaseClassifier):
         text_field: str = "text",
         pred_column: str = "fineweb-nemotron-edu-score",
         int_column: str = "fineweb-nemotron-edu-score-int",
-        label_column: str = "fineweb-nemotron-edu-score-label",
+        quality_label_column: str = "fineweb-nemotron-edu-score-label",
         max_chars: int = -1,
         device_type: str = "cuda",
         autocast: bool = True,
@@ -309,7 +290,7 @@ class FineWebNemotronEduClassifier(_FineWebBaseClassifier):
             text_field=text_field,
             pred_column=pred_column,
             int_column=int_column,
-            label_column=label_column,
+            quality_label_column=quality_label_column,
             max_chars=max_chars,
             device_type=device_type,
             autocast=autocast,
