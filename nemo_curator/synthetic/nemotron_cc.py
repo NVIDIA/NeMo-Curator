@@ -20,6 +20,7 @@ from transformers import AutoTokenizer
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.services import LLMClient
 from nemo_curator.synthetic.prompts import (
+    DISTILL_PROMPT_TEMPLATE,
     DIVERSE_QA_PROMPT_TEMPLATE,
     NEMOTRON_CC_SYSTEM_PROMPT,
     WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
@@ -84,6 +85,20 @@ class NemotronCC:
         document: str,
         model: str,
         prompt_template: str = DIVERSE_QA_PROMPT_TEMPLATE,
+        system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> str:
+        prompt_kwargs["document"] = document
+        return self._prompt(
+            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+        )
+
+    def distill(
+        self,
+        document: str,
+        model: str,
+        prompt_template: str = DISTILL_PROMPT_TEMPLATE,
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
@@ -174,6 +189,7 @@ class NemotronCCDiverseQAPostprocessor:
                 row[self.text_field], row[self.response_field]
             ),
             axis=1,
+            meta=(None, "object"),
         )
         df = df[df[self.response_field] != ""]
 
