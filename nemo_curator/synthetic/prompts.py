@@ -62,6 +62,8 @@ DIALOGUE_CONCISE_USER_TURN_PROMPT_TEMPLATE = "Here is a conversation between a u
 
 NEMOTRON_CC_SYSTEM_PROMPT = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the questions."
 
+NEMOTRON_CC_DISTILL_SYSTEM_PROMPT = "You are an artificial intelligence assistant. You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning."
+
 WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE = """For the following paragraph give me a diverse paraphrase of the same in high quality English language as in sentences on Wikipedia. Begin your answer on a separate line with "Here is a paraphrased version:".
 
 Text: {document}"""
@@ -107,3 +109,18 @@ Here is the text:
 
 Task:
 After thoroughly reading the above text, paraphrase it in high-quality and clear English following the instructions. Begin your response with "Paraphrased Text:"."""
+
+EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE = """Your task is to rewrite knowledge from the provided text following these instructions.
+- Rewrite the text as a passage or passages using easy-to-understand and high-quality English like sentences in textbooks and Wikipedia.
+- Focus on content in disciplines such as humanities, social sciences, natural sciences, technology, engineering, math, law and legal, business, management, art, education, agricultural sciences, politics, and history.
+- Disregard content that does not contain useful facts or knowledge.
+- Retain examples, explanations of reasoning processes, and supporting evidence to maintain the text's depth and context.
+- Do not add or alter details. Only restate what is already in the text.
+- Write in plain text.
+- Do not add titles, subtitles, note, or comment.
+
+Text:
+{document}
+
+Task:
+Rewrite facts and knowledge from the above text as a passage or passages following the instructions."""

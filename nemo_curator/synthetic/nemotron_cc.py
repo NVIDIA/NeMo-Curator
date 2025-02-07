@@ -22,6 +22,7 @@ from nemo_curator.services import LLMClient
 from nemo_curator.synthetic.prompts import (
     DISTILL_PROMPT_TEMPLATE,
     DIVERSE_QA_PROMPT_TEMPLATE,
+    EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
     NEMOTRON_CC_SYSTEM_PROMPT,
     WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
 )
@@ -52,19 +53,6 @@ class NemotronCC:
         ]
 
         return self.client.query_model(messages=messages, model=model, **model_kwargs)
-
-    def get_wikipedia_prefix_token_count(self) -> int:
-        user_prompt = WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE.format(
-            document="placeholder"
-        )
-        messages = [
-            {"role": "system", "content": NEMOTRON_CC_SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ]
-
-        prefix_tokens = self.tokenizer.apply_chat_template(messages)
-
-        return len(prefix_tokens)
 
     def rewrite_to_wikipedia_style(
         self,
@@ -99,6 +87,20 @@ class NemotronCC:
         document: str,
         model: str,
         prompt_template: str = DISTILL_PROMPT_TEMPLATE,
+        system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> str:
+        prompt_kwargs["document"] = document
+        return self._prompt(
+            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+        )
+
+    def extract_knowledge(
+        self,
+        document: str,
+        model: str,
+        prompt_template: str = EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
@@ -193,4 +195,32 @@ class NemotronCCDiverseQAPostprocessor:
         )
         df = df[df[self.response_field] != ""]
 
+        return DocumentDataset(df)
+
+
+# Although this could be implemented as a DocumentModifier,
+# I have kept it separate to match the other postprocessors.
+class NemotronCCKnowledgeListPostprocessor:
+    """
+    Postprocesses the output of the Nemotron-CC Knowledge List generation pipeline.
+    """
+
+    def __init__(self, text_field: str = "text") -> None:
+        self.text_field = text_field
+
+    def _postprocess_llm_response(self, text: str) -> str:
+        lines = []
+        for idx, line in enumerate(text.split("\n")):
+            if idx == 0 and not line.startswith("-"):
+                continue
+
+            if line.startswith("  ") or line.startswith("- "):
+                lines.append(line[2:].strip())
+            else:
+                lines.append(line)
+        return "\n".join(lines)
+
+    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        df = dataset.df
+        df[self.text_field] = df[self.text_field].apply(self._postprocess_llm_response)
         return DocumentDataset(df)
