@@ -170,13 +170,10 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
         ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
 
         if self.label_column is not None:
-            ddf[self.label_column] = (
-                ddf[self.pred_column]
-                .astype(str)
-                .where(ddf[self.pred_column] >= 2.5, "low_quality")
-            )
-            ddf[self.label_column] = ddf[self.label_column].where(
-                ddf[self.label_column] == "low_quality", "high_quality"
+            ddf[self.label_column] = "high_quality"
+            # If the score is less than 2.5, label it as low quality
+            ddf[self.label_column] = ddf[self.label_column].mask(
+                ddf[self.pred_column] < 2.5, "low_quality"
             )
 
         return DocumentDataset(ddf)
