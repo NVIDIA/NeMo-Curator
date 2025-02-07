@@ -273,7 +273,7 @@ class NemotronCCDiverseQAPostprocessor(BaseModule):
         # Concatenate the document and the QA pairs
         return f"{text}\n\n{qa_pairs_str}"
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
         df[self.response_field] = df.apply(
             lambda row: self._postprocess_llm_response(
@@ -317,7 +317,7 @@ class NemotronCCKnowledgeListPostprocessor(BaseModule):
                 lines.append(line)
         return "\n".join(lines)
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
         df[self.text_field] = df[self.text_field].apply(
             self._postprocess_llm_response, meta=(self.text_field, "object")
