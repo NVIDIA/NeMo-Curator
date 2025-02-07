@@ -78,7 +78,7 @@ class TestSemDuplicates:
         )
         sem_duplicates = SemDedup(
             config=config,
-            input_column="text",
+            text_field="text",
             id_field="id",
             id_field_type="int",
         )
@@ -101,7 +101,7 @@ class TestSemDuplicates:
             embedding_model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
             embedding_batch_size=32,
             embedding_pooling_strategy=pooling_strategy,
-            input_column="text",
+            text_field="text",
             embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
         )
         embeddings = embedding_creator.create_embeddings(ddf).compute()

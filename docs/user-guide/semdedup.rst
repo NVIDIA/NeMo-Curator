@@ -171,7 +171,7 @@ Use Individual Components
         embedding_model_name_or_path="path/to/pretrained/model",
         embedding_batch_size=128,
         embedding_output_dir="path/to/output/embeddings",
-        input_column="text",
+        text_field="text",
         logger="path/to/log/dir",
     )
     embeddings_dataset = embedding_creator(dataset)
@@ -233,7 +233,7 @@ Alternatively, you can use the SemDedup class to perform all steps:
     # Initialize SemDedup with the configuration
     sem_dedup = SemDedup(
         config=config,
-        input_column="text",
+        text_field="text",
         id_field="doc_id",
         id_field_type="str",
         logger="path/to/log/dir",

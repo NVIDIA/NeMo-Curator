@@ -123,12 +123,12 @@ class IndicTranslation(DistributedDataClassifier):
     def __init__(
         self,
         pretrained_model_name_or_path: str = "ai4bharat/indictrans2-en-indic-1B",
-        input_column: str = "indic_proc_text",
+        text_field: str = "indic_proc_text",
         batch_size: int = 128,
         autocast: bool = False,
     ):
         self.pretrained_model_name_or_path = pretrained_model_name_or_path
-        self.input_column = input_column
+        self.text_field = text_field
         self.batch_size = batch_size
         self.autocast = autocast
 
@@ -275,9 +275,9 @@ class IndicTranslation(DistributedDataClassifier):
         df = cudf.DataFrame.from_pandas(df)
         return df
 
-    def atleast_letter(self, df: cudf.DataFrame, column_name: str) -> cudf.DataFrame:
+    def atleast_letter(self, df: cudf.DataFrame, text_field: str) -> cudf.DataFrame:
         df = df.to_pandas()
-        df["isalpha"] = df[column_name].apply(self.has_alphabet_characters)
+        df["isalpha"] = df[text_field].apply(self.has_alphabet_characters)
         df = cudf.DataFrame(df)
         return df
 
@@ -294,7 +294,7 @@ class IndicTranslation(DistributedDataClassifier):
         ddf["word_count"] = ddf["word_count"].astype("int64")
         ddf_true = ddf[(ddf["word_count"] <= self.translation_config.max_words_per_sen)]
         # To filter for atleast one unicode letter in text
-        has_letter = ddf_true.map_partitions(self.atleast_letter, column_name="text")
+        has_letter = ddf_true.map_partitions(self.atleast_letter, text_field="text")
         ddf_trans = ddf_true[has_letter["isalpha"]]
         ddf = ddf_trans.drop(columns="word_count")
         ## ddf false operations
@@ -310,7 +310,7 @@ class IndicTranslation(DistributedDataClassifier):
         columns = ddf.columns.tolist()
         pipe = op.Sequential(
             op.Tokenizer(
-                self.model, cols=[self.input_column], tokenizer_type="default"
+                self.model, cols=[self.text_field], tokenizer_type="default"
             ),
             op.Predictor(
                 self.model,
@@ -356,7 +356,7 @@ def main(args):
     print(client.dashboard_link)
     translator_model = IndicTranslation(
         pretrained_model_name_or_path=args.pretrained_model_name_or_path,
-        input_column=args.text_field,
+        text_field=args.text_field,
         batch_size=args.batch_size,
         autocast=args.autocast,
     )

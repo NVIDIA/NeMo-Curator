@@ -31,7 +31,7 @@ class SemDedup(BaseModule):
     def __init__(
         self,
         config: SemDedupConfig,
-        input_column: str = "text",
+        text_field: str = "text",
         id_field: str = "id",
         id_field_type: str = "int",
         logger: Union[logging.Logger, str] = "./",
@@ -51,7 +51,7 @@ class SemDedup(BaseModule):
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
             embedding_pooling_strategy=config.embedding_pooling_strategy,
-            input_column=input_column,
+            text_field=text_field,
             embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
             write_embeddings_to_disk=config.write_embeddings_to_disk,
             logger=logger,

@@ -133,7 +133,7 @@ def semantic_dedupe(dataset):
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
     semdup = SemDedup(
         config=semdedup_config,
-        input_column="text",
+        text_field="text",
         id_field="id",
         id_field_type="str",
     )
