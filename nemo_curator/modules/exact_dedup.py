@@ -181,7 +181,7 @@ class ExactDuplicates(BaseModule):
         return DocumentDataset.read_parquet(
             write_path,
             backend=backend,
-            # we read with FPP=1 so that groups are read in whole (and don't exist across partitions)
+            # We read with files_per_partition=1 so that groups are read in whole (and do not exist across partitions)
             files_per_partition=1,
             blocksize=None,
         )
