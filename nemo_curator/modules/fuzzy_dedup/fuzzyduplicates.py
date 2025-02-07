@@ -250,9 +250,9 @@ class FuzzyDuplicates(BaseModule):
         return DocumentDataset.read_parquet(
             cc_path,
             backend="cudf",
-            blocksize="1024MiB",
-            files_per_partition=None,
-            split_row_groups=False,
+            # we read with FPP=1 so that groups are read in whole (and don't exist across partitions)
+            files_per_partition=1,
+            blocksize=None,
         )
 
     def remove(

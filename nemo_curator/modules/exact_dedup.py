@@ -181,9 +181,9 @@ class ExactDuplicates(BaseModule):
         return DocumentDataset.read_parquet(
             write_path,
             backend=backend,
-            blocksize="1024MiB",
-            files_per_partition=None,
-            split_row_groups=False,
+            # we read with FPP=1 so that groups are read in whole (and don't exist across partitions)
+            files_per_partition=1,
+            blocksize=None,
         )
 
     def remove(
