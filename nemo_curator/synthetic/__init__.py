@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .async_nemotron import AsyncNemotronGenerator
+from .async_nemotron_cc import AsyncNemotronCCGenerator
 from .error import YamlConversionError
 from .mixtral import Mixtral8x7BFormatter
 from .nemotron import NemotronFormatter, NemotronGenerator
 from .nemotron_cc import (
-    NemotronCC,
     NemotronCCDiverseQAPostprocessor,
+    NemotronCCGenerator,
     NemotronCCKnowledgeListPostprocessor,
 )
 from .no_format import NoFormat
@@ -50,7 +51,8 @@ __all__ = [
     "NemotronGenerator",
     "AsyncNemotronGenerator",
     "NemotronFormatter",
-    "NemotronCC",
+    "NemotronCCGenerator",
+    "AsyncNemotronCCGenerator",
     "NemotronCCDiverseQAPostprocessor",
     "NemotronCCKnowledgeListPostprocessor",
     "Mixtral8x7BFormatter",
