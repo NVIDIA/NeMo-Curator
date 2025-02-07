@@ -23,6 +23,8 @@ from nemo_curator.synthetic.prompts import (
     DISTILL_PROMPT_TEMPLATE,
     DIVERSE_QA_PROMPT_TEMPLATE,
     EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
+    KNOWLEDGE_LIST_PROMPT_TEMPLATE,
+    NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
     NEMOTRON_CC_SYSTEM_PROMPT,
     WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
 )
@@ -87,7 +89,7 @@ class NemotronCC:
         document: str,
         model: str,
         prompt_template: str = DISTILL_PROMPT_TEMPLATE,
-        system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
+        system_prompt: str = NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},
     ) -> str:
@@ -101,6 +103,20 @@ class NemotronCC:
         document: str,
         model: str,
         prompt_template: str = EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
+        system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
+        prompt_kwargs: dict = {},
+        model_kwargs: dict = {},
+    ) -> str:
+        prompt_kwargs["document"] = document
+        return self._prompt(
+            model, prompt_template, system_prompt, prompt_kwargs, model_kwargs
+        )
+
+    def generate_knowledge_list(
+        self,
+        document: str,
+        model: str,
+        prompt_template: str = KNOWLEDGE_LIST_PROMPT_TEMPLATE,
         system_prompt: str = NEMOTRON_CC_SYSTEM_PROMPT,
         prompt_kwargs: dict = {},
         model_kwargs: dict = {},

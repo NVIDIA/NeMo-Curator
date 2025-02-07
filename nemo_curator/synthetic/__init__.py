@@ -15,7 +15,11 @@ from .async_nemotron import AsyncNemotronGenerator
 from .error import YamlConversionError
 from .mixtral import Mixtral8x7BFormatter
 from .nemotron import NemotronFormatter, NemotronGenerator
-from .nemotron_cc import NemotronCC, NemotronCCDiverseQAPostprocessor
+from .nemotron_cc import (
+    NemotronCC,
+    NemotronCCDiverseQAPostprocessor,
+    NemotronCCKnowledgeListPostprocessor,
+)
 from .no_format import NoFormat
 from .prompts import (
     DEFAULT_CLOSED_QA_PROMPT_TEMPLATE,
@@ -48,6 +52,7 @@ __all__ = [
     "NemotronFormatter",
     "NemotronCC",
     "NemotronCCDiverseQAPostprocessor",
+    "NemotronCCKnowledgeListPostprocessor",
     "Mixtral8x7BFormatter",
     "NoFormat",
     "DEFAULT_MACRO_TOPICS_PROMPT_TEMPLATE",
