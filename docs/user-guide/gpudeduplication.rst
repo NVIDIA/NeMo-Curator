@@ -67,7 +67,7 @@ After ensuring your dataset has a unique ID field (or creating one with the code
       id_field="my_id",
       text_field="text",
       perform_removal=True,
-      cache_dir="/path/to/dedup_outputs", # Recommended to specify a dir if perform_removal=True
+      cache_dir="/path/to/dedup_outputs", # Recommended to specify a cache_dir if perform_removal=True
     )
 
     dataset = DocumentDataset.read_parquet(
