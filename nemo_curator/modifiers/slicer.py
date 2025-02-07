@@ -18,7 +18,7 @@ from nemo_curator.modifiers import DocumentModifier
 
 class Slicer(DocumentModifier):
     """
-    Slices a document based on indices or strings
+    Slices a document based on indices or strings.
     """
 
     def __init__(
@@ -31,10 +31,14 @@ class Slicer(DocumentModifier):
     ):
         """
         Args:
-            left (Union[int, str], optional): If the provided value is an int, slice the string from this index (inclusive). If the provided value is a str, slice the string from the first occurence of this substring.
-            right (Union[int, str], optional): If the provided value is an int, slice the string to this index (exclusive). If the provided value is a str, slice the string to the last occurence of this substring.
-            include_left (bool): Only used if `left` is a string. If True, the value of `left` is included in the slicing result. Defaults to False.
-            include_right (bool): Only used if `right` is a string. If True, the value of `right` is included in the slicing result. Defaults to False.
+            left (Union[int, str], optional): If the provided value is an int, slice the string from this index (inclusive).
+                If the provided value is a str, slice the string from the first occurence of this substring.
+            right (Union[int, str], optional): If the provided value is an int, slice the string to this index (exclusive).
+                If the provided value is a str, slice the string to the last occurence of this substring.
+            include_left (bool): Only used if `left` is a string. If True, the value of `left` is included in the
+                slicing result. Defaults to False.
+            include_right (bool): Only used if `right` is a string. If True, the value of `right` is included in the
+                slicing result. Defaults to False.
             strip (bool): If True, strip the resulting string.
         """
         super().__init__()

@@ -693,11 +693,11 @@ class TokenCountFilter(DocumentFilter):
         self._max_tokens = max_tokens
         self._name = "token_count"
 
-    def score_document(self, text):
+    def score_document(self, text: str) -> int:
         tokens = self._tokenizer.encode(text)
         return len(tokens)
 
-    def keep_document(self, score):
+    def keep_document(self, score: int) -> bool:
         return self._min_tokens <= score <= self._max_tokens
 
 

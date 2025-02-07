@@ -24,7 +24,7 @@ MARKDOWN_LINK_REGEX = r"\[.*?\]\((.*?)\)"
 
 class MarkdownRemover(DocumentModifier):
     """
-    Removes Markdown formatting in a document including bold, italic, and URL text.
+    Removes Markdown formatting in a document including bold, italic, underline, and URL text.
     """
 
     def __init__(self):
