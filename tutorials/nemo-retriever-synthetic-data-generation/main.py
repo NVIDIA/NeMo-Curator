@@ -16,20 +16,21 @@ import argparse
 import importlib
 import os
 import shutil
-from typing import Any, List
 import time
+from typing import Any, List
 
-from retriever_evalset_generator import RetrieverEvalSetGenerator
 from dask.diagnostics import ProgressBar
 from dask.distributed import progress
-#from tqdm.dask import TqdmCallback
+from retriever_evalset_generator import RetrieverEvalSetGenerator
 
 from config.config import RetrieverEvalSDGConfig
-from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
+from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential, get_client
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
 from nemo_curator.modules.filter import Score, ScoreFilter
-from nemo_curator import get_client
+
+# from tqdm.dask import TqdmCallback
+
 
 def get_pipeline(args: Any) -> Any:
 
@@ -169,7 +170,6 @@ def main():
     else:
         raise ValueError("Output directory exists already, use a new directory!")
 
-    
     if args.input_format == "rawdoc":
         input_dataset = DocumentDataset.read_json(args.input_file)
     else:
@@ -187,8 +187,8 @@ def main():
     all_save_dir = os.path.join(args.output_dir, "jsonl", "all")
     os.makedirs(all_save_dir)
     generated_dataset.to_json(all_save_dir)
-    print ('Time taken to generate data = {:.2f} s'.format(time.time()-st_time))    
-    
+    print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
+
     # saving in beir format
     # write_to_beir(args, generated_dataset, filtered=False)
 
@@ -201,9 +201,7 @@ def main():
     generated_dataset.to_json(all_save_dir)
 
     # saving in beir format
-    #write_to_beir(args, filtered_dataset, filtered=True)
-
-
+    # write_to_beir(args, filtered_dataset, filtered=True)
 
 
 if __name__ == "__main__":
