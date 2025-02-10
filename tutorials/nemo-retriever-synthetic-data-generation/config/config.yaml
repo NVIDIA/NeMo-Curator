@@ -3,7 +3,7 @@ base_url: https://integrate.api.nvidia.com/v1
 api_key: "your api key here"
 
 # LLM Generator Module
-generator_model: mistralai/mixtral-8x22b-instruct-v0.1
+generator_model: nvdev/mistralai/mixtral-8x22b-instruct-v0.1
 temperature: 0.5
 top_p: 1.0
 max_tokens: 2048
@@ -57,13 +57,13 @@ generator_user_prompt_template: |
 
 
 #Easiness filter (embedding model as judge)
-easiness_filter: nvidia/nv-embedqa-e5-v5
+easiness_filter: nvdev/nvidia/nv-embedqa-e5-v5
 truncate: "END"
 percentile: 70  # Percentile for threshold calculation (float) [0, 100]
 batch_size: 1
 
 #Answerability filter (LLM-as-judge)
-answerability_filter: "meta/llama3-70b-instruct"
+answerability_filter: "nvdev/meta/llama-3.1-70b-instruct"
 num_criteria: 4  # Number of criteria to parse from the response. It must be alined with the prompt template
 answerability_system_prompt: |
       You are an evaluator who is rating questions to given context passages based on the given criteria. Assess the given question for clarity and answerability given enough domain knowledge, consider the following evaluation criterion:

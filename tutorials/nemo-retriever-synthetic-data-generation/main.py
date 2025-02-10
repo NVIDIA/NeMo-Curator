@@ -17,16 +17,19 @@ import importlib
 import os
 import shutil
 from typing import Any, List
+import time
 
 from retriever_evalset_generator import RetrieverEvalSetGenerator
-from tqdm.dask import TqdmCallback
+from dask.diagnostics import ProgressBar
+from dask.distributed import progress
+#from tqdm.dask import TqdmCallback
 
 from config.config import RetrieverEvalSDGConfig
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
 from nemo_curator.modules.filter import Score, ScoreFilter
-
+from nemo_curator import get_client
 
 def get_pipeline(args: Any) -> Any:
 
@@ -166,6 +169,7 @@ def main():
     else:
         raise ValueError("Output directory exists already, use a new directory!")
 
+    
     if args.input_format == "rawdoc":
         input_dataset = DocumentDataset.read_json(args.input_file)
     else:
@@ -174,26 +178,35 @@ def main():
     sdg_pipeline, filtering_pipeline = get_pipeline(args)
 
     print("Generating data ...")
-    with TqdmCallback(desc="apply"):
-        generated_dataset = sdg_pipeline(input_dataset)
-        generated_dataset.persist()
+    st_time = time.time()
+    generated_dataset = sdg_pipeline(input_dataset)
+    generated_dataset.persist()
+
     print("Writing all generated data to disk ...")
-    # saving in beir format
-    write_to_beir(args, generated_dataset, filtered=False)
-
-    print("Filtering data ...")
-    with TqdmCallback(desc="apply"):
-        filtered_dataset = filtering_pipeline(generated_dataset)
-        filtered_dataset.persist()
-    print("Writing filtered data to disk ...")
-    # saving in beir format
-    write_to_beir(args, filtered_dataset, filtered=True)
-
     # saving in jsonl format
     all_save_dir = os.path.join(args.output_dir, "jsonl", "all")
     os.makedirs(all_save_dir)
     generated_dataset.to_json(all_save_dir)
+    print ('Time taken to generate data = {:.2f} s'.format(time.time()-st_time))    
+    
+    # saving in beir format
+    # write_to_beir(args, generated_dataset, filtered=False)
+
+    print("Filtering data ...")
+    filtered_dataset = filtering_pipeline(generated_dataset)
+    filtered_dataset.persist()
+    print("Writing filtered data to disk ...")
+    all_save_dir = os.path.join(args.output_dir, "jsonl", "filtered")
+    os.makedirs(all_save_dir)
+    generated_dataset.to_json(all_save_dir)
+
+    # saving in beir format
+    #write_to_beir(args, filtered_dataset, filtered=True)
+
+
 
 
 if __name__ == "__main__":
+    dask_client = get_client()
     main()
+    # dask_client.cancel(dask_client.futures, force=True)
