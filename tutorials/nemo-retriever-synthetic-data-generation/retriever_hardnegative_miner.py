@@ -81,7 +81,6 @@ class HardNegativeMiner:
                 self.min_neg_score_threshold = cfg.min_hardness_threshold
             else:
                 self.min_neg_score_threshold = 0.0
-
         if cfg.min_cluster_size:
             self.min_cluster_size = cfg.min_cluster_size
         if cfg.max_number_clusters:
@@ -90,8 +89,6 @@ class HardNegativeMiner:
             self.cluster_output_dir = cfg.cluster_output_dir
         if cfg.logger_output_dir:
             self.logger_output_dir = cfg.logger_output_dir
-
-        # self._initialize_model()
 
     def __dask_tokenize__(self):
         return normalize_token(HardNegativeMiner)
@@ -261,15 +258,6 @@ class HardNegativeMiner:
         return sorted(neg_docs_scores, reverse=True, key=lambda x: x[1])[
             : self.n_hard_negatives
         ]
-
-    # def _initialize_model(self):
-    #     if self.model_type =="nvidia":
-    #         try:
-    #             self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
-    #         except Exception as e:
-    #             print(f"Error accessing NIM model: {e}, provide correct API key & URL")
-    #     elif self.model_type =="hf":
-    #         self.hf_model = SentenceTransformer(self.model_name, trust_remote_code=True)
 
     def _get_hf_embedding(self, text, prefix="query"):
         embeddings = self.hf_model.encode(prefix + text)

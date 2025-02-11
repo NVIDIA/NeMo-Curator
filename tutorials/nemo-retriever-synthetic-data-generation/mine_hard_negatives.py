@@ -79,6 +79,7 @@ def main():
         cfg = RetrieverHardNegativeMiningConfig.from_yaml(
             args.hard_negative_mining_config
         )
+
     else:
         raise ValueError("provide config for hard negative mining")
     if args.api_key:
