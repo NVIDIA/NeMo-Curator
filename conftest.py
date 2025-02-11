@@ -1,5 +1,5 @@
 import pytest
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client
 
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
