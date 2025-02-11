@@ -149,7 +149,7 @@ class DocumentJoiner(BaseModule):
         joined = joined[expected_cols]
         return joined
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Joins the documents back into a single document while preserving all the original fields.
         """

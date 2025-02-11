@@ -57,7 +57,7 @@ class DocumentSplitter(BaseModule):
         df = df.drop(columns="split_text")
         return df
 
-    def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Splits the documents into segments based on the separator and
         adds a column indicating the segment id.
