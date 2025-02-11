@@ -19,6 +19,7 @@ import os
 import pdb
 import shutil
 import time
+from pathlib import Path
 from typing import Any, List
 
 from retriever_hardnegative_miner import HardNegativeMiner
@@ -72,6 +73,7 @@ def main():
 
     if args.input_dir:
         input_dataset = DocumentDataset.read_json(args.input_dir)
+        # input_dataset = DocumentDataset.read_json(os.path.join(args.input_dir,"clustered_dataset"))
     else:
         raise ValueError("provide input file path")
 
@@ -90,7 +92,7 @@ def main():
     st_time = time.time()
     mined_dataset = mine_hard_negatives(input_dataset)
 
-    print("Time taken = {:.2f}".format(time.time() - st_time))
+    print("Time taken = {:.2f} s".format(time.time() - st_time))
     print("Saving data in jsonl format ...")
     mined_dataset.df.to_json(
         os.path.join(args.output_dir, "mined_dataset"), lines=True, orient="records"
@@ -98,4 +100,5 @@ def main():
 
 
 if __name__ == "__main__":
+    dask_client = get_client(cluster_type="cpu")
     main()
