@@ -11,10 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
+
 import pandas as pd
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.base import BaseModule
+from nemo_curator.utils.import_utils import gpu_only_import
+
+cudf = gpu_only_import("cudf")
 
 
 class DocumentSplitter(BaseModule):
@@ -44,7 +49,9 @@ class DocumentSplitter(BaseModule):
         self.text_field = text_field
         self.segment_id_field = segment_id_field
 
-    def _split_partition(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _split_partition(
+        self, df: Union[pd.DataFrame, cudf.DataFrame]
+    ) -> Union[pd.DataFrame, cudf.DataFrame]:
         # Split the text field into segments using the separator.
         df["split_text"] = df[self.text_field].str.split(self.separator)
         # Explode the list so that each segment becomes a separate row.
