@@ -28,7 +28,8 @@ from .dataset_ops import blend_datasets, Shuffle
 from .exact_dedup import ExactDuplicates
 from .meta import Sequential
 from .modify import Modify
-from .splitter import DocumentSplitter, DocumentJoiner
+from .splitter import DocumentSplitter
+from .joiner import DocumentJoiner
 from .task import TaskDecontamination
 from .to_backend import ToBackend
 

@@ -23,7 +23,7 @@ class Slicer(DocumentModifier):
 
     def __init__(
         self,
-        left: Optional[Union[int, str]] = None,
+        left: Optional[Union[int, str]] = 0,
         right: Optional[Union[int, str]] = None,
         include_left: bool = True,
         include_right: bool = True,
@@ -34,7 +34,8 @@ class Slicer(DocumentModifier):
             left (Union[int, str], optional): If the provided value is an int, slice the string from this index (inclusive).
                 If the provided value is a str, slice the string from the first occurence of this substring.
             right (Union[int, str], optional): If the provided value is an int, slice the string to this index (exclusive).
-                If the provided value is a str, slice the string to the last occurence of this substring.
+                If the provided value is a str, slice the string to the last occurence of this substring. If None,
+                right is set to the length of the string.
             include_left (bool): Only used if `left` is a string. If True, the value of `left` is included in the
                 slicing result. Defaults to False.
             include_right (bool): Only used if `right` is a string. If True, the value of `right` is included in the

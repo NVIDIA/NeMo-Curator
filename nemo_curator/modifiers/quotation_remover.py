@@ -33,6 +33,6 @@ class QuotationRemover(DocumentModifier):
         if len(text.strip()) > 2 and text[0] == '"' and text[-1] == '"':
             if "\n" not in text.strip():
                 text = text[1:-1]
-            elif "\n" in text.strip() and text.split("\n")[0][-1] != '"':
+            elif text.split("\n")[0][-1] != '"':
                 text = text[1:-1]
         return text
