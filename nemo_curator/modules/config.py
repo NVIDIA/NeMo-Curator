@@ -44,6 +44,8 @@ class FuzzyDuplicatesConfig(BaseConfig):
         but might lead to memory pressures and related errors.
     id_field: Column in the Dataset denoting document ID.
     text_field: Column in the Dataset denoting document content.
+    perform_removal: Boolean value to specify whether calling the module should remove the duplicates from
+        the original dataset, or return the list of IDs denoting duplicates.
     profile_dir: str, Default None
         If specified directory to write dask profile
     cache_dir: str, Default None
@@ -64,6 +66,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
     profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
+    perform_removal: bool = False
 
     # Minhash + LSH Config
     seed: int = 42
@@ -131,6 +134,11 @@ class FuzzyDuplicatesConfig(BaseConfig):
         if not 1 <= self.buckets_per_shuffle <= self.num_buckets:
             raise ValueError("Buckets per shuffle must be between [1, num_buckets]")
 
+        if not self.perform_removal:
+            warnings.warn(
+                "In future releases (starting with 0.8.0) the default will be True."
+            )
+
 
 @dataclass
 class SemDedupConfig(BaseConfig):
@@ -145,6 +153,7 @@ class SemDedupConfig(BaseConfig):
         embeddings_save_loc (str): Location to save embeddings.
         embedding_model_name_or_path (str): Model name or path for embeddings.
         embedding_batch_size (int): Inital Batch size for processing embeddings.
+        embedding_pooling_strategy (str): Strategy for pooling embeddings, either "mean_pooling" or "last_token". Defaults to "mean_pooling".
         write_embeddings_to_disk (bool): If True, saves the embeddings to disk, defaults to True.
             We recommend setting this to False when you have a delayed pipeline.
             Setting it to False can lead to more memory overhead.
@@ -168,6 +177,8 @@ class SemDedupConfig(BaseConfig):
     embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
+    # Options: "mean_pooling", "last_token"
+    embedding_pooling_strategy: str = "mean_pooling"
     write_embeddings_to_disk: bool = True
 
     # Clustering config
