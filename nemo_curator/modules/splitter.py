@@ -50,8 +50,8 @@ class DocumentSplitter(BaseModule):
         self.segment_id_field = segment_id_field
 
     def _split_partition(
-        self, df: Union[pd.DataFrame, cudf.DataFrame]
-    ) -> Union[pd.DataFrame, cudf.DataFrame]:
+        self, df: Union[pd.DataFrame, "cudf.DataFrame"]
+    ) -> Union[pd.DataFrame, "cudf.DataFrame"]:
         # Split the text field into segments using the separator.
         df["split_text"] = df[self.text_field].str.split(self.separator)
         # Explode the list so that each segment becomes a separate row.
