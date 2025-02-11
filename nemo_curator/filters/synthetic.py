@@ -104,7 +104,7 @@ class EasinessFilter(DocumentFilter):
             print(f"Error: {e}")
             response = None
 
-        if response:
+        if response and not isinstance(response, str):
             if isinstance(text, list):
                 embeddings = [r.embedding for r in response.data]
             elif isinstance(text, str):

@@ -45,21 +45,40 @@ Navigate to the [quick start notebook](notebooks/quickstart.ipynb) and follow th
 
 ### Run Pipeline (CLI)
 
-The pipeline can be run with datasets in rawdoc (only text, title and ids if any) format. To test the pipeline, you can use the provided example data at ```sample_data_rawdoc.jsonl```
+The pipeline can be run with datasets in rawdoc (only text, title and ids if any) format. To test the pipeline, you can use the provided example data at ```sample_data/sample_data_rawdoc.jsonl```
 
 Navigate to the top level of this project directory and run the following command in your command line. It will take roughly 5-10 minutes.
 
-- `Rawdoc format`
+- `jsonl format`
 
-To use rawdoc format, provide your data in a `.jsonl` file. The structure of the data should follow this format: `{"text": <document>, "title": <title>}`. Additionally, if the documents already have a document id, the input file can also contain document ids. The same ids will be persisted in the generated data as well. Another accepted format is `{"_id": <document_id>, "text": <document>, "title": <title>}`.
+To use jsonl format, provide your data in a `.jsonl` file. The structure of the data should follow this format: `{"text": <document>, "title": <title>}`. Additionally, if the documents already have a document id, the input file can also contain document ids. The same ids will be persisted in the generated data as well. Another accepted format is `{"_id": <document_id>, "text": <document>, "title": <title>}`.
 
-In order to run the pipeline, use the script ```main.py```
+In order to run the full pipeline (generation and filtering), use the script ```main.py```
 ```
 python tutorials/nemo-retriever-synthetic-data-generation/main.py \
   --api-key=<API Key> \
-  --input-file=tutorials/nemo-retriever-synthetic-data-generation/data/sample_data_rawdoc.jsonl \
+  --input-dir=tutorials/nemo-retriever-synthetic-data-generation/sample_data \
   --pipeline-config=tutorials/nemo-retriever-synthetic-data-generation/config/config.yaml\
-  --input-format=rawdoc \
+  --input-format=jsonl \
+  --output-dir=tutorials/nemo-retriever-synthetic-data-generation/outputs/sample_data_rawdoc
+```
+
+Alternatively, to just generate data, use the script ```generate.py```
+```
+python tutorials/nemo-retriever-synthetic-data-generation/generate.py \
+  --api-key=<API Key> \
+  --input-dir=tutorials/nemo-retriever-synthetic-data-generation/sample_data \
+  --pipeline-config=tutorials/nemo-retriever-synthetic-data-generation/config/config.yaml\
+  --input-format=jsonl \
+  --output-dir=tutorials/nemo-retriever-synthetic-data-generation/outputs/sample_data_rawdoc
+```
+
+And, to filter pre-generated data, use the script, ```filter.py```
+```
+python tutorials/nemo-retriever-synthetic-data-generation/filter.py \
+  --api-key=<API Key> \
+  --input-dir=tutorials/nemo-retriever-synthetic-data-generation/outputs/sample_data_rawdoc/jsonl/all \
+  --pipeline-config=tutorials/nemo-retriever-synthetic-data-generation/config/config.yaml\
   --output-dir=tutorials/nemo-retriever-synthetic-data-generation/outputs/sample_data_rawdoc
 ```
 

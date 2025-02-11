@@ -33,6 +33,7 @@ from nemo_curator.filters import (
     NonAlphaNumericFilter,
 )
 from nemo_curator.modules.filter import Score, ScoreFilter
+from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 
 def get_pipeline(args: Any) -> Any:
@@ -132,16 +133,16 @@ def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--input-file",
+        "--input-dir",
         type=str,
         default="",
-        help="File path of input file containing document chunks for synthetic data generation",
+        help="Input directory containing jsonl files that have the document/text chunks for query & answer generation",
     )
     parser.add_argument(
         "--input-format",
         type=str,
-        default="rawdoc",
-        help="The synthetic data generation framework supports two input formats rawdoc or squad.",
+        default="jsonl",
+        help="The input files must be in jsonl format",
     )
     parser.add_argument(
         "--pipeline-config",
@@ -178,13 +179,16 @@ def main():
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
+    elif not any(os.scandir(args.output_dir)):
+        print("Provided directory exists but is empty, using the empty directory")
     else:
         raise ValueError("Output directory exists already, use a new directory!")
 
-    if args.input_format == "rawdoc":
-        input_dataset = DocumentDataset.read_json(args.input_file)
+    if args.input_format == "jsonl":
+        input_files = get_all_files_paths_under(args.input_dir, keep_extensions="jsonl")
+        input_dataset = DocumentDataset.read_json(input_files)
     else:
-        raise ValueError("Error: Only rawdoc format supported")
+        raise ValueError("Error: Only jsonl format supported")
 
     if args.n_partitions:
         ddf = input_dataset.df
