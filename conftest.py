@@ -24,9 +24,12 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True, scope="session")
 def gpu_client(request):
-    with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
-        request.session.client = client
-        request.session.cluster = cluster
-        yield
-        client.close()
-        cluster.close()
+    if not request.config.getoption("--cpu"):
+        with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
+            request.session.client = client
+            request.session.cluster = cluster
+            yield client
+            client.close()
+            cluster.close()
+    else:
+        yield None
