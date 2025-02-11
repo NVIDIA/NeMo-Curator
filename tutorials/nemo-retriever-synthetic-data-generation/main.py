@@ -26,7 +26,11 @@ from retriever_evalset_generator import RetrieverEvalSetGenerator
 from config.config import RetrieverEvalSDGConfig
 from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential, get_client
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
+from nemo_curator.filters import (
+    AnswerabilityFilter,
+    EasinessFilter,
+    NonAlphaNumericFilter,
+)
 from nemo_curator.modules.filter import Score, ScoreFilter
 
 # from tqdm.dask import TqdmCallback
@@ -44,6 +48,7 @@ def get_pipeline(args: Any) -> Any:
         ]
     )
     filters = []
+
     if cfg.easiness_filter:
         filters.append(
             ScoreFilter(
@@ -180,25 +185,28 @@ def main():
     print("Generating data ...")
     st_time = time.time()
     generated_dataset = sdg_pipeline(input_dataset)
-    generated_dataset.persist()
+    # generated_dataset.persist()
 
     print("Writing all generated data to disk ...")
     # saving in jsonl format
     all_save_dir = os.path.join(args.output_dir, "jsonl", "all")
     os.makedirs(all_save_dir)
     generated_dataset.to_json(all_save_dir)
+    generated_dataset = DocumentDataset.read_json(all_save_dir)
     print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
 
     # saving in beir format
     # write_to_beir(args, generated_dataset, filtered=False)
 
     print("Filtering data ...")
+    st_time = time.time()
     filtered_dataset = filtering_pipeline(generated_dataset)
     filtered_dataset.persist()
     print("Writing filtered data to disk ...")
     all_save_dir = os.path.join(args.output_dir, "jsonl", "filtered")
     os.makedirs(all_save_dir)
-    generated_dataset.to_json(all_save_dir)
+    filtered_dataset.to_json(all_save_dir)
+    print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
 
     # saving in beir format
     # write_to_beir(args, filtered_dataset, filtered=True)
