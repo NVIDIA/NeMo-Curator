@@ -19,6 +19,7 @@ import shutil
 import time
 from typing import Any, List
 
+import numpy as np
 from dask.diagnostics import ProgressBar
 from dask.distributed import progress
 from retriever_evalset_generator import RetrieverEvalSetGenerator
@@ -168,6 +169,13 @@ def main():
         default=120,
         help="The timeout value for API calls in seconds.",
     )
+    parser.add_argument(
+        "--n-partitions",
+        type=int,
+        default=1,
+        help="Number of partitions for parallel processing of data.",
+    )
+
     args = parser.parse_args()
 
     if not os.path.exists(args.output_dir):
@@ -179,6 +187,15 @@ def main():
         input_dataset = DocumentDataset.read_json(args.input_file)
     else:
         raise ValueError("Error: Only rawdoc format supported")
+
+    if args.n_partitions:
+        ddf = input_dataset.df
+        n_data = len(ddf)
+        if args.n_partitions < n_data:
+            ddf = ddf.repartition(npartitions=args.n_partitions)
+            input_dataset = DocumentDataset(ddf)
+        else:
+            print("Number of partitions greater than data size, using 1 partition")
 
     sdg_pipeline, filtering_pipeline = get_pipeline(args)
 
