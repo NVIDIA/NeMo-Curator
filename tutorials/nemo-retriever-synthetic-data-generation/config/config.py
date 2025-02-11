@@ -92,3 +92,30 @@ class RetrieverEvalSDGConfig(BaseConfig):
     Question:
     {question}
     """
+
+
+@dataclass
+class RetrieverHardNegativeMiningConfig(BaseConfig):
+    """
+    Configuration for mining hard negatives
+
+    Attributes:
+
+    """
+
+    model_name: str = "nvdev/nvidia/llama-3.2-nv-embedqa-1b-v2"
+    model_type: str = "nvidia"
+    base_url: str = "https://integrate.api.nvidia.com/v1"
+    api_key: str = None
+    truncate: str = "END"
+    hard_negatives_to_mine: int = 4
+    hard_neg_mining_algorithm: str = "topk_abs"
+    max_hardness_threshold: float = 0.75
+    min_hardness_threshold: float = 0
+    query_prefix: str = ""
+    passage_prefix: str = ""
+    percpos: float = 0.95
+    min_cluster_size: int = 50
+    max_number_clusters: int = 200
+    cluster_output_dir: str = "/tmp/clusters"
+    logger_output_dir: str = "/tmp/logs"

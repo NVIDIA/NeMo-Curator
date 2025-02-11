@@ -24,22 +24,16 @@ from typing import Any
 from tqdm import tqdm
 
 tqdm.pandas()
-
-# from tqdm.dask import TqdmCallback
 import importlib
 
 import dask.array as da
 import dask.dataframe as dd
 import pandas as pd
 from dask.base import normalize_token, tokenize
-from dask.diagnostics import ProgressBar
-from dask.distributed import get_worker, progress
 from distributed import Client
 from omegaconf import DictConfig, OmegaConf
 from openai import AsyncOpenAI, OpenAI
-from tqdm import tqdm
 
-from nemo_curator import AsyncOpenAIClient, OpenAIClient
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.synthetic import AsyncNemotronGenerator, NemotronGenerator
@@ -122,7 +116,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         ddf["score"] = ""
 
         ddf = ddf.map_partitions(self._process_on_partition, meta=ddf)
-
         return DocumentDataset(ddf)
 
     def _process_on_partition(self, df: pd.DataFrame) -> pd.DataFrame:
