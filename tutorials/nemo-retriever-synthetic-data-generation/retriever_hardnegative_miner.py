@@ -56,6 +56,7 @@ class HardNegativeMiner:
         self.api_key = cfg.api_key
         self.truncate = cfg.truncate
         self.n_hard_negatives = cfg.hard_negatives_to_mine
+
         if cfg.passage_prefix:
             self.passage_prefix = cfg.passage_prefix
         if cfg.query_prefix:
@@ -179,6 +180,11 @@ class HardNegativeMiner:
     def _process_partition(self, df_p: pd.DataFrame):
 
         if self.model_type == "nvidia":
+            self.client = load_object_on_worker(
+                attr="nim_embedding_model",
+                load_object_function=create_nim_client,
+                load_object_kwargs={"base_url": self.base_url, "api_key": self.api_key},
+            )
             df_p["doc_embed"] = df_p["documents"].map(
                 lambda pgs: [self._get_nim_embedding(t, "passage") for t in pgs]
             )
@@ -186,6 +192,11 @@ class HardNegativeMiner:
                 lambda x: self._get_nim_embedding(x, "query")
             )
         elif self.model_type == "hf":
+            self.hf_model = load_object_on_worker(
+                attr="hf_embedding_model",
+                load_object_function=create_hf_model,
+                load_object_kwargs={"model_name_or_path": self.model_name},
+            )
             df_p["doc_embed"] = df_p["documents"].map(
                 lambda pgs: [
                     self._get_hf_embedding(t, self.passage_prefix) for t in pgs
