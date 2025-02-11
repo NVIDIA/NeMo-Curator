@@ -185,7 +185,7 @@ def main():
     print("Generating data ...")
     st_time = time.time()
     generated_dataset = sdg_pipeline(input_dataset)
-    # generated_dataset.persist()
+    generated_dataset.persist()
 
     print("Writing all generated data to disk ...")
     # saving in jsonl format
@@ -196,7 +196,9 @@ def main():
     print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
 
     # saving in beir format
-    # write_to_beir(args, generated_dataset, filtered=False)
+    print("Write all data in beir format")
+    write_to_beir(args, generated_dataset, filtered=False)
+    print("...done")
 
     print("Filtering data ...")
     st_time = time.time()
@@ -206,10 +208,12 @@ def main():
     all_save_dir = os.path.join(args.output_dir, "jsonl", "filtered")
     os.makedirs(all_save_dir)
     filtered_dataset.to_json(all_save_dir)
-    print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
+    print("Time taken to filter data = {:.2f} s".format(time.time() - st_time))
 
+    print("Writing filtered data in beir format")
     # saving in beir format
-    # write_to_beir(args, filtered_dataset, filtered=True)
+    write_to_beir(args, filtered_dataset, filtered=True)
+    print("RUN complete!")
 
 
 if __name__ == "__main__":
