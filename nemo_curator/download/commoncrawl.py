@@ -352,10 +352,10 @@ class CommonCrawlWARCExtractor(DocumentExtractor):
             if text is not None:
                 if len(text) > 0:
                     text = "\n\n".join(text)
-                    meta = {"language": lang}
-                    return meta, text
+                    meta = {"language": lang, "text": text}
+                    return meta
                 else:
-                    return None, None
+                    return None
 
 
 def download_common_crawl(

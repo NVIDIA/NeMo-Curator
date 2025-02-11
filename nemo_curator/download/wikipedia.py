@@ -742,7 +742,7 @@ class WikipediaExtractor(DocumentExtractor):
                 )
             )
         # Don't return any meta here
-        return {}, "\n\n".join(section_text)
+        return {"text": "\n\n".join(section_text)}
 
 
 def download_wikipedia(

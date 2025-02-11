@@ -218,12 +218,12 @@ class ArxivExtractor(DocumentExtractor):
                 for file_content in content
             )
         except Exception:
-            return {}, None
+            return None
 
         # Don't return meta
         if cleaned_latex_file_str is not None:
             if len(cleaned_latex_file_str) > 0:
-                return {}, cleaned_latex_file_str
+                return {"text": cleaned_latex_file_str}
 
     def _clean_tex_file(self, file_content, arg_macros, non_arg_macros):
         r"""function takes a tex file as input and returns a cleaned version. The

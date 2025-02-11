@@ -114,8 +114,29 @@ def _download_and_extract_single_partition(
     input_meta: Union[str, dict] = None,
     filename_col: str = "file_name",
 ) -> pd.DataFrame:
+    """
+    Downloads a single partition from a URL and extracts its contents in-memory without writing
+    the extracted output to disk. The provided output_path is used only to check if an extracted
+    output already exists and, if so, skips re-downloading and extraction.
+
+    Parameters:
+        paths (Tuple[str, str]): A tuple (url, output_path) where 'url' is the source URL and
+            'output_path' is the expected location of a previously extracted output.
+        downloader (DocumentDownloader): An object to download the content from the URL.
+        iterator (DocumentIterator): An object to iterate over records in the downloaded file.
+        extractor (DocumentExtractor): An object to extract the desired content from each record.
+        output_type (str): A string specifying the output file type (e.g., "jsonl").
+        keep_raw_download (bool): If False, deletes the raw download file after extraction.
+        force_download (bool): If False and output_path exists, skips downloading and extraction.
+        input_meta (Union[str, dict], optional): Metadata describing the input file’s structure.
+        filename_col (str, optional): Name of the column to store the filename within the result DataFrame.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the extracted records.
+    """
     url, output_path = paths
 
+    # If an extracted output already exists and we're not forcing a download, load and return it.
     if os.path.exists(output_path) and not force_download:
         partition = read_single_partition(
             [output_path],
@@ -125,31 +146,24 @@ def _download_and_extract_single_partition(
         )
         return partition
 
+    # Download the file and extract its records in memory.
     downloaded_file = downloader.download(url)
     records = []
-    # Iterate over all records in file
     for item in iterator.iterate(downloaded_file):
         record_meta, content = item
-        # Extract the text from the record
         extracted = extractor.extract(content)
         if extracted is not None:
-            text_meta, text = extracted
-            if text is not None:
-                line = {
-                    "text": text,
-                    **text_meta,
-                    **record_meta,
-                }
-                records.append(line)
+            # Merge the extracted data and record metadata into one dictionary.
+            line = {**extracted, **record_meta}
+            records.append(line)
 
     partition = pd.DataFrame(records)
-    filename = os.path.basename(output_path)
-    output_dir = os.path.dirname(output_path)
-    partition[filename_col] = filename
-    single_partition_write_with_filename(
-        partition, output_dir, output_type=output_type, filename_col=filename_col
-    )
-    if not keep_raw_download:
+    # Add a filename column for consistency using the basename of the output_path.
+    partition[filename_col] = os.path.basename(output_path)
+
+    # Since we're not writing the extracted partition to disk, the output_path is not used here.
+    # Clean up the raw downloaded file if it's not meant to be kept.
+    if not keep_raw_download and os.path.exists(downloaded_file):
         os.remove(downloaded_file)
 
     return partition
@@ -169,35 +183,40 @@ def download_and_extract(
     filename_col: str = "file_name",
 ) -> DocumentDataset:
     """
-    Downloads and extracts a dataset into a format accepted by the NeMo Curator
+    Downloads and extracts a dataset into a DocumentDataset without writing the extracted files to disk.
+    The output_paths are used only to check whether an extracted result already exists; if so, extraction
+    is skipped for that partition.
 
-    Args:
-      urls: A list of urls to download the dataset from
-      output_paths: A list of paths to save the final extracted output to.
-        The raw output of the downloader will be saved using the path given by downloader.download(url).
-      downloader: A DocumentDownloader that handles retrieving each file from its url and saving it to storage
-      iterator: A DocumentIterator that handles iterating through the downloaded file's format
-      extractor: A DocumentExtractor that handles extracting the data from its raw format into text
-      output_format: A dictionary mappings columns to datatypes for the fields of each datapoint after extraction.
-      output_type: The file type to save the dataset as.
-      keep_raw_download: Whether to keep the pre-extracted download file.
-      force_download: If False, will skip processing all files in output_paths that already exist and
-        directly read from them instead.
-      input_meta: A dictionary or a string formatted as a dictionary, which outlines
-        the field names and their respective data types within the JSONL input file.
-      filename_col : The name of the column that contains the filename. Default is "filename_col"
+    Parameters:
+        urls (List[str]): A list of URLs from which to download dataset files.
+        output_paths (List[str]): A list of paths corresponding to each URL; if a path already exists,
+            extraction is skipped for that partition.
+        downloader (DocumentDownloader): The downloader instance to retrieve files.
+        iterator (DocumentIterator): The iterator instance to traverse the file's records.
+        extractor (DocumentExtractor): The extractor instance to obtain content from each record.
+        output_format (dict): Mapping of column names to their data types for the extracted records.
+        output_type (str, optional): The format/type of the extracted output (e.g., "jsonl"). Defaults to "jsonl".
+        keep_raw_download (bool, optional): Whether to retain the raw downloaded file after extraction.
+            Defaults to False.
+        force_download (bool, optional): If False, partitions with an existing output (as per output_paths)
+            are not re-downloaded. Defaults to False.
+        input_meta (Union[str, dict], optional): Metadata defining the schema of the input data. Defaults to None.
+        filename_col (str, optional): The name for the filename column in the resulting data. Defaults to "file_name".
+
     Returns:
-      A DocumentDataset of the downloaded data
+        DocumentDataset: A dataset constructed from the extracted data.
     """
-    if len(urls) == 0:
-        raise ValueError("No urls were provided to download")
-
+    # Validate parameters
+    if not urls:
+        raise ValueError("No URLs were provided to download")
     if len(urls) != len(output_paths):
         raise ValueError(
-            f"Different number of urls and output_paths. {len(urls)} urls vs {len(output_paths)} output_paths"
+            f"Different number of URLs and output_paths. {len(urls)} URLs vs {len(output_paths)} output_paths"
         )
 
+    # Ensure consistent ordering of output_format keys.
     output_format = dict(sorted(output_format.items()))
+
     df = dd.from_map(
         _download_and_extract_single_partition,
         zip(urls, output_paths),
