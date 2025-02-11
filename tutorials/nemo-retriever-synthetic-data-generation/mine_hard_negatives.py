@@ -72,8 +72,8 @@ def main():
         raise ValueError("Output dir exists already, use a new file name!")
 
     if args.input_dir:
-        input_dataset = DocumentDataset.read_json(args.input_dir)
-        # input_dataset = DocumentDataset.read_json(os.path.join(args.input_dir,"clustered_dataset"))
+        input_files = get_all_files_paths_under(args.input_dir, keep_extensions="part")
+        input_dataset = DocumentDataset.read_json(input_files)
     else:
         raise ValueError("provide input file path")
 
@@ -95,10 +95,10 @@ def main():
     print("Time taken = {:.2f} s".format(time.time() - st_time))
     print("Saving data in jsonl format ...")
     mined_dataset.df.to_json(
-        os.path.join(args.output_dir, "mined_dataset"), lines=True, orient="records"
+        os.path.join(args.output_dir), lines=True, orient="records"
     )
 
 
 if __name__ == "__main__":
-    dask_client = get_client(cluster_type="cpu")
+    dask_client = get_client(cluster_type="gpu")
     main()

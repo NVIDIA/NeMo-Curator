@@ -152,7 +152,10 @@ class HardNegativeMiner:
         return p_df
 
     def _groupby_question(self, pdf):
-        return pdf.groupby("question").agg({"documents": list})
+        pdf2 = pdf.groupby("question").agg({"documents": set})
+        pdf2["documents"] = pdf2["documents"].map(lambda x: list(x))
+        del pdf
+        return pdf2
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
 
@@ -160,7 +163,6 @@ class HardNegativeMiner:
         df = df.to_backend("pandas")
         df = df[["question", "documents"]]
         df = df.map_partitions(self._groupby_question).reset_index()
-
         print("Number partitions in dataset = {}".format(df.npartitions))
 
         df["neg_doc_scores"] = ""
