@@ -84,12 +84,13 @@ def main():
     if args.api_key:
         cfg.api_key = args.api_key
 
+    st_time = time.time()
     miner = HardNegativeMiner(cfg)
     clustered_dataset = miner.repartition_semantic_similarity(input_dataset)
+    clustered_dataset.persist()
 
     # saving clustered dataset
     print("saving clustered dataset")
-    st_time = time.time()
     clustered_dataset.df.to_json(os.path.join(args.output_dir, "clustered_dataset"))
     print("Time taken to cluster data = {:.2f} s".format(time.time() - st_time))
 

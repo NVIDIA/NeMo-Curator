@@ -109,8 +109,8 @@ class HardNegativeMiner:
         print("Number of clusters used = {}".format(n_clusters))
         assert "doc_id" not in df.columns
         df["embeddings"] = ""  # refers to document embeddings
-        pdf = df.map_partitions(self._get_doc_embeddings, meta=df).compute()
-        df = dd.from_pandas(pdf)
+        df = df.map_partitions(self._get_doc_embeddings, meta=df)
+        # df = dd.from_pandas(pdf)
 
         df = df.explode("documents")
         df = df.map_partitions(self.assign_ids)
@@ -124,8 +124,10 @@ class HardNegativeMiner:
             logger=self.logger_output_dir,
         )
         clustered_dataset = self.clustering_model(embeddings_dataset)
+        df_c = clustered_dataset.df
+        df_c = df_c[["documents", "question"]]
 
-        return clustered_dataset
+        return DocumentDataset(df_c)
 
     def _get_doc_embeddings(self, p_df: pd.DataFrame):
 
