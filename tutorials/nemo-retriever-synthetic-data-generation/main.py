@@ -34,8 +34,6 @@ from nemo_curator.filters import (
 )
 from nemo_curator.modules.filter import Score, ScoreFilter
 
-# from tqdm.dask import TqdmCallback
-
 
 def get_pipeline(args: Any) -> Any:
 
