@@ -22,10 +22,7 @@ import pandas as pd
 from dask import compute, delayed
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.distributed_utils import (
-    read_single_partition,
-    single_partition_write_with_filename,
-)
+from nemo_curator.utils.distributed_utils import read_single_partition
 
 
 class DocumentDownloader(ABC):
@@ -177,34 +174,61 @@ def download_and_extract(
     extractor: DocumentExtractor,
     output_format: dict,
     output_type: str = "jsonl",
-    keep_raw_download=False,
-    force_download=False,
+    keep_raw_download: bool = False,
+    force_download: bool = False,
     input_meta: Union[str, dict] = None,
     filename_col: str = "file_name",
 ) -> DocumentDataset:
     """
-    Downloads and extracts a dataset into a DocumentDataset without writing the extracted files to disk.
-    The output_paths are used only to check whether an extracted result already exists; if so, extraction
-    is skipped for that partition.
+    Download files from the given URLs, extract their records, and
+    construct a DocumentDataset.
 
-    Parameters:
-        urls (List[str]): A list of URLs from which to download dataset files.
-        output_paths (List[str]): A list of paths corresponding to each URL; if a path already exists,
-            extraction is skipped for that partition.
-        downloader (DocumentDownloader): The downloader instance to retrieve files.
-        iterator (DocumentIterator): The iterator instance to traverse the file's records.
-        extractor (DocumentExtractor): The extractor instance to obtain content from each record.
-        output_format (dict): Mapping of column names to their data types for the extracted records.
-        output_type (str, optional): The format/type of the extracted output (e.g., "jsonl"). Defaults to "jsonl".
-        keep_raw_download (bool, optional): Whether to retain the raw downloaded file after extraction.
+    For each URL provided, this function downloads the corresponding
+    file (unless an extracted output already exists and force_download is
+    False), iterates over its records, extracts the desired content, and
+    finally converts all records into a DocumentDataset.
+
+    Args:
+        urls (List[str]):
+            A list of URLs from which to download dataset files.
+        output_paths (List[str]):
+            A list of file paths where the extracted outputs should be
+            found. If a file already exists at a given path and force_download
+            is False, that partition is skipped.
+        downloader (DocumentDownloader):
+            The downloader instance responsible for fetching files from
+            the specified URLs.
+        iterator (DocumentIterator):
+            The iterator instance used to traverse the downloaded file
+            and yield records.
+        extractor (DocumentExtractor):
+            The extractor instance used to obtain the desired content from
+            each record.
+        output_format (dict):
+            A dictionary mapping column names to the data types for the
+            extracted records.
+        output_type (str, optional):
+            The output file format/extension (e.g., "jsonl" or "parquet").
+            Defaults to "jsonl". This parameter is only used to verify whether
+            an extracted output already exists.
+        keep_raw_download (bool, optional):
+            If True, the raw downloaded files are retained after extraction.
             Defaults to False.
-        force_download (bool, optional): If False, partitions with an existing output (as per output_paths)
-            are not re-downloaded. Defaults to False.
-        input_meta (Union[str, dict], optional): Metadata defining the schema of the input data. Defaults to None.
-        filename_col (str, optional): The name for the filename column in the resulting data. Defaults to "file_name".
+        force_download (bool, optional):
+            If False and an output file already exists at a given path, the
+            download and extraction for that file are skipped.
+            Defaults to False.
+        input_meta (Union[str, dict], optional):
+            Optional metadata describing the input file's schema.
+            Defaults to None.
+        filename_col (str, optional):
+            The name for the column in the resulting dataset that records
+            the basename of the output file. Defaults to "file_name".
 
     Returns:
-        DocumentDataset: A dataset constructed from the extracted data.
+        DocumentDataset:
+            A dataset composed of the records extracted from the downloaded
+            files.
     """
     # Validate parameters
     if not urls:

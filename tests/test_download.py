@@ -20,19 +20,13 @@ from urllib.parse import urlparse
 import pytest
 
 from nemo_curator.download import ResiliparseExtractor, download_and_extract
-from nemo_curator.download.arxiv import (
-    ArxivDownloader,
-    ArxivExtractor,
-    ArxivIterator,
-    download_arxiv,
-)
+from nemo_curator.download.arxiv import ArxivDownloader, ArxivExtractor, ArxivIterator
 from nemo_curator.download.commoncrawl import (
     CommonCrawlWARCDownloader,
     CommonCrawlWARCExtractor,
     CommonCrawlWARCIterator,
     JusTextExtractor,
     ResiliparseExtractor,
-    download_common_crawl,
     get_common_crawl_urls,
     get_stop_list_dict,
 )
@@ -40,7 +34,6 @@ from nemo_curator.download.wikipedia import (
     WikipediaDownloader,
     WikipediaExtractor,
     WikipediaIterator,
-    download_wikipedia,
 )
 
 
