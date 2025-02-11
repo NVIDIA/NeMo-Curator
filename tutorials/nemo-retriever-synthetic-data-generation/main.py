@@ -217,19 +217,21 @@ def main():
     write_to_beir(args, generated_dataset, filtered=False)
     print("...done")
 
-    print("Filtering data ...")
-    st_time = time.time()
-    filtered_dataset = filtering_pipeline(generated_dataset)
-    filtered_dataset.persist()
-    print("Writing filtered data to disk ...")
-    all_save_dir = os.path.join(args.output_dir, "jsonl", "filtered")
-    os.makedirs(all_save_dir)
-    filtered_dataset.to_json(all_save_dir)
-    print("Time taken to filter data = {:.2f} s".format(time.time() - st_time))
+    if filtering_pipeline:
+        print("Filtering data ...")
+        st_time = time.time()
+        filtered_dataset = filtering_pipeline(generated_dataset)
+        filtered_dataset.persist()
+        print("Writing filtered data to disk ...")
+        all_save_dir = os.path.join(args.output_dir, "jsonl", "filtered")
+        os.makedirs(all_save_dir)
+        filtered_dataset.to_json(all_save_dir)
+        print("Time taken to filter data = {:.2f} s".format(time.time() - st_time))
 
-    print("Writing filtered data in beir format")
-    # saving in beir format
-    write_to_beir(args, filtered_dataset, filtered=True)
+        print("Writing filtered data in beir format")
+        # saving in beir format
+        write_to_beir(args, filtered_dataset, filtered=True)
+
     print("RUN complete!")
 
 
