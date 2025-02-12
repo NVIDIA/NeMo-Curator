@@ -58,7 +58,9 @@ By "extraction", we typically mean the process of converting a data format from 
 
         # Download and extract the Common Crawl data.
         # The function returns a DocumentDataset that contains the extracted documents.
-        # Note: The output folder is passed here to store intermediate files and check if the data has already been downloaded.
+        # Note: The output folder and output type are passed here to store intermediate files
+        # and check if the data has already been downloaded. They should match the final location
+        # and format of the extracted data.
         common_crawl_dataset = download_common_crawl(
             output_folder, start_snapshot, end_snapshot, output_type=output_type
         )
