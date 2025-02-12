@@ -15,7 +15,7 @@
 import importlib
 import os
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import dask.dataframe as dd
 import pandas as pd
@@ -110,6 +110,7 @@ def _download_and_extract_single_partition(
     force_download: bool,
     input_meta: Union[str, dict] = None,
     filename_col: str = "file_name",
+    record_limit: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Downloads a single partition from a URL and extracts its contents in-memory without writing
@@ -127,7 +128,7 @@ def _download_and_extract_single_partition(
         force_download (bool): If False and output_path exists, skips downloading and extraction.
         input_meta (Union[str, dict], optional): Metadata describing the input file’s structure.
         filename_col (str, optional): Name of the column to store the filename within the result DataFrame.
-
+        record_limit (int, optional): Limit the number of records to extract from each file.
     Returns:
         pd.DataFrame: A DataFrame containing the extracted records.
     """
@@ -147,6 +148,8 @@ def _download_and_extract_single_partition(
     downloaded_file = downloader.download(url)
     records = []
     for item in iterator.iterate(downloaded_file):
+        if record_limit is not None and len(records) >= record_limit:
+            break
         record_meta, content = item
         extracted = extractor.extract(content)
         if extracted is not None:
@@ -178,6 +181,7 @@ def download_and_extract(
     force_download: bool = False,
     input_meta: Union[str, dict] = None,
     filename_col: str = "file_name",
+    record_limit: Optional[int] = None,
 ) -> DocumentDataset:
     """
     Download files from the given URLs, extract their records, and
@@ -224,7 +228,8 @@ def download_and_extract(
         filename_col (str, optional):
             The name for the column in the resulting dataset that records
             the basename of the output file. Defaults to "file_name".
-
+        record_limit (int, optional): Limit the number of records to extract from each file.
+            Defaults to None.
     Returns:
         DocumentDataset:
             A dataset composed of the records extracted from the downloaded
@@ -253,6 +258,7 @@ def download_and_extract(
         enforce_metadata=False,
         input_meta=input_meta,
         filename_col=filename_col,
+        record_limit=record_limit,
         meta=output_format,
     )
 

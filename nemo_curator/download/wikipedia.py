@@ -755,6 +755,7 @@ def download_wikipedia(
     keep_raw_download: bool = False,
     force_download: bool = False,
     url_limit: Optional[int] = None,
+    record_limit: Optional[int] = None,
 ) -> DocumentDataset:
     """
     Downloads and extracts articles from a Wikipedia dump.
@@ -780,6 +781,8 @@ def download_wikipedia(
         force_download (bool, optional): If False, skips re-downloading or re-extracting files that already exist.
         url_limit (Optional[int], optional): The maximum number of dump file URLs to process. If None, all
             available URLs are processed.
+        record_limit (Optional[int], optional): Limit the number of records to extract from each file.
+            If None, all available records are extracted.
 
     Returns:
         DocumentDataset: A dataset object containing the extracted Wikipedia articles along with associated metadata.
@@ -824,6 +827,7 @@ def download_wikipedia(
         keep_raw_download=keep_raw_download,
         force_download=force_download,
         filename_col="file_name",
+        record_limit=record_limit,
     )
 
     return dataset

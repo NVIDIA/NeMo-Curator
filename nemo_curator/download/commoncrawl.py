@@ -371,6 +371,7 @@ def download_common_crawl(
     keep_raw_download: bool = False,
     force_download: bool = False,
     url_limit: Optional[int] = None,
+    record_limit: Optional[int] = None,
 ) -> DocumentDataset:
     """
     Downloads Common Crawl WARC snapshots and extracts text content using a specified extraction algorithm.
@@ -398,6 +399,8 @@ def download_common_crawl(
       force_download (bool): If False, skips re-downloading or re-extracting snapshots if outputs already exist in output_path.
       url_limit: Optional; the maximum number of WARC files to download from the snapshot range.
           • If None, all available files within the specified snapshots are downloaded.
+      record_limit: Optional; the maximum number of records to extract from each WARC file.
+          • If None, all available records are extracted.
     """
     common_crawl_urls = get_common_crawl_urls(
         starting_snapshot=start_snapshot, ending_snapshot=end_snapshot, news=news
@@ -447,6 +450,7 @@ def download_common_crawl(
         keep_raw_download=keep_raw_download,
         force_download=force_download,
         filename_col="file_name",
+        record_limit=record_limit,
     )
 
     return dataset

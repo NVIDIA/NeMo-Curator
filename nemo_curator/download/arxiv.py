@@ -371,6 +371,7 @@ def download_arxiv(
     keep_raw_download: bool = False,
     force_download: bool = False,
     url_limit: Optional[int] = None,
+    record_limit: Optional[int] = None,
 ) -> DocumentDataset:
     """
     Download Arxiv tar files and extract the contained LaTeX projects.
@@ -397,7 +398,9 @@ def download_arxiv(
         url_limit (Optional[int], optional):
             Limits the maximum number of Arxiv tar file URLs to download and process.
             If None, all available URLs (from get_arxiv_urls) are processed.
-
+        record_limit (Optional[int], optional):
+            Limits the maximum number of records to extract from each tar file.
+            If None, all available records are extracted.
     Returns:
         DocumentDataset:
             A dataset object containing the extracted documents.
@@ -433,6 +436,7 @@ def download_arxiv(
         keep_raw_download=keep_raw_download,
         force_download=force_download,
         filename_col="file_name",
+        record_limit=record_limit,
     )
 
     return dataset
