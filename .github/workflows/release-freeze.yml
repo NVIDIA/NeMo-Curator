@@ -19,7 +19,7 @@ jobs:
   code-freeze:
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_code_freeze.yml@v0.21.6
     with:
-      library-name: NeMo-Curator
+      library-name: NeMo Curator
       python-package: nemo_curator
       release-type: ${{ inputs.release-type }}
       freeze-commit: ${{ inputs.freeze-commit }}
