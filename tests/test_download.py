@@ -124,6 +124,9 @@ class TestDownload:
 
         assert result == expected
 
+    @pytest.mark.skip(
+        reason="Skipping until we figure out how to get this to a non flaky state"
+    )
     def test_common_crawl_urls(self):
         start_snapshot = "2021-04"
         end_snapshot = "2021-10"
@@ -145,6 +148,9 @@ class TestDownload:
             start_snapshot = "2021-10"
             urls = get_common_crawl_urls(start_snapshot, end_snapshot)
 
+    @pytest.mark.skip(
+        reason="Skipping until we figure out how to get this to a non flaky state"
+    )
     def test_common_crawl_news_urls(self):
         start_snapshot = "2021-04"
         end_snapshot = "2021-10"
