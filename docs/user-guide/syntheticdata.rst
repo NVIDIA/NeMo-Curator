@@ -694,13 +694,19 @@ The only exception is that a ``max_concurrent_requests`` parameter can be suppli
 Customize the Nemotron-CC Pipeline
 -----------------------------------
 
-Nemotron-CC used a collection of pipelines focused on rephrasing reference documents into different formats/styles.
-NeMo Curator provides a synchronous and asynchronous version of each pipeline with ``nemo_curator.synthetic.NemotronCCGenerator`` and ``nemo_curator.synthetic.AsyncNemotronCCGenerator``.
+Nemotron-CC is an open, large, high-quality English Common Crawl dataset that enables pretraining highly accurate LLMs over both short and long token horizons.
+
+You can use the Nemotron-CC pipeline collection to rewrite reference documents into different formats and styles. For example, you can rephrase short sentences with simple diction into technical, scholarly prose (like Wikipedia) or distill wandering paragraphs into condensed bulleted lists.
+
+NeMo Curator provides two versions of each pipeline:
+
+* **Synchronous**: ``nemo_curator.synthetic.NemotronCCGenerator``
+* **Asynchronous**: ``nemo_curator.synthetic.AsyncNemotronCCGenerator``
 
 Rewrite to Wikipedia Style
 ##########################
 
-The ``NemotronCCGenerator.rewrite_to_wikipedia_style`` method rewrites a document into a style that is similar to Wikipedia.
+Use the ``NemotronCCGenerator.rewrite_to_wikipedia_style`` method to rewrite a document into a style that is similar to Wikipedia in terms of line spacing, punctuation, and style.
 
 .. code-block:: python
 
@@ -735,7 +741,7 @@ The ``NemotronCCGenerator.rewrite_to_wikipedia_style`` method rewrites a documen
 Generate Diverse QA Pairs
 #########################
 
-The ``NemotronCCGenerator.generate_diverse_qa`` method generates a list of diverse QA pairs from a document.
+Use the ``NemotronCCGenerator.generate_diverse_qa`` method to generate a list of diverse QA pairs from a document.
 
 .. code-block:: python
 
@@ -768,7 +774,10 @@ The ``NemotronCCGenerator.generate_diverse_qa`` method generates a list of diver
     # Answer: The moon is made of rock and dust.
 
 
-To help with cleaning the output, the ``NemotronCCDiverseQAPostprocessor`` class is provided.
+Postprocessor
+^^^^^^^^^^^^^
+
+You can optionally use the ``NemotronCCDiverseQAPostprocessor`` class to reformat the output.
 
 .. code-block:: python
 
@@ -795,6 +804,12 @@ To help with cleaning the output, the ``NemotronCCDiverseQAPostprocessor`` class
     responses = generator.generate_diverse_qa(document=document, model=model, model_kwargs=model_kwargs)
     postprocessor = NemotronCCDiverseQAPostprocessor(text_field="text", response_field="diverse_qa_response")
     dataset = DocumentDataset.from_pandas(pd.DataFrame({"text": document, "diverse_qa_response": responses}))
+
+    # This postprocessor will sample a random number of QA pairs up to max_num_pairs.
+    # If a tokenizer is provided, the number of QA pairs will be sampled from at least
+    # 1 and at most floor(max_num_pairs * num_tokens / 150).
+    # Otherwise, the number of QA pairs will be sampled randomly strictly up to max_num_pairs.
+    # The generated QA pairs are shuffled and then appended to the original text.
     cleaned_dataset = postprocessor(dataset)
 
     first_entry = cleaned_dataset.df.head(1)
@@ -806,7 +821,7 @@ To help with cleaning the output, the ``NemotronCCDiverseQAPostprocessor`` class
 Generate Knowledge List
 #######################
 
-The ``NemotronCCGenerator.generate_knowledge_list`` method generates a list of knowledge from a document.
+Use the ``NemotronCCGenerator.generate_knowledge_list`` method to generate a list of knowledge from a document.
 
 .. code-block:: python
 
@@ -839,7 +854,10 @@ The ``NemotronCCGenerator.generate_knowledge_list`` method generates a list of k
     # - The moon is the only natural satellite of the Earth.
     # ...
 
-To help with cleaning the output, the ``NemotronCCKnowledgeListPostprocessor`` class is provided.
+Postprocessor
+^^^^^^^^^^^^^
+
+You can optionally use the ``NemotronCCKnowledgeListPostprocessor`` class to reformat the output.
 
 .. code-block:: python
 
@@ -877,6 +895,12 @@ To help with cleaning the output, the ``NemotronCCKnowledgeListPostprocessor`` c
 
     postprocessor = NemotronCCKnowledgeListPostprocessor(text_field="knowledge_list_response")
     dataset = DocumentDataset.from_pandas(pd.DataFrame({"knowledge_list_response": responses}))
+
+    # This postprocessor removes formatting artifacts
+    # such as bullet point prefixes ("- ") and extra indentation from each line,
+    # ensuring that the final output is a clean, uniformly formatted list of knowledge items.
+    # The processing includes skipping any initial non-bullet line and merging related lines
+    # to reconstruct multi-line questions or answers.
     cleaned_dataset = postprocessor(dataset)
 
     first_entry = cleaned_dataset.df.head(1)
@@ -888,7 +912,7 @@ To help with cleaning the output, the ``NemotronCCKnowledgeListPostprocessor`` c
 Distill Document
 #################
 
-The ``NemotronCCGenerator.distill`` method distills a document into a more concise form.
+Use the ``NemotronCCGenerator.distill`` method to make a document more concise.
 
 .. code-block:: python
 
@@ -923,7 +947,7 @@ The ``NemotronCCGenerator.distill`` method distills a document into a more conci
 Extract Knowledge
 ################
 
-The ``NemotronCCGenerator.extract_knowledge`` method extracts knowledge from a document.
+Use the ``NemotronCCGenerator.extract_knowledge`` method to extract knowledge from a document.
 
 .. code-block:: python
 
@@ -938,7 +962,8 @@ The ``NemotronCCGenerator.extract_knowledge`` method extracts knowledge from a d
     client = OpenAIClient(openai_client)
     generator = NemotronCCGenerator(client)
 
-    document = "The moon is bright. It shines at night."
+    document = ("The moon is bright. It shines at night. I love the moon. I first saw it up"
+               " close through a telescope in 1999 at a sleepover.")
     model = "nv-mistralai/mistral-nemo-12b-instruct"
     model_kwargs = {
         "temperature": 0.5,
