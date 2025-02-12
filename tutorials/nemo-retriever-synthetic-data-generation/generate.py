@@ -47,7 +47,7 @@ def get_pipeline(args: Any) -> Any:
             RetrieverEvalSetGenerator(cfg),
         ]
     )
-   
+
     return sdg_pipeline
 
 
@@ -148,8 +148,7 @@ def main():
         raise ValueError("Output directory exists already, use a new directory!")
 
     if args.input_format == "jsonl":
-        input_files = get_all_files_paths_under(args.input_dir,
-                                                keep_extensions='jsonl')
+        input_files = get_all_files_paths_under(args.input_dir, keep_extensions="jsonl")
         input_dataset = DocumentDataset.read_json(input_files)
     else:
         raise ValueError("Error: Only jsonl format supported")
