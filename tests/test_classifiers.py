@@ -139,9 +139,6 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
     assert result_pred.equals(expected_pred)
 
 
-@pytest.mark.skip(
-    reason="Skipping until https://huggingface.co/nvidia/nemocurator-fineweb-mixtral-edu-classifier is published"
-)
 @pytest.mark.gpu
 def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
     from nemo_curator.classifiers import FineWebMixtralEduClassifier
@@ -155,9 +152,6 @@ def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
     assert result_pred.equals(expected_pred)
 
 
-@pytest.mark.skip(
-    reason="Skipping until https://huggingface.co/nvidia/nemocurator-fineweb-nemotron-4-edu-classifier is published"
-)
 @pytest.mark.gpu
 def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
     from nemo_curator.classifiers import FineWebNemotronEduClassifier
