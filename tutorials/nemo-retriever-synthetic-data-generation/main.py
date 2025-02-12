@@ -211,7 +211,6 @@ def main():
     all_save_dir = os.path.join(args.output_dir, "jsonl", "all")
     os.makedirs(all_save_dir)
     generated_dataset.to_json(all_save_dir)
-    generated_dataset = DocumentDataset.read_json(all_save_dir)
     print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
 
     # saving in beir format
