@@ -12,25 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 import pytest
-from distributed import Client
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+from nemo_curator.utils.import_utils import gpu_only_import
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
-LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
-
-
-@pytest.fixture
-def gpu_client(request):
-    with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
-        request.client = client
-        request.cluster = cluster
-        yield
 
 
 @pytest.fixture
@@ -48,24 +36,35 @@ def domain_dataset():
 
 
 @pytest.mark.gpu
-def test_domain_classifier(gpu_client, domain_dataset):
+@pytest.mark.parametrize("keep_prob", [True, False])
+def test_domain_classifier(gpu_client, domain_dataset, keep_prob):
     from nemo_curator.classifiers import DomainClassifier
 
-    classifier = DomainClassifier()
+    if keep_prob:
+        prob_column = "domain_prob"
+    else:
+        prob_column = None
+
+    classifier = DomainClassifier(prob_column=prob_column)
     result_dataset = classifier(dataset=domain_dataset)
-    result_pred = result_dataset.df.compute()["domain_pred"]
 
-    expected_pred = cudf.Series(
-        [
-            "Computers_and_Electronics",
-            "Finance",
-            "Health",
-            "Jobs_and_Education",
-            "Travel_and_Transportation",
-        ]
-    )
+    if keep_prob:
+        result_df = result_dataset.df.compute()
+        assert "domain_prob" in result_df.columns
+    else:
+        result_pred = result_dataset.df.compute()["domain_pred"]
 
-    assert result_pred.equals(expected_pred)
+        expected_pred = cudf.Series(
+            [
+                "Computers_and_Electronics",
+                "Finance",
+                "Health",
+                "Jobs_and_Education",
+                "Travel_and_Transportation",
+            ]
+        )
+
+        assert result_pred.equals(expected_pred)
 
 
 @pytest.mark.gpu
@@ -141,7 +140,39 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
 
 
 @pytest.mark.skip(
-    reason="Instruction-Data-Guard needs to be downloaded and cached to our gpuCI runner to enable this"
+    reason="Skipping until https://huggingface.co/nvidia/nemocurator-fineweb-mixtral-edu-classifier is published"
+)
+@pytest.mark.gpu
+def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebMixtralEduClassifier
+
+    classifier = FineWebMixtralEduClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-mixtral-edu-score-int"]
+
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
+
+
+@pytest.mark.skip(
+    reason="Skipping until https://huggingface.co/nvidia/nemocurator-fineweb-nemotron-4-edu-classifier is published"
+)
+@pytest.mark.gpu
+def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebNemotronEduClassifier
+
+    classifier = FineWebNemotronEduClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-nemotron-edu-score-int"]
+
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
+
+
+@pytest.mark.skip(
+    reason="Instruction Data Guard needs to be downloaded and cached to our gpuCI runner to enable this"
 )
 @pytest.mark.gpu
 def test_instruction_data_guard_classifier(gpu_client):

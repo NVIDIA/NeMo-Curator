@@ -52,7 +52,7 @@ class DocumentDataset:
         backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: Optional[int] = None,
         blocksize: Optional[str] = "1gb",
-        add_filename: bool = False,
+        add_filename: Union[bool, str] = False,
         input_meta: Union[str, dict] = None,
         columns: Optional[List[str]] = None,
         **kwargs,
@@ -64,7 +64,9 @@ class DocumentDataset:
             input_files: The path of the input file(s).
             backend: The backend to use for reading the data.
             files_per_partition: The number of files to read per partition.
-            add_filename: Whether to add a "file_name" column to the DataFrame.
+            add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
             input_meta: A dictionary or a string formatted as a dictionary, which outlines
                 the field names and their respective data types within the JSONL input file.
             columns: If not None, only these columns will be read from the file.
@@ -91,7 +93,7 @@ class DocumentDataset:
         backend: Literal["pandas", "cudf"] = "pandas",
         files_per_partition: Optional[int] = None,
         blocksize: Optional[str] = "1gb",
-        add_filename=False,
+        add_filename: Union[bool, str] = False,
         columns: Optional[List[str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
@@ -102,7 +104,9 @@ class DocumentDataset:
             input_files: The path of the input file(s).
             backend: The backend to use for reading the data.
             files_per_partition: The number of files to read per partition.
-            add_filename: Whether to add a "file_name" column to the DataFrame.
+            add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
             columns: If not None, only these columns will be read from the file.
                 There is a significant performance gain when specifying columns for Parquet files.
 
@@ -135,7 +139,9 @@ class DocumentDataset:
             input_files: The path of the input file(s).
             backend: The backend to use for reading the data.
             files_per_partition: The number of files to read per partition.
-            add_filename: Whether to add a "file_name" column to the DataFrame.
+            add_filename: Whether to add a filename column to the DataFrame.
+                If True, a new column is added to the DataFrame called `file_name`.
+                If str, sets new column name. Default is False.
             columns: If not None, only these columns will be read from the file.
 
         """
@@ -152,43 +158,83 @@ class DocumentDataset:
     def to_json(
         self,
         output_path: str,
-        write_to_filename: bool = False,
+        write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
+        partition_on: Optional[str] = None,
     ):
         """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
+        Writes the dataset to the specified path in JSONL format.
 
+        If `write_to_filename` is True, the DataFrame is expected to have a column
+        that specifies the filename for each document. This column can be named
+        `file_name` by default, or a custom name if `write_to_filename` is a string.
+
+        Args:
+            output_path (str): The directory or file path where the dataset will be written.
+            write_to_filename (Union[bool, str]): Determines how filenames are handled.
+                - If True, uses the `file_name` column in the DataFrame to determine filenames.
+                - If a string, uses that string as the column name for filenames.
+                - If False, writes all data to the specified `output_path`.
+            keep_filename_column (bool): If True, retains the filename column in the output.
+                If False, the filename column is dropped from the output.
+            partition_on (Optional[str]): The column name used to partition the data.
+                If specified, data is partitioned based on unique values in this column,
+                with each partition written to a separate directory.
+
+        For more details, refer to the `write_to_disk` function in
+        `nemo_curator.utils.distributed_utils`.
         """
         write_to_disk(
             df=self.df,
             output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
+            partition_on=partition_on,
             output_type="jsonl",
         )
 
     def to_parquet(
         self,
         output_path: str,
-        write_to_filename: bool = False,
+        write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
+        partition_on: Optional[str] = None,
     ):
         """
-        See nemo_curator.utils.distributed_utils.write_to_disk docstring for parameters.
+        Writes the dataset to the specified path in Parquet format.
 
+        If `write_to_filename` is True, the DataFrame is expected to have a column
+        that specifies the filename for each document. This column can be named
+        `file_name` by default, or a custom name if `write_to_filename` is a string.
+
+        Args:
+            output_path (str): The directory or file path where the dataset will be written.
+            write_to_filename (Union[bool, str]): Determines how filenames are handled.
+                - If True, uses the `file_name` column in the DataFrame to determine filenames.
+                - If a string, uses that string as the column name for filenames.
+                - If False, writes all data to the specified `output_path`.
+            keep_filename_column (bool): If True, retains the filename column in the output.
+                If False, the filename column is dropped from the output.
+            partition_on (Optional[str]): The column name used to partition the data.
+                If specified, data is partitioned based on unique values in this column,
+                with each partition written to a separate directory.
+
+        For more details, refer to the `write_to_disk` function in
+        `nemo_curator.utils.distributed_utils`.
         """
         write_to_disk(
             df=self.df,
             output_path=output_path,
             write_to_filename=write_to_filename,
             keep_filename_column=keep_filename_column,
+            partition_on=partition_on,
             output_type="parquet",
         )
 
     def to_pickle(
         self,
         output_path: str,
-        write_to_filename: bool = False,
+        write_to_filename: Union[bool, str] = False,
     ):
         raise NotImplementedError("DocumentDataset does not support to_pickle yet")
 
@@ -234,7 +280,7 @@ def _read_json_or_parquet(
     input_files: Union[str, List[str]],
     file_type: str,
     backend: Literal["cudf", "pandas"],
-    add_filename: bool,
+    add_filename: Union[bool, str] = False,
     files_per_partition: Optional[int] = None,
     blocksize: Optional[str] = None,
     input_meta: Union[str, dict] = None,
