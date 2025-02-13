@@ -18,7 +18,7 @@ import os
 import re
 import subprocess
 import xml.etree.cElementTree as etree
-from typing import Optional
+from typing import Literal, Optional
 from urllib.parse import quote, urlparse
 
 import mwparserfromhell
@@ -750,7 +750,7 @@ def download_wikipedia(
     output_path: str,
     language: str = "en",
     dump_date: Optional[str] = None,
-    output_type: str = "jsonl",
+    output_type: Literal["jsonl", "parquet"] = "jsonl",
     raw_download_dir: Optional[str] = None,
     keep_raw_download: bool = False,
     force_download: bool = False,
@@ -771,7 +771,7 @@ def download_wikipedia(
         language (str, optional): The language code for the Wikipedia dump to download. Default is "en".
         dump_date (Optional[str], optional): The dump date in "YYYYMMDD" format. If None, the latest
             available dump is downloaded.
-        output_type (str, optional): The file format/extension for saving the extracted documents (e.g., "jsonl").
+        output_type (Literal["jsonl", "parquet"], optional): The file format/extension for saving the extracted documents (e.g., "jsonl").
             Defaults to "jsonl". This is not used for the output file, but is used to check if an extracted output
             already exists and read it if so.
         raw_download_dir (Optional[str], optional): Directory used for temporary storage of raw bz2 dump files.

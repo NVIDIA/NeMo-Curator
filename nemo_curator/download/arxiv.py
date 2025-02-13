@@ -18,7 +18,7 @@ import re
 import subprocess
 import tarfile
 import tempfile
-from typing import Optional
+from typing import Literal, Optional
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.download.doc_builder import (
@@ -366,7 +366,7 @@ class ArxivExtractor(DocumentExtractor):
 
 def download_arxiv(
     output_path: str,
-    output_type: str = "jsonl",
+    output_type: Literal["jsonl", "parquet"] = "jsonl",
     raw_download_dir: Optional[str] = None,
     keep_raw_download: bool = False,
     force_download: bool = False,
@@ -384,7 +384,7 @@ def download_arxiv(
         output_path (str):
             The root directory where both the final extracted files and the raw download subdirectory will be stored.
             The extracted files (in the format specified by output_type) are eventually saved in this directory.
-        output_type (str, optional):
+        output_type (Literal["jsonl", "parquet"], optional):
             The file format/extension used for saving the extracted documents (e.g., "jsonl" or "parquet").
             Default is "jsonl". This is not used for the output file, but is used to check if an extracted output already exists and read it if so.
         raw_download_dir (Optional[str], optional):

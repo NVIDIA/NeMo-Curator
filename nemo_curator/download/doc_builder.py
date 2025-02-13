@@ -15,7 +15,7 @@
 import importlib
 import os
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 import dask.dataframe as dd
 import pandas as pd
@@ -105,7 +105,7 @@ def _download_and_extract_single_partition(
     downloader: DocumentDownloader,
     iterator: DocumentIterator,
     extractor: DocumentExtractor,
-    output_type: str,
+    output_type: Literal["jsonl", "parquet"],
     keep_raw_download: bool,
     force_download: bool,
     input_meta: Union[str, dict] = None,
@@ -123,10 +123,10 @@ def _download_and_extract_single_partition(
         downloader (DocumentDownloader): An object to download the content from the URL.
         iterator (DocumentIterator): An object to iterate over records in the downloaded file.
         extractor (DocumentExtractor): An object to extract the desired content from each record.
-        output_type (str): A string specifying the output file type (e.g., "jsonl").
+        output_type (Literal["jsonl", "parquet"]): The output file format/extension. Must be either "jsonl" or "parquet". Defaults to "jsonl". This parameter is only used to verify whether an extracted output already exists.
         keep_raw_download (bool): If False, deletes the raw download file after extraction.
         force_download (bool): If False and output_path exists, skips downloading and extraction.
-        input_meta (Union[str, dict], optional): Metadata describing the input file’s structure.
+        input_meta (Union[str, dict], optional): Metadata describing the input file's structure.
         filename_col (str, optional): Name of the column to store the filename within the result DataFrame.
         record_limit (int, optional): Limit the number of records to extract from each file.
     Returns:
@@ -176,7 +176,7 @@ def download_and_extract(
     iterator: DocumentIterator,
     extractor: DocumentExtractor,
     output_format: dict,
-    output_type: str = "jsonl",
+    output_type: Literal["jsonl", "parquet"] = "jsonl",
     keep_raw_download: bool = False,
     force_download: bool = False,
     input_meta: Union[str, dict] = None,
@@ -211,8 +211,8 @@ def download_and_extract(
         output_format (dict):
             A dictionary mapping column names to the data types for the
             extracted records.
-        output_type (str, optional):
-            The output file format/extension (e.g., "jsonl" or "parquet").
+        output_type (Literal["jsonl", "parquet"], optional):
+            The output file format/extension. Must be either "jsonl" or "parquet".
             Defaults to "jsonl". This parameter is only used to verify whether
             an extracted output already exists.
         keep_raw_download (bool, optional):

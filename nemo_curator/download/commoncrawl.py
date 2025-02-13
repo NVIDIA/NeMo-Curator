@@ -17,7 +17,7 @@ import os
 import subprocess
 import unicodedata
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Literal, Optional
 from urllib.parse import urlparse
 
 import justext
@@ -363,7 +363,7 @@ def download_common_crawl(
     output_path: str,
     start_snapshot: str,
     end_snapshot: str,
-    output_type: str = "jsonl",
+    output_type: Literal["jsonl", "parquet"] = "jsonl",
     algorithm=JusTextExtractor(),
     news: bool = False,
     aws: bool = False,
@@ -385,8 +385,8 @@ def download_common_crawl(
           • For CC-MAIN datasets, use the format 'YYYY-WeekNumber' (e.g., '2020-50' or '2021-04').
           • For CC-NEWS datasets (when news=True), use the 'YYYY-MM' (Year-Month) format.
       end_snapshot (str): Identifier for the latest snapshot to process, which must be chronologically after start_snapshot.
-      output_type (str): The file format for the extracted output (e.g., "jsonl").
-          • This is not used for the output file, but is used to check if an extracted output already exists and read it if so.
+      output_type (Literal["jsonl", "parquet"]): The file format for the extracted output. Must be either "jsonl" or "parquet".
+          • This is not used for the output file, but is used to check if an extracted output already exists.
       algorithm: The text extraction algorithm instance (e.g., JusTextExtractor or ResiliparseExtractor) to use for HTML processing.
       news (bool): When True, indicates that URLs should be retrieved from the CC-NEWS dataset.
           • This also means snapshot identifiers should follow the 'YYYY-MM' format.
