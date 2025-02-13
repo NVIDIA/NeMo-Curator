@@ -109,7 +109,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
 
         ddf = dataset.df
-        # ddf = ddf.repartition(npartitions=5)
         ddf["partition-id"] = ""
         ddf = ddf.map_partitions(self._get_partition_id, meta=ddf)
         ddf["llm_response"] = ""

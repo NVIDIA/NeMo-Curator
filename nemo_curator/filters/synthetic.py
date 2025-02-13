@@ -130,9 +130,6 @@ class EasinessFilter(DocumentFilter):
 
         return sim
 
-    # def __dask_tokenize__(self):
-    #     return normalize_token(EasinessFilter)
-
 
 # ----------------------------------------------------------------------------80
 # ----------------------- Answerability Filter ---------------------------------
@@ -230,9 +227,6 @@ class AnswerabilityFilter(DocumentFilter):
             return None  # generation
 
         return generation
-
-    # def __dask_tokenize__(self):
-    #     return normalize_token(AnswerabilityFilter)
 
 
 # ----------------------------------------------------------------------------80
