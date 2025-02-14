@@ -119,7 +119,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         jsonl_dir (str): Directory path where the JSONL files are stored.
     """
     # Initialize the Dask cluster.
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args),set_torch_to_use_rmm=True)
 
     # Define data curation steps for text and pdf files
     curation_steps_text = Sequential(
@@ -171,6 +171,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     dataset_text = curation_steps_text(orig_dataset_text)
     dataset_code = curation_steps_code(orig_dataset_code)
 
+    print('********************* Generating Statistics *********************')
     print(f"Original dataset length for text files: {len(orig_dataset_text.df)}")
     print(f"After dataprep for text files: {len(dataset_text.df)}")
     print(f"Original dataset length for code files: {len(orig_dataset_code.df)}")
@@ -194,6 +195,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         semantic_dataset_text = DocumentDataset(
             gpu_dataset_text.df[gpu_dataset_text.df.id.isin(unique_ids)]
         )
+        print('********************* Generating Statistics *********************')
         print(f"After semantic dedupe for text files: {len(semantic_dataset_text.df)}")
 
         print("Executing the fuzzy dedupe pipeline...")
@@ -208,8 +210,9 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
 
         dataset_text.df = fuzzy_dataset_text.df.to_backend("pandas")
         dataset_code.df = fuzzy_dataset_code.df.to_backend("pandas")
+        print('********************* Generating Statistics *********************')
         print(f"After fuzzy dedupe for text files: {len(dataset_text.df)}")
-        print(f"After fuzzy dedupe: {len(dataset_code.df)}")
+        print(f"After fuzzy dedupe for code files: {len(dataset_code.df)}")
 
     final_dataset_text = dataset_text.persist()
     final_dataset_code = dataset_code.persist()
@@ -274,6 +277,7 @@ def main():
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 8)
+    args.device = "gpu"
     print("Args: ", args)
 
     # Download all the sources and get the list of text and code files.
