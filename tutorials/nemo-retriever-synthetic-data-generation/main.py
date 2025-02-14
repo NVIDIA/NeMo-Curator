@@ -239,4 +239,3 @@ def main():
 if __name__ == "__main__":
     dask_client = get_client()
     main()
-    # dask_client.cancel(dask_client.futures, force=True)
