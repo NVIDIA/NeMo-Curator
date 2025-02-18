@@ -37,6 +37,7 @@ By "extraction", we typically mean the process of converting a data format from 
   Otherwise, the HTTPS endpoints will be used with ``wget``. Here is a small example of how to use it:
 
   .. code-block:: python
+
     import os
     from nemo_curator import get_client
     from nemo_curator.download import download_common_crawl
@@ -82,6 +83,7 @@ By "extraction", we typically mean the process of converting a data format from 
 You can choose to modify the HTML text extraction algorithm used in ``download_common_crawl``. See an example below.
 
   .. code-block:: python
+
     import os
     from nemo_curator import get_client
     from nemo_curator.download import (
