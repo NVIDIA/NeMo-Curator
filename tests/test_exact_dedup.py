@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import os
+from hashlib import md5
 
 import pandas as pd
 import pytest
 from dask import dataframe as dd
-from dask.dataframe.utils import assert_eq
 
 from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
@@ -43,7 +43,7 @@ class TestExactDuplicates:
             ExactDuplicates(hash_method="sha256")
 
     @pytest.mark.parametrize("cache_method", [None, "Cache", "ExactDuplicates"])
-    def test_dup(self, exact_dedup_data, cache_method, tmpdir):
+    def test_dup_cache(self, exact_dedup_data, cache_method, tmpdir):
 
         Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
@@ -77,3 +77,40 @@ class TestExactDuplicates:
             assert os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
         else:
             assert not os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
+
+    @pytest.mark.parametrize("cache_result", [False, True])
+    def test_dup(self, exact_dedup_data, cache_result, tmpdir):
+        exact_dups = ExactDuplicates(
+            id_field="id",
+            text_field="text",
+            hash_method="md5",
+            cache_dir=tmpdir if cache_result else None,
+        )
+
+        duplicates = exact_dups.identify_duplicates(exact_dedup_data)
+        deduplicated_ds = exact_dups.remove(exact_dedup_data, duplicates)
+        deduplicated_ids_series = deduplicated_ds.df.to_backend("pandas").compute()[
+            "id"
+        ]
+        output_deduplicated_ids = set(deduplicated_ids_series.tolist())
+
+        assert (
+            len(output_deduplicated_ids) == 3
+            and 300 in output_deduplicated_ids
+            and len({-1, 1}.intersection(output_deduplicated_ids)) == 1
+            and len({2, 4}.intersection(output_deduplicated_ids)) == 1
+        )
+
+        duplicates_df = (
+            duplicates.df.to_backend("pandas")
+            .compute()
+            .sort_values(by="id", ignore_index=True)
+        )
+        expected_df = pd.DataFrame(
+            {
+                "id": [1, -1] + [2, 4],
+                "_hashes": [md5(b"abc").hexdigest()] * 2
+                + [md5(b"aba").hexdigest()] * 2,
+            }
+        ).sort_values(by="id", ignore_index=True)
+        pd.testing.assert_frame_equal(duplicates_df, expected_df, check_like=True)

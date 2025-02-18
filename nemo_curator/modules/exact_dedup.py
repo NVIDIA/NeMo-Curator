@@ -18,7 +18,6 @@ import os
 import time
 import warnings
 from contextlib import nullcontext
-from datetime import datetime
 from hashlib import md5
 from typing import Optional, Union
 
@@ -30,11 +29,13 @@ from nemo_curator._compat import DASK_P2P_ERROR
 from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.base import BaseModule
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
+from nemo_curator.utils.duplicates_removal import remove_duplicates
 from nemo_curator.utils.gpu_utils import is_cudf_type
 
 
-class ExactDuplicates:
+class ExactDuplicates(BaseModule):
     """Find exact duplicates in a document corpus"""
 
     SUPPORTED_HASHES = {"md5"}
@@ -45,6 +46,7 @@ class ExactDuplicates:
         id_field: str = "id",
         text_field: str = "text",
         hash_method: str = "md5",
+        perform_removal: bool = False,
         profile_dir: Optional[str] = None,
         cache_dir: Optional[str] = None,
     ):
@@ -56,16 +58,21 @@ class ExactDuplicates:
         text_field: Column in the dataset denoting document content.
         hash_method: The hashing algorithm used for identifying exact duplicates.
           Currently only supports "md5".
+        perform_removal: Boolean value to specify whether calling the module should
+            remove the duplicates from the original dataset, or return the list of IDs
+            denoting duplicates.
         profile_dir: If specified, directory to write Dask profile. Default is None.
         cache_dir: If specified, will compute and write duplicate IDs to cache directory.
             If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
             Default is None.
         """
+        super().__init__(input_backend="any")
 
         if hash_method not in self.SUPPORTED_HASHES:
             raise ValueError(
                 f"{hash_method} not in supported hash_methods. Choose a hash_method from {self.SUPPORTED_HASHES}"
             )
+
         self.hash_method = hash_method
         self.id_field = id_field
         self.text_field = text_field
@@ -81,6 +88,17 @@ class ExactDuplicates:
                 "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
             )
         self.profile_dir = profile_dir
+        
+        self.perform_removal = perform_removal
+        if not self.perform_removal:
+            warnings.warn(
+                "In future NeMo Curator releases, the default value for perform_removal will be True."
+            )
+        if self.perform_removal and self.cache_dir is None:
+            warnings.warn(
+              "cache_dir is recommended to remove duplicates. "
+              "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
+            )
 
         if isinstance(logger, str):
             self._logger = create_logger(
@@ -151,7 +169,7 @@ class ExactDuplicates:
             # TODO: Generalize by using self.hash_method
             return df.apply(lambda x: md5(x.encode()).hexdigest())
 
-    def __call__(self, dataset: DocumentDataset) -> Union[DocumentDataset, str]:
+    def identify_duplicates(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Find document IDs for exact duplicates in a given DocumentDataset.
 
@@ -188,11 +206,38 @@ class ExactDuplicates:
             f"Output written at {write_path}"
         )
 
-        if is_cudf_type(result):
-            import dask_cudf
+        backend = "cudf" if is_cudf_type(result) else "pandas"
+        return DocumentDataset.read_parquet(
+            write_path,
+            backend=backend,
+            # We read with files_per_partition=1 so that groups are read in whole (and do not exist across partitions)
+            files_per_partition=1,
+            blocksize=None,
+        )
 
-            result_dataset = dask_cudf.read_parquet(write_path, split_row_groups=False)
-        else:
-            result_dataset = dd.read_parquet(write_path)
+    def remove(
+        self, dataset: DocumentDataset, duplicates_to_remove: Optional[DocumentDataset]
+    ) -> DocumentDataset:
+        """
+        Remove exact duplicates from a given DocumentDataset
+        Parameters
+        ----------
+        dataset: DocumentDataset
+          The input datset to remove exact duplicates
+        Returns
+        -------
+        DocumentDataset containing only non-duplicate documents
+        """
+        result = remove_duplicates(
+            left=dataset.df,
+            duplicates=duplicates_to_remove.df,
+            id_field=self.id_field,
+            group_field="_hashes",
+        )
+        return DocumentDataset(result)
 
-        return DocumentDataset(result_dataset)
+    def call(self, dataset: DocumentDataset) -> DocumentDataset:
+        duplicates = self.identify_duplicates(dataset)
+        if self.perform_removal:
+            return self.remove(dataset, duplicates)
+        return duplicates

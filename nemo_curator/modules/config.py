@@ -43,6 +43,9 @@ class FuzzyDuplicatesConfig(BaseConfig):
     profile_dir: If specified, directory to write Dask profile. Default is None.
     id_field: Column in the dataset denoting document ID. Default is "id".
     text_field: Column in the dataset denoting document content. Default is "text".
+    perform_removal: Boolean value to specify whether calling the module should remove
+        the duplicates from the original dataset, or return the list of IDs denoating
+        duplicates. Default is False.
     seed: Seed for minhash permutations. Default is 42.
     char_ngrams: Size of character n-gram shingles used in minhash computation.
         Default is 5.
@@ -55,7 +58,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
         process larger batches by processing multiple bands but might lead to memory
         pressures and related errors. Default is 1.
     false_positive_check: Whether to run a check to look for false positives within
-        buckets. Note: This is a computationally expensive step. Default is True.
+        buckets. Note: This is a computationally expensive step. Default is False.
     num_anchors: Number of documents per bucket to use as reference for computing
         Jaccard pairs within that bucket to identify false positives. Default is 2.
     jaccard_threshold: The Jaccard similariy threshold to consider a document a near
@@ -70,6 +73,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
     profile_dir: Optional[str] = None
     id_field: str = "id"
     text_field: str = "text"
+    perform_removal: bool = False
 
     # Minhash + LSH config
     seed: int = 42
@@ -156,6 +160,11 @@ class FuzzyDuplicatesConfig(BaseConfig):
             else:
                 self.cache_dir = cache_dir
 
+        if not self.perform_removal:
+            warnings.warn(
+                "In future releases (starting with 0.8.0) the default will be True."
+            )
+
 
 @dataclass
 class SemDedupConfig(BaseConfig):
@@ -175,6 +184,11 @@ class SemDedupConfig(BaseConfig):
             Default is "sentence-transformers/all-MiniLM-L6-v2".
         embedding_batch_size (int): Initial batch size for processing embeddings.
             Default is 128.
+        embedding_pooling_strategy (str): Strategy for pooling embeddings, either
+            "mean_pooling" or "last_token". Default is "mean_pooling".
+        write_embeddings_to_disk (bool): If True, saves the embeddings to disk.
+            We recommend setting this to False when you have a delayed pipeline.
+            Setting it to False can lead to more memory overhead. Default is True.
         clustering_save_loc (str): Location to save clustering results.
             Default is "clustering_results".
         n_clusters (int): Number of clusters. Default is 1000.
@@ -199,6 +213,9 @@ class SemDedupConfig(BaseConfig):
     embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
+    # Options: "mean_pooling", "last_token"
+    embedding_pooling_strategy: str = "mean_pooling"
+    write_embeddings_to_disk: bool = True
 
     # ClusteringModel
     clustering_save_loc: str = "clustering_results"

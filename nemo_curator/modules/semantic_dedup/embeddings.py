@@ -41,6 +41,7 @@ from nemo_curator.utils.distributed_utils import (
 class EmbeddingConfig:
     model_name_or_path: str
     max_seq_length: int = None
+    pooling_strategy: str = "mean_pooling"  # Options: "mean_pooling" or "last_token"
 
     def __post_init__(self):
         self.max_seq_length = AutoTokenizer.from_pretrained(
@@ -52,6 +53,10 @@ class EmbeddingConfig:
             self.max_seq_length = AutoConfig.from_pretrained(
                 self.model_name_or_path
             ).max_position_embeddings
+        if self.pooling_strategy not in ["mean_pooling", "last_token"]:
+            raise ValueError(
+                "pooling_strategy must be either 'mean_pooling' or 'last_token'"
+            )
 
 
 class EmbeddingPytorchModel(nn.Module):
@@ -70,7 +75,10 @@ class EmbeddingPytorchModel(nn.Module):
     @torch.no_grad()
     def forward(self, batch):
         feature = self.feature(batch["input_ids"], batch["attention_mask"])
-        return self._mean_pooling(feature, batch["attention_mask"])
+        if self.config.pooling_strategy == "mean_pooling":
+            return self._mean_pooling(feature, batch["attention_mask"])
+        else:
+            return self._get_last_token(feature, batch["attention_mask"])
 
     def _mean_pooling(self, model_output, attention_mask):
         token_embeddings = model_output[0]
@@ -80,6 +88,19 @@ class EmbeddingPytorchModel(nn.Module):
         sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
         sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
         return F.normalize(sum_embeddings / sum_mask, dim=1)
+
+    def _get_last_token(self, model_output, attention_mask):
+        token_embeddings = model_output[0]
+        # Get indices of last non-padded tokens for each sequence in batch
+        last_token_indices = attention_mask.sum(dim=1) - 1  # -1 for 0-based indexing
+        last_token_indices = last_token_indices.to(
+            torch.long
+        )  # Ensure indices are of type long
+        batch_size = attention_mask.size(0)
+        batch_indices = torch.arange(batch_size, device=attention_mask.device)
+        # Get embeddings of last non-padded tokens
+        last_token_embeddings = token_embeddings[batch_indices, last_token_indices]
+        return F.normalize(last_token_embeddings, dim=1)
 
 
 class EmbeddingCrossFitModel(HFModel):
@@ -117,6 +138,7 @@ class EmbeddingCreator:
         cache_dir: Optional[str] = None,
         embeddings_save_loc: str = "embeddings",
         embedding_max_mem_gb: Optional[int] = None,
+        embedding_pooling_strategy: str = "mean_pooling",
         input_column: str = "text",
         embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
@@ -137,23 +159,25 @@ class EmbeddingCreator:
                 Default is "embeddings".
             embedding_max_mem_gb (int, optional): Maximum memory usage in GB for the embedding process.
                 If None, it defaults to the available GPU memory minus 4 GB.
+            embedding_pooling_strategy: Strategy for pooling embeddings, either "mean_pooling" or "last_token".
+                Default is "mean_pooling".
             input_column (str): Column name from the data to be used for embedding generation.
                 Default is "text".
-            write_embeddings_to_disk (bool): If True, saves the embeddings to disk,
-                Default is True.
+            embedding_column (str): The column name that stores the embeddings. Default is "embeddings".
+            write_embeddings_to_disk (bool): If True, saves the embeddings to disk.
                 We recommend setting this to False when you have a delayed pipeline.
-                Setting it to False can lead to more memory overhead.
+                Setting it to False can lead to more memory overhead. Default is True.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files.
                 Default False.
             logger (Union[logging.Logger, str]): Logger object or path to store logs.
                 Default is "./".
             profile_dir (str, optional): If specified, directory to write Dask profile.
                 Default is None.
-
         """
 
         self.embeddings_config = EmbeddingConfig(
             model_name_or_path=embedding_model_name_or_path,
+            pooling_strategy=embedding_pooling_strategy,
         )
         self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
@@ -197,7 +221,7 @@ class EmbeddingCreator:
             op.Tokenizer(
                 self.model,
                 cols=[input_column],
-                tokenizer_type="sentencepiece",
+                tokenizer_type="default",
                 max_length=self.embeddings_config.max_seq_length,
             ),
             op.Predictor(
@@ -230,6 +254,7 @@ class EmbeddingCreator:
                 )
             )
         else:
+            embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
             ddf = DocumentDataset(embedding_ddf)
 
         self.logger.info(
