@@ -75,6 +75,7 @@ By "extraction", we typically mean the process of converting a data format from 
   if __name__ == "__main__":
       main()
 
+
   * ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
   * ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://data.commoncrawl.org/>`_.
   * ``"2021-04"`` is the last common crawl snapshot that will be included in the download.
@@ -127,6 +128,7 @@ You can choose to modify the HTML text extraction algorithm used in ``download_c
 
   if __name__ == "__main__":
       main()
+
 
   Above, we changed the extraction algorithm from the default ``JusTextExtractor``.
 
