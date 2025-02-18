@@ -88,7 +88,7 @@ class ExactDuplicates(BaseModule):
                 "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
             )
         self.profile_dir = profile_dir
-        
+
         self.perform_removal = perform_removal
         if not self.perform_removal:
             warnings.warn(
@@ -96,8 +96,8 @@ class ExactDuplicates(BaseModule):
             )
         if self.perform_removal and self.cache_dir is None:
             warnings.warn(
-              "cache_dir is recommended to remove duplicates. "
-              "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
+                "cache_dir is recommended to remove duplicates. "
+                "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
             )
 
         if isinstance(logger, str):
