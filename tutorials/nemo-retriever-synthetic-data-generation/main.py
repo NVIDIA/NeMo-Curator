@@ -15,6 +15,7 @@
 import argparse
 import importlib
 import os
+import pdb
 import shutil
 import time
 from typing import Any, List
@@ -42,44 +43,47 @@ def get_pipeline(args: Any) -> Any:
     # update api_key from input args
     cfg.api_key = args.api_key
 
-    sdg_pipeline = Sequential(
-        [
-            RetrieverEvalSetGenerator(cfg),
-        ]
-    )
+    if args.pipeline_type == "generate":
+        sdg_pipeline = Sequential(
+            [
+                RetrieverEvalSetGenerator(cfg),
+            ]
+        )
+    else:
+        sdg_pipeline = None
+
     filters = []
-
-    if cfg.easiness_filter:
-        filters.append(
-            ScoreFilter(
-                EasinessFilter(
-                    cfg.base_url,
-                    cfg.api_key,
-                    cfg.easiness_filter,
-                    cfg.percentile,
-                    cfg.truncate,
-                    cfg.batch_size,
-                ),
-                text_field=["text", "question"],
-                score_field="easiness_scores",
+    if args.pipeline_type == "filter":
+        if cfg.easiness_filter:
+            filters.append(
+                ScoreFilter(
+                    EasinessFilter(
+                        cfg.base_url,
+                        cfg.api_key,
+                        cfg.easiness_filter,
+                        cfg.percentile,
+                        cfg.truncate,
+                        cfg.batch_size,
+                    ),
+                    text_field=["text", "question"],
+                    score_field="easiness_scores",
+                )
             )
-        )
-    if cfg.answerability_filter:
-        filters.append(
-            ScoreFilter(
-                AnswerabilityFilter(
-                    cfg.base_url,
-                    cfg.api_key,
-                    cfg.answerability_filter,
-                    cfg.answerability_system_prompt,
-                    cfg.answerability_user_prompt_template,
-                    cfg.num_criteria,
-                ),
-                text_field=["text", "question"],
-                score_field="answerability_scores",
+        if cfg.answerability_filter:
+            filters.append(
+                ScoreFilter(
+                    AnswerabilityFilter(
+                        cfg.base_url,
+                        cfg.api_key,
+                        cfg.answerability_filter,
+                        cfg.answerability_system_prompt,
+                        cfg.answerability_user_prompt_template,
+                        cfg.num_criteria,
+                    ),
+                    text_field=["text", "question"],
+                    score_field="answerability_scores",
+                )
             )
-        )
-
     if filters:
         filtering_pipeline = Sequential(filters)
     else:
@@ -88,46 +92,38 @@ def get_pipeline(args: Any) -> Any:
     return sdg_pipeline, filtering_pipeline
 
 
-def write_to_beir(args: Any, dataset: DocumentDataset, filtered: bool = False):
+def write_to_beir(args: Any, dataset: DocumentDataset, input_dataset: DocumentDataset):
 
     df = dataset.df
     df = df.compute()
-    if filtered:
-        save_dir = os.path.join(args.output_dir, "beir", "filtered")
-        qrels_save_dir = os.path.join(args.output_dir, "beir", "filtered", "qrels")
-        corpus_save_path = os.path.join(
-            args.output_dir, "beir", "filtered", "corpus.jsonl"
-        )
-        queries_save_path = os.path.join(
-            args.output_dir, "beir", "filtered", "queries.jsonl"
-        )
-    else:
-        save_dir = os.path.join(args.output_dir, "beir", "all")
-        qrels_save_dir = os.path.join(args.output_dir, "beir", "all", "qrels")
-        corpus_save_path = os.path.join(args.output_dir, "beir", "all", "corpus.jsonl")
-        queries_save_path = os.path.join(
-            args.output_dir, "beir", "all", "queries.jsonl"
-        )
+
+    save_dir = os.path.join(args.output_dir, "beir")
+    qrels_save_dir = os.path.join(args.output_dir, "beir", "qrels")
 
     os.makedirs(save_dir)
     os.makedirs(qrels_save_dir)
 
+    corpus_save_path = os.path.join(args.output_dir, "beir", "corpus.jsonl")
+    queries_save_path = os.path.join(args.output_dir, "beir", "queries.jsonl")
     df[["question-id", "question"]].rename(
         columns={"question-id": "_id", "question": "text"}
     ).to_json(queries_save_path, lines=True, orient="records")
 
-    if filtered:
-        corpus_file_path = os.path.join(args.output_dir, "beir", "all", "corpus.jsonl")
-        if os.path.exists(corpus_file_path):
-            shutil.copy(corpus_file_path, corpus_save_path)
-        else:
-            raise ValueError("Generate data first")
-    else:
-        df[["_id", "text"]].to_json(corpus_save_path, lines=True, orient="records")
-
     df[["question-id", "_id", "score"]].rename(
         columns={"question-id": "query-id", "_id": "corpus-id"}
     ).to_csv(os.path.join(qrels_save_dir, "test.tsv"), sep="\t", index=False)
+
+    if args.pipeline_type == "filter":
+        input_df = input_dataset.df.compute()
+        input_df = input_df.groupby("_id").agg({"text": set}).reset_index()
+        input_df["text"] = input_df["text"].map(lambda x: x.pop())
+        input_df[["_id", "text"]].to_json(
+            corpus_save_path, lines=True, orient="records"
+        )
+    elif args.pipeline_type == "generate":
+        df = df.groupby("_id").agg({"text": set}).reset_index()
+        df["text"] = df["text"].map(lambda x: x.pop())
+        df[["_id", "text"]].to_json(corpus_save_path, lines=True, orient="records")
 
 
 def main():
@@ -174,6 +170,18 @@ def main():
         default=1,
         help="Number of partitions for parallel processing of data.",
     )
+    parser.add_argument(
+        "--pipeline-type",
+        type=str,
+        default="generate",
+        help="Choices: 1. 'generate', 2. 'filter'",
+    )
+    parser.add_argument(
+        "--save-format",
+        type=str,
+        default="jsonl",
+        help="Save format choices 1. beir 2. jsonl",
+    )
 
     args = parser.parse_args()
 
@@ -185,7 +193,19 @@ def main():
         raise ValueError("Output directory exists already, use a new directory!")
 
     if args.input_format == "jsonl":
-        input_files = get_all_files_paths_under(args.input_dir, keep_extensions="jsonl")
+        if args.pipeline_type == "filter":
+            input_files = get_all_files_paths_under(
+                args.input_dir, keep_extensions="part"
+            )
+        elif args.pipeline_type == "generate":
+            input_files = get_all_files_paths_under(
+                args.input_dir, keep_extensions="jsonl"
+            )
+        else:
+            raise ValueError(
+                "Error only two pipelines supported: 'generate' & 'filter'"
+            )
+
         input_dataset = DocumentDataset.read_json(input_files)
     else:
         raise ValueError("Error: Only jsonl format supported")
@@ -201,39 +221,46 @@ def main():
 
     sdg_pipeline, filtering_pipeline = get_pipeline(args)
 
-    print("Generating data ...")
-    st_time = time.time()
-    generated_dataset = sdg_pipeline(input_dataset)
-    generated_dataset.persist()
+    if sdg_pipeline:
+        print("Generating data ...")
+        st_time = time.time()
+        generated_dataset = sdg_pipeline(input_dataset)
+        generated_dataset.persist()
 
-    print("Writing all generated data to disk ...")
-    # saving in jsonl format
-    all_save_dir = os.path.join(args.output_dir, "jsonl", "all")
-    os.makedirs(all_save_dir)
-    generated_dataset.to_json(all_save_dir)
-    print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
+        if args.save_format == "jsonl":
+            print("Writing all generated data to disk ...")
+            all_save_dir = os.path.join(args.output_dir, "jsonl")
+            os.makedirs(all_save_dir)
+            generated_dataset.to_json(all_save_dir)
 
-    # saving in beir format
-    print("Write all data in beir format")
-    write_to_beir(args, generated_dataset, filtered=False)
-    print("...done")
+        # saving in beir format
+        if args.save_format == "beir":
+            print("Write all data in beir format")
+            write_to_beir(args, generated_dataset, input_dataset)
+
+        print("Time taken to generate data = {:.2f} s".format(time.time() - st_time))
 
     if filtering_pipeline:
         print("Filtering data ...")
         st_time = time.time()
-        filtered_dataset = filtering_pipeline(generated_dataset)
+        filtered_dataset = filtering_pipeline(input_dataset)
         filtered_dataset.persist()
-        print("Writing filtered data to disk ...")
-        all_save_dir = os.path.join(args.output_dir, "jsonl", "filtered")
-        os.makedirs(all_save_dir)
-        filtered_dataset.to_json(all_save_dir)
+
+        if args.save_format == "jsonl":
+            print("Writing filtered data to disk ...")
+            all_save_dir = os.path.join(args.output_dir, "jsonl")
+            os.makedirs(all_save_dir)
+            filtered_dataset.to_json(all_save_dir)
+
+        if args.save_format == "beir":
+            print("Writing filtered data in beir format")
+            # saving in beir format
+            write_to_beir(args, filtered_dataset, input_dataset)
+
         print("Time taken to filter data = {:.2f} s".format(time.time() - st_time))
 
-        print("Writing filtered data in beir format")
-        # saving in beir format
-        write_to_beir(args, filtered_dataset, filtered=True)
-
     print("RUN complete!")
+    print("------------------------")
 
 
 if __name__ == "__main__":

@@ -134,16 +134,17 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
         _id = df["partition-id"].iloc[0]
         tqdm.pandas(desc=f"For partition_{_id}")
-        df["llm_response"] = df["text"].progress_apply(self.generate)
-        df["qa_pairs"] = df["llm_response"].apply(self.parse_response)
-
-        df = df.explode("qa_pairs").reset_index(drop=True)
-        df["question"] = df["qa_pairs"].apply(lambda x: x["question"])
 
         if "_id" in df.columns:
             df["_id"] = df["_id"].apply(self._check_doc_id)
         else:
             df["_id"] = df["text"].apply(self._get_random_hash)
+
+        df["llm_response"] = df["text"].progress_apply(self.generate)
+        df["qa_pairs"] = df["llm_response"].apply(self.parse_response)
+
+        df = df.explode("qa_pairs").reset_index(drop=True)
+        df["question"] = df["qa_pairs"].apply(lambda x: x["question"])
 
         df["question-id"] = df["question"].apply(self._get_random_hash)
         df["answer"] = df["qa_pairs"].apply(lambda x: x["answer"])
