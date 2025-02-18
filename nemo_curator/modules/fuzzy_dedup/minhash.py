@@ -138,9 +138,7 @@ class MinHash:
         seeds_a = cudf.Series(seeds[:, 0], dtype="uint32")
         seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
 
-        return ser.str.minhash(
-            a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-        )
+        return ser.str.minhash(a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram)
 
     def minhash64(
         self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int

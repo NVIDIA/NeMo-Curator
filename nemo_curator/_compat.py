@@ -44,7 +44,9 @@ except (ImportError, TypeError):
 DASK_SHUFFLE_METHOD_ARG = _dask_version > parse_version("2024.1.0")
 DASK_P2P_ERROR = _dask_version < parse_version("2023.10.0")
 DASK_SHUFFLE_CAST_DTYPE = _dask_version > parse_version("2023.12.0")
-DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA = _dask_cudf_version > parse_version("2025.02")
+DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA = _dask_cudf_version > parse_version(
+    "2025.02"
+)
 
 # Query-planning check (and cache)
 _DASK_QUERY_PLANNING_ENABLED = None
