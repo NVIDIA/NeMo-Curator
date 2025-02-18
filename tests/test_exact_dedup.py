@@ -18,6 +18,7 @@ from hashlib import md5
 import pandas as pd
 import pytest
 from dask import dataframe as dd
+from dask.dataframe.utils import assert_eq
 
 from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
