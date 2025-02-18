@@ -75,11 +75,10 @@ By "extraction", we typically mean the process of converting a data format from 
   if __name__ == "__main__":
       main()
 
-
-  * ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
-  * ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://data.commoncrawl.org/>`_.
-  * ``"2021-04"`` is the last common crawl snapshot that will be included in the download.
-  * ``output_type="jsonl"`` is the file format that will be used for storing the data on disk. Currently ``"jsonl"`` and ``"parquet"`` are supported.
+* ``"/extracted/output/folder"`` is the path to on your local filesystem where the final extracted files will be placed.
+* ``"2020-50"`` is the first common crawl snapshot that will be included in the download. **Note:** Not every year and week has a snapshot. Ensure that your range includes at least one valid Common Crawl snapshot. A list of valid Common Crawl snapshots can be found `here <https://data.commoncrawl.org/>`_.
+* ``"2021-04"`` is the last common crawl snapshot that will be included in the download.
+* ``output_type="jsonl"`` is the file format that will be used for storing the data on disk. Currently ``"jsonl"`` and ``"parquet"`` are supported.
 
 You can choose to modify the HTML text extraction algorithm used in ``download_common_crawl``. See an example below.
 
@@ -129,12 +128,11 @@ You can choose to modify the HTML text extraction algorithm used in ``download_c
   if __name__ == "__main__":
       main()
 
+Above, we changed the extraction algorithm from the default ``JusTextExtractor``.
 
-  Above, we changed the extraction algorithm from the default ``JusTextExtractor``.
+The return value ``common_crawl`` will be in NeMo Curator's standard ``DocumentDataset`` format. Check out the function's docstring for more parameters you can use.
 
-  The return value ``common_crawl`` will be in NeMo Curator's standard ``DocumentDataset`` format. Check out the function's docstring for more parameters you can use.
-
-  NeMo Curator's Common Crawl extraction process looks like this under the hood:
+NeMo Curator's Common Crawl extraction process looks like this under the hood:
 
  1. Decode the HTML within the record from binary to text.
  2. If the HTML can be properly decoded, then with `pyCLD2 <https://github.com/aboSamoor/pycld2>`_, perform language detection on the input HTML.
