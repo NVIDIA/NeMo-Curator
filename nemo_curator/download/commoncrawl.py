@@ -160,9 +160,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
 
         if self.is_boilerplate is None:
             if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
-                warnings.warn(
-                    "Disabling is_boilerplate check for jusText extraction."
-                )
+                warnings.warn("Disabling is_boilerplate check for jusText extraction.")
                 is_boilerplate = False
             else:
                 is_boilerplate = True
