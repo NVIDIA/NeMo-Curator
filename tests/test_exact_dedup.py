@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class TestExactDuplicates:
             ExactDuplicates(hash_method="sha256")
 
     @pytest.mark.parametrize("cache_method", [None, "Cache", "ExactDuplicates"])
-    def test_dup_cache(self, exact_dedup_data, cache_method, tmpdir):
+    def test_exact_dedup_cache_method(self, exact_dedup_data, cache_method, tmpdir):
 
         Cache().delete_cache_instance()  # Fresh start for new PyTest
         if cache_method == "Cache":
@@ -80,7 +80,7 @@ class TestExactDuplicates:
             assert not os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
 
     @pytest.mark.parametrize("cache_result", [False, True])
-    def test_dup(self, exact_dedup_data, cache_result, tmpdir):
+    def test_exact_dedup(self, exact_dedup_data, cache_result, tmpdir):
         exact_dups = ExactDuplicates(
             id_field="id",
             text_field="text",
