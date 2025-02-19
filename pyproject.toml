@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,8 +66,7 @@ dependencies = [
     "resiliparse",
     "sentencepiece",
     "spacy>=3.6.0, <3.8.0",
-    # TODO: Remove this pin once newer version is released
-    "transformers==4.46.3",
+    "transformers>=4.48.0",
     "unidic-lite==1.0.8",
     "usaddress==0.5.10",
     "warcio==1.7.4",
@@ -78,20 +77,20 @@ dynamic = ["version"]
 [project.optional-dependencies]
 # Installs CPU + GPU text curation modules
 cuda12x = [
-    "cudf-cu12>=24.12",
-    "cugraph-cu12>=24.12",
-    "cuml-cu12>=24.12",
-    "dask-cuda>=24.12",
-    "dask-cudf-cu12>=24.12",
+    "cudf-cu12>=25.02",
+    "cugraph-cu12>=25.02",
+    "cuml-cu12>=25.02",
+    "dask-cuda>=25.02",
+    "dask-cudf-cu12>=25.02",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
 ]
 # Installs CPU + GPU text curation modules with RAPIDS Nightlies
 cuda12x_nightly = [
-    "cudf-cu12>=25.02.0a0,<=25.02",
-    "cugraph-cu12>=25.02.0a0,<=25.02",
-    "cuml-cu12>=25.02.0a0,<=25.02",
-    "dask-cuda>=25.02.0a0,<=25.02",
-    "dask-cudf-cu12>=25.02.0a0,<=25.02",
+    "cudf-cu12>=25.04.0a0,<=25.04",
+    "cugraph-cu12>=25.04.0a0,<=25.04",
+    "cuml-cu12>=25.04.0a0,<=25.04",
+    "dask-cuda>=25.04.0a0,<=25.04",
+    "dask-cudf-cu12>=25.04.0a0,<=25.04",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
 ]
 # Installs CPU + GPU text and image curation modules
@@ -156,6 +155,8 @@ instruction_data_guard_classifier_inference = "nemo_curator.scripts.classifiers.
 multilingual_domain_classifier_inference = "nemo_curator.scripts.classifiers.multilingual_domain_classifier_inference:console_script"
 content_type_classifier_inference = "nemo_curator.scripts.classifiers.content_type_classifier_inference:console_script"
 prompt_task_complexity_classifier_inference = "nemo_curator.scripts.classifiers.prompt_task_complexity_classifier_inference:console_script"
+fineweb_mixtral_edu_classifier_inference = "nemo_curator.scripts.classifiers.fineweb_mixtral_edu_classifier_inference:console_script"
+fineweb_nemotron_edu_classifier_inference = "nemo_curator.scripts.classifiers.fineweb_nemotron_edu_classifier_inference:console_script"
 verify_classification_results = "nemo_curator.scripts.verify_classification_results:console_script"
 blend_datasets = "nemo_curator.scripts.blend_datasets:console_script"
 semdedup_extract_embeddings = "nemo_curator.scripts.semdedup.compute_embeddings:console_script"
