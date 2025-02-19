@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,22 +13,12 @@
 # limitations under the License.
 
 import pytest
-from distributed import Client
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+from nemo_curator.utils.import_utils import gpu_only_import
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
-LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
-
-
-@pytest.fixture
-def gpu_client(request):
-    with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
-        request.client = client
-        request.cluster = cluster
-        yield
 
 
 @pytest.fixture
@@ -145,6 +135,32 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
     result_pred = result_dataset.df.compute()["fineweb-edu-score-int"]
 
     expected_pred = cudf.Series([1, 0, 1, 1, 0])
+
+    assert result_pred.equals(expected_pred)
+
+
+@pytest.mark.gpu
+def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebMixtralEduClassifier
+
+    classifier = FineWebMixtralEduClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-mixtral-edu-score-int"]
+
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
+
+
+@pytest.mark.gpu
+def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebNemotronEduClassifier
+
+    classifier = FineWebNemotronEduClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-nemotron-edu-score-int"]
+
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
 
     assert result_pred.equals(expected_pred)
 
