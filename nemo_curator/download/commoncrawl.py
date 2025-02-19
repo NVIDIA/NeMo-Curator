@@ -16,6 +16,7 @@
 import os
 import subprocess
 import unicodedata
+import warnings
 from abc import ABC, abstractmethod
 from typing import Literal, Optional
 from urllib.parse import urlparse
@@ -73,7 +74,7 @@ def lang_detect(decoded_html):
 
 class HTMLExtractorAlgorithm(ABC):
     @abstractmethod
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         pass
 
 
@@ -87,6 +88,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         max_link_density=0.2,
         max_heading_distance=200,
         no_headings=False,
+        is_boilerplate=None,
         logger=None,
     ):
         """
@@ -100,6 +102,9 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             max_link_density: Maximum allowed link density in the text.
             max_heading_distance: Maximum distance from a heading to consider text for extraction.
             no_headings: If True, text extraction will ignore headings.
+            is_boilerplate: If True, text extraction will ignore boilerplate content.
+                Default is True for space-separated languages and False for non-space-separated languages
+                (Thai, Chinese, Japanese, and Korean).
             logger: Optional logger instance for logging messages.
 
         """
@@ -110,9 +115,10 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         self.max_link_density = max_link_density
         self.max_heading_distance = max_heading_distance
         self.no_headings = no_headings
+        self.is_boilerplate = is_boilerplate
         self.logger = logger
 
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         # Segment the HTML into paragraphs
         try:
             # Form the DOM tree
@@ -129,7 +135,6 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         paragraphs = handler.paragraphs
 
         # Context free classification
-        # TODO: Check Thai, Chinese, Japanese, and Korean
         justext.core.classify_paragraphs(
             paragraphs,
             stop_words,
@@ -153,7 +158,21 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             self.max_heading_distance,
         )
 
-        return [p.text for p in paragraphs if not p.is_boilerplate]
+        if self.is_boilerplate is None:
+            if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
+                warnings.warn(
+                    "Disabling is_boilerplate check for jusText extraction."
+                )
+                is_boilerplate = False
+            else:
+                is_boilerplate = True
+        else:
+            is_boilerplate = self.is_boilerplate
+
+        if is_boilerplate:
+            return [p.text for p in paragraphs if not p.is_boilerplate]
+        else:
+            return [p.text for p in paragraphs]
 
 
 class ResiliparseExtractor(HTMLExtractorAlgorithm):
@@ -178,27 +197,31 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         self.main_content = main_content
         self.alt_texts = alt_texts
 
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         text = extract_plain_text(
             html, main_content=self.main_content, alt_texts=self.alt_texts
         )
 
         paragraphs = list(filter(None, text.split("\n")))
         result = []
-        for paragraph in paragraphs:
-            # TODO: Check Thai, Chinese, Japanese, and Korean
-            words = paragraph.split()
-            length = len(words)
-            if length == 0:
-                continue
-            stopwords = [word for word in words if word in stop_words]
-            stopword_density = len(stopwords) / length
 
-            if stopword_density >= self.required_stopword_density:
-                result.append(paragraph)
+        if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
+            warnings.warn(
+                "stopword_density is ignored for non-space-separated languages."
+            )
+            result = paragraphs
+        else:
+            for paragraph in paragraphs:
+                words = paragraph.split()
+                length = len(words)
+                if length == 0:
+                    continue
+                stopwords = [word for word in words if word in stop_words]
+                stopword_density = len(stopwords) / length
 
-        if len(result) == 0:
-            return None
+                if stopword_density >= self.required_stopword_density:
+                    result.append(paragraph)
+
         return result
 
 
@@ -377,7 +400,7 @@ class CommonCrawlWARCExtractor(DocumentExtractor):
             lang = lang_detect(html)
             text = None
             if lang in self._stop_lists:
-                text = self.algorithm.extract_text(html, self._stop_lists[lang])
+                text = self.algorithm.extract_text(html, self._stop_lists[lang], lang)
             if text is not None:
                 if len(text) > 0:
                     text = "\n\n".join(text)
