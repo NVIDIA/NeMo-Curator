@@ -30,10 +30,15 @@ import dask.array as da
 import dask.dataframe as dd
 import pandas as pd
 from dask.base import normalize_token, tokenize
+
+from dask.diagnostics import ProgressBar
+from dask.distributed import get_worker, progress
 from distributed import Client
 from omegaconf import DictConfig, OmegaConf
 from openai import AsyncOpenAI, OpenAI
+from tqdm import tqdm
 
+from nemo_curator import AsyncOpenAIClient, OpenAIClient
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.synthetic import AsyncNemotronGenerator, NemotronGenerator
@@ -103,7 +108,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
 
         ddf = dataset.df
-        ddf = ddf.repartition(npartitions=5)
         ddf["partition-id"] = ""
         ddf = ddf.map_partitions(self._get_partition_id, meta=ddf)
         ddf["llm_response"] = ""
@@ -116,6 +120,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         ddf["score"] = ""
 
         ddf = ddf.map_partitions(self._process_on_partition, meta=ddf)
+
         return DocumentDataset(ddf)
 
     def _process_on_partition(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -128,17 +133,17 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
         _id = df["partition-id"].iloc[0]
         tqdm.pandas(desc=f"For partition_{_id}")
-        df["llm_response"] = df["text"].progress_apply(self.generate)
-        df["qa_pairs"] = df["llm_response"].apply(self.parse_response)
-
-        df = df.explode("qa_pairs").reset_index(drop=True)
-        df["question"] = df["qa_pairs"].apply(lambda x: x["question"])
 
         if "_id" in df.columns:
             df["_id"] = df["_id"].apply(self._check_doc_id)
         else:
             df["_id"] = df["text"].apply(self._get_random_hash)
 
+        df["llm_response"] = df["text"].progress_apply(self.generate)
+        df["qa_pairs"] = df["llm_response"].apply(self.parse_response)
+
+        df = df.explode("qa_pairs").reset_index(drop=True)
+        df["question"] = df["qa_pairs"].apply(lambda x: x["question"])
         df["question-id"] = df["question"].apply(self._get_random_hash)
         df["answer"] = df["qa_pairs"].apply(lambda x: x["answer"])
         df["score"] = df["question"].apply(lambda x: 1)
@@ -148,19 +153,23 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
     # ----------------------------------------------------------------------------80
     def parse_response(self, llm_response: str) -> Any:
         qa_pairs = []
-        qa_list = llm_response.split("Question")[1:]
-        try:
-            for qa in qa_list:
-                qas = qa.split("Answer")
-                q = qas[0].split(":")[1].strip()
-                if re.search("Explanation", qas[1]):
-                    a = qas[1].split("Explanation")[0].split(":")[1].strip()
-                    explanation = qas[1].split("Explanation")[1].strip()
-                else:
-                    a = qas[1].split(":")[1].strip()
-                qa_pairs.append({"question": q, "answer": a})
-        except Exception as e:
-            print(f"error: {e}")
+        if llm_response:
+            qa_list = llm_response.split("Question")[1:]
+            try:
+                for qa in qa_list:
+                    qas = qa.split("Answer")
+                    q = qas[0].split(":")[1].strip()
+                    if re.search("Explanation", qas[1]):
+                        a = qas[1].split("Explanation")[0].split(":")[1].strip()
+                        explanation = qas[1].split("Explanation")[1].strip()
+                    else:
+                        a = qas[1].split(":")[1].strip()
+                    qa_pairs.append({"question": q, "answer": a})
+            except Exception as e:
+                qa_pairs = [{"question": "", "answer": ""}]
+                print(f"error: {e}")
+        else:
+            qa_pairs = [{"question": "", "answer": ""}]
         return qa_pairs
 
     # ----------------------------------------------------------------------------80
@@ -195,10 +204,10 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
     # ----------------------------------------------------------------------------80
     def _check_doc_id(self, doc_id: Any) -> str:
-        if str(doc_id) == "nan":
-            return self._get_random_hash("")
-        else:
-            return str(doc_id)
+        if doc_id:
+            if str(doc_id) != "nan":
+                return str(doc_id)
+        return self._get_random_hash("some text")
 
     def __dask_tokenize__(self):
         return normalize_token(RetrieverEvalSetGenerator)

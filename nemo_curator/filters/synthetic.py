@@ -104,7 +104,7 @@ class EasinessFilter(DocumentFilter):
             print(f"Error: {e}")
             response = None
 
-        if response:
+        if response and not isinstance(response, str):
             if isinstance(text, list):
                 embeddings = [r.embedding for r in response.data]
             elif isinstance(text, str):
@@ -129,9 +129,6 @@ class EasinessFilter(DocumentFilter):
                 sim = 0.0
 
         return sim
-
-    # def __dask_tokenize__(self):
-    #     return normalize_token(EasinessFilter)
 
 
 # ----------------------------------------------------------------------------80
@@ -230,9 +227,6 @@ class AnswerabilityFilter(DocumentFilter):
             return None  # generation
 
         return generation
-
-    # def __dask_tokenize__(self):
-    #     return normalize_token(AnswerabilityFilter)
 
 
 # ----------------------------------------------------------------------------80
