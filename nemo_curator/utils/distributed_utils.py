@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 import os
 import shutil
+import subprocess
 
 import dask
 
@@ -485,7 +486,6 @@ def read_data_files_per_partition(
     columns: Optional[List[str]] = None,
     **kwargs,
 ) -> dd.DataFrame:
-    input_files = sorted(input_files)
     if files_per_partition > 1:
         input_files = [
             input_files[i : i + files_per_partition]
@@ -566,6 +566,9 @@ def read_data(
     """
     if isinstance(input_files, str):
         input_files = [input_files]
+
+    check_dask_cwd(input_files)
+
     if file_type == "pickle":
         df = read_pandas_pickle(
             input_files[0], add_filename=add_filename, columns=columns, **kwargs
@@ -745,6 +748,7 @@ def single_partition_write_with_filename(
                         orient="records",
                         lines=True,
                         force_ascii=False,
+                        index=False,  # Only index=False is supported for orient="records"
                     )
                 else:
                     # See open issue here: https://github.com/rapidsai/cudf/issues/15211
@@ -756,6 +760,7 @@ def single_partition_write_with_filename(
                         orient="records",
                         lines=True,
                         force_ascii=False,
+                        index=False,  # Only index=False is supported for orient="records"
                     )
 
             elif output_type == "parquet":
@@ -840,6 +845,7 @@ def write_to_disk(
     write_to_filename: Union[bool, str] = False,
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
+    partition_on: Optional[str] = None,
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -854,6 +860,9 @@ def write_to_disk(
                 If str, uses that as the filename column to write to.
         keep_filename_column: Boolean representing whether to keep or drop the filename column, if it exists.
         output_type: The type of output file to write. Can be "jsonl" or "parquet".
+        partition_on: The column name to partition the data on.
+                      If specified, the data will be partitioned based on the unique values in this column,
+                      and each partition will be written to a separate directory
     """
 
     filename_col = _resolve_filename_col(write_to_filename)
@@ -874,6 +883,11 @@ def write_to_disk(
     elif write_to_filename and filename_col not in df.columns:
         raise ValueError(
             f"write_using_filename is True but no {filename_col} column found in DataFrame"
+        )
+
+    if partition_on is not None and write_to_filename:
+        raise ValueError(
+            "Cannot use both partition_on and write_to_filename parameters simultaneously. "
         )
 
     if is_cudf_type(df):
@@ -901,7 +915,12 @@ def write_to_disk(
     # output_path is a directory
     else:
         if output_type == "jsonl" or output_type == "parquet":
-            _write_to_jsonl_or_parquet(df, output_path, output_type)
+            _write_to_jsonl_or_parquet(
+                df,
+                output_path=output_path,
+                output_type=output_type,
+                partition_on=partition_on,
+            )
         elif output_type == "bitext":
             if write_to_filename:
                 os.makedirs(output_path, exist_ok=True)
@@ -935,16 +954,50 @@ def _write_to_jsonl_or_parquet(
     df,
     output_path: str,
     output_type: Literal["jsonl", "parquet"] = "jsonl",
+    partition_on: Optional[str] = None,
 ):
     if output_type == "jsonl":
-        if is_cudf_type(df):
-            # See open issue here: https://github.com/rapidsai/cudf/issues/15211
-            # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
-            df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+        if partition_on is not None:
+            unique_values = (
+                df[partition_on]
+                .unique()
+                .to_backend(backend="pandas")
+                .compute()
+                .to_list()
+            )
+            for value in unique_values:
+                os.makedirs(output_path, exist_ok=True)
+                partition_output_path = os.path.join(
+                    output_path, f"{partition_on}={value}"
+                )
+                df[df[partition_on] == value].to_json(
+                    partition_output_path,
+                    orient="records",
+                    lines=True,
+                    force_ascii=False,
+                    index=False,  # Only index=False is supported for orient="records"
+                )
         else:
-            df.to_json(output_path, orient="records", lines=True, force_ascii=False)
+            if is_cudf_type(df):
+                # See open issue here: https://github.com/rapidsai/cudf/issues/15211
+                # df.to_json(output_path, orient="records", lines=True, engine="cudf", force_ascii=False)
+                df.to_json(
+                    output_path,
+                    orient="records",
+                    lines=True,
+                    force_ascii=False,
+                    index=False,
+                )  # Only index=False is supported for orient="records"
+            else:
+                df.to_json(
+                    output_path,
+                    orient="records",
+                    lines=True,
+                    force_ascii=False,
+                    index=False,
+                )  # Only index=False is supported for orient="records"
     elif output_type == "parquet":
-        df.to_parquet(output_path, write_index=False)
+        df.to_parquet(output_path, write_index=False, partition_on=partition_on)
     else:
         raise ValueError(f"Unknown output type: {output_type}")
 
@@ -1012,6 +1065,24 @@ def get_current_client():
         return Client.current()
     except ValueError:
         return None
+
+
+def check_dask_cwd(file_list: List[str]):
+    if any(not os.path.isabs(file_path) for file_path in file_list):
+        dask_cwd_list = list(get_current_client().run(os.getcwd).values())
+        if len(set(dask_cwd_list)) <= 1:
+            dask_cwd = dask_cwd_list[0]
+            os_pwd = subprocess.check_output("pwd", shell=True, text=True).strip()
+            if dask_cwd != os_pwd:
+                raise RuntimeError(
+                    "Mismatch between Dask client and worker working directories. "
+                    "Use absolute file paths to ensure the correct files are read as intended."
+                )
+        else:
+            raise RuntimeError(
+                "Mismatch between at least 2 Dask workers' working directories. "
+                "Use absolute file paths to ensure the correct files are read as intended."
+            )
 
 
 def performance_report_if(
