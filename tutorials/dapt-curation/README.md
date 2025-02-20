@@ -49,7 +49,7 @@ Please follow the instructions in the README on using docker image and installin
 ```bash
 cd NeMo-Curator/tutorials/dapt-curation/code/
 apt update
-apt-get install poppler-utils 
+apt-get install poppler-utils
 apt-get install tesseract-ocr
 apt install libtesseract-dev
 pip install -r requirements.txt
@@ -61,6 +61,6 @@ pip install -r requirements.txt
 python main.py --device "gpu"
 ```
 
-This will download chip-design related datasets and begin the data curation pipeline. 
+This will download chip-design related datasets and begin the data curation pipeline.
 
 Please use `--device "gpu"` to enable semantic and fuzzy deduplication, which require the GPU.
