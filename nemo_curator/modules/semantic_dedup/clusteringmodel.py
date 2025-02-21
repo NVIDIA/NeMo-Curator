@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -128,7 +128,15 @@ class ClusteringModel:
             embeddings_df = embeddings_df.repartition(
                 partition_size=self.partition_size
             )
-            embeddings_df = embeddings_df.to_backend("pandas").persist()
+
+            try:
+                embeddings_df = embeddings_df.to_backend("pandas").persist()
+            except IndexError:
+                raise RuntimeError(
+                    "DocumentDataset contains empty partitions. "
+                    "Please remove empty partitions from the dataset before running semantic deduplication."
+                )
+
             embeddings_df = embeddings_df.to_backend("cudf")
 
             cupy_darr = embeddings_df.map_partitions(

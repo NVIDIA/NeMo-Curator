@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -163,7 +163,8 @@ class SemanticClusterLevelDedup:
         output_parquet_path = os.path.join(
             self.output_dir, f"unique_ids_{eps_to_extract}.parquet"
         )
-        extract_dedup_data(
+
+        result = extract_dedup_data(
             eps=eps_to_extract,
             n_clusters=self.n_clusters,
             id_col=self.id_col,
@@ -175,6 +176,9 @@ class SemanticClusterLevelDedup:
             logger=self.logger,
             profile_dir=self.profile_dir,
         )
+        # Result is None if there are no duplicates
+        if result is None:
+            return None
 
         fps = [
             os.path.join(output_parquet_path, file_name)

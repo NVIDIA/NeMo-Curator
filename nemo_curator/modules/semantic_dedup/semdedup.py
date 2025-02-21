@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -96,6 +96,13 @@ class SemDedup(BaseModule):
         embeddings_dataset = self.embedding_creator(dataset)
         self.clustering_model(embeddings_dataset)
         self.semantic_cluster_dedup.compute_semantic_match_dfs(self.eps_thresholds)
-        return self.semantic_cluster_dedup.extract_dedup_data(
+
+        result = self.semantic_cluster_dedup.extract_dedup_data(
             eps_to_extract=self.eps_to_extract
         )
+
+        # If no duplicates are found, return the original dataset
+        if result is not None:
+            return result
+        else:
+            return dataset

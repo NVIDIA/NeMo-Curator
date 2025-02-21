@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,6 +52,21 @@ def dedup_data():
     return DocumentDataset(df)
 
 
+@pytest.fixture
+def non_dedup_data():
+    df = cudf.DataFrame(
+        {
+            "doc_id": ["doc_1", "doc_2"],
+            "text": [
+                "The quick brown fox jumps over the lazy dog",
+                "A test string",
+            ],
+        }
+    )
+    df = dask_cudf.from_cudf(df, 2)
+    return DocumentDataset(df)
+
+
 @pytest.mark.gpu
 class TestSemDuplicates:
     def test_sem_dedup(
@@ -80,6 +95,33 @@ class TestSemDuplicates:
         duplicate_docs = [2, 3, 4, 200, 300]
         expected_df = cudf.Series(duplicate_docs, name="id")
         assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+
+    def test_no_sem_dedup(
+        self,
+        non_dedup_data,
+        tmpdir,
+        gpu_client,
+    ):
+        print("client", gpu_client)
+        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+        config = SemDedupConfig(
+            cache_dir=cache_dir,
+            seed=42,
+            n_clusters=3,
+            eps_thresholds=[0.10],
+            eps_to_extract=0.10,
+        )
+        sem_duplicates = SemDedup(
+            config=config,
+            input_column="text",
+            id_column="doc_id",
+            id_column_type="str",
+        )
+        result = sem_duplicates(non_dedup_data)
+        result_df = result.df.compute()
+        duplicate_docs = ["doc_1", "doc_2"]
+        expected_df = cudf.Series(duplicate_docs, name="doc_id")
+        assert_eq(result_df["doc_id"].sort_values(), expected_df, check_index=False)
 
     @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean_pooling"])
     def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):

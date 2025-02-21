@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -395,6 +395,11 @@ def extract_pruned_data(
 
     t0 = time.time()
 
+    np_files = [
+        os.path.join(sorted_clusters_dir, f"cluster_{i}.npy") for i in range(n_clusters)
+    ]
+    total_records = sum(get_num_records(file_path) for file_path in np_files)
+
     with performance_report_if_with_ts_suffix(
         profile_dir,
         "extracting-pruned-from-clusters",
@@ -412,7 +417,13 @@ def extract_pruned_data(
         results_df = results_df.persist()
         progress(results_df)
 
-        results_df.to_parquet(output_parquet_path)
+        try:
+            results_df.to_parquet(output_parquet_path)
+        except TypeError:
+            # Catching "Implicit conversion to a host PyArrow object via __arrow_array__ is not allowed"
+            logger.info("No semantic duplicates found")
+            return total_records, 0, total_records
+
     if logger:
         logger.info(
             f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"
@@ -420,10 +431,6 @@ def extract_pruned_data(
 
     total_kept = len(results_df)
 
-    np_files = [
-        os.path.join(sorted_clusters_dir, f"cluster_{i}.npy") for i in range(n_clusters)
-    ]
-    total_records = sum(get_num_records(file_path) for file_path in np_files)
     # Aggregate results
     total_removed = total_records - total_kept
     return total_kept, total_removed, total_records
@@ -472,9 +479,12 @@ def extract_dedup_data(
     df = pd.DataFrame(result_dict)
     df.to_csv(output_summary_file, index=False)
 
-    fps = [
-        os.path.join(output_parquet_path, file_name)
-        for file_name in os.listdir(output_parquet_path)
-    ]
-    ids_to_keep_df = dd.from_map(cudf.read_parquet, fps)
-    return ids_to_keep_df
+    if removed > 0:
+        fps = [
+            os.path.join(output_parquet_path, file_name)
+            for file_name in os.listdir(output_parquet_path)
+        ]
+        ids_to_keep_df = dd.from_map(cudf.read_parquet, fps)
+        return ids_to_keep_df
+    else:
+        return None
