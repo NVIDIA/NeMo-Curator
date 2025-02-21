@@ -103,7 +103,7 @@ class TestSemDuplicates:
         gpu_client,
     ):
         print("client", gpu_client)
-        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+        cache_dir = os.path.join(tmpdir, "test_no_sem_dedup_cache")
         config = SemDedupConfig(
             cache_dir=cache_dir,
             seed=42,
