@@ -23,6 +23,7 @@ from docbuilder import TedTalksDownloader
 from nemo_curator import ParallelScoreFilter, Sequential
 from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import (
+    FastTextLangId,
     HistogramFilter,
     LengthRatioFilter,
     QualityEstimationFilter,
@@ -37,6 +38,10 @@ TGT_LANG = "de"
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
+
+# If you want to test FastText language ID,
+# download the model from here first then update this with your local model path (https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz)
+FAST_TEXT_MODEL_DIR = ""
 
 
 def download_files() -> str:
@@ -66,6 +71,15 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
             ),
         ]
     )
+
+    if FAST_TEXT_MODEL_DIR:
+        filters.modules.append(
+            ParallelScoreFilter(
+                FastTextLangId(model_path=FAST_TEXT_MODEL_DIR, lang=SRC_LANG),
+                FastTextLangId(model_path=FAST_TEXT_MODEL_DIR, lang=TGT_LANG),
+                score_type=str,
+            )
+        )
 
     if gpu:
         filters.modules.append(

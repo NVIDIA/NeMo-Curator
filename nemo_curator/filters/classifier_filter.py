@@ -68,14 +68,14 @@ class FastTextQualityFilter(DocumentFilter):
 
 class FastTextLangId(DocumentFilter):
 
-    def __init__(self, model_path=None, min_langid_score=0.3):
+    def __init__(self, model_path=None, min_langid_score=0.3, lang=None):
         if model_path is None:
             raise ValueError(
                 "Must provide a valid path to a FastText model "
                 "to identify languages with this filter"
             )
         self._model_path = model_path
-        self._lang_code = None
+        self._lang_code = lang
         self._cutoff = min_langid_score
         self._name = "lang_id"
 
@@ -91,14 +91,17 @@ class FastTextLangId(DocumentFilter):
             pp = text.strip().replace("\n", " ")
             label, score = model.predict(pp, k=1)
             score = score[0]
-            lang_code = label[0][-2:].upper()
+            lang_code = label[0][-2:].lower()
 
             return [score, lang_code]
 
         return df.apply(_score_document)
 
     def keep_document(self, score):
-        return score[0] >= self._cutoff
+        if self._lang_code:
+            return score[1] == self._lang_code
+        else:
+            return score[0] >= self._cutoff
 
     def _load_model(self):
         return fasttext.load_model(self._model_path)
