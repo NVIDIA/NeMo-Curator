@@ -322,7 +322,8 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache_dir: str) -> DocumentDataset:
 
 
 def semantic_dedupe(
-    dataset: DocumentDataset, sem_dedupe_config_yaml_path: str,
+    dataset: DocumentDataset,
+    sem_dedupe_config_yaml_path: str,
 ):
     """
     Perform semantic deduplication on the given dataset.
