@@ -119,7 +119,7 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
 
     os.makedirs(out_path)
     # dataset.to_bitext(out_path, write_to_filename=True)
-    dataset.to_json(out_path, write_to_filename=True)
+    dataset.to_json(out_path)
     client.close()
 
 
