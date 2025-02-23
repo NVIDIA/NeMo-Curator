@@ -131,10 +131,17 @@ class ClusteringModel:
 
             try:
                 embeddings_df = embeddings_df.to_backend("pandas").persist()
-            except IndexError:
-                raise RuntimeError(
-                    "DocumentDataset contains empty partitions. "
-                    "Please remove empty partitions from the dataset before running semantic deduplication."
+
+                if embeddings_df.shape[0].compute() < self.n_clusters:
+                    raise ValueError(
+                        "Number of clusters is greater than the number of documents in your dataset. "
+                        "Please reduce n_clusters to be less than or equal."
+                    )
+            except IndexError as e:
+                raise IndexError(
+                    f'Original error message: "{e}". '
+                    "This could be due to empty partitions in your DocumentDataset. "
+                    "Please check your dataset for empty partitions and remove them if necessary."
                 )
 
             embeddings_df = embeddings_df.to_backend("cudf")
