@@ -81,7 +81,6 @@ class TestSemDuplicates:
         cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
         config = SemDedupConfig(
             cache_dir=cache_dir,
-            seed=42,
             n_clusters=n_clusters,
             eps_thresholds=[0.10],
             eps_to_extract=0.10,
@@ -120,7 +119,6 @@ class TestSemDuplicates:
         cache_dir = os.path.join(tmpdir, "test_no_sem_dedup")
         config = SemDedupConfig(
             cache_dir=cache_dir,
-            seed=42,
             n_clusters=n_clusters,
             eps_thresholds=[0.10],
             eps_to_extract=0.10,

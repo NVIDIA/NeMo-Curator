@@ -54,7 +54,7 @@ class ClusteringModel:
         max_iter: int,
         n_clusters: int,
         clustering_output_dir: str,
-        embedding_col: str = "embeddings",
+        embedding_column: str = "embeddings",
         sim_metric: str = "cosine",
         which_to_keep: str = "hard",
         sort_clusters: bool = True,
@@ -71,7 +71,7 @@ class ClusteringModel:
             max_iter (int): Maximum number of iterations for the clustering algorithm.
             n_clusters (int): The number of clusters to form.
             clustering_output_dir (str): Directory path where clustering results will be saved.
-            embedding_col (str): Column name where the embeddings are stored.
+            embedding_column (str): Column name where the embeddings are stored.
             sim_metric (str): Similarity metric to use for clustering, default is "cosine".
             which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
             sort_clusters (bool): Whether to sort clusters, default is True.
@@ -86,7 +86,7 @@ class ClusteringModel:
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
-        self.embedding_col = embedding_col
+        self.embedding_column = embedding_column
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
         self.kmeans_with_cos_dist = kmeans_with_cos_dist
@@ -117,14 +117,14 @@ class ClusteringModel:
     def __call__(self, embeddings_dataset: DocumentDataset):
         embeddings_df = embeddings_dataset.df
 
-        if self.embedding_col not in embeddings_df.columns:
+        if self.embedding_column not in embeddings_df.columns:
             raise ValueError(
-                f"Expected embedding column '{self.embedding_col}'"
+                f"Expected embedding column '{self.embedding_column}'"
                 f" to be in dataset. Only found columns {embeddings_df.columns}"
             )
 
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
-            embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
+            embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
             embeddings_df = embeddings_df.repartition(
                 partition_size=self.partition_size
             )
@@ -147,7 +147,7 @@ class ClusteringModel:
             embeddings_df = embeddings_df.to_backend("cudf")
 
             cupy_darr = embeddings_df.map_partitions(
-                get_embedding_ar, self.embedding_col, meta=cp.ndarray([1, 1])
+                get_embedding_ar, self.embedding_column, meta=cp.ndarray([1, 1])
             )
             cupy_darr.compute_chunk_sizes()
             t0 = time.time()
@@ -171,7 +171,7 @@ class ClusteringModel:
             meta_df["dist_to_cent"] = cp.zeros(1)
             embeddings_df = embeddings_df.map_partitions(
                 add_dist_to_cents,
-                embedding_col=self.embedding_col,
+                embedding_col=self.embedding_column,
                 centroids=kmeans.cluster_centers_,
                 meta=meta_df,
             )
@@ -213,7 +213,7 @@ class ClusteringModel:
                 output_sorted_clusters_dir=os.path.join(
                     self.clustering_output_dir, "sorted"
                 ),
-                embedding_col=self.embedding_col,
+                embedding_col=self.embedding_column,
                 sim_metric=self.sim_metric,
                 keep_hard=self.keep_hard,
                 kmeans_with_cos_dist=self.kmeans_with_cos_dist,
