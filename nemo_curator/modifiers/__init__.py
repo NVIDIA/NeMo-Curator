@@ -20,6 +20,7 @@ from .markdown_remover import MarkdownRemover
 from .newline_normalizer import NewlineNormalizer
 from .pii_modifier import PiiModifier
 from .quotation_remover import QuotationRemover
+from .regex_modifier import RegexModifier
 from .slicer import Slicer
 from .unicode_reformatter import UnicodeReformatter
 from .url_remover import UrlRemover
@@ -32,6 +33,7 @@ __all__ = [
     "QuotationRemover",
     "LineRemover",
     "MarkdownRemover",
+    "RegexModifier",
     "PiiModifier",
     "NewlineNormalizer",
     "UrlRemover",
