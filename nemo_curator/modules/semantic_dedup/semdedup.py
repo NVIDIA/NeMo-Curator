@@ -70,7 +70,7 @@ class SemDedup(BaseModule):
             which_to_keep=config.which_to_keep,
             sort_clusters=config.sort_clusters,
             kmeans_with_cos_dist=config.kmeans_with_cos_dist,
-            partition_size=config.partition_size,
+            clustering_input_partition_size=config.clustering_input_partition_size,
             logger=logger,
             profile_dir=self.config.profile_dir,
         )

@@ -58,7 +58,7 @@ Semantic deduplication in NeMo Curator can be configured using a YAML file. Here
     which_to_keep: "hard"
     sort_clusters: true
     kmeans_with_cos_dist: false
-    partition_size: "2gb"
+    clustering_input_partition_size: "2gb"
 
     # Extract dedup configuration
     eps_thresholds:

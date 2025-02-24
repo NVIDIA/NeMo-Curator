@@ -180,7 +180,7 @@ class SemDedupConfig(BaseConfig):
         sort_clusters (bool): Whether to sort clusters. Default is True.
         kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
             Default is False.
-        partition_size (str): The size of data partition with which to run KMeans.
+        clustering_input_partition_size (str): The size of data partition with which to run KMeans.
             Default is "2gb".
 
         eps_thresholds (List[float]): Epsilon thresholds to calculate if semantically
@@ -198,6 +198,7 @@ class SemDedupConfig(BaseConfig):
     embedding_batch_size: int = 128
     embeddings_save_loc: str = "embeddings"
     embedding_max_mem_gb: Optional[int] = None
+    # Options: "mean_pooling", "last_token"
     embedding_pooling_strategy: str = "mean_pooling"
     embedding_column: str = "embeddings"
     write_embeddings_to_disk: bool = True
@@ -211,7 +212,7 @@ class SemDedupConfig(BaseConfig):
     which_to_keep: str = "hard"
     sort_clusters: bool = True
     kmeans_with_cos_dist: bool = False
-    partition_size: str = "2gb"
+    clustering_input_partition_size: str = "2gb"
 
     # Extract dedup config
     eps_thresholds: List[float] = field(default_factory=lambda: [0.01, 0.001])

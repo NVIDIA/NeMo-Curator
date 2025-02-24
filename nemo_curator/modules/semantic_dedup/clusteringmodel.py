@@ -59,7 +59,7 @@ class ClusteringModel:
         which_to_keep: str = "hard",
         sort_clusters: bool = True,
         kmeans_with_cos_dist: bool = False,
-        partition_size: str = "2gb",
+        clustering_input_partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
     ):
@@ -76,7 +76,7 @@ class ClusteringModel:
             which_to_keep (str): Strategy to decide which duplicates to keep; default is "hard".
             sort_clusters (bool): Whether to sort clusters, default is True.
             kmeans_with_cos_dist (bool): Whether to use KMeans with cosine distance, default is False.
-            partition_size (str): The size of data partition to run kmeans with, default is "2gb".
+            clustering_input_partition_size (str): The size of data partition to run kmeans with, default is "2gb".
             logger (Union[logging.Logger, str]): Logger object or directory path to save logs; default is "./".
             profile_dir (str): If specified directory to write dask profile. Default is None.
 
@@ -90,7 +90,7 @@ class ClusteringModel:
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
         self.kmeans_with_cos_dist = kmeans_with_cos_dist
-        self.partition_size = partition_size
+        self.clustering_input_partition_size = clustering_input_partition_size
         self.sort_clusters = sort_clusters
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
@@ -126,16 +126,18 @@ class ClusteringModel:
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
             embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
             embeddings_df = embeddings_df.repartition(
-                partition_size=self.partition_size
+                partition_size=self.clustering_input_partition_size
             )
 
             try:
                 embeddings_df = embeddings_df.to_backend("pandas").persist()
+                embeddings_length = embeddings_df.shape[0].compute()
 
-                if embeddings_df.shape[0].compute() < self.n_clusters:
+                if embeddings_length < self.n_clusters:
                     raise ValueError(
-                        "Number of clusters is greater than the number of documents in your dataset. "
-                        "Please reduce n_clusters to be less than or equal."
+                        "Number of clusters is greater than the number of documents in your dataset: "
+                        f"dataset length is {embeddings_length} while n_clusters is set to {self.n_clusters}. "
+                        f"Please reduce n_clusters to be less than or equal to {embeddings_length}."
                     )
             except IndexError as e:
                 raise IndexError(
