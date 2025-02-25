@@ -17,7 +17,6 @@ from __future__ import annotations
 import logging
 import os
 import time
-import warnings
 from typing import Optional, Union
 
 from nemo_curator.datasets import DocumentDataset
@@ -273,7 +272,7 @@ class FuzzyDuplicates(BaseModule):
         """
 
         if not duplicates_to_remove:
-            warnings.warn("No fuzzy duplicates to remove, returning original dataset")
+            print("No fuzzy duplicates to remove, returning original dataset")
             return dataset
 
         result = remove_duplicates(

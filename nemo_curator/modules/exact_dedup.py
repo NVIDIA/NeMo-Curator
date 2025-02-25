@@ -221,7 +221,7 @@ class ExactDuplicates(BaseModule):
         """
 
         if duplicates_to_remove is None:
-            warnings.warn("No exact duplicates to remove, returning original dataset")
+            print("No exact duplicates to remove, returning original dataset")
             return dataset
 
         result = remove_duplicates(
