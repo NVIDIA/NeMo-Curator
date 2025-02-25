@@ -1,0 +1,36 @@
+# Multi-Modal Data Curation from PDFs
+
+## Overview
+This is Part 2 of the tutorial that provides best practices for data curation in Domain-Adaptive Pre-Training (DAPT). 
+The dataset used in this tutorial is small, making it ideal for developing and validating data curation pipelines on either a local machine or a computing cluster. The playbook employs specialized tools and techniques for high-quality text curation and refinement.
+
+## Hardware Requirements
+This playbook is compatible with both CPUs and GPUs. 
+While most steps can run on a CPU, the semantic and fuzzy deduplication modules require a GPU. 
+If GPUs are available, the PII redaction and exact deduplication processes will be accelerated.
+
+## Walkthrough
+The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/multimodal_dapt_curation/ingest/sources/separated_extracted_data/data_type_map.json` file. 
+
+The tutorial follows these steps:
+1. Install Requirements and Import Libraries
+2. Convert Extracted Data: Transform data from `nv-ingest` into Dask DataFrames and convert them to `DocumentDataset`.
+3. Examine File Types and Sizes (Optional)
+4. Run the Data Curation Pipeline with NeMo Curator:
+   - Identify and separate file types
+   - Perform document-level exact deduplication
+   - Apply heuristic-based quality filtering (e.g., number of lines, word count, top N-grams)
+   - Fix Unicode errors using `ftfy`
+   - Redact PII
+   - Execute GPU-accelerated fuzzy and semantic deduplication
+5. Save the Filtered and Curated Data
+
+## Usage
+After installing the NeMo Curator package, install the required dependencies and run the pipeline using the following command:
+
+```sh
+python main.py --device "gpu"
+```
+
+## License
+Refer to the relevant repository for licensing information.
