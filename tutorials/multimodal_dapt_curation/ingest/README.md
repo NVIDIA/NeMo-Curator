@@ -1,14 +1,25 @@
 # Multi-Modal Data Extraction from PDFs
 
 ## Overview
-This tutorial guides you through extracting different modalities (text, images, tables, etc.) from PDFs using NVIDIA's multimodal extraction (`nv-ingest`) framework.
+This is Part 1 of the tutorial where we guide you through extracting different modalities (text, images, tables, etc.) from PDFs using NVIDIA's multimodal extraction (`nv-ingest`) framework.
+The dataset used in this tutorial is small, making it ideal for developing and validating data curation pipelines on either a local machine or a computing cluster. The playbook employs specialized tools and techniques for high-quality extraction for PDF files.
 
-## Setup
+## Walkthrough
+The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/multimodal_dapt_curation/ingest/sources/arxiv_urls.jsonl` file.
+The tutorial follows these steps:
+1. Install Requirements and Import Libraries
+2. Download the data from online sources (arxiv URLs)
+3. Using Ingestor interface to chain together an extraction task and a deduplication task to ingest PDF
+    - `extract` : Performs multimodal extractions from a document, including text, images, and tables.
+    - `dedup` : Identifies duplicate images in document that can be filtered to remove data redundancy.
+    - `filter` : Filters out images that are likely not useful using some heuristics, including size and aspect ratio.
+4. Separate and save the data based on modality
+5. Analyse the data (optional)
+6. Display the extracted images, tables and charts (optional)
+
+## Setup and Hardware Requirements
 Before proceeding, ensure you have completed the setup instructions provided in the following GitHub repository:
-
 [NVIDIA Ingest Multi-Modal Data Extraction](https://github.com/NVIDIA/nv-ingest?tab=readme-ov-file#nvidia-ingest-multi-modal-data-extraction)
-
-This link includes essential steps required to run this tutorial.
 
 ## Installation
 Once the setup is complete, follow these steps to install the required dependencies for running this tutorial:
@@ -23,6 +34,7 @@ After installing the dependencies, execute the following command to run the tuto
 ```sh
 python main.py
 ```
+This will generate a directory named `separated_extracted_data` under `sources` directory. This contains the extracted data mapped to modality from all the data sources. The `data_type_map.json` file will be used by NeMo-Curator to curate data for DAPT task.
 
 ## Optional Flags
 The tutorial provides two optional flags:
@@ -36,16 +48,7 @@ Example usage:
 python main.py --analyze --display
 ```
 
-This will generate a directory named `separated_extracted_data` under `sources` directory. This contains the extracted data mapped to modality from all the data sources. The `data_type_map.json` file will be used by NeMo-Curator to curate data for DAPT task.
-
 ## Notes
-- Ensure your Python environment is activated before installing dependencies.
-- The extracted content can be further processed using NeMo Curator for domain adapted pre-training.
-- Each ingest job includes a set of tasks. These tasks define the operations that will be performed during ingestion. 
-    - `extract` : Performs multimodal extractions from a document, including text, images, and tables.
-    - `dedup` : Identifies duplicate images in document that can be filtered to remove data redundancy.
-    - `filter` : Filters out images that are likely not useful using some heuristics, including size and aspect ratio.
-    Ingestor interface helps to chain together an extraction tast and a deduplication task to ingest PDF. 
 - Exploring Outputs
     - Text
         - `content` - The raw extracted content, text in this case - this section will always be populated with a successful job.
