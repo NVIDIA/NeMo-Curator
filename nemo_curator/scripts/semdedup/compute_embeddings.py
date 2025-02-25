@@ -41,7 +41,7 @@ def main(args):
         semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
 
-    # Some time jsonl files are stored as .json
+    # Sometimes JSONL files are stored as .json
     # So to handle that case we can pass the input_file_extension
     if args.input_file_extension is not None:
         input_file_extension = args.input_file_extension
@@ -76,13 +76,17 @@ def main(args):
     embedding_creator = EmbeddingCreator(
         embedding_model_name_or_path=semdedup_config.embedding_model_name_or_path,
         embedding_batch_size=semdedup_config.embedding_batch_size,
-        embedding_output_dir=os.path.join(
-            semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
-        ),
+        cache_dir=semdedup_config.cache_dir,
+        embeddings_save_loc=semdedup_config.embeddings_save_loc,
         input_column=args.input_text_field,
         write_embeddings_to_disk=semdedup_config.write_embeddings_to_disk,
         logger=logger,
+        # Hardcoded as recommended values
+        embedding_max_mem_gb=None,
+        embedding_column="embeddings",
+        write_embeddings_to_disk=True,
         write_to_filename=True,
+        profile_dir=None,
     )
 
     embedding_dataset = embedding_creator(dataset=dataset)

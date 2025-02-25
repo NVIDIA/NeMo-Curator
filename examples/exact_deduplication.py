@@ -64,7 +64,6 @@ def main(args):
     if isinstance(duplicates, str):
         duplicates = DocumentDataset.read_parquet(duplicates, backend=backend)
 
-    # It's easy to apply dataframe operations to the dataset by using the underlying df.
     result = exact_dup.remove(input_dataset, duplicates)
     write_to_disk(result, output_dir, output_type="parquet")
     print(time.time() - t0)

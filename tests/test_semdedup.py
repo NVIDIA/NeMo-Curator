@@ -21,6 +21,7 @@ from dask.dataframe.utils import assert_eq
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator import SemDedup, SemDedupConfig
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -68,17 +69,25 @@ def non_dedup_data():
 
 @pytest.mark.gpu
 class TestSemDuplicates:
+    @pytest.mark.parametrize("cache_method", ["Cache", "SemDedupConfig"])
     @pytest.mark.parametrize("n_clusters", [3, 10])
     def test_sem_dedup(
         self,
         dedup_data,
         tmpdir,
+        cache_method,
         n_clusters,
         gpu_client,
     ):
         print("client", gpu_client)
 
-        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=os.path.join(tmpdir, "test_sem_dedup_cache"))
+            cache_dir = None
+        else:
+            cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+
         config = SemDedupConfig(
             cache_dir=cache_dir,
             n_clusters=n_clusters,
@@ -144,6 +153,43 @@ class TestSemDuplicates:
             expected_df = cudf.Series(duplicate_docs, name="doc_id")
             assert_eq(result_df["doc_id"].sort_values(), expected_df, check_index=False)
 
+        # Check that the output is written when either:
+        # (1) Cache(cache_dir=...) is initialized, or
+        # (2) SemDedupConfig(cache_dir=...) is initialized.
+        # Either way, their output files should be identical.
+        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+
+        assert os.path.exists(cache_dir)
+        assert os.path.exists(cache_dir + "/embeddings/part.0.parquet")
+        assert os.path.exists(cache_dir + "/embeddings/part.1.parquet")
+        assert os.path.exists(cache_dir + "/clustering_results/dedup_summary_0.1.csv")
+        assert os.path.exists(cache_dir + "/clustering_results/kmeans_centroids.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_0.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_1.npy")
+        assert os.path.exists(cache_dir + "/clustering_results/sorted/cluster_2.npy")
+        assert os.path.exists(
+            cache_dir
+            + "/clustering_results/embs_by_nearest_center/nearest_cent=0/part.0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir
+            + "/clustering_results/embs_by_nearest_center/nearest_cent=1/part.0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir
+            + "/clustering_results/embs_by_nearest_center/nearest_cent=2/part.0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_0.parquet"
+        )
+        assert os.path.exists(
+            cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_1.parquet"
+        )
+        assert os.path.exists(
+            cache_dir + "/clustering_results/semdedup_pruning_tables/cluster_2.parquet"
+        )
+        assert os.path.exists(cache_dir + "/clustering_results/unique_ids_0.1.parquet")
+
     @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean_pooling"])
     def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):
         test_text_1 = "The quick brown fox jumps over the lazy dog"
@@ -151,21 +197,26 @@ class TestSemDuplicates:
         test_texts = [test_text_1, test_text_2] * 32
         df = cudf.DataFrame({"text": test_texts})
         ddf = dask_cudf.from_cudf(df, 1)
+
         cache_dir = os.path.join(tmpdir, "test_embeddings_cache")
 
         embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
             embedding_batch_size=32,
+            cache_dir=cache_dir,
+            embeddings_save_loc="mean_embeddings",
             embedding_pooling_strategy=pooling_strategy,
             input_column="text",
-            embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
         )
+
         embeddings = embedding_creator.create_embeddings(ddf).compute()
         embeddings = embeddings["embeddings"].to_arrow().to_pylist()
         embeddings = np.array(embeddings)
+
         reference_embeddings = get_reference_embeddings(
             test_texts, pooling_strategy=pooling_strategy
         )
+
         assert np.allclose(
             embeddings, reference_embeddings, atol=1e-3
         ), "Embeddings should match reference embeddings"
