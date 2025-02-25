@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,15 +65,14 @@ class SemDedup(BaseModule):
             embedding_batch_size=config.embedding_batch_size,
             cache_dir=cache_dir,
             embeddings_save_loc=config.embeddings_save_loc,
+            embedding_max_mem_gb=config.embedding_max_mem_gb,
             embedding_pooling_strategy=config.embedding_pooling_strategy,
             input_column=input_column,
+            embedding_column=config.embedding_column,
             write_embeddings_to_disk=config.write_embeddings_to_disk,
+            write_to_filename=config.write_to_filename,
             logger=logger,
             profile_dir=profile_dir,
-            # Hardcoded as recommended values
-            embedding_max_mem_gb=None,
-            embedding_column="embeddings",
-            write_to_filename=False,
         )
         self.clustering_model = ClusteringModel(
             id_column=id_column,
@@ -81,15 +80,15 @@ class SemDedup(BaseModule):
             n_clusters=config.n_clusters,
             cache_dir=cache_dir,
             clustering_save_loc=clustering_save_loc,
+            embedding_column=config.embedding_column,
             sim_metric=config.sim_metric,
             which_to_keep=config.which_to_keep,
             kmeans_with_cos_dist=config.kmeans_with_cos_dist,
+            sort_clusters=config.sort_clusters,
+            kmeans_with_cos_dist=config.kmeans_with_cos_dist,
+            clustering_input_partition_size=config.clustering_input_partition_size,
             logger=logger,
             profile_dir=profile_dir,
-            # Hardcoded as recommended values
-            embedding_col="embeddings",
-            sort_clusters=True,
-            partition_size="2gb",
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
@@ -97,12 +96,12 @@ class SemDedup(BaseModule):
             id_column_type=id_column_type,
             which_to_keep=config.which_to_keep,
             cache_dir=cache_dir,
+            embedding_column=config.embedding_column,
             clustering_save_loc=clustering_save_loc,
             logger=logger,
             profile_dir=profile_dir,
-            # Hardcoded as recommended values
+            # Hardcoded path
             output_dir=os.path.join(cache_dir, clustering_save_loc),
-            embedding_col="embeddings",
         )
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ class SemanticClusterLevelDedup:
         which_to_keep: str,
         output_dir: Optional[str] = None,
         cache_dir: Optional[str] = None,
-        embedding_col: str = "embeddings",
+        embedding_column: str = "embeddings",
         clustering_save_loc: str = "clustering_results",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
@@ -59,7 +59,7 @@ class SemanticClusterLevelDedup:
                 If None, it will be saved to cache_dir/clustering_save_loc.
                 Default is None.
             cache_dir (str, optional): Should be the same as specified in ClusteringModel.
-            embedding_col (str): Column where the embeddings are stored.
+            embedding_column (str): Column where the embeddings are stored.
             clustering_save_loc (str): Should be the same as specified in ClusteringModel.
             logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
                 Default is "./".
@@ -71,7 +71,7 @@ class SemanticClusterLevelDedup:
         self.id_col_type = id_column_type
         self.which_to_keep = which_to_keep
         self.computed_semantic_match_dfs = False
-        self.embedding_col = embedding_col
+        self.embedding_column = embedding_column
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
@@ -155,7 +155,7 @@ class SemanticClusterLevelDedup:
                     id_col_type=self.id_col_type,
                     eps_list=eps_list,
                     output_dir=self.semdedup_pruning_tables_dir,
-                    embedding_col=self.embedding_col,
+                    embedding_col=self.embedding_column,
                     which_to_keep=self.which_to_keep,
                 )
             )

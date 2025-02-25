@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -178,31 +178,43 @@ class SemDedupConfig(BaseConfig):
         profile_dir (Optional[str]): If specified, directory to write Dask profile.
             Default is None.
         num_files (int): Number of files. Default is -1, meaning all files.
-        embeddings_save_loc (str): Location to save embeddings.
-            Default is "embeddings".
+
         embedding_model_name_or_path (str): Model name or path for embeddings.
             Default is "sentence-transformers/all-MiniLM-L6-v2".
         embedding_batch_size (int): Initial batch size for processing embeddings.
             Default is 128.
+        embeddings_save_loc (str): Location to save embeddings.
+            Default is "embeddings".
+        embedding_max_mem_gb (int): Maximum memory usage in GB for the embedding process.
+            If None, it defaults to the available GPU memory minus 4 GB.
         embedding_pooling_strategy (str): Strategy for pooling embeddings, either
             "mean_pooling" or "last_token". Default is "mean_pooling".
+        embedding_column (str): The column name that stores the embeddings.
+            Default is "embeddings".
         write_embeddings_to_disk (bool): If True, saves the embeddings to disk.
             We recommend setting this to False when you have a delayed pipeline.
             Setting it to False can lead to more memory overhead. Default is True.
+        write_to_filename (bool): If True, saves the embeddings to the same filename as input files.
+            Default False.
+
+        max_iter (int): Maximum iterations for clustering. Default is 100.
+        n_clusters (int): Number of clusters. Default is 1000.
         clustering_save_loc (str): Location to save clustering results.
             Default is "clustering_results".
-        n_clusters (int): Number of clusters. Default is 1000.
-        max_iter (int): Maximum iterations for clustering. Default is 100.
-        kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
-            Default is False.
-        which_to_keep (str): Method to determine which duplicates to keep.
-            Default is "hard".
         sim_metric (str): Similarity metric for deduplication.
             Default is "cosine".
+        which_to_keep (str): Method to determine which duplicates to keep.
+            Default is "hard".
+        sort_clusters (bool): Whether to sort clusters. Default is True.
+        kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
+            Default is False.
+        clustering_input_partition_size (str): The size of data partition with which to run KMeans.
+            Default is "2gb".
+
         eps_thresholds (List[float]): Epsilon thresholds to calculate if semantically
-            similar or not.
+            similar or not. Default is [0.01, 0.001].
         eps_to_extract (float): Epsilon value to extract deduplicated data.
-            Default is 0.1.
+            Default is 0.01.
     """
 
     cache_dir: str = None
@@ -210,22 +222,25 @@ class SemDedupConfig(BaseConfig):
     num_files: int = -1
 
     # Embeddings
-    embeddings_save_loc: str = "embeddings"
     embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_batch_size: int = 128
+    embeddings_save_loc: str = "embeddings"
+    embedding_max_mem_gb: Optional[int] = None
     # Options: "mean_pooling", "last_token"
     embedding_pooling_strategy: str = "mean_pooling"
+    embedding_column: str = "embeddings"
     write_embeddings_to_disk: bool = True
+    write_to_filename: bool = False
 
-    # ClusteringModel
-    clustering_save_loc: str = "clustering_results"
-    n_clusters: int = 1000
+    # Clustering
     max_iter: int = 100
-    kmeans_with_cos_dist: bool = False
-
-    # SemanticClusterLevelDedup
-    which_to_keep: str = "hard"
+    n_clusters: int = 1000
+    clustering_save_loc: str = "clustering_results"
     sim_metric: str = "cosine"
+    which_to_keep: str = "hard"
+    sort_clusters: bool = True
+    kmeans_with_cos_dist: bool = False
+    clustering_input_partition_size: str = "2gb"
 
     # SemDedup
     eps_thresholds: List[float] = field(default_factory=lambda: [0.01, 0.001])
