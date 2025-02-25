@@ -126,9 +126,9 @@ class TestSemDuplicates:
 
         sem_duplicates = SemDedup(
             config=config,
-            input_column="text",
-            id_column="doc_id",
-            id_column_type="str",
+            text_field="text",
+            id_field="doc_id",
+            id_field_type="str",
         )
 
         non_dedup_data_len = non_dedup_data.df.shape[0].compute()
