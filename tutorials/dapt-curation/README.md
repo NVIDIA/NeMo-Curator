@@ -44,7 +44,7 @@ The tutorial follows the steps below:<br>
 
 ## Usage
 
-Please follow the instructions in the README on using docker image and installing the NeMo Curator package. Then, install the following dependencies for running the DAPT tutorial:
+Please follow the instructions in NeMo Curator's [README](https://github.com/NVIDIA/NeMo-Curator?tab=readme-ov-file#nemo-framework-container) to run the NeMo Framework Container and install the NeMo Curator package. Then, install the following dependencies for running the DAPT tutorial:
 
 ```bash
 cd NeMo-Curator/tutorials/dapt-curation/code/
