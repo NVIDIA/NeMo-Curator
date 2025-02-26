@@ -150,9 +150,7 @@ class TestIO:
     @pytest.mark.parametrize(
         "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
     )
-    def test_read_custom(
-        self, jsonl_dataset: str, backend: Literal["pandas", "cudf"]
-    ):
+    def test_read_custom(self, jsonl_dataset: str, backend: Literal["pandas", "cudf"]):
         with tempfile.TemporaryDirectory() as tmp_dir:
             num_lines = jsonl_dataset.count("\n")
             for i, line in enumerate(jsonl_dataset.split("\n")):

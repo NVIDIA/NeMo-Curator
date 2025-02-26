@@ -565,7 +565,6 @@ def test_read_data_custom_read_function(mock_npy_files, backend):
     )
 
 
-
 """ Tests below this test for inconsistent schema """
 
 
