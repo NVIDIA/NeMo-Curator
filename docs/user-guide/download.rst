@@ -131,7 +131,7 @@ You can choose to modify the HTML text extraction algorithm used in ``download_c
   if __name__ == "__main__":
       main()
 
-Above, we changed the extraction algorithm from the default ``JusTextExtractor``. **Note:** Please see the Trafilatura documentation `here <https://trafilatura.readthedocs.io/en/latest/settings.html>`_
+Above, we changed the extraction algorithm from the default ``JusTextExtractor``. **Note:** The JusTextExtractor, ResiliparseExtractor, and TrafilaturaExtractor classes each have their own unique parameters which are specific to their extraction algorithms. Please see the docstrings for each class for more details.
 
 The return value ``common_crawl`` will be in NeMo Curator's standard ``DocumentDataset`` format. Check out the function's docstring for more parameters you can use.
 

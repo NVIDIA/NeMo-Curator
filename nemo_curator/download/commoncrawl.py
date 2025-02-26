@@ -95,6 +95,26 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         """
         Initialize the jusText text extraction algorithm with specified parameters.
 
+        jusText is a tool for removing boilerplate content, such as navigation links, headers, and footers from HTML pages.
+        It is designed to preserve mainly text containing full sentences and it is therefore well suited for creating linguistic resources such as Web corpora.
+        The key idea is that long blocks can often be classified with high confidence, while shorter blocks require context-based adjustments.
+
+        Here is an overview of the jusText algorithm:
+            • Segmentation: The document is split into textual blocks based on HTML tags that typically define separate sections (e.g., <div>, <p>, <table>).
+            • Preprocessing: Contents of <header>, <style>, and <script> tags are removed.
+                Certain elements (e.g., <select>, copyright symbols) are immediately classified as boilerplate.
+            • Context-Free Classification: Each block is classified as:
+                - Bad (boilerplate) if it has high link density.
+                - Short if it is too small to be classified reliably.
+                - Near-Good if it has a moderate density of stopwords.
+                - Good (main content) if it is long and contains many stopwords.
+            • Context-Sensitive Classification: Blocks that were classified as short or near-good are reclassified based on surrounding blocks.
+                The assumption is that main content clusters together, as does boilerplate.
+            • Headings Processing: Header elements (e.g., <h1>, <h2>) are treated separately to ensure useful headings are preserved.
+                Short headers near good content may be reclassified as near-good or good.
+
+        Please refer to the jusText documentation for more details: https://corpus.tools/wiki/Justext/Algorithm
+
         Args:
             length_low: Minimum length of text to be considered for extraction.
             length_high: Maximum length of text to be considered for extraction.
@@ -168,6 +188,18 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         """
         Initialize the Resiliparse text extraction algorithm with specified parameters.
 
+        The Resiliparse algorithm extracts structural or semantic information from noisy raw web data for further processing,
+        such as (main) content extraction / boilerplate removal, schema extraction, general web data cleansing, and more.
+
+        It is implemented via the `extract_plain_text` function in the `resiliparse.extract.html2text` module.
+        Resiliparse HTML2Text is a very fast and rule-based plain text extractor for HTML pages which uses the Resiliparse DOM parser.
+        The `extract_plain_text` function extracts all visible text nodes inside the HTML document's <body>.
+        Only <script>, <style> and a few other (generally) invisible elements are skipped and very basic ASCII formatting is applied.
+
+        Please refer to the Resiliparse documentation for more details: https://resiliparse.chatnoir.eu/en/latest/man/extract/html2text.html
+
+        NeMo Curator has added a stopword density filter to the Resiliparse extraction process, which requires that a paragraph contains a certain proportion of stopwords.
+
         Args:
             required_stopword_density: Proportion of stopwords required preserve an extracted paragraph.
                 Studies on stopword lists and their distribution in various text corpora often
@@ -219,6 +251,22 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
         """
         Initialize the Trafilatura text extraction algorithm with specified parameters.
 
+        The Trafilatura extraction process combines readability-lxml and jusText as fallbacks to ensure robustness.
+        Trafilatura's own algorithm follows a cascade of rule-based filters and content heuristics:
+            • Content Delimitation: Uses XPath expressions to exclude unwanted HTML elements (e.g., navigation bars) and focus on relevant content (e.g., article body).
+                Extracted HTML nodes are analyzed for relevance based on element type, text length, and link density.
+            • Fallback Mechanism: If extraction seems faulty, alternative algorithms are run as backups.
+                These use heuristics like line length, text-to-markup ratio, and HTML depth to improve extraction.
+                Outputs are compared, prioritizing longer extractions with fewer impurities.
+            • Baseline Extraction: If all else fails, it searches for text elements that might have been missed, discarding irrelevant content.
+
+        The system balances precision and recall, extracting main text, comments, and metadata (title, site name, author, date, categories, tags).
+
+        Please refer to the Trafilatura documentation for more details:
+            https://trafilatura.readthedocs.io/en/latest/ and https://aclanthology.org/2021.acl-demo.15/
+
+        NeMo Curator has added a stopword density filter to the Trafilatura extraction process, which requires that a paragraph contains a certain proportion of stopwords.
+
         Args:
             required_stopword_density: Proportion of stopwords required preserve an extracted paragraph.
                 Studies on stopword lists and their distribution in various text corpora often
@@ -269,6 +317,9 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
             self.min_duplcheck_size
         )
         trafilatura_config["DEFAULT"]["MAX_REPETITIONS"] = str(self.max_repetitions)
+
+        # Recommended to set deduplicate=True
+        self.extract_kwargs.setdefault("deduplicate", True)
 
         text = extract_with_trafilatura(
             html, config=trafilatura_config, **self.extract_kwargs
