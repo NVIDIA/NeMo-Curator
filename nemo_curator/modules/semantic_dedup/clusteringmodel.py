@@ -32,7 +32,6 @@ from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters
 
 
-### Clustering Module
 def get_embedding_ar(df: "cudf.DataFrame", embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
@@ -47,6 +46,7 @@ def add_dist_to_cents(
     return df
 
 
+# Clustering module
 class ClusteringModel:
     def __init__(
         self,
@@ -92,7 +92,6 @@ class ClusteringModel:
             profile_dir (Optional[str]): If specified, directory to write Dask profile.
                 Default is None.
 
-        This constructor sets up the parameters required for clustering operations.
         """
         self.id_col = id_column
         self.max_iter = max_iter
@@ -132,7 +131,7 @@ class ClusteringModel:
 
         if self.embedding_column not in embeddings_df.columns:
             raise ValueError(
-                f"Expected embedding column '{self.embedding_column}'"
+                f'Expected embedding column "{self.embedding_column}"'
                 f" to be in dataset. Only found columns {embeddings_df.columns}"
             )
 
@@ -166,18 +165,22 @@ class ClusteringModel:
             )
             cupy_darr.compute_chunk_sizes()
             t0 = time.time()
-            kmeans = KMeans(n_clusters=self.n_clusters, max_iter=self.max_iter, random_state=self.random_state)
+            kmeans = KMeans(
+                n_clusters=self.n_clusters,
+                max_iter=self.max_iter,
+                random_state=self.random_state,
+            )
             self.logger.info("KMeans starting fit")
             kmeans.fit(cupy_darr)
             self.logger.info("KMeans fit complete")
-            self.logger.info(f"Time taken for KMeans Fit: {time.time() - t0}")
+            self.logger.info(f"Time taken for KMeans fit: {time.time() - t0}")
 
             self.logger.info(
-                "Computing nearest centroids + distance to centers using kmeans.predict"
+                "Computing nearest centroids and distance to centers using kmeans.predict"
             )
             t0 = time.time()
             nearest_cents = kmeans.predict(cupy_darr)
-            self.logger.info(f"Time taken for KMeans Predict: {time.time() - t0}")
+            self.logger.info(f"Time taken for KMeans predict: {time.time() - t0}")
 
             t0 = time.time()
             embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
@@ -209,13 +212,11 @@ class ClusteringModel:
                 shutil.rmtree(clustering_output_dir)
 
             embeddings_df.to_parquet(
-                clustering_output_dir,
-                index=False,
-                partition_on="nearest_cent",
+                clustering_output_dir, index=False, partition_on="nearest_cent"
             )
             self.logger.info(
-                f"Time taken for Assigning distance to each embedding : {time.time() - t0} "
-                f"and output written at {clustering_output_dir}"
+                f"Time taken for assigning distance to each embedding: {time.time() - t0}s"
+                f" and output written at {clustering_output_dir}"
             )
 
             del embeddings_df
