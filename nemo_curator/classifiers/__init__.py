@@ -18,6 +18,7 @@ os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from .aegis import AegisClassifier, InstructionDataGuardClassifier
 from .content_type import ContentTypeClassifier
 from .domain import DomainClassifier, MultilingualDomainClassifier
+from .fasttext_module import DCLMFastTextClassifier, FastTextClassifier
 from .fineweb_edu import (
     FineWebEduClassifier,
     FineWebMixtralEduClassifier,
@@ -27,11 +28,13 @@ from .prompt_task_complexity import PromptTaskComplexityClassifier
 from .quality import QualityClassifier
 
 __all__ = [
+    "DCLMFastTextClassifier",
     "DomainClassifier",
     "MultilingualDomainClassifier",
     "QualityClassifier",
     "AegisClassifier",
     "InstructionDataGuardClassifier",
+    "FastTextClassifier",
     "FineWebEduClassifier",
     "FineWebMixtralEduClassifier",
     "FineWebNemotronEduClassifier",
