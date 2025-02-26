@@ -156,7 +156,7 @@ class DocumentDataset:
         )
 
     @classmethod
-    def read_custom_data(
+    def read_custom(
         cls,
         input_files: Union[str, List[str]],
         file_type: str,

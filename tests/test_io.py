@@ -150,7 +150,7 @@ class TestIO:
     @pytest.mark.parametrize(
         "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
     )
-    def test_read_custom_data(
+    def test_read_custom(
         self, jsonl_dataset: str, backend: Literal["pandas", "cudf"]
     ):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -172,7 +172,7 @@ class TestIO:
                 )
                 return df
 
-            dataset = DocumentDataset.read_custom_data(
+            dataset = DocumentDataset.read_custom(
                 input_files=tmp_dir,
                 file_type="pkl",
                 read_func_single_partition=read_npy_file,

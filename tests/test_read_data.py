@@ -549,7 +549,7 @@ def test_read_data_custom_read_function(mock_npy_files, backend):
         expected_df[["embedding", "id"]],  # because we sort columns by name
     )
 
-    # Test that we can read the file with a custom column
+    # Test multiple files per partition
     df_fpp_2 = read_data(
         input_files=mock_npy_files,
         backend=backend,
@@ -564,7 +564,6 @@ def test_read_data_custom_read_function(mock_npy_files, backend):
         expected_df[["embedding", "id"]],  # because we sort columns by name,
     )
 
-    # Test multiple files per partition
 
 
 """ Tests below this test for inconsistent schema """
