@@ -45,7 +45,7 @@ def main(args):
     logger.info("Pre imports complete")
 
     data_paths = args.input_data_dirs
-    id_field = args.input_json_id_field
+    id_field = args.id_field
     minhash_field = args.input_minhash_field
 
     dfs = []
@@ -57,7 +57,7 @@ def main(args):
     df = df[~df[id_field].isna()]
     df = df.map_partitions(
         convert_str_id_to_int,
-        id_column=id_field,
+        id_field=id_field,
         meta=cudf.DataFrame(
             {minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}
         ),

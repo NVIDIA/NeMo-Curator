@@ -64,8 +64,8 @@ if __name__ == "__main__":
     ).reset_index(drop=True)
     dolma_exploded_df = dolma_exploded_df.rename(columns={"id_list": "id"})
 
-    def split_id(df, id_column="id"):
-        dx = df[id_column].str.rsplit("-", n=1, expand=True)
+    def split_id(df, id_field="id"):
+        dx = df[id_field].str.rsplit("-", n=1, expand=True)
         df["doc_id"] = dx[1].astype("str")
         df["dataset_id"] = dx[0].astype("str")
         return df

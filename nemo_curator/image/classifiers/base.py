@@ -83,7 +83,7 @@ class ImageClassifier(ABC):
             dataset.path,
             metadata=embedding_df,
             tar_files=dataset.tar_files,
-            id_col=dataset.id_col,
+            id_field=dataset.id_field,
         )
 
     def _run_inference(self, partition, partition_info=None):

@@ -62,7 +62,7 @@ def main():
 
     instruction_data_guard_classifier = InstructionDataGuardClassifier(
         token=args.token,
-        text_field=args.input_text_field,
+        text_field=args.text_field,
         max_chars=args.max_chars,
         batch_size=args.batch_size,
         max_mem_gb=args.max_mem_gb_classifier,

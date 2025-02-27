@@ -33,8 +33,8 @@ def get_anchor_and_output_map_info(
     num_workers,
     shuffle_type,
     input_bucket_field,
-    input_id_field,
-    input_text_field,
+    id_field,
+    text_field,
     input_meta,
 ):
     """
@@ -53,8 +53,8 @@ def get_anchor_and_output_map_info(
         input_data_paths=input_data_paths,
         num_files=num_files,
         blocksize=text_ddf_blocksize,
-        id_column=input_id_field,
-        text_column=input_text_field,
+        id_field=id_field,
+        text_field=text_field,
         input_meta=input_meta,
     )
     ddf_bk = get_bucket_ddf_from_parquet_path(
@@ -63,7 +63,7 @@ def get_anchor_and_output_map_info(
     map_buckets = _MapBuckets(
         id_fields=["dataset_id", "doc_id"],
         bucket_field=input_bucket_field,
-        text_field=input_text_field,
+        text_field=text_field,
     )
     ddf_anchor_docs_with_bk = map_buckets.map_buckets_with_anchors(
         documents_df=ddf_text, buckets_df=ddf_bk, shuffle_type=shuffle_type
@@ -118,8 +118,8 @@ def jaccard_get_output_map_workflow(
     num_files,
     shuffle_type,
     input_bucket_field,
-    input_id_field,
-    input_text_field,
+    id_field,
+    text_field,
     input_meta,
 ):
     """
@@ -143,8 +143,8 @@ def jaccard_get_output_map_workflow(
         num_workers,
         shuffle_type,
         input_bucket_field,
-        input_id_field,
-        input_text_field,
+        id_field,
+        text_field,
         input_meta=input_meta,
     )
     ddf_anchor_docs_with_bk.to_parquet(
@@ -175,8 +175,8 @@ def main(args):
         args.num_files,
         args.shuffle_type,
         args.input_bucket_field,
-        args.input_json_id_field,
-        args.input_json_text_field,
+        args.id_field,
+        args.text_field,
         args.input_meta,
     )
     et = time.time()

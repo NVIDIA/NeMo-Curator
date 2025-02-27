@@ -48,8 +48,8 @@ def main(args):
     logger.info("Pre imports complete")
 
     data_paths = args.input_data_dirs
-    id_field = args.input_json_id_field
-    text_field = args.input_json_text_field
+    id_field = args.id_field
+    text_field = args.text_field
     num_files = args.num_files
 
     minhasher = MinHash(

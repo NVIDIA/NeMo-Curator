@@ -46,7 +46,7 @@ if __name__ == "__main__":
     df = dask_cudf.read_parquet(lsh_input_data_path, backend="cudf")
     df = df.map_partitions(
         convert_str_id_to_int,
-        id_column=lsh_id_field,
+        id_field=lsh_id_field,
         meta=cudf.DataFrame(
             {minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}
         ),

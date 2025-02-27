@@ -51,8 +51,8 @@ def main(args):
         sorted_clusters_dir=os.path.join(
             cache_dir, semdedup_config.clustering_save_loc, "sorted"
         ),
-        id_column=args.id_column,
-        id_column_type=args.id_column_type,
+        id_field=args.id_field,
+        id_field_type=args.id_field_type,
         which_to_keep=semdedup_config.which_to_keep,
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc
@@ -82,8 +82,8 @@ def attach_args():
             "This script requires that embeddings and clustering have been performed "
             "earlier using semdedup_extract_embeddings and semdedup_cluster_embeddings."
             "Input arguments include: "
-            "--id-column for the the identifier in the dataset, "
-            "--id-column-type for the data type of ID column, "
+            "--id-field for the the identifier in the dataset, "
+            "--id-field-type for the data type of ID column, "
             "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include:"
             " cache_dir for the directory to store cache"

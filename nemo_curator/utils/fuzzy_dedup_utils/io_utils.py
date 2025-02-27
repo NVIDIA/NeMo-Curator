@@ -60,7 +60,7 @@ def _read_json_func(
 
 
 def get_text_ddf_from_json_path_with_blocksize(
-    input_data_paths, num_files, blocksize, id_column, text_column, input_meta=None
+    input_data_paths, num_files, blocksize, id_field, text_field, input_meta=None
 ):
     data_paths = [
         entry.path for data_path in input_data_paths for entry in os.scandir(data_path)
@@ -71,8 +71,8 @@ def get_text_ddf_from_json_path_with_blocksize(
         data_paths = data_paths[:num_files]
     meta_df = cudf.DataFrame(
         {
-            text_column: ["x"],
-            id_column: ["x"],
+            text_field: ["x"],
+            id_field: ["x"],
         }
     )
     print(
@@ -89,9 +89,9 @@ def get_text_ddf_from_json_path_with_blocksize(
     )
     text_ddf = text_ddf.map_partitions(
         convert_str_id_to_int,
-        id_column=id_column,
+        id_field=id_field,
         meta=cudf.DataFrame(
-            {text_column: ["a"], "doc_id": [0], "dataset_id": np.uint32(1)}
+            {text_field: ["a"], "doc_id": [0], "dataset_id": np.uint32(1)}
         ),
     )
     return text_ddf

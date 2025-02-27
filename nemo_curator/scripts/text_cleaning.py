@@ -28,10 +28,10 @@ def main(args):
     # Make the output directories
     output_clean_dir = expand_outdir_and_mkdir(args.output_clean_dir)
 
-    stages = [Modify(UnicodeReformatter(), text_field=args.input_text_field)]
+    stages = [Modify(UnicodeReformatter(), text_field=args.text_field)]
 
     if args.normalize_newlines:
-        stages.append(Modify(NewlineNormalizer(), text_field=args.input_text_field))
+        stages.append(Modify(NewlineNormalizer(), text_field=args.text_field))
     if args.remove_urls:
         stages.append(Modify(UrlRemover, text_field=args.text_field))
 
@@ -81,7 +81,7 @@ the \"language\" field within each JSON object.
     argumentHelper.add_arg_batch_size()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
-    argumentHelper.add_arg_input_text_field()
+    argumentHelper.add_arg_text_field()
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_distributed_args()
     argumentHelper.attach_bool_arg(

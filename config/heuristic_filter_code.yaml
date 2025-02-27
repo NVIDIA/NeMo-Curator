@@ -1,4 +1,4 @@
-input_field: text
+text_field: text
 filters:
   # The filters below define a chain of heuristic filters to be applied to each document in a corpus.
   # This particular cascade of filters is intended to filter Python code data.

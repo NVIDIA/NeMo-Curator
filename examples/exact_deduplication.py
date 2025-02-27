@@ -30,8 +30,8 @@ def main(args):
     dataset_dir = "/path/to/data"
     log_dir = "./"
     output_dir = "./"
-    dataset_id_field = "id"
-    dataset_text_field = "text"
+    id_field = "id"
+    text_field = "text"
     client = get_client(**ArgumentHelper.parse_client_args(args))
     backend = "cudf" if args.device == "gpu" else "pandas"
 
@@ -45,8 +45,8 @@ def main(args):
 
     exact_dup = ExactDuplicates(
         logger=log_dir,
-        id_field=dataset_id_field,
-        text_field=dataset_text_field,
+        id_field=id_field,
+        text_field=text_field,
         # Decides whether output of the module is deduplicated dataset or duplicates
         # If true, you should set cache_dir for performance improvement
         perform_removal=False,
@@ -64,6 +64,7 @@ def main(args):
     if isinstance(duplicates, str):
         duplicates = DocumentDataset.read_parquet(duplicates, backend=backend)
 
+    # Remove the duplicates from the input dataset and write to Parquet
     result = exact_dup.remove(input_dataset, duplicates)
     write_to_disk(result, output_dir, output_type="parquet")
     print(time.time() - t0)

@@ -30,7 +30,7 @@ def main(args):
         task_ngrams = pickle.load(fp)
 
     decontaminator = nemo_curator.TaskDecontamination(
-        [], text_field=args.input_text_field, max_ngram_size=args.max_ngram_size
+        [], text_field=args.text_field, max_ngram_size=args.max_ngram_size
     )
 
     files = get_all_files_paths_under(args.input_data_dir)
@@ -64,7 +64,7 @@ def attach_args(
 
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
-    argumentHelper.add_arg_input_text_field()
+    argumentHelper.add_arg_text_field()
     argumentHelper.add_distributed_args()
     parser.add_argument(
         "--input-task-ngrams",
