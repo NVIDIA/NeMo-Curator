@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
-import re
-
-import dask.dataframe as dd
-import pandas as pd
-import yaml
 
 from nemo_curator import (
     ExactDuplicates,
@@ -33,7 +27,6 @@ from nemo_curator import (
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import (
     DocumentFilter,
-    RepeatedLinesFilter,
     RepeatedParagraphsFilter,
     RepeatingTopNGramsFilter,
     UrlsFilter,
@@ -46,12 +39,7 @@ from nemo_curator.filters.code import (
 from nemo_curator.modifiers import DocumentModifier
 from nemo_curator.modifiers.pii_modifier import PiiModifier
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
-from nemo_curator.pii.constants import DEFAULT_LANGUAGE, DEFAULT_MAX_DOC_SIZE
-from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import (
-    expand_outdir_and_mkdir,
-    get_all_files_paths_under,
-)
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
 
 class QuotationUnifier(DocumentModifier):
@@ -296,30 +284,28 @@ def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     return DocumentDataset(deduped)
 
 
-def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
+def fuzzy_dedupe(dataset: DocumentDataset, cache_dir: str) -> DocumentDataset:
     """
     Removes near-duplicate documents and code lines
 
     Args:
         dataset (DocumentDataset): The dataset containing documents.
-        type (str): Document type to process.
+        cache_dir (str): Directory for storing intermediate results.
 
     Returns:
         DocumentDataset: The deduplicated dataset.
     """
     fuzzy_dedup_config = FuzzyDuplicatesConfig(
-        cache_dir=cache,
+        cache_dir=cache_dir,
         id_field="id",
         text_field="text",
         seed=42,
-        char_ngrams=20,
+        char_ngrams=24,
         num_buckets=20,
         hashes_per_bucket=13,
         use_64_bit_hash=False,
         buckets_per_shuffle=5,
         false_positive_check=False,
-        num_anchors=2,
-        jaccard_threshold=0.8,
     )
     fuzzy_dup = FuzzyDuplicates(config=fuzzy_dedup_config)
     duplicates = fuzzy_dup(dataset)
@@ -336,14 +322,15 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
 
 
 def semantic_dedupe(
-    dataset: DocumentDataset, sem_dedupe_config_yaml_path: str, cache_dir: str
+    dataset: DocumentDataset,
+    sem_dedupe_config_yaml_path: str,
 ):
     """
     Perform semantic deduplication on the given dataset.
 
     Args:
         dataset (DocumentDataset): The dataset containing documents.
-        type (str): Document type to process.
+        sem_dedupe_config_yaml_path (str): The path to the semantic dedupe configuration file.
 
     Returns:
         The deduplicated DocumentDataset.
@@ -404,6 +391,6 @@ class CodeLineCountFilter(DocumentFilter):
         return score
 
 
-def rm_dir(cache_dir):
+def rm_dir(cache_dir: str):
     if os.path.isdir(cache_dir):
         os.system(f"rm -rf {cache_dir}")

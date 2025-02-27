@@ -1,8 +1,6 @@
-import dask.dataframe as dd
 import pandas as pd
 import pytest
 
-import nemo_curator as nc
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import
 
@@ -10,7 +8,7 @@ cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 
 
-def all_equal(left_result: pd.DataFrame, right_result: pd.DataFrame, gpu=False):
+def all_equal(left_result: pd.DataFrame, right_result: pd.DataFrame, gpu=True):
     l_cols = set(left_result.columns)
     r_cols = set(right_result.columns)
     assert l_cols == r_cols
@@ -34,7 +32,7 @@ class TestDocumentDataset:
         )
         dataset = DocumentDataset.from_pandas(original_df)
         converted_df = dataset.to_pandas()
-        all_equal(original_df, converted_df)
+        pd.testing.assert_frame_equal(original_df, converted_df)
 
     def test_init_pandas(self):
         original_df = pd.DataFrame(
@@ -50,7 +48,7 @@ class TestDocumentDataset:
         ddf = dd.from_pandas(original_df, npartitions=1)
         dataset = DocumentDataset(dataset_df=ddf)
         assert type(dataset.df == dd.DataFrame)
-        all_equal(dataset.df.compute(), original_df)
+        pd.testing.assert_frame_equal(original_df, dataset.df.compute())
 
     @pytest.mark.gpu
     def test_to_from_cudf(self):
@@ -77,4 +75,4 @@ class TestDocumentDataset:
         ddf = dask_cudf.from_cudf(original_df, npartitions=1)
         dataset = DocumentDataset(dataset_df=ddf)
         assert type(dataset.df == dask_cudf.DataFrame)
-        all_equal(dataset.df.compute(), original_df, gpu=True)
+        all_equal(original_df, dataset.df.compute(), gpu=True)
