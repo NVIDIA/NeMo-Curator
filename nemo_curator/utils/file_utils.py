@@ -18,7 +18,7 @@ import os
 import pathlib
 import warnings
 from functools import partial, reduce
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import dask.bag as db
 import dask.dataframe as dd
