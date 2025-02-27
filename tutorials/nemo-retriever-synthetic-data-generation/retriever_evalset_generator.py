@@ -24,8 +24,6 @@ from typing import Any
 from tqdm import tqdm
 
 tqdm.pandas()
-
-# from tqdm.dask import TqdmCallback
 import importlib
 
 import dask.array as da
@@ -145,7 +143,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
 
         df = df.explode("qa_pairs").reset_index(drop=True)
         df["question"] = df["qa_pairs"].apply(lambda x: x["question"])
-
         df["question-id"] = df["question"].apply(self._get_random_hash)
         df["answer"] = df["qa_pairs"].apply(lambda x: x["answer"])
         df["score"] = df["question"].apply(lambda x: 1)
