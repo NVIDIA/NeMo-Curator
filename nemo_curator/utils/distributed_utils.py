@@ -670,7 +670,7 @@ def read_data(
                 files_per_partition=files_per_partition,
                 input_meta=input_meta,
                 columns=columns,
-                read_func_single_partition=read_func_single_partition,
+                read_func_single_partition=read_single_partition,
                 **kwargs,
             )
     else:
