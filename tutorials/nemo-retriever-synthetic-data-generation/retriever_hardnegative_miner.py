@@ -107,13 +107,11 @@ class HardNegativeMiner:
         print("Number of clusters used = {}".format(n_clusters))
         assert "doc_id" not in df.columns
         df["embeddings"] = ""  # refers to document embeddings
+        df = df.explode("documents")
         df = df.map_partitions(self._get_doc_embeddings, meta=df)
         # df = dd.from_pandas(pdf)
-
-        df = df.explode("documents")
         df = df.map_partitions(self.assign_ids)
         embeddings_dataset = DocumentDataset(df)
-
         self.clustering_model = ClusteringModel(
             id_column="doc_id",
             max_iter=100,
@@ -135,8 +133,11 @@ class HardNegativeMiner:
                 load_object_function=create_nim_client,
                 load_object_kwargs={"base_url": self.base_url, "api_key": self.api_key},
             )
+            # p_df["embeddings"] = p_df["documents"].map(
+            #     lambda pgs: [self._get_nim_embedding(t, "passage") for t in pgs]
+            # )
             p_df["embeddings"] = p_df["documents"].map(
-                lambda pgs: [self._get_nim_embedding(t, "passage") for t in pgs]
+                lambda t: self._get_nim_embedding(t, "passage")
             )
         elif self.model_type == "hf":
             self.hf_model = load_object_on_worker(
@@ -144,17 +145,19 @@ class HardNegativeMiner:
                 load_object_function=create_hf_model,
                 load_object_kwargs={"model_name_or_path": self.model_name},
             )
+            # p_df["embeddings"] = p_df["documents"].map(
+            #     lambda pgs: [
+            #         self._get_hf_embedding(t, self.passage_prefix) for t in pgs
+            #     ]
+            # )
             p_df["embeddings"] = p_df["documents"].map(
-                lambda pgs: [
-                    self._get_hf_embedding(t, self.passage_prefix) for t in pgs
-                ]
+                lambda t: self._get_hf_embedding(t, self.passage_prefix)
             )
         return p_df
 
     def _groupby_question(self, pdf):
         pdf2 = pdf.groupby("question").agg({"documents": set})
         pdf2["documents"] = pdf2["documents"].map(lambda x: list(x))
-        del pdf
         return pdf2
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:

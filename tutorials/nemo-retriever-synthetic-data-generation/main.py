@@ -41,7 +41,6 @@ config = importlib.import_module(
 RetrieverEvalSDGConfig = config.RetrieverEvalSDGConfig
 
 
-
 def get_pipeline(args: Any) -> Any:
 
     cfg = RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
@@ -226,7 +225,6 @@ def main():
             print("Number of partitions greater than data size, using 1 partition")
 
     sdg_pipeline, filtering_pipeline = get_pipeline(args)
-
 
     if sdg_pipeline:
         print("Generating data ...")
