@@ -16,6 +16,7 @@
 import os
 import subprocess
 import unicodedata
+import warnings
 from abc import ABC, abstractmethod
 from typing import Literal, Optional
 from urllib.parse import urlparse
@@ -73,7 +74,7 @@ def lang_detect(decoded_html):
 
 class HTMLExtractorAlgorithm(ABC):
     @abstractmethod
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         pass
 
 
@@ -87,6 +88,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         max_link_density=0.2,
         max_heading_distance=200,
         no_headings=False,
+        is_boilerplate=None,
         logger=None,
     ):
         """
@@ -100,6 +102,9 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             max_link_density: Maximum allowed link density in the text.
             max_heading_distance: Maximum distance from a heading to consider text for extraction.
             no_headings: If True, text extraction will ignore headings.
+            is_boilerplate: If True, text extraction will ignore boilerplate content.
+                Default is True for space-separated languages and False for non-space-separated languages
+                (Thai, Chinese, Japanese, and Korean).
             logger: Optional logger instance for logging messages.
 
         """
@@ -110,9 +115,10 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         self.max_link_density = max_link_density
         self.max_heading_distance = max_heading_distance
         self.no_headings = no_headings
+        self.is_boilerplate = is_boilerplate
         self.logger = logger
 
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         # Segment the HTML into paragraphs
         try:
             # Form the DOM tree
@@ -152,7 +158,19 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             self.max_heading_distance,
         )
 
-        return [p.text for p in paragraphs if not p.is_boilerplate]
+        if self.is_boilerplate is None:
+            if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
+                warnings.warn("Disabling is_boilerplate check for jusText extraction.")
+                is_boilerplate = False
+            else:
+                is_boilerplate = True
+        else:
+            is_boilerplate = self.is_boilerplate
+
+        if is_boilerplate:
+            return [p.text for p in paragraphs if not p.is_boilerplate]
+        else:
+            return [p.text for p in paragraphs]
 
 
 class ResiliparseExtractor(HTMLExtractorAlgorithm):
@@ -177,26 +195,31 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         self.main_content = main_content
         self.alt_texts = alt_texts
 
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         text = extract_plain_text(
             html, main_content=self.main_content, alt_texts=self.alt_texts
         )
 
         paragraphs = list(filter(None, text.split("\n")))
         result = []
-        for paragraph in paragraphs:
-            words = paragraph.split()
-            length = len(words)
-            if length == 0:
-                continue
-            stopwords = [word for word in words if word in stop_words]
-            stopword_density = len(stopwords) / length
 
-            if stopword_density >= self.required_stopword_density:
-                result.append(paragraph)
+        if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
+            warnings.warn(
+                "stopword_density is ignored for non-space-separated languages."
+            )
+            result = paragraphs
+        else:
+            for paragraph in paragraphs:
+                words = paragraph.split()
+                length = len(words)
+                if length == 0:
+                    continue
+                stopwords = [word for word in words if word in stop_words]
+                stopword_density = len(stopwords) / length
 
-        if len(result) == 0:
-            return None
+                if stopword_density >= self.required_stopword_density:
+                    result.append(paragraph)
+
         return result
 
 
@@ -210,12 +233,35 @@ def get_stop_list_dict(languages=[]):
         "Norwegian_Nynorsk": "NORWEGIAN_N",
         "Waray_Waray": "WARAY_PHILIPPINES",
     }
+
+    # List obtained from https://github.com/stopwords-iso/stopwords-ja
+    from .ja_stopwords import ja_stopwords
+
+    # List obtained from https://github.com/stopwords-iso/stopwords-th
+    from .th_stopwords import th_stopwords
+
+    # List obtained from https://github.com/stopwords-iso/stopwords-zh
+    from .zh_stopwords import zh_stopwords
+
+    custom_stopwords = {
+        "THAI": th_stopwords,
+        "CHINESE": zh_stopwords,
+        "JAPANESE": ja_stopwords,
+    }
+
     if len(languages) == 0:
         languages = justext.get_stoplists()
-        # Remove latin as it yields a lot of low quality documents
-        languages_no_latin = list(languages)
-        languages_no_latin.remove("Latin")
-        languages = frozenset(languages_no_latin)
+
+        # Remove Latin as it yields a lot of low quality documents
+        languages = list(languages)
+        languages.remove("Latin")
+
+        # Manually add Thai, Chinese, and Japanese
+        languages.append("THAI")
+        languages.append("CHINESE")
+        languages.append("JAPANESE")
+
+        languages = frozenset(languages)
 
     stop_list_dict = {}
     for language in languages:
@@ -223,12 +269,11 @@ def get_stop_list_dict(languages=[]):
             lang_key = lang_map[language]
         else:
             lang_key = language.upper()
-        stop_list_dict[lang_key] = justext.get_stoplist(language)
 
-    # List obtained from https://github.com/stopwords-iso/stopwords-th
-    from .thai_stopwords import thai_stopwords
-
-    stop_list_dict["THAI"] = thai_stopwords
+        if lang_key in ["THAI", "CHINESE", "JAPANESE"]:
+            stop_list_dict[lang_key] = custom_stopwords[lang_key]
+        else:
+            stop_list_dict[lang_key] = justext.get_stoplist(language)
 
     return stop_list_dict
 
@@ -337,8 +382,12 @@ class CommonCrawlWARCIterator(DocumentIterator):
 
 class CommonCrawlWARCExtractor(DocumentExtractor):
 
-    def __init__(self, algorithm=JusTextExtractor()):
-        self._stop_lists = get_stop_list_dict()
+    def __init__(self, algorithm=JusTextExtractor(), stop_lists=None):
+        if stop_lists is not None:
+            self._stop_lists = stop_lists
+        else:
+            self._stop_lists = get_stop_list_dict()
+
         self.algorithm = algorithm
         super().__init__()
 
@@ -349,7 +398,7 @@ class CommonCrawlWARCExtractor(DocumentExtractor):
             lang = lang_detect(html)
             text = None
             if lang in self._stop_lists:
-                text = self.algorithm.extract_text(html, self._stop_lists[lang])
+                text = self.algorithm.extract_text(html, self._stop_lists[lang], lang)
             if text is not None:
                 if len(text) > 0:
                     text = "\n\n".join(text)
@@ -365,6 +414,7 @@ def download_common_crawl(
     end_snapshot: str,
     output_type: Literal["jsonl", "parquet"] = "jsonl",
     algorithm=JusTextExtractor(),
+    stop_lists=None,
     news: bool = False,
     aws: bool = False,
     raw_download_dir: Optional[str] = None,
@@ -388,6 +438,10 @@ def download_common_crawl(
       output_type (Literal["jsonl", "parquet"]): The file format for the extracted output. Must be either "jsonl" or "parquet".
           • This is not used for the output file, but is used to check if an extracted output already exists.
       algorithm: The text extraction algorithm instance (e.g., JusTextExtractor or ResiliparseExtractor) to use for HTML processing.
+      stop_lists: A dictionary stop lists, where the keys are languages (e.g., "ENGLISH")
+          and the values are Python frozensets denoting the list of stop words for that language.
+          If None, it defaults to jusText's stop lists: https://github.com/miso-belica/jusText/tree/main/justext/stoplists,
+          with added Thai, Chinese, and Japanese support.
       news (bool): When True, indicates that URLs should be retrieved from the CC-NEWS dataset.
           • This also means snapshot identifiers should follow the 'YYYY-MM' format.
       aws (bool): If True, downloads are sourced from Common Crawl's S3 bucket using s5cmd;
@@ -429,7 +483,7 @@ def download_common_crawl(
     expand_outdir_and_mkdir(raw_download_dir)
     downloader = CommonCrawlWARCDownloader(raw_download_dir, aws=aws)
     iterator = CommonCrawlWARCIterator()
-    extractor = CommonCrawlWARCExtractor(algorithm=algorithm)
+    extractor = CommonCrawlWARCExtractor(algorithm=algorithm, stop_lists=stop_lists)
 
     output_format = {
         "text": str,
