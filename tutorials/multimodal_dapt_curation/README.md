@@ -18,7 +18,3 @@ The second part of the tutorial covers best practices for data curation in DAPT.
 
 ## License
 Refer to the respective repositories for licensing information.
-
----
-
-This README provides a high-level overview of the tutorial structure. Let me know if you need any modifications!
