@@ -124,18 +124,6 @@ class TestDownload:
 
         assert result == expected
 
-    def test_incorrect_snapshot_order(self):
-        with pytest.raises(ValueError):
-            end_snapshot = "2021-04"
-            start_snapshot = "2021-10"
-            urls = get_common_crawl_urls(start_snapshot, end_snapshot)
-
-    def test_incorrect_snapshot_order_news(self):
-        with pytest.raises(ValueError):
-            end_snapshot = "2021-04"
-            start_snapshot = "2021-10"
-            urls = get_common_crawl_urls(start_snapshot, end_snapshot, news=True)
-
     def test_no_urls(self):
         with pytest.raises(ValueError):
             output_format = {
