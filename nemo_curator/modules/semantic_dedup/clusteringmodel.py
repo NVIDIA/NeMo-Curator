@@ -51,12 +51,13 @@ def add_dist_to_cents(
 class ClusteringModel:
     def __init__(
         self,
-        id_column: str,
-        max_iter: int,
-        n_clusters: int,
+        id_column: str = "id",
+        max_iter: int = 100,
+        n_clusters: int = 1000,
         cache_dir: Optional[str] = None,
         clustering_save_loc: str = "clustering_results",
         embedding_column: str = "embeddings",
+        random_state: int = 1234,
         sim_metric: str = "cosine",
         which_to_keep: str = "hard",
         sort_clusters: bool = True,
@@ -70,32 +71,38 @@ class ClusteringModel:
 
         Args:
             id_column (str): Column name used as the identifier in the dataset.
-            max_iter (int): Maximum number of iterations for the clustering algorithm.
-            n_clusters (int): The number of clusters to form.
+                Default is "id".
+            max_iter (int): Maximum iterations for clustering. Default is 100.
+            n_clusters (int): Number of clusters. Default is 1000.
             cache_dir (str, optional): Directory path where clustering results will be saved.
+                If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
+                Default is None.
             clustering_save_loc (str): Location within cache_dir to save clustering results.
                 Default is "clustering_results".
-            embedding_column (str): Column name where the embeddings are stored.
-            sim_metric (str): Similarity metric to use for clustering.
+            embedding_column (str): The column name that stores the embeddings.
+                Default is "embeddings".
+            random_state (int): KMeans random state used for reproducibility.
+                Default is 1234.
+            sim_metric (str): Similarity metric for deduplication.
                 Default is "cosine".
-            which_to_keep (str): Strategy to decide which duplicates to keep.
+            which_to_keep (str): Method to determine which duplicates to keep.
                 Default is "hard".
             sort_clusters (bool): Whether to sort clusters. Default is True.
-            kmeans_with_cos_dist (bool): Whether to use KMeans with cosine distance.
+            kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
                 Default is False.
             clustering_input_partition_size (str): The size of data partition with which to run KMeans.
                 Default is "2gb".
-            logger (Union[logging.Logger, str]): Logger object or directory path to save logs.
+            logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
-            profile_dir (str, optional): If specified, directory to write Dask profile.
+            profile_dir (Optional[str]): If specified, directory to write Dask profile.
                 Default is None.
 
-        This constructor sets up the parameters required for clustering operations.
         """
         self.id_col = id_column
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.embedding_column = embedding_column
+        self.random_state = random_state
         self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
         self.kmeans_with_cos_dist = kmeans_with_cos_dist
@@ -175,7 +182,11 @@ class ClusteringModel:
             )
             cupy_darr.compute_chunk_sizes()
             t0 = time.time()
-            kmeans = KMeans(n_clusters=self.n_clusters, max_iter=self.max_iter)
+            kmeans = KMeans(
+                n_clusters=self.n_clusters,
+                max_iter=self.max_iter,
+                random_state=self.random_state,
+            )
             self.logger.info("KMeans starting fit")
             kmeans.fit(cupy_darr)
             self.logger.info("KMeans fit complete")
@@ -219,9 +230,7 @@ class ClusteringModel:
                 shutil.rmtree(clustering_output_dir)
 
             embeddings_df.to_parquet(
-                clustering_output_dir,
-                index=False,
-                partition_on="nearest_cent",
+                clustering_output_dir, index=False, partition_on="nearest_cent"
             )
             self.logger.info(
                 f"Time taken for assigning distance to each embedding: {time.time() - t0}s"

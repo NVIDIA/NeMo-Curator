@@ -133,8 +133,8 @@ class EmbeddingCrossFitModel(HFModel):
 class EmbeddingCreator:
     def __init__(
         self,
-        embedding_model_name_or_path: str,
-        embedding_batch_size: int,
+        embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2",
+        embedding_batch_size: int = 128,
         cache_dir: Optional[str] = None,
         embeddings_save_loc: str = "embeddings",
         embedding_max_mem_gb: Optional[int] = None,
@@ -150,8 +150,10 @@ class EmbeddingCreator:
         Initializes an EmbeddingCreator for generating embeddings using the specified model configurations.
 
         Args:
-            embedding_model_name_or_path (str): The path or identifier for the model used to generate embeddings.
-            embedding_batch_size (int): Number of samples to process in each batch.
+            embedding_model_name_or_path (str): Model name or path for embeddings.
+                Default is "sentence-transformers/all-MiniLM-L6-v2".
+            embedding_batch_size (int): Initial batch size for processing embeddings.
+                Default is 128.
             cache_dir (str, optional): Directory path where embeddings will be saved.
                 If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
                 Default is None.
@@ -169,10 +171,11 @@ class EmbeddingCreator:
                 Setting it to False can lead to more memory overhead. Default is True.
             write_to_filename (bool): If True, saves the embeddings to the same filename as input files.
                 Default False.
-            logger (Union[logging.Logger, str]): Logger object or path to store logs.
+            logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
-            profile_dir (str, optional): If specified, directory to write Dask profile.
+            profile_dir (Optional[str]): If specified, directory to write Dask profile.
                 Default is None.
+
         """
 
         self.embeddings_config = EmbeddingConfig(

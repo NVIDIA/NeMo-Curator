@@ -36,10 +36,10 @@ from nemo_curator.utils.semdedup_utils import (
 class SemanticClusterLevelDedup:
     def __init__(
         self,
-        n_clusters: int,
-        id_column: str,
-        id_column_type: str,
-        which_to_keep: str,
+        n_clusters: int = 1000,
+        id_column: str = "id",
+        id_column_type: str = "int",
+        which_to_keep: str = "hard",
         output_dir: Optional[str] = None,
         cache_dir: Optional[str] = None,
         embedding_column: str = "embeddings",
@@ -51,20 +51,24 @@ class SemanticClusterLevelDedup:
         Initialize the SemanticClusterLevelDedup class.
 
         Args:
-            n_clusters (int): Number of clusters.
-            id_column (str): Column name for IDs.
-            id_column_type (str): Data type of the ID column.
-            which_to_keep (str): Strategy for which duplicate to keep.
+            n_clusters (int): Number of clusters. Default is 1000.
+            id_column (str): Column name used as the identifier in the dataset.
+                Default is "id".
+            id_column_type (str): Data type of id_column. Default is "int".
+            which_to_keep (str): Method to determine which duplicates to keep.
+                Default is "hard".
             output_dir (str, optional): Directory to save output files.
                 If None, it will be saved to cache_dir/clustering_save_loc.
                 Default is None.
             cache_dir (str, optional): Should be the same as specified in ClusteringModel.
-            embedding_column (str): Column where the embeddings are stored.
+            embedding_column (str): The column name that stores the embeddings.
+                Default is "embeddings".
             clustering_save_loc (str): Should be the same as specified in ClusteringModel.
-            logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
+            logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
-            profile_dir (str, optional): If specified, directory to write Dask profile.
+            profile_dir (Optional[str]): If specified, directory to write Dask profile.
                 Default is None.
+
         """
         self.n_clusters = n_clusters
         self.id_col = id_column
@@ -141,6 +145,7 @@ class SemanticClusterLevelDedup:
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
 
         t0 = time.time()
+
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "semantic-match-compute"
         ):

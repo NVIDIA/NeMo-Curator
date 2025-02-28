@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,10 +90,12 @@ class ExactDuplicates(BaseModule):
         self.profile_dir = profile_dir
 
         self.perform_removal = perform_removal
+
         if not self.perform_removal:
             warnings.warn(
                 "In future NeMo Curator releases, the default value for perform_removal will be True."
             )
+
         if self.perform_removal and self.cache_dir is None:
             warnings.warn(
                 "cache_dir is recommended to remove duplicates. "
@@ -109,7 +111,7 @@ class ExactDuplicates(BaseModule):
         else:
             self._logger = logger
 
-    def _exact_dup_ids(self, df: dd.DataFrame):
+    def _exact_dup_ids(self, df: dd.DataFrame) -> dd.DataFrame:
         """
         Get the IDs for text/documents that are exact duplicates.
 
@@ -169,6 +171,9 @@ class ExactDuplicates(BaseModule):
             # TODO: Generalize by using self.hash_method
             return df.apply(lambda x: md5(x.encode()).hexdigest())
 
+        else:
+            raise ValueError(f"Unsupported type: {type(df)}")
+
     def identify_duplicates(self, dataset: DocumentDataset) -> DocumentDataset:
         """
         Find document IDs for exact duplicates in a given DocumentDataset.
@@ -207,6 +212,7 @@ class ExactDuplicates(BaseModule):
         )
 
         backend = "cudf" if is_cudf_type(result) else "pandas"
+
         return DocumentDataset.read_parquet(
             write_path,
             backend=backend,
@@ -223,11 +229,18 @@ class ExactDuplicates(BaseModule):
         Parameters
         ----------
         dataset: DocumentDataset
-          The input datset to remove exact duplicates
+          The input dataset from which to remove exact duplicates
+        duplicates_to_remove: DocumentDataset
+          The dataset containing IDs of the exact duplicates to remove
         Returns
         -------
         DocumentDataset containing only non-duplicate documents
         """
+
+        if duplicates_to_remove is None:
+            print("No exact duplicates to remove, returning original dataset")
+            return dataset
+
         result = remove_duplicates(
             left=dataset.df,
             duplicates=duplicates_to_remove.df,
@@ -238,6 +251,8 @@ class ExactDuplicates(BaseModule):
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         duplicates = self.identify_duplicates(dataset)
+
         if self.perform_removal:
             return self.remove(dataset, duplicates)
+
         return duplicates
