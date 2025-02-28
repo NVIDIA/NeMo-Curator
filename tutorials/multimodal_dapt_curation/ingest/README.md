@@ -49,6 +49,8 @@ python main.py --analyze --display
 ```
 
 ## Notes
+- Computing Recall on Extraction
+    In order to calculate end-to-end recall accuracy of a retrieval pipeline refer to following [tutorial](https://github.com/NVIDIA/nv-ingest/blob/main/evaluation/bo767_recall.ipynb)
 - Exploring Outputs
     - Text
         - `content` - The raw extracted content, text in this case - this section will always be populated with a successful job.
