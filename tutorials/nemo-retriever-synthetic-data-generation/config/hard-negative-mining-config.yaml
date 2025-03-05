@@ -12,7 +12,6 @@ percpos: 0.95
 
 
 # SEMANTIC CLUSTERING parameters
-min_cluster_size: 100
-max_number_clusters: 200
+min_number_clusters: 10
 cluster_output_dir: "/workspace/output/clusters"
 logger_output_dir: "/workspace/output/logs"

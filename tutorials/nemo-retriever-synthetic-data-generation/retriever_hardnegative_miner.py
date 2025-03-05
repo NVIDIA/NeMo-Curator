@@ -82,10 +82,9 @@ class HardNegativeMiner:
                 self.min_neg_score_threshold = cfg.min_hardness_threshold
             else:
                 self.min_neg_score_threshold = 0.0
-        if cfg.min_cluster_size:
-            self.min_cluster_size = cfg.min_cluster_size
-        if cfg.max_number_clusters:
-            self.max_number_clusters = cfg.max_number_clusters
+
+        if cfg.min_number_clusters:
+            self.min_number_clusters = cfg.min_number_clusters
         if cfg.cluster_output_dir:
             self.cluster_output_dir = cfg.cluster_output_dir
         if cfg.logger_output_dir:
@@ -102,8 +101,14 @@ class HardNegativeMiner:
     ) -> DocumentDataset:
         df = dataset.df
         n_data = df.compute().shape[0]  # number of row items
-        n_clusters = int(np.floor(n_data / self.min_cluster_size) + 1)
-        n_clusters = min(n_clusters, self.max_number_clusters)
+        print(f"number of documents in the datasets = {n_data}")
+        if self.min_number_clusters >= n_data:
+            print("Using too many clusters not recommended!")
+            print("Using 1/10th number of datapoints as number of clusters instead.")
+            n_clusters = min(1, np.floor(n_data / 10))
+        else:
+            n_clusters = self.min_number_clusters
+
         print("Number of clusters used = {}".format(n_clusters))
         assert "doc_id" not in df.columns
         df["embeddings"] = ""  # refers to document embeddings
