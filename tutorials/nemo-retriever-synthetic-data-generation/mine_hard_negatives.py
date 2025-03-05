@@ -68,8 +68,12 @@ def main():
     if not os.path.exists(args.input_dir):
         raise ValueError("Input directory not found")
 
-    if os.path.exists(args.output_dir):
-        raise ValueError("Output dir exists already, use a new file name!")
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    elif not any(os.scandir(args.output_dir)):
+        print("Provided directory exists but is empty, using the empty directory")
+    else:
+        raise ValueError("Output directory exists already, use a new directory!")
 
     if args.input_dir:
         input_files = get_all_files_paths_under(args.input_dir, keep_extensions="part")
@@ -90,13 +94,16 @@ def main():
     mine_hard_negatives = HardNegativeMiner(cfg)
     print("Mining hard negatives ...")
     st_time = time.time()
-    mined_dataset = mine_hard_negatives(input_dataset)
 
-    print("Time taken = {:.2f} s".format(time.time() - st_time))
+    with TqdmCallback(desc="mining hard negatives") as progress:
+        mined_dataset = mine_hard_negatives(input_dataset)
+        mined_dataset.persist()
+
     print("Saving data in jsonl format ...")
     mined_dataset.df.to_json(
         os.path.join(args.output_dir), lines=True, orient="records"
     )
+    print("Time taken = {:.2f} s".format(time.time() - st_time))
 
 
 if __name__ == "__main__":

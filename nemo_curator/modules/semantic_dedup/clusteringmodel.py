@@ -63,6 +63,7 @@ class ClusteringModel:
         clustering_input_partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
+        keep_all_columns: bool = False,
     ):
         """
         Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
@@ -95,6 +96,7 @@ class ClusteringModel:
         self.sort_clusters = sort_clusters
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
+        self.keep_all_columns = keep_all_columns
 
         if not os.path.exists(self.clustering_output_dir):
             expand_outdir_and_mkdir(self.clustering_output_dir)
@@ -126,7 +128,8 @@ class ClusteringModel:
 
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
 
-            # embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
+            if not self.keep_all_columns:
+                embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
 
             embeddings_df = embeddings_df.repartition(
                 partition_size=self.clustering_input_partition_size

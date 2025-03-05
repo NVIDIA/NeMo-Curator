@@ -1,6 +1,5 @@
 # HARD-NEGATIVE MINING parameters
 
-# base_url: "https://integrate.api.nvidia.com/v1"
 model_name: "sentence-transformers/all-MiniLM-L6-v2"
 model_type: "hf"
 query_prefix: "query:"
@@ -15,5 +14,5 @@ percpos: 0.95
 # SEMANTIC CLUSTERING parameters
 min_cluster_size: 100
 max_number_clusters: 200
-cluster_output_dir: "/workspace/hnm/clusters"
-logger_output_dir: "/workspace/hnm/logs"
+cluster_output_dir: "/workspace/output/clusters"
+logger_output_dir: "/workspace/output/logs"

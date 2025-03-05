@@ -103,19 +103,19 @@ class RetrieverHardNegativeMiningConfig(BaseConfig):
 
     """
 
-    model_name: str = "nvdev/nvidia/llama-3.2-nv-embedqa-1b-v2"
-    model_type: str = "nvidia"
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    model_type: str = "hf"
     base_url: str = "https://integrate.api.nvidia.com/v1"
     api_key: str = None
     truncate: str = "END"
     hard_negatives_to_mine: int = 4
-    hard_neg_mining_algorithm: str = "topk_abs"
+    hard_neg_mining_algorithm: str = "topk_percpos"
     max_hardness_threshold: float = 0.75
     min_hardness_threshold: float = 0
-    query_prefix: str = ""
-    passage_prefix: str = ""
+    query_prefix: str = "query:"
+    passage_prefix: str = "passage:"
     percpos: float = 0.95
-    min_cluster_size: int = 50
+    min_cluster_size: int = 100
     max_number_clusters: int = 200
-    cluster_output_dir: str = "/tmp/clusters"
-    logger_output_dir: str = "/tmp/logs"
+    cluster_output_dir: str = "/workspace/output/clusters"
+    logger_output_dir: str = "/workspace/output/logs"

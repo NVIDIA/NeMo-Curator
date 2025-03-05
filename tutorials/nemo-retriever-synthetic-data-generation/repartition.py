@@ -67,8 +67,12 @@ def main():
     if not os.path.exists(args.input_dir):
         raise ValueError("Input directory not found")
 
-    if os.path.exists(args.output_dir):
-        raise ValueError("Output dir exists already, use a new file name!")
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    elif not any(os.scandir(args.output_dir)):
+        print("Provided directory exists but is empty, using the empty directory")
+    else:
+        raise ValueError("Output directory exists already, use a new directory!")
 
     if args.input_dir:
         input_files = get_all_files_paths_under(args.input_dir, keep_extensions="jsonl")
@@ -83,6 +87,16 @@ def main():
         raise ValueError("provide config for hard negative mining")
     if args.api_key:
         cfg.api_key = args.api_key
+    if cfg.cluster_output_dir:
+        if not os.path.exists(cfg.cluster_output_dir):
+            os.makedirs(cfg.cluster_output_dir)
+    else:
+        cfg.cluster_output_dir = os.path.join(args.output_dir, "clusters")
+    if cfg.logger_output_dir:
+        if not os.path.exists(cfg.logger_output_dir):
+            os.makedirs(cfg.logger_output_dir)
+    else:
+        cfg.logger_output_dir = os.path.join(args.output_dir, "logs")
 
     st_time = time.time()
     miner = HardNegativeMiner(cfg)
@@ -91,7 +105,7 @@ def main():
 
     # saving clustered dataset
     print("saving clustered dataset")
-    clustered_dataset.df.to_json(os.path.join(args.output_dir, "clustered_dataset"))
+    clustered_dataset.df.to_json(args.output_dir)
     print("Time taken to cluster data = {:.2f} s".format(time.time() - st_time))
 
 

@@ -118,6 +118,7 @@ class HardNegativeMiner:
             n_clusters=n_clusters,
             clustering_output_dir=self.cluster_output_dir,
             logger=self.logger_output_dir,
+            keep_all_columns=True,
         )
         clustered_dataset = self.clustering_model(embeddings_dataset)
         df_c = clustered_dataset.df
@@ -133,9 +134,7 @@ class HardNegativeMiner:
                 load_object_function=create_nim_client,
                 load_object_kwargs={"base_url": self.base_url, "api_key": self.api_key},
             )
-            # p_df["embeddings"] = p_df["documents"].map(
-            #     lambda pgs: [self._get_nim_embedding(t, "passage") for t in pgs]
-            # )
+
             p_df["embeddings"] = p_df["documents"].map(
                 lambda t: self._get_nim_embedding(t, "passage")
             )
@@ -145,11 +144,7 @@ class HardNegativeMiner:
                 load_object_function=create_hf_model,
                 load_object_kwargs={"model_name_or_path": self.model_name},
             )
-            # p_df["embeddings"] = p_df["documents"].map(
-            #     lambda pgs: [
-            #         self._get_hf_embedding(t, self.passage_prefix) for t in pgs
-            #     ]
-            # )
+
             p_df["embeddings"] = p_df["documents"].map(
                 lambda t: self._get_hf_embedding(t, self.passage_prefix)
             )
@@ -174,13 +169,12 @@ class HardNegativeMiner:
         df["query_embed"] = ""
         df["min_pos_score"] = ""
 
-        with ProgressBar(dt=1):
-            df = df.map_partitions(self._process_partition, meta=df).compute()
+        df = df.map_partitions(self._process_partition, meta=df)
 
         df = df.rename(columns={"documents": "pos_doc"})
         df = df[["question", "pos_doc", "neg_doc"]]
 
-        return DocumentDataset(dd.from_pandas(df))
+        return DocumentDataset(df)
 
     def _process_partition(self, df_p: pd.DataFrame):
 
