@@ -157,6 +157,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             if self.logger is not None:
                 self.logger.info("Could not segment paragaphs in the document")
             return
+
         paragraphs = handler.paragraphs
 
         # Context free classification
@@ -189,11 +190,13 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
                 is_boilerplate = False
             else:
                 is_boilerplate = True
+
         else:
             is_boilerplate = self.is_boilerplate
 
         if is_boilerplate:
             return [p.text for p in paragraphs if not p.is_boilerplate]
+
         else:
             return [p.text for p in paragraphs]
 
@@ -238,7 +241,6 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         )
 
         paragraphs = list(filter(None, text.split("\n")))
-        result = []
 
         if language in NON_SPACED_LANGUAGES:
             warnings.warn(
@@ -246,11 +248,15 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
             )
             result = paragraphs
         else:
+            result = []
+
             for paragraph in paragraphs:
                 words = paragraph.split()
                 length = len(words)
+
                 if length == 0:
                     continue
+
                 stopwords = [word for word in words if word in stop_words]
                 stopword_density = len(stopwords) / length
 
@@ -325,7 +331,7 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
         self.max_repetitions = max_repetitions
         self.extract_kwargs = extract_kwargs
 
-    def extract_text(self, html, stop_words):
+    def extract_text(self, html, stop_words, language):
         trafilatura_config = deepcopy(TRAFILATURA_DEFAULT_CONFIG)
         trafilatura_config["DEFAULT"]["MIN_EXTRACTED_SIZE"] = str(
             self.min_extracted_size
@@ -353,17 +359,29 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
 
         if text is not None:
             paragraphs = list(filter(None, text.split("\n")))
-            result = []
-            for paragraph in paragraphs:
-                words = paragraph.split()
-                length = len(words)
-                if length == 0:
-                    continue
-                stopwords = [word for word in words if word in stop_words]
-                stopword_density = len(stopwords) / length
 
-                if stopword_density >= self.required_stopword_density:
-                    result.append(paragraph)
+            if language in NON_SPACED_LANGUAGES:
+                warnings.warn(
+                    "stopword_density is ignored for non-space-separated languages."
+                )
+                result = paragraphs
+
+            else:
+                result = []
+
+                for paragraph in paragraphs:
+                    words = paragraph.split()
+                    length = len(words)
+
+                    if length == 0:
+                        continue
+
+                    stopwords = [word for word in words if word in stop_words]
+                    stopword_density = len(stopwords) / length
+
+                    if stopword_density >= self.required_stopword_density:
+                        result.append(paragraph)
+
         else:
             return None
 
