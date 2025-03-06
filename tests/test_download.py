@@ -19,7 +19,11 @@ from urllib.parse import urlparse
 
 import pytest
 
-from nemo_curator.download import ResiliparseExtractor, download_and_extract
+from nemo_curator.download import (
+    ResiliparseExtractor,
+    TrafilaturaExtractor,
+    download_and_extract,
+)
 from nemo_curator.download.arxiv import ArxivDownloader, ArxivExtractor, ArxivIterator
 from nemo_curator.download.commoncrawl import (
     CommonCrawlWARCDownloader,
@@ -54,11 +58,62 @@ def fake_run_success(cmd, stdout, stderr):
     return FakeCompletedProcess()
 
 
+@pytest.fixture
+def html_string():
+    # Modified from https://github.com/chatnoir-eu/chatnoir-resiliparse/blob/abdf1966fb3cefe3e0790e510ab5cb1446f99a79/tests/resiliparse/extract/test_html2text.py
+    html = """<!doctype html>
+        <head>
+            <title>My Title</title>
+            <meta charset="utf-8">
+            <style>* { margin: 0; }</style>
+        </head>
+        <body>
+            <section id="wrapper">
+                <nav>
+                    <ul>
+                        <li>Nav 1</li>
+                        <li>
+                            <p>Nav 2</p>
+                            <ul>
+                                <li><p>Nav 3</p></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </nav>
+                <main>
+                    This is a sample paragraph. In it we write words.
+                    These are stopwords: because did than has near we almost while what still.
+                    <a href="#foo" hidden>bar</a>
+
+                    <p>
+                    This paragraph doesn't have many stopwords. Remove it.
+                    <br>Let's keep this paragraph: either came does last new took taken making became from.
+                    </p>
+
+                    <button aria-hidden="true">Click here</button>
+                    <input type="hidden" value="foo">
+                    <input type="text" value="Some text" placeholder="Insert text">
+                    <input type="text" placeholder="Insert text">
+                    <img src="" alt="Some image">
+                    <object data="" class="some-class hidden">Cannot display object</object>
+                </main>
+                <script language="vbscript" type="text/vbscript">MsgBox("Hello World!")</script>
+                <noscript>Sorry, your browser doesn't support VB Script!</noscript>
+                <div><div><div><footer id="global-footer">
+                    Copyright (C) 2021 Foo Bar
+                </footer></div></div></div>
+            </section>
+        </body>
+    </html>"""
+    return html
+
+
 class TestDownload:
     def test_imports(self):
         from nemo_curator.download import (
             JusTextExtractor,
             ResiliparseExtractor,
+            TrafilaturaExtractor,
             download_arxiv,
             download_common_crawl,
             download_wikipedia,
@@ -430,56 +485,10 @@ class TestCommonCrawl:
 
 
 class TestExtractor:
-    def test_resiliparse_extract_text(self):
-        # Modified from https://github.com/chatnoir-eu/chatnoir-resiliparse/blob/abdf1966fb3cefe3e0790e510ab5cb1446f99a79/tests/resiliparse/extract/test_html2text.py
-        html = """<!doctype html>
-            <head>
-                <title>My Title</title>
-                <meta charset="utf-8">
-                <style>* { margin: 0; }</style>
-            </head>
-            <body>
-                <section id="wrapper">
-                    <nav>
-                        <ul>
-                            <li>Nav 1</li>
-                            <li>
-                                <p>Nav 2</p>
-                                <ul>
-                                    <li><p>Nav 3</p></li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </nav>
-                    <main>
-                        This is a sample paragraph. In it we write words.
-                        These are stopwords: because did than has near we almost while what still.
-                        <a href="#foo" hidden>bar</a>
-
-                        <p>
-                        This paragraph doesn't have many stopwords. Remove it.
-                        <br>Let's keep this paragraph: either came does last new took taken making became from.
-                        </p>
-
-                        <button aria-hidden="true">Click here</button>
-                        <input type="hidden" value="foo">
-                        <input type="text" value="Some text" placeholder="Insert text">
-                        <input type="text" placeholder="Insert text">
-                        <img src="" alt="Some image">
-                        <object data="" class="some-class hidden">Cannot display object</object>
-                    </main>
-                    <script language="vbscript" type="text/vbscript">MsgBox("Hello World!")</script>
-                    <noscript>Sorry, your browser doesn't support VB Script!</noscript>
-                    <div><div><div><footer id="global-footer">
-                        Copyright (C) 2021 Foo Bar
-                    </footer></div></div></div>
-                </section>
-            </body>
-        </html>"""
-
+    def test_resiliparse_extract_text(self, html_string):
         algorithm = ResiliparseExtractor()
         stop_words = get_stop_list_dict()
-        result = algorithm.extract_text(html, stop_words["ENGLISH"], "ENGLISH")
+        result = algorithm.extract_text(html_string, stop_words["ENGLISH"])
 
         expected = [
             "This is a sample paragraph. In it we write words. These are stopwords: because did than has near we almost while what still.",
@@ -488,8 +497,28 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse"])
+    def test_trafilatura_extract_text(self, html_string):
+        algorithm = TrafilaturaExtractor(
+            min_extracted_size=10,
+            min_duplcheck_size=10,
+            max_repetitions=1,
+            deduplicate=True,
+        )
+        stop_words = get_stop_list_dict()
+        result = algorithm.extract_text(html_string, stop_words["ENGLISH"])
+
+        expected = [
+            "Let's keep this paragraph: either came does last new took taken making became from.",
+        ]
+
+        assert result == expected
+
+    # TODO: Add Trafilatura
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_thai_text(self, extraction_algorithm):
+        if extraction_algorithm == "trafilatura":
+            assert False
+
         thai_html = """<!doctype html>
             <head>
                 <title>ชื่อเรื่องของฉัน</title>
@@ -527,8 +556,11 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse"])
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_chinese_text(self, extraction_algorithm):
+        if extraction_algorithm == "trafilatura":
+            assert False
+
         chinese_html = """<!doctype html>
             <head>
                 <title>我的标题</title>
@@ -565,8 +597,11 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse"])
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_japanese_text(self, extraction_algorithm):
+        if extraction_algorithm == "trafilatura":
+            assert False
+
         japanese_html = """<!doctype html>
             <head>
                 <title>私のタイトル</title>
@@ -605,8 +640,11 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse"])
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_korean_text(self, extraction_algorithm):
+        if extraction_algorithm == "trafilatura":
+            assert False
+
         korean_html = """<!doctype html>
             <head>
                 <title>내 제목</title>
