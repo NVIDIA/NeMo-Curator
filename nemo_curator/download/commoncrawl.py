@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -285,8 +285,9 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
             max_repetitions: Maximum number of duplicates allowed.
                 Defaults to 2. See Trafilatura documentation: https://trafilatura.readthedocs.io/en/latest/settings.html.
             extract_kwargs: Additional keyword arguments for the Trafilatura extract function.
-                See API documentation https://trafilatura.readthedocs.io/en/latest/usage-python.html#choice-of-html-elements
+                See API documentation https://trafilatura.readthedocs.io/en/latest/corefunctions.html#extract
                 for list of possible parameters.
+                All arguments are set to their default values, except for deduplicate (bool) which is set to True.
 
         """
         self.required_stopword_density = required_stopword_density
