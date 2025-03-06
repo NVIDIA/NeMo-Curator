@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +37,9 @@ from nemo_curator.download.doc_builder import (
 )
 from nemo_curator.utils.download_utils import get_common_crawl_urls
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+
+
+NON_SPACED_LANGUAGES = ["THAI", "CHINESE", "JAPANESE", "KOREAN"]
 
 
 def decode_html(html_bytes):
@@ -159,7 +162,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
         )
 
         if self.is_boilerplate is None:
-            if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
+            if language in NON_SPACED_LANGUAGES:
                 warnings.warn("Disabling is_boilerplate check for jusText extraction.")
                 is_boilerplate = False
             else:
@@ -203,7 +206,7 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         paragraphs = list(filter(None, text.split("\n")))
         result = []
 
-        if language in ["THAI", "CHINESE", "JAPANESE", "KOREAN"]:
+        if language in NON_SPACED_LANGUAGES:
             warnings.warn(
                 "stopword_density is ignored for non-space-separated languages."
             )
@@ -270,7 +273,7 @@ def get_stop_list_dict(languages=[]):
         else:
             lang_key = language.upper()
 
-        if lang_key in ["THAI", "CHINESE", "JAPANESE"]:
+        if lang_key in custom_stopwords:
             stop_list_dict[lang_key] = custom_stopwords[lang_key]
         else:
             stop_list_dict[lang_key] = justext.get_stoplist(language)
