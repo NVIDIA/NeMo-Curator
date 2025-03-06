@@ -38,7 +38,6 @@ from nemo_curator.download.doc_builder import (
 from nemo_curator.utils.download_utils import get_common_crawl_urls
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
-
 NON_SPACED_LANGUAGES = ["THAI", "CHINESE", "JAPANESE", "KOREAN"]
 
 
