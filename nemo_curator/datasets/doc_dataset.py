@@ -200,14 +200,13 @@ class DocumentDataset:
                 the field names and their respective data types within the JSONL input file.
         """
         if isinstance(input_files, str):
-            if file_type and input_files.endswith(file_type):
+            if input_files.endswith(file_type):
                 files = [input_files]
             else:
                 files = get_all_files_paths_under(
                     root=input_files,
                     recurse_subdirectories=False,
                     keep_extensions=[file_type],
-                    storage_options=storage_options,
                 )
         elif isinstance(input_files, list):
             files = input_files
