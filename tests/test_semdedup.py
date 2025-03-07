@@ -23,6 +23,11 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from nemo_curator import SemDedup, SemDedupConfig
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+from nemo_curator.utils.semdedup_utils import (
+    pairwise_cosine_similarity,
+    pairwise_cosine_similarity_batched,
+)
+from typing import Literal
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
@@ -170,9 +175,9 @@ class TestSemDuplicates:
             test_texts, pooling_strategy=pooling_strategy
         )
 
-        assert np.allclose(
-            embeddings, reference_embeddings, atol=1e-3
-        ), "Embeddings should match reference embeddings"
+        assert np.allclose(embeddings, reference_embeddings, atol=1e-3), (
+            "Embeddings should match reference embeddings"
+        )
 
 
 def get_reference_embeddings(
@@ -233,3 +238,61 @@ def get_reference_embeddings(
         embs.append(normed_emb)
 
     return np.array(embs)
+
+
+class TestPairwiseCosineSimilarity:
+    def setup_method(self):
+        self.input_arr = torch.tensor(
+            np.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3]]),
+            device="cpu",
+            dtype=torch.float32,
+        )
+
+    # paramterize device
+    @pytest.mark.parametrize(
+        "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
+    )
+    def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
+        max_similarity, max_indices = pairwise_cosine_similarity(self.input_arr, device)
+        torch.testing.assert_close(
+            max_similarity,
+            torch.tensor([0.0000, 0.974, 0.997, 0.999, 1.0]),
+            rtol=1e-3,
+            atol=1e-3,
+        )
+        assert max_indices == [0, 0, 1, 2, 0]
+
+    @pytest.mark.parametrize(
+        "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
+    )
+    @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5])
+    def test_pairwise_cosine_similarity_batched(
+        self, device: Literal["cpu", "cuda"], batch_size: int
+    ):
+        max_similarity, max_indices = pairwise_cosine_similarity_batched(
+            self.input_arr, device, batch_size
+        )
+        torch.testing.assert_close(
+            max_similarity,
+            torch.tensor([0.0000, 0.974, 0.997, 0.999, 1.0]),
+            rtol=1e-3,
+            atol=1e-3,
+        )
+        assert max_indices == [0, 0, 1, 2, 0]
+
+    @pytest.mark.parametrize(
+        "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
+    )
+    @pytest.mark.parametrize("batch_size", [100, 512, 1024, 2048])
+    def test_pairwise_cosine_similarity_batched_rand_array(
+        self, device: Literal["cpu", "cuda"], batch_size: int
+    ):
+        N = 1024
+        D = 512
+        rand_arr = torch.randn(N, D, device=device)
+        max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, device)
+        max_similarity_batched, max_indices_batched = pairwise_cosine_similarity_batched(
+            rand_arr, device, batch_size=batch_size
+        )
+        assert torch.allclose(max_similarity, max_similarity_batched, atol=1e-3)
+        assert max_indices == max_indices_batched
