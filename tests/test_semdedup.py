@@ -185,59 +185,59 @@ def get_reference_embeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
     pooling_strategy="last_token",
 ):
-#     """
-#     Get embeddings using either last token or mean pooling strategy.
+    """
+    Get embeddings using either last token or mean pooling strategy.
 
-#     Args:
-#         texts: List of input texts
-#         model_name: Name or path of the model to use
-#         pooling_strategy: Either "last_token" for last token or "mean" for mean pooling
-#     """
-#     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     model = AutoModel.from_pretrained(model_name)
-#     model = model.to("cuda")
-#     model.eval()
-#     max_len_to_use = tokenizer.model_max_length
-#     if max_len_to_use > 1e5:
-#         max_len_to_use = AutoConfig.from_pretrained(model_name).max_position_embeddings
-#     max_seq_length: int = max_len_to_use
+    Args:
+        texts: List of input texts
+        model_name: Name or path of the model to use
+        pooling_strategy: Either "last_token" for last token or "mean" for mean pooling
+    """
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    model = model.to("cuda")
+    model.eval()
+    max_len_to_use = tokenizer.model_max_length
+    if max_len_to_use > 1e5:
+        max_len_to_use = AutoConfig.from_pretrained(model_name).max_position_embeddings
+    max_seq_length: int = max_len_to_use
 
-#     embs = []
-#     for text in texts:
-#         inputs = tokenizer(
-#             text,
-#             return_tensors="pt",
-#             padding=True,
-#             truncation=True,
-#             max_length=max_seq_length,
-#         )
-#         inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    embs = []
+    for text in texts:
+        inputs = tokenizer(
+            text,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_seq_length,
+        )
+        inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
-#         with torch.no_grad():
-#             with torch.autocast(device_type="cuda"):
-#                 outputs = model(**inputs)
+        with torch.no_grad():
+            with torch.autocast(device_type="cuda"):
+                outputs = model(**inputs)
 
-#         if pooling_strategy == "last_token":
-#             embeddings = outputs.last_hidden_state[:, -1, :]
-#         elif pooling_strategy == "mean_pooling":
-#             token_embeddings = outputs.last_hidden_state
-#             attention_mask = inputs["attention_mask"]
-#             input_mask_expanded = (
-#                 attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-#             )
-#             sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
-#             sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
-#             embeddings = sum_embeddings / sum_mask
-#         else:
-#             raise ValueError(
-#                 "pooling_strategy must be either 'last_token' or 'mean_pooling'"
-#             )
+        if pooling_strategy == "last_token":
+            embeddings = outputs.last_hidden_state[:, -1, :]
+        elif pooling_strategy == "mean_pooling":
+            token_embeddings = outputs.last_hidden_state
+            attention_mask = inputs["attention_mask"]
+            input_mask_expanded = (
+                attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            )
+            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
+            sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
+            embeddings = sum_embeddings / sum_mask
+        else:
+            raise ValueError(
+                "pooling_strategy must be either 'last_token' or 'mean_pooling'"
+            )
 
-#         normed_emb = F.normalize(embeddings, dim=1).cpu()
-#         normed_emb = normed_emb.squeeze(0)
-#         embs.append(normed_emb)
+        normed_emb = F.normalize(embeddings, dim=1).cpu()
+        normed_emb = normed_emb.squeeze(0)
+        embs.append(normed_emb)
 
-#     return np.array(embs)
+    return np.array(embs)
 
 
 class TestPairwiseCosineSimilarity:
