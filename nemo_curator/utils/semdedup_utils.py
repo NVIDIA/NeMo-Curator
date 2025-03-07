@@ -18,7 +18,7 @@ import os
 import random
 import shutil
 import time
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple
 
 import cudf
 import dask.bag as db

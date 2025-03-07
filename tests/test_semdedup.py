@@ -185,82 +185,86 @@ def get_reference_embeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
     pooling_strategy="last_token",
 ):
-    """
-    Get embeddings using either last token or mean pooling strategy.
+#     """
+#     Get embeddings using either last token or mean pooling strategy.
 
-    Args:
-        texts: List of input texts
-        model_name: Name or path of the model to use
-        pooling_strategy: Either "last_token" for last token or "mean" for mean pooling
-    """
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
-    model = model.to("cuda")
-    model.eval()
-    max_len_to_use = tokenizer.model_max_length
-    if max_len_to_use > 1e5:
-        max_len_to_use = AutoConfig.from_pretrained(model_name).max_position_embeddings
-    max_seq_length: int = max_len_to_use
+#     Args:
+#         texts: List of input texts
+#         model_name: Name or path of the model to use
+#         pooling_strategy: Either "last_token" for last token or "mean" for mean pooling
+#     """
+#     tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     model = AutoModel.from_pretrained(model_name)
+#     model = model.to("cuda")
+#     model.eval()
+#     max_len_to_use = tokenizer.model_max_length
+#     if max_len_to_use > 1e5:
+#         max_len_to_use = AutoConfig.from_pretrained(model_name).max_position_embeddings
+#     max_seq_length: int = max_len_to_use
 
-    embs = []
-    for text in texts:
-        inputs = tokenizer(
-            text,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=max_seq_length,
-        )
-        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+#     embs = []
+#     for text in texts:
+#         inputs = tokenizer(
+#             text,
+#             return_tensors="pt",
+#             padding=True,
+#             truncation=True,
+#             max_length=max_seq_length,
+#         )
+#         inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
-        with torch.no_grad():
-            with torch.autocast(device_type="cuda"):
-                outputs = model(**inputs)
+#         with torch.no_grad():
+#             with torch.autocast(device_type="cuda"):
+#                 outputs = model(**inputs)
 
-        if pooling_strategy == "last_token":
-            embeddings = outputs.last_hidden_state[:, -1, :]
-        elif pooling_strategy == "mean_pooling":
-            token_embeddings = outputs.last_hidden_state
-            attention_mask = inputs["attention_mask"]
-            input_mask_expanded = (
-                attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-            )
-            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
-            sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
-            embeddings = sum_embeddings / sum_mask
-        else:
-            raise ValueError(
-                "pooling_strategy must be either 'last_token' or 'mean_pooling'"
-            )
+#         if pooling_strategy == "last_token":
+#             embeddings = outputs.last_hidden_state[:, -1, :]
+#         elif pooling_strategy == "mean_pooling":
+#             token_embeddings = outputs.last_hidden_state
+#             attention_mask = inputs["attention_mask"]
+#             input_mask_expanded = (
+#                 attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+#             )
+#             sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
+#             sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
+#             embeddings = sum_embeddings / sum_mask
+#         else:
+#             raise ValueError(
+#                 "pooling_strategy must be either 'last_token' or 'mean_pooling'"
+#             )
 
-        normed_emb = F.normalize(embeddings, dim=1).cpu()
-        normed_emb = normed_emb.squeeze(0)
-        embs.append(normed_emb)
+#         normed_emb = F.normalize(embeddings, dim=1).cpu()
+#         normed_emb = normed_emb.squeeze(0)
+#         embs.append(normed_emb)
 
-    return np.array(embs)
+#     return np.array(embs)
 
 
 class TestPairwiseCosineSimilarity:
     def setup_method(self):
         self.input_arr = torch.tensor(
-            np.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3]]),
-            device="cpu",
+            np.asarray(
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3]],
+            ),
             dtype=torch.float32,
         )
+        self.expected_similarity = torch.tensor(
+            [0.0000, 0.974631, 0.998190, 0.999618, 1.0000]
+        )
+        self.expected_indices = [0, 0, 1, 2, 0]
 
     # paramterize device
     @pytest.mark.parametrize(
         "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
     )
     def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
-        max_similarity, max_indices = pairwise_cosine_similarity(self.input_arr, device)
-        torch.testing.assert_close(
-            max_similarity,
-            torch.tensor([0.0000, 0.974, 0.997, 0.999, 1.0]),
-            rtol=1e-3,
-            atol=1e-3,
+        max_similarity, max_indices = pairwise_cosine_similarity(
+            self.input_arr.to(device), device
         )
-        assert max_indices == [0, 0, 1, 2, 0]
+        torch.testing.assert_close(
+            max_similarity, self.expected_similarity, rtol=1e-6, atol=1e-6
+        )
+        assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize(
         "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
@@ -270,15 +274,12 @@ class TestPairwiseCosineSimilarity:
         self, device: Literal["cpu", "cuda"], batch_size: int
     ):
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
-            self.input_arr, device, batch_size
+            self.input_arr.to(device), device, batch_size
         )
         torch.testing.assert_close(
-            max_similarity,
-            torch.tensor([0.0000, 0.974, 0.997, 0.999, 1.0]),
-            rtol=1e-3,
-            atol=1e-3,
+            max_similarity, self.expected_similarity, rtol=1e-6, atol=1e-6
         )
-        assert max_indices == [0, 0, 1, 2, 0]
+        assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize(
         "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
@@ -294,5 +295,5 @@ class TestPairwiseCosineSimilarity:
         max_similarity_batched, max_indices_batched = (
             pairwise_cosine_similarity_batched(rand_arr, device, batch_size=batch_size)
         )
-        assert torch.allclose(max_similarity, max_similarity_batched, atol=1e-3)
+        torch.testing.assert_close(max_similarity, max_similarity_batched)
         assert max_indices == max_indices_batched
