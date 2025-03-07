@@ -192,7 +192,7 @@ def pairwise_cosine_similarity(
     # Normalize embeddings
     cluster_reps = cluster_reps / cluster_reps.norm(dim=1, keepdim=True)
     # Compute pairwise cosine similarity
-    pairwise_sim_matrix = cluster_reps @ (cluster_reps.T)
+    pairwise_sim_matrix = torch.mm(cluster_reps, cluster_reps.T)
     del cluster_reps
     # Set diagonal to 0 to ignore self similarity
     pairwise_sim_matrix.fill_diagonal_(0.0)
@@ -227,7 +227,7 @@ def pairwise_cosine_similarity_batched(
     for start_idx in range(0, cluster_reps.shape[0], batch_size):
         end_idx = min(start_idx + batch_size, cluster_reps.shape[0])
         batch = cluster_reps[start_idx:end_idx]
-        pairwise_sim_matrix = cluster_reps @ batch.T
+        pairwise_sim_matrix = torch.mm(cluster_reps, batch.T)
         triu_sim_matrix = torch.triu(pairwise_sim_matrix, diagonal=1 - start_idx)
         del batch
         max_values_and_indices = torch.max(triu_sim_matrix, dim=0)

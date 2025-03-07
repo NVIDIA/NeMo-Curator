@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -24,17 +24,23 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from nemo_curator import SemDedup, SemDedupConfig
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
-from nemo_curator.utils.semdedup_utils import (
-    pairwise_cosine_similarity,
-    pairwise_cosine_similarity_batched,
-)
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
 )
-
+pairwise_cosine_similarity = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "pairwise_cosine_similarity"
+)
+pairwise_cosine_similarity_batched = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "pairwise_cosine_similarity_batched"
+)
+if TYPE_CHECKING:
+    from nemo_curator.utils.semdedup_utils import (
+        pairwise_cosine_similarity,
+        pairwise_cosine_similarity_batched,
+    )
 
 @pytest.fixture
 def dedup_data():
@@ -253,9 +259,8 @@ class TestPairwiseCosineSimilarity:
         )
         self.expected_indices = [0, 0, 1, 2, 0]
 
-    # paramterize device
     @pytest.mark.parametrize(
-        "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
+        "device", [pytest.param("cuda", marks=pytest.mark.gpu)]
     )
     def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
         max_similarity, max_indices = pairwise_cosine_similarity(
@@ -267,7 +272,7 @@ class TestPairwiseCosineSimilarity:
         assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize(
-        "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
+        "device", [pytest.param("cuda", marks=pytest.mark.gpu)]
     )
     @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5])
     def test_pairwise_cosine_similarity_batched(
@@ -282,7 +287,7 @@ class TestPairwiseCosineSimilarity:
         assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize(
-        "device", ["cpu", pytest.param("cuda", marks=pytest.mark.gpu)]
+        "device", [pytest.param("cuda", marks=pytest.mark.gpu)]
     )
     @pytest.mark.parametrize("batch_size", [100, 512, 1024, 2048])
     def test_pairwise_cosine_similarity_batched_rand_array(

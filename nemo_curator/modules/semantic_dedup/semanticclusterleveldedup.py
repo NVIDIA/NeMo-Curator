@@ -65,8 +65,8 @@ class SemanticClusterLevelDedup:
             embedding_column (str): The column name that stores the embeddings.
                 Default is "embeddings".
             batched_cosine_similarity (int): Whether to use batched cosine similarity (has less memory usage).
-                Default is 1024. When >0, batching is used and memory requirements are O(N*B) where N is the number of items in the cluster and B is the batch size.
-                When <=0, no batching is used and memory requirements are O(N^2) where N is the number of items in the cluster.
+                Default is 1024. When greater than 0, batching is used and memory requirements are O(N*B) where N is the number of items in the cluster and B is the batch size.
+                When less than or equal to 0, no batching is used and memory requirements are O(N^2) where N is the number of items in the cluster.
             logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
             profile_dir (Optional[str]): If specified, directory to write Dask profile.
