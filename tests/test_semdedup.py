@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Literal
 
 import numpy as np
 import pytest
@@ -27,7 +28,6 @@ from nemo_curator.utils.semdedup_utils import (
     pairwise_cosine_similarity,
     pairwise_cosine_similarity_batched,
 )
-from typing import Literal
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
@@ -175,9 +175,9 @@ class TestSemDuplicates:
             test_texts, pooling_strategy=pooling_strategy
         )
 
-        assert np.allclose(embeddings, reference_embeddings, atol=1e-3), (
-            "Embeddings should match reference embeddings"
-        )
+        assert np.allclose(
+            embeddings, reference_embeddings, atol=1e-3
+        ), "Embeddings should match reference embeddings"
 
 
 def get_reference_embeddings(
@@ -291,8 +291,8 @@ class TestPairwiseCosineSimilarity:
         D = 512
         rand_arr = torch.randn(N, D, device=device)
         max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, device)
-        max_similarity_batched, max_indices_batched = pairwise_cosine_similarity_batched(
-            rand_arr, device, batch_size=batch_size
+        max_similarity_batched, max_indices_batched = (
+            pairwise_cosine_similarity_batched(rand_arr, device, batch_size=batch_size)
         )
         assert torch.allclose(max_similarity, max_similarity_batched, atol=1e-3)
         assert max_indices == max_indices_batched

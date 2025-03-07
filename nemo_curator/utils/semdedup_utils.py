@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 import torch
 from dask.distributed import progress
+
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
@@ -179,7 +180,7 @@ def rank_within_cluster(
 
 
 def pairwise_cosine_similarity(
-    cluster_reps: torch.Tensor, 
+    cluster_reps: torch.Tensor,
     device: Literal["cuda", "cpu"],
 ) -> Tuple[torch.Tensor, List[int]]:
     """
@@ -204,18 +205,19 @@ def pairwise_cosine_similarity(
     max_indices = max_values_and_indices[1].cpu().numpy().tolist()
     return max_similarity, max_indices
 
+
 def pairwise_cosine_similarity_batched(
-    cluster_reps: torch.Tensor, 
+    cluster_reps: torch.Tensor,
     device: Literal["cuda", "cpu"],
     batch_size: int = 1024,
 ) -> Tuple[torch.Tensor, List[int]]:
     """
     Computes pairwise cosine similarity between cluster items,
-    then replace to diagonal with zeros to ignore self similarity. 
+    then replace to diagonal with zeros to ignore self similarity.
     This function is useful for large clusters where the pairwise similarity matrix
     does not fit into memory.
     We use a batched approach to compute the pairwise similarity matrix in batches.
-    Memory requirements are O(N*B) where N is the number of items in the cluster and B is the batch size 
+    Memory requirements are O(N*B) where N is the number of items in the cluster and B is the batch size
     instead of O(N^2) for the full matrix.
     """
     cluster_reps = cluster_reps.to(device)
@@ -233,7 +235,8 @@ def pairwise_cosine_similarity_batched(
         max_indices[start_idx:end_idx] = max_values_and_indices[1]
 
     return max_similarity.cpu(), max_indices.cpu().numpy().tolist()
-        
+
+
 def get_cluster_reps(
     cluster_id: int,
     emb_by_clust_dir: str,
@@ -308,7 +311,9 @@ def get_semantic_matches_per_cluster(
         cluster_id, emb_by_clust_dir, id_col, embedding_col, text_ids
     )
     if batched_cosine_similarity > 0:
-        max_similarity, max_indices = pairwise_cosine_similarity_batched(cluster_reps, "cuda", batched_cosine_similarity)
+        max_similarity, max_indices = pairwise_cosine_similarity_batched(
+            cluster_reps, "cuda", batched_cosine_similarity
+        )
     else:
         max_similarity, max_indices = pairwise_cosine_similarity(cluster_reps, "cuda")
     assert cluster_reps.shape[0] == len(text_ids)
