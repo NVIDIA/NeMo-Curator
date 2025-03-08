@@ -83,7 +83,7 @@ It's easy to write your own custom text cleaner. The implementation of ``Unicode
         def __init__(self):
             super().__init__()
 
-        def modify_document(self, text: str) ->:
+        def modify_document(self, text: str) -> str:
             return ftfy.fix_text(text)
 
 Simply define a new class that inherits from ``DocumentModifier`` and define the constructor and ``modify_text`` method.
