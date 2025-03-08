@@ -23,7 +23,7 @@ Modules
 --------------------
 NeMo Curator provides the following modules for cleaning text:
 
-- ``UnicodeReformatter``: Uses `ftfy <https://ftfy.readthedocs.io/en/latest/>`_ to fix broken Unicode characters. Modifies the "text" field of the dataset by default. Please see the `ftfy documentation <https://ftfy.readthedocs.io/en/latest/config.html>`_` for more information about parameters used by the ``UnicodeReformatter``.
+- ``UnicodeReformatter``: Uses `ftfy <https://ftfy.readthedocs.io/en/latest/>`_ to fix broken Unicode characters. Modifies the "text" field of the dataset by default. Please see the `ftfy documentation <https://ftfy.readthedocs.io/en/latest/config.html>`_ for more information about parameters used by the ``UnicodeReformatter``.
 - ``NewlineNormalizer``: Uses regex to replace 3 or more consecutive newline characters in each document with only 2 newline characters.
 - ``UrlRemover``: Uses regex to remove all URLs in each document.
 
