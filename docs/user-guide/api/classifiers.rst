@@ -31,3 +31,9 @@ Classifiers
 
 .. autoclass:: nemo_curator.classifiers.PromptTaskComplexityClassifier
     :members:
+
+.. autoclass:: nemo_curator.classifiers.FastTextClassifier
+    :members:
+
+.. autoclass:: nemo_curator.classifiers.DCLMFastTextClassifier
+    :members:
