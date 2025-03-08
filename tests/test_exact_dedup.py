@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from hashlib import md5
 
 import pandas as pd
 import pytest
 from dask import dataframe as dd
+from dask.dataframe.utils import assert_eq
 
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
 
@@ -48,20 +51,58 @@ class TestExactDuplicates:
         with pytest.raises(ValueError):
             ExactDuplicates(hash_method="sha256")
 
+    @pytest.mark.parametrize("cache_method", [None, "Cache", "ExactDuplicates"])
+    def test_exact_dedup_cache_method(self, exact_dedup_data, cache_method, tmpdir):
+
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=tmpdir)
+            cache_dir = None
+        elif cache_method == "ExactDuplicates":
+            cache_dir = tmpdir
+        else:
+            cache_dir = None
+
+        exact_dups = ExactDuplicates(
+            id_field="id",
+            text_field="text",
+            hash_method="md5",
+            cache_dir=cache_dir,
+        )
+
+        result = exact_dups(exact_dedup_data)
+        result = result.df.compute()
+        expected_df = exact_dedup_data.df.compute()
+        expected_df = expected_df[expected_df.text.duplicated(keep=False)]
+
+        assert_eq(result.id, expected_df.id, check_index=False)
+
+        # Check that the output is written when either:
+        # (1) Cache(cache_dir=...) is initialized, or
+        # (2) ExactDuplicates(cache_dir=...) is initialized.
+        # If there is no Cache and ExactDuplicates(cache_dir=None),
+        # then there should be no output file.
+        if cache_method in ["Cache", "ExactDuplicates"]:
+            assert os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
+        else:
+            assert not os.path.exists(str(tmpdir / "_exact_duplicates.parquet"))
+
     @pytest.mark.parametrize("cache_result", [False, True])
-    def test_dup(self, exact_dedup_data, cache_result, tmpdir):
+    def test_exact_dedup(self, exact_dedup_data, cache_result, tmpdir):
         exact_dups = ExactDuplicates(
             id_field="id",
             text_field="text",
             hash_method="md5",
             cache_dir=tmpdir if cache_result else None,
         )
+
         duplicates = exact_dups.identify_duplicates(exact_dedup_data)
         deduplicated_ds = exact_dups.remove(exact_dedup_data, duplicates)
         deduplicated_ids_series = deduplicated_ds.df.to_backend("pandas").compute()[
             "id"
         ]
         output_deduplicated_ids = set(deduplicated_ids_series.tolist())
+
         assert (
             len(output_deduplicated_ids) == 3
             and 300 in output_deduplicated_ids

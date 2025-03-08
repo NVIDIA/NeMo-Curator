@@ -135,7 +135,8 @@ class EmbeddingCreator:
         self,
         embedding_model_name_or_path: str = "sentence-transformers/all-MiniLM-L6-v2",
         embedding_batch_size: int = 128,
-        embedding_output_dir: str = "./embeddings",
+        cache_dir: Optional[str] = None,
+        embeddings_save_loc: str = "embeddings",
         embedding_max_mem_gb: Optional[int] = None,
         embedding_pooling_strategy: str = "mean_pooling",
         input_column: str = "text",
@@ -153,8 +154,11 @@ class EmbeddingCreator:
                 Default is "sentence-transformers/all-MiniLM-L6-v2".
             embedding_batch_size (int): Initial batch size for processing embeddings.
                 Default is 128.
-            embedding_output_dir (str): Location to save embeddings.
-                Default is "./embeddings".
+            cache_dir (str, optional): Directory path where embeddings will be saved.
+                If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
+                Default is None.
+            embeddings_save_loc (str): Location within cache_dir to save embeddings.
+                Default is "embeddings".
             embedding_max_mem_gb (int, optional): Maximum memory usage in GB for the embedding process.
                 If None, it defaults to the available GPU memory minus 4 GB.
             embedding_pooling_strategy: Strategy for pooling embeddings, either "mean_pooling" or "last_token".
@@ -180,7 +184,6 @@ class EmbeddingCreator:
         )
         self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
-        self.embedding_output_dir = embedding_output_dir
         self.input_column = input_column
         self.embedding_column = embedding_column
         self.model = EmbeddingCrossFitModel(
@@ -189,6 +192,18 @@ class EmbeddingCreator:
         self.write_embeddings_to_disk = write_embeddings_to_disk
         self.write_to_filename = write_to_filename
         self.profile_dir = profile_dir
+
+        if cache_dir is not None:
+            self.embedding_output_dir = os.path.join(cache_dir, embeddings_save_loc)
+        elif Cache().get_cache_directory() is not None:
+            self.embedding_output_dir = os.path.join(
+                Cache().get_cache_directory(), embeddings_save_loc
+            )
+        else:
+            raise RuntimeError(
+                "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                "or EmbeddingCreator(cache_dir=...)"
+            )
 
     def _setup_logger(self, logger):
         if isinstance(logger, str):

@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -34,14 +35,13 @@ from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_s
 
 class BucketsToEdges:
     """
-    Maps buckets generated from LSH into an edgelist that
-    can be processed further by Connected Components to find duplicate
-    documents
+    Maps buckets generated from LSH into an edgelist that can be processed further by
+    Connected Components to find duplicate documents.
     """
 
     def __init__(
         self,
-        cache_dir: str = None,
+        cache_dir: Optional[str] = None,
         id_fields: Union[list, str] = "id",
         str_id_name: str = "id",
         bucket_field: str = "_bucket_id",
@@ -51,24 +51,29 @@ class BucketsToEdges:
         """
         Parameters
         ----------
-        cache_dir: str or None
-          If specified, will compute & write the edgelist to a file
-        id_fields: list or str
-          id fields of documents in buckets_df
-        str_id_name: str
-          Ignored if there is a single id field. Multiple id fields
-          will be combined into a single id field with the given name.
-        bucket_field: str
-          Column denoting bucket ID
-        num_buckets: Number of bands/buckets to create from the minhash signature.
-          Hashes_per_signature = num_hashes / num_buckets
+        cache_dir: Directory to compute and write edgelist. Can also be set with
+            Cache(cache_dir=...). Default is None.
+        id_fields: List or string representing column(s) in buckets_df denoting
+            document ID. Default is "id".
+        str_id_name: Ignored if there is a single ID field. Multiple ID fields will be
+            combined into a single ID field with the given name. Default is "id".
+        bucket_field: Column denoting bucket ID. Default is "_bucket_id".
+        logger: Existing logger to log to, or a path to a log directory.
+            Default is "./".
+        profile_dir: If specified, directory to write Dask profile. Default is None.
         """
-        self.cache_dir = cache_dir
+
+        if cache_dir is None:
+            self.cache_dir = Cache().get_cache_directory()
+        else:
+            self.cache_dir = cache_dir
+
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
         self.str_id_name = str_id_name if len(self.id_fields) > 1 else self.id_fields[0]
         self.output_ids = [f"{self.str_id_name}_x", f"{self.str_id_name}_y"]
         self.bucket_field = bucket_field
         self.profile_dir = profile_dir
+
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -84,12 +89,13 @@ class BucketsToEdges:
     ) -> cudf.DataFrame:
         if output_id_field in input_df.columns:
             raise ValueError(
-                f"Input df already contains column named: {output_id_field}"
+                f"Input DataFrame already contains column named {output_id_field}"
             )
 
         output_df = input_df.copy()[input_df.columns.difference(input_id_fields)]
 
         output_df[output_id_field] = input_df[input_id_fields[0]].astype(str)
+
         for input_field in input_id_fields[1:]:
             output_df[output_id_field] = output_df[output_id_field] = (
                 input_df[input_id_fields[0]].astype(str)
@@ -109,23 +115,29 @@ class BucketsToEdges:
             .agg(list)
             .list.sort_values()
         )
+
         bucket_docs = grouped_buckets.to_arrow().to_pylist()
         edges = []
+
         # Create pairs of all documents within a bucket since they are near duplicates
         # Effectively create a edge list of all near duplicate documents
         for bucket_doc in bucket_docs:
             edges.extend(pairwise(bucket_doc))
+
         edges = pd.DataFrame(edges, columns=self.output_ids)
         edges = pa.Table.from_pandas(edges)
         result_df = cudf.DataFrame.from_arrow(edges)
         del edges
+
         result_df = result_df.drop_duplicates(self.output_ids).reset_index(drop=True)
         result_df["jaccard"] = np.float32(1.0)
         return result_df
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         buckets_df = dataset.df
-        self._logger.info(f"Starting conversion of LSH Buckets to Graph Edgelist")
+
+        self._logger.info(f"Starting conversion of LSH buckets to graph edgelist")
+
         if len(self.id_fields) > 1:
             buckets_df = buckets_df.map_partitions(
                 BucketsToEdges._combine_multiple_ids,
@@ -145,14 +157,16 @@ class BucketsToEdges:
             warnings.warn(
                 f"Output path {write_path} already exists and will be overwritten"
             )
+
         t0 = time.time()
         with performance_report_if_with_ts_suffix(
             self.profile_dir,
             "bucket-to-edges",
         ):
             edges_df.to_parquet(write_path, write_index=False, overwrite=True)
+
         self._logger.info(
-            f"Time taken for Converted Buckets To Edgelist = {time.time() - t0}s and output written at {write_path}"
+            f"Time taken for converted buckets to edgelist: {time.time() - t0}s and output written at {write_path}"
         )
 
         return DocumentDataset(

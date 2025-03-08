@@ -26,6 +26,7 @@ from dask import config
 from dask import dataframe as dd
 
 from nemo_curator._compat import DASK_P2P_ERROR
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.base import BaseModule
@@ -53,13 +54,17 @@ class ExactDuplicates(BaseModule):
         Parameters
         ----------
         logger: Existing logger to log to, or a path to a log directory.
-        id_field: Column in the Dataset denoting document ID.
-        text_field: Column in the Dataset denoting document content.
-        hash_method: The hashing algorithm used for identifying exact duplicates. Currently supports {"md5"}
-        profile_dir: str, Default None
-          If specified directory to write dask profile
-        cache_dir: str, Default None
-          If specified, will compute & write duplicate id's to cache directory.
+        id_field: Column in the dataset denoting document ID.
+        text_field: Column in the dataset denoting document content.
+        hash_method: The hashing algorithm used for identifying exact duplicates.
+          Currently only supports "md5".
+        perform_removal: Boolean value to specify whether calling the module should
+            remove the duplicates from the original dataset, or return the list of IDs
+            denoting duplicates.
+        profile_dir: If specified, directory to write Dask profile. Default is None.
+        cache_dir: If specified, will compute and write duplicate IDs to cache directory.
+            If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
+            Default is None.
         """
         super().__init__(input_backend="any")
 
@@ -71,6 +76,19 @@ class ExactDuplicates(BaseModule):
         self.hash_method = hash_method
         self.id_field = id_field
         self.text_field = text_field
+
+        if cache_dir is None:
+            self.cache_dir = Cache().get_cache_directory()
+        else:
+            self.cache_dir = cache_dir
+
+        if self.cache_dir is None and profile_dir is not None:
+            warnings.warn(
+                "cache_dir for intermediate outputs is required to generate profiles. "
+                "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
+            )
+        self.profile_dir = profile_dir
+
         self.perform_removal = perform_removal
 
         if not self.perform_removal:
@@ -78,16 +96,11 @@ class ExactDuplicates(BaseModule):
                 "In future NeMo Curator releases, the default value for perform_removal will be True."
             )
 
-        if self.perform_removal and cache_dir is None:
-            warnings.warn("cache_dir is recommended to remove duplicates.")
-
-        if cache_dir is None and profile_dir is not None:
+        if self.perform_removal and self.cache_dir is None:
             warnings.warn(
-                "cache_dir for intermediate outputs is required to generate profiles"
+                "cache_dir is recommended to remove duplicates. "
+                "Please initialize with Cache(cache_dir=...) or ExactDuplicates(cache_dir=...)"
             )
-
-        self.cache_dir = cache_dir
-        self.profile_dir = profile_dir
 
         if isinstance(logger, str):
             self._logger = create_logger(
@@ -100,7 +113,8 @@ class ExactDuplicates(BaseModule):
 
     def _exact_dup_ids(self, df: dd.DataFrame) -> dd.DataFrame:
         """
-        Get the id's for text/documents that are exact duplicates
+        Get the IDs for text/documents that are exact duplicates.
+
         Parameters
         ----------
         df: dask.dataframe.DataFrame
@@ -130,10 +144,11 @@ class ExactDuplicates(BaseModule):
         df: dd.DataFrame,
     ) -> dd.DataFrame:
         """
-        Computes the hash of the text_column provided and returns a dataframe
-        containing the id_column and relevant hashes in the _hashes column.
+        Computes the hash of the text field provided and returns a DataFrame
+        containing the ID field and relevant hashes in the _hashes column.
         """
         self._logger.info("Starting lazy hash generation")
+
         res = df[[self.id_field]]
         res["_hashes"] = df[self.text_field].map_partitions(self.hash_documents)
 
@@ -153,7 +168,7 @@ class ExactDuplicates(BaseModule):
             return df.hash_values(method=self.hash_method)
 
         elif isinstance(df, pd.Series):
-            # TODO: Generalize ty using self.hash_method
+            # TODO: Generalize by using self.hash_method
             return df.apply(lambda x: md5(x.encode()).hexdigest())
 
         else:
@@ -161,7 +176,8 @@ class ExactDuplicates(BaseModule):
 
     def identify_duplicates(self, dataset: DocumentDataset) -> DocumentDataset:
         """
-        Find document IDs for exact duplicates in a given DocumentDataset
+        Find document IDs for exact duplicates in a given DocumentDataset.
+
         Parameters
         ----------
         dataset: DocumentDataset
@@ -176,7 +192,7 @@ class ExactDuplicates(BaseModule):
             return DocumentDataset(result)
 
         t0 = time.time()
-        self._logger.info("Starting execution for ExactDedup")
+        self._logger.info("Starting execution for ExactDuplicates")
         write_path = os.path.join(self.cache_dir, "_exact_duplicates.parquet")
 
         if os.path.exists(write_path):
@@ -191,7 +207,8 @@ class ExactDuplicates(BaseModule):
             result.to_parquet(write_path, write_index=False, overwrite=True)
 
         self._logger.info(
-            f"Time taken for Exact Dedup Computation = {time.time() - t0}s and output written at {write_path}"
+            f"Time taken for ExactDuplicates computation = {time.time() - t0}s \n"
+            f"Output written at {write_path}"
         )
 
         backend = "cudf" if is_cudf_type(result) else "pandas"

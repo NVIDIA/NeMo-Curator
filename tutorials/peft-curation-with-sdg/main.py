@@ -131,6 +131,7 @@ def semantic_dedupe(dataset):
         os.path.join(CONFIG_DIR, "sem_dedup_config.yaml")
     )
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
+
     semdup = SemDedup(
         config=semdedup_config,
         input_column="text",
@@ -138,6 +139,7 @@ def semantic_dedupe(dataset):
         id_column_type="str",
     )
     dedup_ids = semdup(dataset)
+
     # When there are few duplicates we can compute the results to a list and use `isin`.
     result = dataset.df[dataset.df["id"].isin(dedup_ids.df["id"].compute())]
     return DocumentDataset(result)

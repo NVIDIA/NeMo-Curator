@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 
 import numpy as np
@@ -21,6 +22,7 @@ from dask.dataframe.utils import assert_eq
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator import SemDedup, SemDedupConfig
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -68,17 +70,25 @@ def non_dedup_data():
 
 @pytest.mark.gpu
 class TestSemDuplicates:
+    @pytest.mark.parametrize("cache_method", ["Cache", "SemDedupConfig"])
     @pytest.mark.parametrize("n_clusters", [3, 10])
     def test_sem_dedup(
         self,
         dedup_data,
         tmpdir,
+        cache_method,
         n_clusters,
         gpu_client,
     ):
         print("client", gpu_client)
 
-        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=os.path.join(tmpdir, "test_sem_dedup_cache"))
+            cache_dir = None
+        else:
+            cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+
         config = SemDedupConfig(
             cache_dir=cache_dir,
             n_clusters=n_clusters,
@@ -105,6 +115,58 @@ class TestSemDuplicates:
             duplicate_docs = [2, 3, 4, 200, 300]
             expected_df = cudf.Series(duplicate_docs, name="id")
             assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+
+            # Check that the output is written when either:
+            # (1) Cache(cache_dir=...) is initialized, or
+            # (2) SemDedupConfig(cache_dir=...) is initialized.
+            # Either way, their output files should be identical.
+            cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+
+            assert os.path.exists(cache_dir)
+            assert os.path.exists(cache_dir + "/embeddings/part.0.parquet")
+            assert os.path.exists(cache_dir + "/embeddings/part.1.parquet")
+            assert os.path.exists(
+                cache_dir + "/clustering_results/dedup_summary_0.1.csv"
+            )
+            assert os.path.exists(
+                cache_dir + "/clustering_results/kmeans_centroids.npy"
+            )
+            assert os.path.exists(
+                cache_dir + "/clustering_results/sorted/cluster_0.npy"
+            )
+            assert os.path.exists(
+                cache_dir + "/clustering_results/sorted/cluster_1.npy"
+            )
+            assert os.path.exists(
+                cache_dir + "/clustering_results/sorted/cluster_2.npy"
+            )
+            assert os.path.exists(
+                cache_dir
+                + "/clustering_results/embs_by_nearest_center/nearest_cent=0/part.0.parquet"
+            )
+            assert os.path.exists(
+                cache_dir
+                + "/clustering_results/embs_by_nearest_center/nearest_cent=1/part.0.parquet"
+            )
+            assert os.path.exists(
+                cache_dir
+                + "/clustering_results/embs_by_nearest_center/nearest_cent=2/part.0.parquet"
+            )
+            assert os.path.exists(
+                cache_dir
+                + "/clustering_results/semdedup_pruning_tables/cluster_0.parquet"
+            )
+            assert os.path.exists(
+                cache_dir
+                + "/clustering_results/semdedup_pruning_tables/cluster_1.parquet"
+            )
+            assert os.path.exists(
+                cache_dir
+                + "/clustering_results/semdedup_pruning_tables/cluster_2.parquet"
+            )
+            assert os.path.exists(
+                cache_dir + "/clustering_results/unique_ids_0.1.parquet"
+            )
 
     @pytest.mark.parametrize("n_clusters", [2, 3])
     def test_no_sem_dedup(
@@ -157,9 +219,10 @@ class TestSemDuplicates:
         embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
             embedding_batch_size=32,
+            cache_dir=cache_dir,
+            embeddings_save_loc="mean_embeddings",
             embedding_pooling_strategy=pooling_strategy,
             input_column="text",
-            embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
         )
 
         embeddings = embedding_creator.create_embeddings(ddf).compute()

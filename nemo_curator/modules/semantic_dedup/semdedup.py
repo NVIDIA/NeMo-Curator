@@ -17,6 +17,7 @@ import logging
 import os
 from typing import Union
 
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules.base import BaseModule
 from nemo_curator.modules.config import SemDedupConfig
@@ -49,14 +50,27 @@ class SemDedup(BaseModule):
             logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
         """
+
         super().__init__(input_backend="cudf")
         self.config = config
         self.logger = logger
-        cache_dir = config.cache_dir
+        if config.cache_dir is not None:
+            cache_dir = config.cache_dir
+        elif Cache().get_cache_directory() is not None:
+            cache_dir = Cache().get_cache_directory()
+        else:
+            raise RuntimeError(
+                "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                "or specify a cache_dir in your YAML file."
+            )
+        profile_dir = self.config.profile_dir
+        clustering_save_loc = config.clustering_save_loc
+
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
-            embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
+            cache_dir=cache_dir,
+            embeddings_save_loc=config.embeddings_save_loc,
             embedding_max_mem_gb=config.embedding_max_mem_gb,
             embedding_pooling_strategy=config.embedding_pooling_strategy,
             input_column=input_column,
@@ -64,13 +78,14 @@ class SemDedup(BaseModule):
             write_embeddings_to_disk=config.write_embeddings_to_disk,
             write_to_filename=config.write_to_filename,
             logger=logger,
-            profile_dir=self.config.profile_dir,
+            profile_dir=profile_dir,
         )
         self.clustering_model = ClusteringModel(
             id_column=id_column,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
-            clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
+            cache_dir=cache_dir,
+            clustering_save_loc=clustering_save_loc,
             embedding_column=config.embedding_column,
             sim_metric=config.sim_metric,
             which_to_keep=config.which_to_keep,
@@ -78,23 +93,20 @@ class SemDedup(BaseModule):
             kmeans_with_cos_dist=config.kmeans_with_cos_dist,
             clustering_input_partition_size=config.clustering_input_partition_size,
             logger=logger,
-            profile_dir=self.config.profile_dir,
+            profile_dir=profile_dir,
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
-            emb_by_clust_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "embs_by_nearest_center"
-            ),
-            sorted_clusters_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "sorted"
-            ),
             id_column=id_column,
             id_column_type=id_column_type,
             which_to_keep=config.which_to_keep,
-            output_dir=os.path.join(cache_dir, config.clustering_save_loc),
+            cache_dir=cache_dir,
             embedding_column=config.embedding_column,
+            clustering_save_loc=clustering_save_loc,
             logger=logger,
-            profile_dir=self.config.profile_dir,
+            profile_dir=profile_dir,
+            # Hardcoded path
+            output_dir=os.path.join(cache_dir, clustering_save_loc),
         )
         self.eps_thresholds = config.eps_thresholds
         self.eps_to_extract = config.eps_to_extract

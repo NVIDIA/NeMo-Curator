@@ -25,6 +25,7 @@ import dask.dataframe as dd
 import numpy as np
 from cuml.dask.cluster import KMeans
 
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
@@ -53,7 +54,8 @@ class ClusteringModel:
         id_column: str = "id",
         max_iter: int = 100,
         n_clusters: int = 1000,
-        clustering_output_dir: str = "./clustering_results",
+        cache_dir: Optional[str] = None,
+        clustering_save_loc: str = "clustering_results",
         embedding_column: str = "embeddings",
         random_state: int = 1234,
         sim_metric: str = "cosine",
@@ -72,8 +74,11 @@ class ClusteringModel:
                 Default is "id".
             max_iter (int): Maximum iterations for clustering. Default is 100.
             n_clusters (int): Number of clusters. Default is 1000.
-            clustering_output_dir (str): Location to save clustering results.
-                Default is "./clustering_results".
+            cache_dir (str, optional): Directory path where clustering results will be saved.
+                If None, we check if a cache_dir has been initialized with Cache().get_cache_directory().
+                Default is None.
+            clustering_save_loc (str): Location within cache_dir to save clustering results.
+                Default is "clustering_results".
             embedding_column (str): The column name that stores the embeddings.
                 Default is "embeddings".
             random_state (int): KMeans random state used for reproducibility.
@@ -96,7 +101,6 @@ class ClusteringModel:
         self.id_col = id_column
         self.max_iter = max_iter
         self.n_clusters = n_clusters
-        self.clustering_output_dir = clustering_output_dir
         self.embedding_column = embedding_column
         self.random_state = random_state
         self.sim_metric = sim_metric
@@ -107,11 +111,24 @@ class ClusteringModel:
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
+        if cache_dir is not None:
+            self.clustering_output_dir = os.path.join(cache_dir, clustering_save_loc)
+        elif Cache().get_cache_directory() is not None:
+            self.clustering_output_dir = os.path.join(
+                Cache().get_cache_directory(), clustering_save_loc
+            )
+        else:
+            raise RuntimeError(
+                "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                "or ClusteringModel(cache_dir=...)"
+            )
+
         if not os.path.exists(self.clustering_output_dir):
             expand_outdir_and_mkdir(self.clustering_output_dir)
         else:
             self.logger.warning(
-                f"Clustering output directory {self.clustering_output_dir} already exists and will be overwritten"
+                f"Clustering output directory {self.clustering_output_dir} already exists"
+                " and will be overwritten"
             )
 
     def _setup_logger(self, logger):
@@ -207,7 +224,8 @@ class ClusteringModel:
             )
             if os.path.exists(clustering_output_dir):
                 self.logger.warning(
-                    f"Output directory {clustering_output_dir} already exists and will be overwritten"
+                    f"Output directory {clustering_output_dir} already exists and will"
+                    " be overwritten."
                 )
                 shutil.rmtree(clustering_output_dir)
 

@@ -38,11 +38,13 @@ def main(args):
 
     client = get_client(**ArgumentHelper.parse_client_args(args))
     client.run(func)
-    print(f"Num Workers = {get_num_workers(client)}", flush=True)
-    print("Connected to dask cluster", flush=True)
-    print("Running jaccard shuffle script", flush=True)
+
+    print(f"Number of workers: {get_num_workers(client)}", flush=True)
+    print("Connected to Dask cluster", flush=True)
+    print("Running Jaccard shuffle script", flush=True)
     print(f"Args = {args}")
     st = time.time()
+
     text_ddf = get_text_ddf_from_json_path_with_blocksize(
         input_data_paths=input_data_paths,
         num_files=args.num_files,
@@ -51,17 +53,20 @@ def main(args):
         text_column=args.input_json_text_field,
         input_meta=args.input_meta,
     )
+
     print(
         "Graph creation for get_text_ddf_from_json_path_with_blocksize complete.",
         flush=True,
     )
-    print(f"text_ddf.npartitions  = {text_ddf.npartitions}", flush=True)
+    print(f"text_ddf.npartitions = {text_ddf.npartitions}", flush=True)
+
     shuffle = _Shuffle(
         id_fields=["dataset_id", "doc_id"],
         text_field=args.input_json_text_field,
         profile_dir=args.profile_path,
         int_to_str_id=args.input_json_id_field,
     )
+
     shuffle.shuffle_docs_on_buckets(
         documents_df=text_ddf,
         bucket_w_anchors_path=input_anchor_docs_with_bk_dir,
@@ -71,8 +76,9 @@ def main(args):
         bucket_parts_per_worker=args.bucket_parts_per_worker,
         partition_on="_output_partition_id",
     )
+
     et = time.time()
-    print(f"Jaccard Shuffle E2E time taken = {et-st} s")
+    print(f"Jaccard shuffle E2E time taken: {et-st}s")
 
 
 def attach_args():

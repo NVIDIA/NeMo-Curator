@@ -45,20 +45,17 @@ def main(args):
 
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=semdedup_config.n_clusters,
-        emb_by_clust_dir=os.path.join(
-            cache_dir, semdedup_config.clustering_save_loc, "embs_by_nearest_center"
-        ),
-        sorted_clusters_dir=os.path.join(
-            cache_dir, semdedup_config.clustering_save_loc, "sorted"
-        ),
         id_column=args.id_column,
         id_column_type=args.id_column_type,
         which_to_keep=semdedup_config.which_to_keep,
+        cache_dir=semdedup_config.cache_dir,
+        embedding_column=semdedup_config.embedding_column,
+        clustering_save_loc=semdedup_config.clustering_save_loc,
+        logger=logger,
+        # Hardcoded value
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc
         ),
-        embedding_column=semdedup_config.embedding_column,
-        logger=logger,
     )
 
     semantic_dedup.compute_semantic_match_dfs(semdedup_config.eps_thresholds)

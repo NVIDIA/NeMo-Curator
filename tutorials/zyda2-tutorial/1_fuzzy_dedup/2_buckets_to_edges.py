@@ -39,7 +39,6 @@ if __name__ == "__main__":
         cache_dir=buckets_to_edges_out,
         id_fields=["dataset_id", "doc_id"],
     )
-
     ddf_b2e = buckets_to_edges(DocumentDataset(ddf_bk))
 
     logging.info(f"Time taken for Buckets to Edges: {time.time() - t0} s")

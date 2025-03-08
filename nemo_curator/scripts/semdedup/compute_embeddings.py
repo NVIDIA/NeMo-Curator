@@ -76,9 +76,8 @@ def main(args):
     embedding_creator = EmbeddingCreator(
         embedding_model_name_or_path=semdedup_config.embedding_model_name_or_path,
         embedding_batch_size=semdedup_config.embedding_batch_size,
-        embedding_output_dir=os.path.join(
-            semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
-        ),
+        cache_dir=semdedup_config.cache_dir,
+        embeddings_save_loc=semdedup_config.embeddings_save_loc,
         embedding_max_mem_gb=semdedup_config.embedding_max_mem_gb,
         embedding_pooling_strategy=semdedup_config.embedding_pooling_strategy,
         input_column=args.input_text_field,
