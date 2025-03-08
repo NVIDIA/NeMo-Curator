@@ -47,8 +47,8 @@ def main(args):
         input_data_paths=input_data_paths,
         num_files=args.num_files,
         blocksize=args.text_ddf_blocksize,
-        id_column=args.input_json_id_field,
-        text_column=args.input_json_text_field,
+        id_field=args.id_field,
+        text_field=args.text_field,
         input_meta=args.input_meta,
     )
     print(
@@ -58,9 +58,9 @@ def main(args):
     print(f"text_ddf.npartitions  = {text_ddf.npartitions}", flush=True)
     shuffle = _Shuffle(
         id_fields=["dataset_id", "doc_id"],
-        text_field=args.input_json_text_field,
+        text_field=args.text_field,
         profile_dir=args.profile_path,
-        int_to_str_id=args.input_json_id_field,
+        int_to_str_id=args.id_field,
     )
     shuffle.shuffle_docs_on_buckets(
         documents_df=text_ddf,

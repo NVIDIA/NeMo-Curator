@@ -77,7 +77,7 @@ def main(args):
     buckets_to_edges = BucketsToEdges(
         cache_dir=OUTPUT_PATH,
         id_fields=["dataset_id", "doc_id"],
-        str_id_name=args.input_json_id_field,
+        str_id_name=args.id_field,
         bucket_field=args.input_bucket_field,
         logger=logger,
     )

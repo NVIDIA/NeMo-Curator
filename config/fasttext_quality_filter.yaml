@@ -1,4 +1,4 @@
-input_field: text
+text_field: text
 filters:
   - name: nemo_curator.filters.classifier_filter.FastTextQualityFilter
     params:

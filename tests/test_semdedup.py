@@ -88,9 +88,9 @@ class TestSemDuplicates:
 
         sem_duplicates = SemDedup(
             config=config,
-            input_column="text",
-            id_column="id",
-            id_column_type="int",
+            text_field="text",
+            id_field="id",
+            id_field_type="int",
         )
 
         dedup_data_len = dedup_data.df.shape[0].compute()
@@ -126,9 +126,9 @@ class TestSemDuplicates:
 
         sem_duplicates = SemDedup(
             config=config,
-            input_column="text",
-            id_column="doc_id",
-            id_column_type="str",
+            text_field="text",
+            id_field="doc_id",
+            id_field_type="str",
         )
 
         non_dedup_data_len = non_dedup_data.df.shape[0].compute()
@@ -158,7 +158,7 @@ class TestSemDuplicates:
             embedding_model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
             embedding_batch_size=32,
             embedding_pooling_strategy=pooling_strategy,
-            input_column="text",
+            text_field="text",
             embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
         )
 

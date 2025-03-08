@@ -33,7 +33,7 @@ from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
 
 def assign_and_sort_clusters(
-    id_col: str,
+    id_field: str,
     kmeans_centroids_file: str,
     nearest_cent_dir: str,
     output_sorted_clusters_dir: str,
@@ -47,7 +47,7 @@ def assign_and_sort_clusters(
 ):
     """
     Args:
-        id_col (str): The column name representing the unique identifier for each data point.
+        id_field (str): The column name representing the unique identifier for each data point.
         centroids_path (str): The location of the K-means centroids file.
         nearest_cent_dir (str): The location of the nearest center files.
         output_sorted_clusters_dir (str): The location to save the sorted clusters.
@@ -82,7 +82,7 @@ def assign_and_sort_clusters(
         cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
         completed_count = cluster_ids_bag.map(
             lambda cluster_c: rank_within_cluster(
-                id_col=id_col,
+                id_field=id_field,
                 nearest_cent_dir=nearest_cent_dir,
                 output_sorted_clusters_dir=output_sorted_clusters_dir,
                 centroids=kmeans_centroids,
@@ -103,7 +103,7 @@ def assign_and_sort_clusters(
 
 
 def rank_within_cluster(
-    id_col: str,
+    id_field: str,
     nearest_cent_dir: str,
     output_sorted_clusters_dir: str,
     centroids: np.ndarray,
@@ -117,7 +117,7 @@ def rank_within_cluster(
     Sorts each cluster's items by their distance to the cluster centroid.
 
     Args:
-        id_col (str): The column name representing the unique identifier for each data point.
+        id_field (str): The column name representing the unique identifier for each data point.
         nearest_cent_dir (str): The location of the nearest center files.
         output_sorted_clusters_dir (str): The location to save the sorted clusters.
         centroids (np.ndarray): The centroids for each cluster.
@@ -141,7 +141,7 @@ def rank_within_cluster(
             continue
 
         cluster_df = cudf.read_parquet(
-            cluster_c_path, columns=[id_col, "dist_to_cent", embedding_col]
+            cluster_c_path, columns=[id_field, "dist_to_cent", embedding_col]
         )
         embeds = torch.as_tensor(
             cluster_df[embedding_col].list.leaves.values.reshape(
@@ -163,7 +163,7 @@ def rank_within_cluster(
             cluster_dists_to_cent = list(cluster_df["dist_to_cent"])
 
         cluster_label = np.full((len(cluster_df)), cluster_c).tolist()
-        example_id = list(cluster_df[id_col])
+        example_id = list(cluster_df[id_field])
         sort_descending = keep_hard
         cluster_sorted = sorted(
             zip(example_id, cluster_dists_to_cent, cluster_label),
@@ -200,14 +200,14 @@ def _semdedup(
 def get_cluster_reps(
     cluster_id: int,
     emb_by_clust_dir: str,
-    id_col: str,
+    id_field: str,
     embedding_col: str,
     sorted_ids: np.ndarray,
 ) -> torch.Tensor:
     cluster_i_path = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
     cluster_reps = cudf.read_parquet(
-        cluster_i_path, columns=[embedding_col, id_col]
-    ).sort_values(by=id_col)
+        cluster_i_path, columns=[embedding_col, id_field]
+    ).sort_values(by=id_field)
     num = cluster_reps.shape[0]
 
     df_ = pd.DataFrame(
@@ -227,8 +227,8 @@ def get_semantic_matches_per_cluster(
     cluster_id: int,
     emb_by_clust_dir: str,
     sorted_clusters_dir: str,
-    id_col: str,
-    id_col_type: str,
+    id_field: str,
+    id_field_type: str,
     eps_list: List[float],
     output_dir: str,
     embedding_col: str,
@@ -264,10 +264,10 @@ def get_semantic_matches_per_cluster(
         clutser_items_indices = clutser_items_indices[::-1]
         cluster_i = cluster_i[clutser_items_indices]
 
-    text_ids = cluster_i[:, 0].astype(id_col_type)
+    text_ids = cluster_i[:, 0].astype(id_field_type)
 
     cluster_reps = get_cluster_reps(
-        cluster_id, emb_by_clust_dir, id_col, embedding_col, text_ids
+        cluster_id, emb_by_clust_dir, id_field, embedding_col, text_ids
     )
     M, M1 = _semdedup(cluster_reps, "cuda")
     assert cluster_reps.shape[0] == len(text_ids)
@@ -297,22 +297,22 @@ def get_num_records(file_path):
     return shape[0]
 
 
-def _get_empty_results_df(id_col, id_col_type):
+def _get_empty_results_df(id_field, id_field_type):
     meta_df = pd.DataFrame(
         {
-            id_col: np.empty(0, dtype="int64"),
+            id_field: np.empty(0, dtype="int64"),
             "dist": np.empty(0, dtype="float32"),
             "cluster": np.empty(0, dtype="int32"),
         }
     )
-    meta_df[id_col] = meta_df[id_col].astype(id_col_type)
+    meta_df[id_field] = meta_df[id_field].astype(id_field_type)
     return meta_df
 
 
 def prune_single_cluster(
     cluster_id: int,
-    id_col: str,
-    id_col_type: str,
+    id_field: str,
+    id_field_type: str,
     sorted_clusters_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,
@@ -322,8 +322,8 @@ def prune_single_cluster(
 
     Args:
         cluster_id (int): The specific cluster ID to process.
-        id_col (str): The name of the ID column.
-        id_col_type (str): The data type of the ID column.
+        id_field (str): The name of the ID column.
+        id_field_type (str): The data type of the ID column.
         sorted_clusters_dir (str): Path to the sorted clusters directory.
         semdedup_pruning_tables_dir (str): Path to the pruning tables directory.
         eps (float): Epsilon value for pruning.
@@ -333,18 +333,18 @@ def prune_single_cluster(
     """
     sorted_fname = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
     if not os.path.exists(sorted_fname):
-        return _get_empty_results_df(id_col, id_col_type)
+        return _get_empty_results_df(id_field, id_field_type)
 
     cluster_data = np.load(sorted_fname)
     df_cluster = cudf.DataFrame(
         {
-            id_col: cluster_data[:, 0],
+            id_field: cluster_data[:, 0],
             "dist": cluster_data[:, 1],
             "cluster": cluster_data[:, 2],
         }
     )
 
-    df_cluster[id_col] = df_cluster[id_col].astype(id_col_type)
+    df_cluster[id_field] = df_cluster[id_field].astype(id_field_type)
     df_cluster["dist"] = df_cluster["dist"].astype("float32")
     df_cluster["cluster"] = df_cluster["cluster"].astype("int32")
 
@@ -359,14 +359,14 @@ def prune_single_cluster(
     items_to_keep = (
         pruning_table[pruning_table[f"eps={eps}"] == False]["id"].to_arrow().to_pylist()
     )
-    pruned_cluster = df_cluster[df_cluster[id_col].isin(items_to_keep)]
-    pruned_cluster[id_col] = pruned_cluster[id_col].astype(id_col_type)
+    pruned_cluster = df_cluster[df_cluster[id_field].isin(items_to_keep)]
+    pruned_cluster[id_field] = pruned_cluster[id_field].astype(id_field_type)
     return pruned_cluster
 
 
 def extract_pruned_data(
-    id_col: str,
-    id_col_type: str,
+    id_field: str,
+    id_field_type: str,
     sorted_clusters_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,
@@ -379,8 +379,8 @@ def extract_pruned_data(
     Extracts pruned data from sorted clusters and saves it to a CSV file.
 
     Args:
-        id_col (str): The name of the ID column.
-        id_col_type (str): The data type of the ID column.
+        id_field (str): The name of the ID column.
+        id_field_type (str): The data type of the ID column.
         sorted_clusters_dir (str): Path to the sorted clusters directory.
         semdedup_pruning_tables_dir (str): Path to the pruning tables directory.
         eps (float): Epsilon value for pruning.
@@ -402,13 +402,13 @@ def extract_pruned_data(
         results_df = dd.from_map(
             prune_single_cluster,
             range(n_clusters),
-            id_col=id_col,
-            id_col_type=id_col_type,
+            id_field=id_field,
+            id_field_type=id_field_type,
             sorted_clusters_dir=sorted_clusters_dir,
             semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
             eps=eps,
         )
-        results_df[id_col] = results_df[id_col].astype(id_col_type)
+        results_df[id_field] = results_df[id_field].astype(id_field_type)
         results_df = results_df.persist()
         progress(results_df)
 
@@ -432,8 +432,8 @@ def extract_pruned_data(
 def extract_dedup_data(
     eps,
     n_clusters,
-    id_col,
-    id_col_type,
+    id_field,
+    id_field_type,
     sorted_clusters_dir,
     semdedup_pruning_tables_dir,
     output_summary_file,
@@ -449,8 +449,8 @@ def extract_dedup_data(
     """
 
     kept, removed, total = extract_pruned_data(
-        id_col=id_col,
-        id_col_type=id_col_type,
+        id_field=id_field,
+        id_field_type=id_field_type,
         sorted_clusters_dir=sorted_clusters_dir,
         semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
         eps=eps,

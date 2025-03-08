@@ -57,11 +57,11 @@ class AddId(BaseModule):
         local_padding = count_digits(len(partition))
         global_id = partition_info["number"]
 
-        id_column = [
+        id_field = [
             f"{self.id_prefix}-{local_id:0{local_padding}d}{global_id:0{global_padding}d}"
             for local_id in range(len(partition))
         ]
-        partition[self.id_field] = id_column
+        partition[self.id_field] = id_field
         partition[self.id_field] = partition[self.id_field].astype("string")
 
         return partition
@@ -90,11 +90,11 @@ class AddId(BaseModule):
         return id_dataset
 
     def _add_id_ordered_partition(self, partition, partition_start_id):
-        id_column = [
+        id_field = [
             f"{self.id_prefix}-{int(i + self.start_index):010d}"
             for i in range(partition_start_id, len(partition) + partition_start_id)
         ]
-        partition[self.id_field] = id_column
+        partition[self.id_field] = id_field
         partition[self.id_field] = partition[self.id_field].astype("string")
 
         return partition

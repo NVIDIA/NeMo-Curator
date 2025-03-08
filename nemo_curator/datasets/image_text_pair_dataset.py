@@ -54,7 +54,7 @@ class ImageTextPairDataset:
     """
 
     def __init__(
-        self, path: str, metadata: dd.DataFrame, tar_files: List[str], id_col: str
+        self, path: str, metadata: dd.DataFrame, tar_files: List[str], id_field: str
     ) -> None:
         """
         Constructs an image-text pair dataset.
@@ -63,32 +63,32 @@ class ImageTextPairDataset:
             path (str): The root directory of the files.
             metadata (dd.DataFrame): A Dask-cuDF DataFrame of the metadata.
             tar_files (List[str]): A list of paths to the tar files.
-            id_col (str): The column storing the unique identifier for each record.
+            id_field (str): The column storing the unique identifier for each record.
         """
         self.path = path
         self.metadata = metadata
         self.tar_files = tar_files
-        self.id_col = id_col
+        self.id_field = id_field
 
     @classmethod
-    def from_webdataset(cls, path: str, id_col: str):
+    def from_webdataset(cls, path: str, id_field: str):
         """
         Loads an ImageTextPairDataset from a WebDataset
 
         Args:
             path (str): The path to the WebDataset-like format on disk or cloud storage.
-            id_col (str): The column storing the unique identifier for each record.
+            id_field (str): The column storing the unique identifier for each record.
         """
         metadata = dask_cudf.read_parquet(path, split_row_groups=False, blocksize=None)
-        metadata = metadata.map_partitions(cls._sort_partition, id_col=id_col)
+        metadata = metadata.map_partitions(cls._sort_partition, id_field=id_field)
 
         tar_files = cls._get_tar_files(path)
 
-        return cls(path, metadata, tar_files, id_col)
+        return cls(path, metadata, tar_files, id_field)
 
     @staticmethod
-    def _sort_partition(partition, id_col):
-        return partition.sort_values(id_col).reset_index(drop=True)
+    def _sort_partition(partition, id_field):
+        return partition.sort_values(id_field).reset_index(drop=True)
 
     @staticmethod
     def _get_tar_files(path: str) -> List[str]:
@@ -159,7 +159,7 @@ class ImageTextPairDataset:
                 shard_df = pd.read_parquet(f)
 
             # Get all the samples associated with this dataframe from the tar file
-            valid_member_ids = set(map(int, shard_df[self.id_col]))
+            valid_member_ids = set(map(int, shard_df[self.id_field]))
             with tar_file as f:
                 tar = tarfile.open(fileobj=f)
                 valid_members = self._filter_valid_members(
@@ -214,12 +214,12 @@ class ImageTextPairDataset:
         filter_column: str,
         samples_per_shard: int = 10000,
         max_shards: int = 5,
-        old_id_col: Optional[str] = None,
+        old_id_field: Optional[str] = None,
     ) -> None:
         """
         Saves the dataset to a WebDataset format with Parquet files.
         Will reshard the tar files to the specified number of samples per shard.
-        The ID value in ImageTextPairDataset.id_col will be overwritten with a new ID.
+        The ID value in ImageTextPairDataset.id_field will be overwritten with a new ID.
 
         Args:
             path (str): The output path where the dataset should be written.
@@ -230,7 +230,7 @@ class ImageTextPairDataset:
             max_shards (int): The order of magnitude of the maximum number of shards
                 that will be created from the dataset. Will be used to determine the
                 number of leading zeros in the shard/sample IDs.
-            old_id_col (Optional[str]): If specified, will preserve the previous
+            old_id_field (Optional[str]): If specified, will preserve the previous
                 ID value in the given column.
         """
         max_samples_per_shard = math.ceil(math.log10(samples_per_shard))
@@ -252,8 +252,8 @@ class ImageTextPairDataset:
             output_tar_file = fsspec.open(output_tar_path, mode="wb")
 
             # Change the id on the parquet files
-            if old_id_col:
-                shard_df[old_id_col] = shard_df[self.id_col]
+            if old_id_field:
+                shard_df[old_id_field] = shard_df[self.id_field]
 
             new_ids = np.arange(len(shard_df))
             convert_ids = partial(
@@ -262,7 +262,7 @@ class ImageTextPairDataset:
                 max_shards=max_shards,
                 max_samples_per_shard=max_samples_per_shard,
             )
-            shard_df[self.id_col] = list(map(convert_ids, new_ids))
+            shard_df[self.id_field] = list(map(convert_ids, new_ids))
             with output_parquet_file as f:
                 shard_df.to_parquet(f, index=False)
 

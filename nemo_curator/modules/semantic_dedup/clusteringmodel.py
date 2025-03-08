@@ -50,7 +50,7 @@ def add_dist_to_cents(
 class ClusteringModel:
     def __init__(
         self,
-        id_column: str = "id",
+        id_field: str = "id",
         max_iter: int = 100,
         n_clusters: int = 1000,
         clustering_output_dir: str = "./clustering_results",
@@ -68,7 +68,7 @@ class ClusteringModel:
         Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
 
         Args:
-            id_column (str): Column name used as the identifier in the dataset.
+            id_field (str): Column name used as the identifier in the dataset.
                 Default is "id".
             max_iter (int): Maximum iterations for clustering. Default is 100.
             n_clusters (int): Number of clusters. Default is 1000.
@@ -93,7 +93,7 @@ class ClusteringModel:
                 Default is None.
 
         """
-        self.id_col = id_column
+        self.id_field = id_field
         self.max_iter = max_iter
         self.n_clusters = n_clusters
         self.clustering_output_dir = clustering_output_dir
@@ -136,7 +136,7 @@ class ClusteringModel:
             )
 
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
-            embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
+            embeddings_df = embeddings_df[[self.id_field, self.embedding_column]]
             embeddings_df = embeddings_df.repartition(
                 partition_size=self.clustering_input_partition_size
             )
@@ -223,7 +223,7 @@ class ClusteringModel:
 
         if self.sort_clusters:
             assign_and_sort_clusters(
-                id_col=self.id_col,
+                id_field=self.id_field,
                 kmeans_centroids_file=kmeans_centroids_file,
                 nearest_cent_dir=clustering_output_dir,
                 output_sorted_clusters_dir=os.path.join(

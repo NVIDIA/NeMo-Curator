@@ -38,8 +38,8 @@ class SemanticClusterLevelDedup:
         n_clusters: int = 1000,
         emb_by_clust_dir: str = "./clustering_results/embs_by_nearest_center",
         sorted_clusters_dir: str = "./clustering_results/sorted",
-        id_column: str = "id",
-        id_column_type: str = "int",
+        id_field: str = "id",
+        id_field_type: str = "int",
         which_to_keep: str = "hard",
         output_dir: str = "./clustering_results",
         embedding_column: str = "embeddings",
@@ -55,9 +55,9 @@ class SemanticClusterLevelDedup:
                 Default is "./clustering_results/embs_by_nearest_center".
             sorted_clusters_dir (str): Directory containing sorted clusters.
                 Default is "./clustering_results/sorted".
-            id_column (str): Column name used as the identifier in the dataset.
+            id_field (str): Column name used as the identifier in the dataset.
                 Default is "id".
-            id_column_type (str): Data type of id_column. Default is "int".
+            id_field_type (str): Data type of id_column. Default is "int".
             which_to_keep (str): Method to determine which duplicates to keep.
                 Default is "hard".
             output_dir (str): Directory to save output files.
@@ -73,8 +73,8 @@ class SemanticClusterLevelDedup:
         self.n_clusters = n_clusters
         self.emb_by_clust_dir = emb_by_clust_dir
         self.sorted_clusters_dir = sorted_clusters_dir
-        self.id_col = id_column
-        self.id_col_type = id_column_type
+        self.id_field = id_field
+        self.id_field_type = id_field_type
         self.which_to_keep = which_to_keep
         self.output_dir = output_dir
         self.semdedup_pruning_tables_dir = os.path.join(
@@ -138,8 +138,8 @@ class SemanticClusterLevelDedup:
                     cluster_id=cluster_id,
                     emb_by_clust_dir=self.emb_by_clust_dir,
                     sorted_clusters_dir=self.sorted_clusters_dir,
-                    id_col=self.id_col,
-                    id_col_type=self.id_col_type,
+                    id_field=self.id_field,
+                    id_field_type=self.id_field_type,
                     eps_list=eps_list,
                     output_dir=self.semdedup_pruning_tables_dir,
                     embedding_col=self.embedding_column,
@@ -176,8 +176,8 @@ class SemanticClusterLevelDedup:
         extract_dedup_data(
             eps=eps_to_extract,
             n_clusters=self.n_clusters,
-            id_col=self.id_col,
-            id_col_type=self.id_col_type,
+            id_field=self.id_field,
+            id_field_type=self.id_field_type,
             sorted_clusters_dir=self.sorted_clusters_dir,
             semdedup_pruning_tables_dir=self.semdedup_pruning_tables_dir,
             output_summary_file=output_summary_file,

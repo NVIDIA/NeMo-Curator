@@ -169,27 +169,27 @@ class ArgumentHelper:
             "their respective data types within the JSONL input files.",
         )
 
-    def add_arg_input_text_field(self):
+    def add_arg_text_field(self):
         self.parser.add_argument(
-            "--input-text-field",
+            "--text-field",
             type=str,
             default="text",
             help="The name of the field within each datapoint object of the input "
             "file that contains the text.",
         )
 
-    def add_arg_id_column(self):
+    def add_arg_id_field(self):
         self.parser.add_argument(
-            "--id-column",
+            "--id-field",
             type=str,
             default="id",
             help="The name of the field within each datapoint object of the input "
             "file that contains the ID.",
         )
 
-    def add_arg_id_column_type(self):
+    def add_arg_id_field_type(self):
         self.parser.add_argument(
-            "--id-column-type",
+            "--id-field-type",
             type=str,
             default="int",
             help='The datatype of the ID field, either "int" or "str".',
@@ -495,7 +495,7 @@ class ArgumentHelper:
         argumentHelper.add_arg_input_file_type()
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_output_file_type()
-        argumentHelper.add_arg_input_text_field()
+        argumentHelper.add_arg_text_field()
         argumentHelper.add_arg_batch_size(
             help="The batch size to be used for inference."
         )
@@ -543,14 +543,14 @@ class ArgumentHelper:
             "to all nodes. This path must be accessible by all machines in the cluster.",
         )
         self.parser.add_argument(
-            "--input-json-text-field",
+            "--text-field",
             type=str,
             default="text",
             help="The name of the field within each JSON object of the JSONL "
             "file that contains the text from which minhashes will be computed.",
         )
         self.parser.add_argument(
-            "--input-json-id-field",
+            "--id-field",
             type=str,
             required=True,
             help="The name of the field within each JSON object of the JSONL "
@@ -590,9 +590,9 @@ class ArgumentHelper:
         argumentHelper.add_arg_input_data_dir()
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_input_file_type()
-        argumentHelper.add_arg_input_text_field()
-        argumentHelper.add_arg_id_column()
-        argumentHelper.add_arg_id_column_type()
+        argumentHelper.add_arg_text_field()
+        argumentHelper.add_arg_id_field()
+        argumentHelper.add_arg_id_field_type()
 
         argumentHelper.parser.add_argument(
             "--config-file",

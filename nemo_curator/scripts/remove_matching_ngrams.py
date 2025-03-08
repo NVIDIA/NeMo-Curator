@@ -46,7 +46,7 @@ def main(args):
 
     decontaminator = nemo_curator.TaskDecontamination(
         [],
-        text_field=args.input_text_field,
+        text_field=args.text_field,
         max_ngram_size=max_ngram_size,
         max_matches=args.match_threshold,
         max_splits=args.max_document_splits,
@@ -100,7 +100,7 @@ def attach_args(
     argumentHelper.add_arg_batch_size()
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
-    argumentHelper.add_arg_input_text_field()
+    argumentHelper.add_arg_text_field()
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_distributed_args()
     parser.add_argument(

@@ -125,7 +125,7 @@ class FuzzyDuplicates(BaseModule):
         self.connected_components = ConnectedComponents(
             cache_dir=self.config.cache_dir,
             jaccard_pairs_path=os.path.join(self.config.cache_dir, jaccard_pairs_fname),
-            id_column=self.config.id_field,
+            id_field=self.config.id_field,
             jaccard_threshold=self.config.jaccard_threshold,
             logger=self._logger,
             profile_dir=self.config.profile_dir,

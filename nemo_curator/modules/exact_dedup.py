@@ -130,8 +130,8 @@ class ExactDuplicates(BaseModule):
         df: dd.DataFrame,
     ) -> dd.DataFrame:
         """
-        Computes the hash of the text_column provided and returns a dataframe
-        containing the id_column and relevant hashes in the _hashes column.
+        Computes the hash of the text_field provided and returns a dataframe
+        containing the id_field and relevant hashes in the _hashes column.
         """
         self._logger.info("Starting lazy hash generation")
         res = df[[self.id_field]]

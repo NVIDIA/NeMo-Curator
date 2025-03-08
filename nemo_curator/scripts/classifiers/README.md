@@ -29,7 +29,7 @@ domain_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --autocast \
     --max-chars 2000 \
@@ -50,7 +50,7 @@ multilingual_domain_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --autocast \
     --max-chars 2000 \
@@ -69,7 +69,7 @@ quality_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --autocast \
     --max-chars 2000 \
@@ -88,7 +88,7 @@ aegis_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --max-chars 6000 \
     --device "gpu" \
@@ -111,7 +111,7 @@ instruction_data_guard_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --max-chars 6000 \
     --device "gpu" \
@@ -132,7 +132,7 @@ fineweb_edu_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --autocast \
     --max-chars 2000 \
@@ -189,7 +189,7 @@ content_type_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --autocast \
     --max-chars 5000 \
@@ -208,7 +208,7 @@ prompt_task_complexity_classifier_inference \
     --input-file-type "jsonl" \
     --input-file-extension "jsonl" \
     --output-file-type "jsonl" \
-    --input-text-field "text" \
+    --text-field "text" \
     --batch-size 64 \
     --autocast \
     --max-chars 2000 \

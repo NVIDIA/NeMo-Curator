@@ -80,21 +80,21 @@ class BucketsToEdges:
 
     @staticmethod
     def _combine_multiple_ids(
-        input_df: cudf.DataFrame, input_id_fields: list, output_id_field: str
+        input_df: cudf.DataFrame, id_fields: list, output_id_field: str
     ) -> cudf.DataFrame:
         if output_id_field in input_df.columns:
             raise ValueError(
                 f"Input df already contains column named: {output_id_field}"
             )
 
-        output_df = input_df.copy()[input_df.columns.difference(input_id_fields)]
+        output_df = input_df.copy()[input_df.columns.difference(id_fields)]
 
-        output_df[output_id_field] = input_df[input_id_fields[0]].astype(str)
-        for input_field in input_id_fields[1:]:
+        output_df[output_id_field] = input_df[id_fields[0]].astype(str)
+        for id_field in id_fields[1:]:
             output_df[output_id_field] = output_df[output_id_field] = (
-                input_df[input_id_fields[0]].astype(str)
+                input_df[id_fields[0]].astype(str)
                 + "-"
-                + input_df[input_field].astype(str)
+                + input_df[id_field].astype(str)
             )
 
         return output_df
@@ -129,7 +129,7 @@ class BucketsToEdges:
         if len(self.id_fields) > 1:
             buckets_df = buckets_df.map_partitions(
                 BucketsToEdges._combine_multiple_ids,
-                input_id_fields=self.id_fields,
+                id_fields=self.id_fields,
                 output_id_field=self.str_id_name,
             )
 

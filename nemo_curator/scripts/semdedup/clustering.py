@@ -62,7 +62,7 @@ def main(args):
     embedding_dataset = DocumentDataset(embedding_df)
 
     clustering_model = ClusteringModel(
-        id_column=args.id_column,
+        id_field=args.id_field,
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
         clustering_output_dir=clustering_output_dir,
@@ -94,7 +94,7 @@ def attach_args():
             "This script requires that the embeddings have been created beforehand using "
             "semdedup_extract_embeddings"
             "Input arguments include: "
-            "--id-column for the identifier in the dataset, "
+            "--id-field for the identifier in the dataset, "
             "--config-file for the path to the semantic deduplication configuration file. "
             "Important configuration parameters include: "
             " cache_dir for the directory to store cache,"

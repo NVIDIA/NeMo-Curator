@@ -74,17 +74,17 @@ class ImageEmbedder(ABC):
             meta[classifier.pred_column] = classifier.pred_type
 
         embedding_df = dataset.metadata.map_partitions(
-            self._run_inference, dataset.tar_files, dataset.id_col, meta=meta
+            self._run_inference, dataset.tar_files, dataset.id_field, meta=meta
         )
 
         return ImageTextPairDataset(
             dataset.path,
             metadata=embedding_df,
             tar_files=dataset.tar_files,
-            id_col=dataset.id_col,
+            id_field=dataset.id_field,
         )
 
-    def _run_inference(self, partition, tar_paths, id_col, partition_info=None):
+    def _run_inference(self, partition, tar_paths, id_field, partition_info=None):
         tar_path = tar_paths[partition_info["number"]]
         device = "cuda"
 
@@ -113,7 +113,7 @@ class ImageEmbedder(ABC):
             for batch, metadata in dataset:
                 image_embeddings = model(batch)
                 final_image_embeddings.append(image_embeddings)
-                image_ids.extend(m[id_col] for m in metadata)
+                image_ids.extend(m[id_field] for m in metadata)
 
                 for classifier_model, results in zip(
                     classifier_models, classifier_results

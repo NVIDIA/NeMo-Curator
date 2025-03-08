@@ -138,7 +138,7 @@ class EmbeddingCreator:
         embedding_output_dir: str = "./embeddings",
         embedding_max_mem_gb: Optional[int] = None,
         embedding_pooling_strategy: str = "mean_pooling",
-        input_column: str = "text",
+        text_field: str = "text",
         embedding_column: str = "embeddings",
         write_embeddings_to_disk: bool = True,
         write_to_filename: bool = False,
@@ -159,7 +159,7 @@ class EmbeddingCreator:
                 If None, it defaults to the available GPU memory minus 4 GB.
             embedding_pooling_strategy: Strategy for pooling embeddings, either "mean_pooling" or "last_token".
                 Default is "mean_pooling".
-            input_column (str): Column name from the data to be used for embedding generation.
+            text_field (str): Column name from the data to be used for embedding generation.
                 Default is "text".
             embedding_column (str): The column name that stores the embeddings. Default is "embeddings".
             write_embeddings_to_disk (bool): If True, saves the embeddings to disk.
@@ -181,7 +181,7 @@ class EmbeddingCreator:
         self.batch_size = embedding_batch_size
         self.logger = self._setup_logger(logger)
         self.embedding_output_dir = embedding_output_dir
-        self.input_column = input_column
+        self.text_field = text_field
         self.embedding_column = embedding_column
         self.model = EmbeddingCrossFitModel(
             self.embeddings_config, max_mem_gb=embedding_max_mem_gb
@@ -203,12 +203,12 @@ class EmbeddingCreator:
             return logger
 
     def create_embeddings(
-        self, ddf: dask_cudf.DataFrame, input_column="text"
+        self, ddf: dask_cudf.DataFrame, text_field="text"
     ) -> dask_cudf.DataFrame:
         pipe = op.Sequential(
             op.Tokenizer(
                 self.model,
-                cols=[input_column],
+                cols=[text_field],
                 tokenizer_type="default",
                 max_length=self.embeddings_config.max_seq_length,
             ),
@@ -228,7 +228,7 @@ class EmbeddingCreator:
             with performance_report_if_with_ts_suffix(
                 self.profile_dir, "embedding-creator"
             ):
-                embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
+                embedding_ddf = self.create_embeddings(dataset.df, self.text_field)
 
                 # category column dtypes are not supported by the GPU-accelerated Parquet writer
                 for col in embedding_ddf.columns:
@@ -248,7 +248,7 @@ class EmbeddingCreator:
                 )
             )
         else:
-            embedding_ddf = self.create_embeddings(dataset.df, self.input_column)
+            embedding_ddf = self.create_embeddings(dataset.df, self.text_field)
             ddf = DocumentDataset(embedding_ddf)
 
         self.logger.info(
