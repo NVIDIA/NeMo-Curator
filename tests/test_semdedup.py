@@ -249,16 +249,20 @@ def get_reference_embeddings(
 
 class TestPairwiseCosineSimilarity:
     def setup_method(self):
-        self.input_arr = torch.tensor(
+        # We create a 5x3 array where each row is a unit vector
+        # The second and last two rows are the same
+        input_arr = torch.tensor(
             np.asarray(
-                [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3]],
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3], [1, 2, 3]],
             ),
             dtype=torch.float32,
         )
+        # Normalize the input array
+        self.input_arr = input_arr / torch.norm(input_arr, dim=1, keepdim=True)
         self.expected_similarity = torch.tensor(
-            [0.0000, 0.974631, 0.998190, 0.999618, 1.0000]
+            [0.0000, 0.974631, 0.998190, 0.999618, 1.0000, 1.0000]
         )
-        self.expected_indices = [0, 0, 1, 2, 0]
+        self.expected_indices = [0, 0, 1, 2, 0, 0]
 
     @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
     def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
@@ -279,7 +283,7 @@ class TestPairwiseCosineSimilarity:
             self.input_arr.to(device), device, batch_size
         )
         torch.testing.assert_close(
-            max_similarity, self.expected_similarity, rtol=1e-6, atol=1e-6
+            max_similarity, self.expected_similarity
         )
         assert max_indices == self.expected_indices
 

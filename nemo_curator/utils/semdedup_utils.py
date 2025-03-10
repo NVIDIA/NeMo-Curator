@@ -189,13 +189,9 @@ def pairwise_cosine_similarity(
     """
     # Move to device
     cluster_reps = cluster_reps.to(device)
-    # Normalize embeddings
-    cluster_reps = cluster_reps / cluster_reps.norm(dim=1, keepdim=True)
     # Compute pairwise cosine similarity
     pairwise_sim_matrix = torch.mm(cluster_reps, cluster_reps.T)
     del cluster_reps
-    # Set diagonal to 0 to ignore self similarity
-    pairwise_sim_matrix.fill_diagonal_(0.0)
     # Get upper triangular matrix
     assert pairwise_sim_matrix.shape[0] == pairwise_sim_matrix.shape[1]
     triu_sim_mat = torch.triu(pairwise_sim_matrix, diagonal=1)
@@ -221,7 +217,6 @@ def pairwise_cosine_similarity_batched(
     instead of O(N^2) for the full matrix.
     """
     cluster_reps = cluster_reps.to(device)
-    cluster_reps = cluster_reps / cluster_reps.norm(dim=1, keepdim=True)
     max_similarity = torch.zeros(cluster_reps.shape[0], device=device)
     max_indices = torch.zeros(cluster_reps.shape[0], dtype=torch.int64, device=device)
     for start_idx in range(0, cluster_reps.shape[0], batch_size):
@@ -229,7 +224,7 @@ def pairwise_cosine_similarity_batched(
         batch = cluster_reps[start_idx:end_idx]
         pairwise_sim_matrix = torch.mm(cluster_reps, batch.T)
         triu_sim_matrix = torch.triu(pairwise_sim_matrix, diagonal=1 - start_idx)
-        del batch
+        del batch, pairwise_sim_matrix
         max_values_and_indices = torch.max(triu_sim_matrix, dim=0)
         max_similarity[start_idx:end_idx] = max_values_and_indices[0]
         max_indices[start_idx:end_idx] = max_values_and_indices[1]
@@ -237,7 +232,7 @@ def pairwise_cosine_similarity_batched(
     return max_similarity.cpu(), max_indices.cpu().numpy().tolist()
 
 
-def get_cluster_reps(
+def get_normalized_cluster_reps(
     cluster_id: int,
     emb_by_clust_dir: str,
     id_col: str,
@@ -260,6 +255,8 @@ def get_cluster_reps(
         cluster_reps[embedding_col].list.leaves.values.reshape(len(cluster_reps), -1),
         device="cuda",
     )
+    # Normalize embeddings
+    cluster_reps = cluster_reps / cluster_reps.norm(dim=1, keepdim=True)
     return cluster_reps
 
 
@@ -307,7 +304,7 @@ def get_semantic_matches_per_cluster(
 
     text_ids = cluster_i[:, 0].astype(id_col_type)
 
-    cluster_reps = get_cluster_reps(
+    cluster_reps = get_normalized_cluster_reps(
         cluster_id, emb_by_clust_dir, id_col, embedding_col, text_ids
     )
     if batched_cosine_similarity > 0:
