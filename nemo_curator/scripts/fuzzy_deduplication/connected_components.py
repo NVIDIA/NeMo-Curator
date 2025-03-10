@@ -44,6 +44,7 @@ def main(args):
         profile_dir=args.profile_path,
     )
     components_stage.cc_workflow(output_path=output_path)
+
     print(f"All done in {time.time()-st:.1f} seconds")
     print(f"Results written to {output_path}")
 

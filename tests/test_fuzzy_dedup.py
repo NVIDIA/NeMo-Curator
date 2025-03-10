@@ -24,6 +24,7 @@ from dask import config
 from dask.dataframe.utils import assert_eq
 
 from nemo_curator import LSH, FuzzyDuplicates, FuzzyDuplicatesConfig, MinHash
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.fuzzy_dedup_utils.merge_utils import extract_partitioning_index
 from nemo_curator.utils.import_utils import gpu_only_import
@@ -164,10 +165,13 @@ class TestMinhashes:
             use_64bit_hash=use_64bit_hash,
         )
         minhashes = minhasher(fuzzy_dedup_data)
+
         minhash_signatures = (
             minhashes.df["_minhash_signature"].compute().to_pandas().values
         )
+
         strings = fuzzy_dedup_data.df["text"].compute().to_pandas().values
+
         for (sig1, str1), (sig2, str2) in generate_all_pairs(
             tuple(zip(minhash_signatures, strings))
         ):
@@ -175,9 +179,19 @@ class TestMinhashes:
             minhash_approximation = minhash_overlap(np.array(sig1), np.array(sig2))
             assert abs(true_jaccard - minhash_approximation) < THRESHOLD
 
-    def test_minhash_cache(self, fuzzy_dedup_data, tmpdir):
-        minhasher = MinHash(cache_dir=tmpdir)
+    @pytest.mark.parametrize("cache_method", ["Cache", "MinHash"])
+    def test_minhash_cache(self, fuzzy_dedup_data, tmpdir, cache_method):
+
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=tmpdir)
+            cache_dir = None
+        else:
+            cache_dir = tmpdir
+
+        minhasher = MinHash(cache_dir=cache_dir)
         result = minhasher(fuzzy_dedup_data)
+
         assert len(result) == len(fuzzy_dedup_data)
         assert "_minhashes.parquet" in os.listdir(tmpdir)
         assert len(os.listdir(tmpdir / "_minhashes.parquet")) != 0
@@ -204,20 +218,32 @@ class TestLSH:
         self.dataset = DocumentDataset(df)
 
     @pytest.mark.parametrize("buckets_per_shuffle", [1, 2, 3])
-    def test_lsh(self, tmpdir, buckets_per_shuffle):
+    @pytest.mark.parametrize("cache_method", ["Cache", "LSH"])
+    def test_lsh(self, tmpdir, buckets_per_shuffle, cache_method):
+
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=tmpdir)
+            cache_dir = None
+        else:
+            cache_dir = tmpdir
+
         lsh = LSH(
-            cache_dir=tmpdir,
+            cache_dir=cache_dir,
             num_hashes=6,
             num_buckets=3,
             buckets_per_shuffle=buckets_per_shuffle,
             minhash_field="minhash_sig",
             id_fields="id",
         )
+
         buckets = lsh(self.dataset)
         buckets_df = buckets.df
         docs_list = buckets_df.groupby("_bucket_id").id.agg(list)
         expected_df = cudf.Series([[1, 2], [2, 3], [4, 5]], name="id")
+
         assert_eq(expected_df, docs_list, check_index=False)
+        assert "_buckets.parquet" in os.listdir(tmpdir)
 
     def test_multiple_id_cols(self, tmpdir):
         lsh = LSH(
@@ -229,14 +255,17 @@ class TestLSH:
             minhash_field="minhash_sig",
         )
         buckets = lsh(self.dataset)
+
         buckets_df = buckets.df.compute().to_pandas()
         buckets_df["new_id"] = list(
             map(list, zip(buckets_df.dataset_id, buckets_df.id))
         )
+
         docs_list = buckets_df.groupby("_bucket_id").new_id.apply(list)
         expected_df = cudf.Series(
             [[(1, 1), (1, 2)], [(1, 2), (2, 3)], [(3, 4), (4, 5)]], name="new_id"
         )
+
         assert_eq(expected_df, docs_list, check_index=False)
 
     @pytest.mark.parametrize("false_positive_check", [True, False])
@@ -265,6 +294,7 @@ class TestLSH:
             false_positive_check=false_positive_check,
         )
         buckets = lsh(minhash_dataset)
+
         assert buckets is None
         assert "_buckets.parquet" not in os.listdir(tmpdir)
 
@@ -292,6 +322,7 @@ class TestLSH:
             false_positive_check=false_positive_check,
         )
         buckets = lsh(minhash_dataset)
+
         assert len(buckets) == 4
         assert buckets.df["_bucket_id"].nunique().compute() == 2
         assert_eq(
@@ -304,13 +335,14 @@ class TestFuzzyDuplicates:
     @pytest.mark.parametrize("use_64_bit_hash", [False, True])
     @pytest.mark.parametrize(
         "num_buckets,jaccard_threshold,duplicate_docs",
-        # Duplcated docs estimated from true_jaccard values
+        # Duplicated docs estimated from true_jaccard values
         [
             (5, 0.5, [[4, -1]]),
             (10, 0.39, [[4, -1], [1, 2]]),
             (15, 0.3, [[4, -1], [1, 2, 300]]),
         ],
     )
+    @pytest.mark.parametrize("cache_method", ["Cache", "FuzzyDuplicatesConfig"])
     def test_fuzzy_dedup(
         self,
         fuzzy_dedup_data,
@@ -319,13 +351,23 @@ class TestFuzzyDuplicates:
         jaccard_threshold,
         duplicate_docs,
         tmpdir,
+        cache_method,
         gpu_client,
     ):
         print(gpu_client)
-        # Dedup might fail when indices per partition do not start from 0
+
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=tmpdir)
+            cache_dir = None
+        else:
+            cache_dir = tmpdir
+
+        # Deduplication might fail when indices per partition do not start from 0
         fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True)
+
         config = FuzzyDuplicatesConfig(
-            cache_dir=tmpdir,
+            cache_dir=cache_dir,
             id_field="id",
             text_field="text",
             seed=42,
@@ -338,25 +380,30 @@ class TestFuzzyDuplicates:
             num_anchors=2,
             jaccard_threshold=jaccard_threshold,
         )
+
         fuzzy_duplicates = FuzzyDuplicates(config=config)
         result = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
         result_df = result.df.compute()
-        # Drop non duplicated docs
+
+        # Drop non-duplicated documents
         result_df = result_df[result_df.group.duplicated(keep=False)]
         result_df = result_df.groupby("group").id.agg(list)
-        # Sort to maintain uniform ordering
 
+        # Sort to maintain uniform ordering
         result_df = result_df.list.sort_values()
         result_df = result_df.sort_values()
+
         expected_df = cudf.Series(duplicate_docs, name="id")
         expected_df = expected_df.list.sort_values()
         expected_df = expected_df.sort_values()
+
         assert_eq(expected_df, result_df, check_index=False)
 
     def test_different_fields(self, fuzzy_dedup_data, tmpdir):
         fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True).rename(
             columns={"id": "col0", "text": "col1"}
         )
+
         config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="col0",
@@ -369,23 +416,27 @@ class TestFuzzyDuplicates:
             jaccard_threshold=0.39,
             char_ngrams=5,
         )
+
         fuzzy_duplicates = FuzzyDuplicates(config=config)
+
         duplicates = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
         deduplicated_ds = fuzzy_duplicates.remove(fuzzy_dedup_data, duplicates)
         deduplicated_df = deduplicated_ds.df.compute()
         output_deduplicated_ids = set(deduplicated_df["col0"].to_arrow().to_pylist())
+
         assert len(deduplicated_df) == 3
-        # From each of our groups we'll have atmost one document that is not duplicated
+        # From each of our groups we will have at most 1 document that is not duplicated
         assert (
             300 in output_deduplicated_ids
             and len({-1, 4}.intersection(output_deduplicated_ids)) == 1
             and len({1, 2}.intersection(output_deduplicated_ids)) == 1
         )
 
-        # Drop non duplicated docs
+        # Drop non-duplicated documents
         duplicates_df = duplicates.df.compute()
         duplicates_df = duplicates_df[duplicates_df.group.duplicated(keep=False)]
         duplicates_df = duplicates_df.groupby("group")["col0"].agg(list)
+
         # Sort to maintain uniform ordering
         duplicates_df = duplicates_df.list.sort_values()
         duplicates_df = duplicates_df.sort_values()
@@ -394,6 +445,7 @@ class TestFuzzyDuplicates:
         expected_df = cudf.Series(duplicate_docs, name="col0")
         expected_df = expected_df.list.sort_values()
         expected_df = expected_df.sort_values()
+
         assert_eq(expected_df, duplicates_df, check_index=False)
 
     @pytest.mark.xfail
@@ -403,7 +455,8 @@ class TestFuzzyDuplicates:
         gpu_client,
     ):
         print(gpu_client)
-        # Dedup might fail when indices per partition do not start from 0
+
+        # Deduplication might fail when indices per partition do not start from 0
         df = cudf.DataFrame(
             {
                 "id": [1, 2, 300, 4, -1],
@@ -418,7 +471,9 @@ class TestFuzzyDuplicates:
         )
         df = dask_cudf.from_cudf(df, 2)
         data = DocumentDataset(df)
+
         duplicate_docs = [[4, -1], [1, 2, 300]]
+
         config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
@@ -434,34 +489,50 @@ class TestFuzzyDuplicates:
             jaccard_threshold=0.39,
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config)
+
         duplicates = fuzzy_duplicates.identify_duplicates(data)
         deduplicated_ds = fuzzy_duplicates.remove(fuzzy_dedup_data, duplicates)
         deduplicated_df = deduplicated_ds.df.compute()
         output_deduplicated_ids = set(deduplicated_df["col0"].to_arrow().to_pylist())
+
         assert len(deduplicated_df) == 2
-        # From each of our groups we'll have atmost one document that is not duplicated
+        # From each of our groups we will have at most 1 document that is not duplicated
         assert (
             len({4, -1}.intersection(output_deduplicated_ids)) == 1
             and len({1, 2, 300}.intersection(output_deduplicated_ids)) == 1
         )
 
         duplicates_df = duplicates.df.compute()
-        # Drop non duplicated docs
+
+        # Drop non-duplicated documents
         duplicates_df = duplicates_df[duplicates_df.group.duplicated(keep=False)]
         duplicates_df = duplicates_df.groupby("group").id.agg(list)
-        # Sort to maintain uniform ordering
 
+        # Sort to maintain uniform ordering
         duplicates_df = duplicates_df.list.sort_values()
         duplicates_df = duplicates_df.sort_values()
+
         expected_df = cudf.Series(duplicate_docs, name="id")
         expected_df = expected_df.list.sort_values()
         expected_df = expected_df.sort_values()
+
         assert_eq(expected_df, duplicates_df, check_index=False)
 
     @pytest.mark.parametrize("num_anchors", [1, 3, 10])
-    def test_num_anchors(self, large_fuzzy_dedup_data, num_anchors, tmpdir):
+    @pytest.mark.parametrize("cache_method", ["Cache", "FuzzyDuplicatesConfig"])
+    def test_num_anchors(
+        self, large_fuzzy_dedup_data, num_anchors, tmpdir, cache_method
+    ):
+
+        Cache().delete_cache_instance()  # Fresh start for new PyTest
+        if cache_method == "Cache":
+            Cache(cache_dir=tmpdir)
+            cache_dir = None
+        else:
+            cache_dir = tmpdir
+
         config = FuzzyDuplicatesConfig(
-            cache_dir=tmpdir,
+            cache_dir=cache_dir,
             id_field="id",
             text_field="text",
             seed=42,
@@ -474,17 +545,20 @@ class TestFuzzyDuplicates:
             num_anchors=num_anchors,
             jaccard_threshold=0.39,
         )
+
         fuzzy_duplicates = FuzzyDuplicates(config=config)
         fuzzy_duplicates(large_fuzzy_dedup_data)
+
         anchor_docs_df_cols = dask_cudf.read_parquet(
             tmpdir / "anchor_docs_with_bk.parquet"
         ).columns
+
         assert all(f"anchor_{i}_id" in anchor_docs_df_cols for i in range(num_anchors))
 
     @pytest.mark.parametrize("use_64_bit_hash", [False, True])
     @pytest.mark.parametrize(
         "num_buckets,duplicate_docs",
-        # Duplcated docs estimated from true_jaccard values
+        # Duplicated docs estimated from true_jaccard values
         [
             (10, [[4, -1], [1, 2, 300]]),
             (5, [[4, -1], [1, 2, 300]]),
@@ -513,19 +587,23 @@ class TestFuzzyDuplicates:
             num_anchors=2,
             jaccard_threshold=0.39,
         )
+
         fuzzy_duplicates = FuzzyDuplicates(config=config)
         result = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
         result_df = result.df.compute()
-        # Drop non duplicated docs
+
+        # Drop non-duplicated documents
         result_df = result_df[result_df.group.duplicated(keep=False)]
         result_df = result_df.groupby("group").id.agg(list)
-        # Sort to maintain uniform ordering
 
+        # Sort to maintain uniform ordering
         result_df = result_df.list.sort_values()
         result_df = result_df.sort_values()
+
         expected_df = cudf.Series(duplicate_docs, name="id")
         expected_df = expected_df.list.sort_values()
         expected_df = expected_df.sort_values()
+
         assert_eq(expected_df, result_df, check_index=False)
 
     def test_shuffle_fail_fuzzy_dedup_data(
@@ -534,7 +612,7 @@ class TestFuzzyDuplicates:
         tmpdir,
         gpu_client,
     ):
-        # Dedup might fail when indices per partition do not start from 0
+        # Deduplication might fail when indices per partition do not start from 0
         shuffle_fail_fuzzy_dedup_data.df = shuffle_fail_fuzzy_dedup_data.df.reset_index(
             drop=True
         )
@@ -552,29 +630,34 @@ class TestFuzzyDuplicates:
             num_anchors=2,
             jaccard_threshold=0.39,
         )
+
         fuzzy_duplicates = FuzzyDuplicates(config=config)
         result = fuzzy_duplicates.identify_duplicates(shuffle_fail_fuzzy_dedup_data)
         result_df = result.df.compute()
-        # Drop non duplicated docs
+
+        # Drop non-duplicated documents
         result_df = result_df[result_df.group.duplicated(keep=False)]
         result_df = result_df.groupby("group").id.agg(list)
-        # Sort to maintain uniform ordering
 
+        # Sort to maintain uniform ordering
         result_df = result_df.list.sort_values()
         result_df = result_df.sort_values()
+
         expected_df = cudf.Series([[1, 2]], name="id")
         expected_df = expected_df.list.sort_values()
         expected_df = expected_df.sort_values()
+
         assert_eq(expected_df, result_df, check_index=False)
 
     @pytest.mark.parametrize("false_positive_check", [True, False])
     def test_fuzzy_dedup_no_duplicates(
         self, no_duplicates_fuzzy_dedup_data, tmpdir, false_positive_check, gpu_client
     ):
-        # Dedup might fail when indices per partition do not start from 0
+        # Deduplication might fail when indices per partition do not start from 0
         no_duplicates_fuzzy_dedup_data.df = (
             no_duplicates_fuzzy_dedup_data.df.reset_index(drop=True)
         )
+
         config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
@@ -589,6 +672,7 @@ class TestFuzzyDuplicates:
             num_anchors=2,
             jaccard_threshold=0.39,
         )
+
         fuzzy_duplicates = FuzzyDuplicates(config=config)
         result = fuzzy_duplicates.identify_duplicates(no_duplicates_fuzzy_dedup_data)
         assert result is None
@@ -596,6 +680,7 @@ class TestFuzzyDuplicates:
 
 class TestFuzzyDuplicatesConfig:
     def test_bad_inputs(self, tmpdir):
+
         with pytest.raises(ValueError):
             FuzzyDuplicatesConfig(
                 cache_dir=tmpdir, num_anchors=0, false_positive_check=True
@@ -610,23 +695,27 @@ class TestFuzzyDuplicatesConfig:
             FuzzyDuplicatesConfig(
                 cache_dir=None, num_anchors=0, false_positive_check=True
             )
+
         with pytest.warns(
-            UserWarning, match="Using a higher number of anchor docs might"
+            UserWarning, match="Using a higher number of anchor documents might"
         ):
             FuzzyDuplicatesConfig(
                 cache_dir=tmpdir, num_anchors=3, false_positive_check=True
             )
+
         with pytest.warns(
             UserWarning, match="Using a small char_ngrams value might lead"
         ):
             FuzzyDuplicatesConfig(
                 cache_dir=tmpdir, char_ngrams=10, false_positive_check=False
             )
+
         with pytest.warns(
             UserWarning,
-            match="Identifying false positives during the Minhash deduplication is computationally expensive",
+            match="Identifying false positives during Minhash deduplication is computationally expensive",
         ):
             FuzzyDuplicatesConfig(cache_dir=tmpdir, false_positive_check=True)
+
         with pytest.warns(
             UserWarning,
             match="False positive check is disabled. Unused arguments",
@@ -638,6 +727,11 @@ class TestFuzzyDuplicatesConfig:
                 jaccard_threshold=0.8,
             )
 
+        # Need to specify either Cache(cache_dir=...) or FuzzyDuplicatesConfig(cache_dir=...)
+        with pytest.raises(ValueError):
+            Cache().delete_cache_instance()  # Fresh start for new PyTest
+            FuzzyDuplicatesConfig(cache_dir=None)
+
     def test_from_yaml(self, tmpdir):
         yaml_params = {
             "cache_dir": "./",
@@ -647,9 +741,12 @@ class TestFuzzyDuplicatesConfig:
             "buckets_per_shuffle": 1,
             "char_ngrams": 20,
         }
+
         with open(tmpdir / "config.yaml", "w") as f:
             yaml.dump(yaml_params, f)
+
         config = FuzzyDuplicatesConfig.from_yaml(tmpdir / "config.yaml")
+
         for param in yaml_params:
             assert getattr(config, param) == yaml_params[param]
 
@@ -674,8 +771,7 @@ def test_extract_partitioning_index(backend):
         return df
 
     with config.set({"dataframe.backend": backend}):
-
-        # Create a random `unshuffled` DataFrame with a
+        # Create a random unshuffled DataFrame with a
         # "part_id" column to be used as the shuffle index
         npartitions_left = 7
         unshuffled = dd.from_dict(
@@ -683,7 +779,7 @@ def test_extract_partitioning_index(backend):
             npartitions=npartitions_left,
         )
 
-        # Create a `bk_mapping` DataFrame that defines
+        # Create a bk_mapping DataFrame that defines
         # the "correct" mapping beween "part_id" and
         # the destination partition ("file_id")
         npartitions_right = 5
@@ -697,7 +793,7 @@ def test_extract_partitioning_index(backend):
             .compute()
         )
 
-    # Use `extract_partitioning_index` to calculate
+    # Use extract_partitioning_index to calculate
     # the partitioning index and assign it as a new
     # "_partitions" column
     result, _ = extract_partitioning_index(

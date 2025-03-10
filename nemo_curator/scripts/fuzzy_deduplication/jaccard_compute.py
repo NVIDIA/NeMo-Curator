@@ -26,24 +26,28 @@ def main(args):
     from a partitioned Parquet dataset. Result is a Parquet dataset consiting of
     document and ID pairs, along with their Jaccard similarity scores.
     """
+
     OUTPUT_PATH = args.output_dir
     shuffled_docs_path = args.shuffled_docs_path
     output_final_results_path = os.path.join(
         OUTPUT_PATH, "jaccard_similarity_results.parquet"
     )
+
     args.enable_spilling = True
     client = get_client(**ArgumentHelper.parse_client_args(args))
 
-    print(f"Num Workers = {get_num_workers(client)}", flush=True)
-    print("Connected to dask cluster", flush=True)
-    print("Running jaccard compute script", flush=True)
+    print(f"Number of workers: {get_num_workers(client)}", flush=True)
+    print("Connected to Dask cluster", flush=True)
+    print("Running Jaccard compute script", flush=True)
     st = time.time()
+
     jaccard = JaccardSimilarity(
         id_field=args.input_json_id_field,
         text_field=args.input_json_text_field,
         anchor_id_fields=[f"anchor_{i}_{args.input_json_id_field}" for i in range(2)],
         ngram_width=args.ngram_size,
     )
+
     # Run actual computation
     result_df = jaccard.jaccard_compute(shuffled_docs_path)
 
@@ -52,7 +56,8 @@ def main(args):
         write_index=False,
         write_metadata_file=False,
     )
-    print(f"Jaccard Computing+Writing time: {time.time() - st:.1f} seconds")
+
+    print(f"Jaccard computing and writing time: {time.time() - st:.1f}s")
 
 
 def attach_args():

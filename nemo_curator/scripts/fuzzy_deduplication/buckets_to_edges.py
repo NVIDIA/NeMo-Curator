@@ -68,6 +68,7 @@ def main(args):
     OUTPUT_PATH = args.output_dir
 
     client = get_client(**ArgumentHelper.parse_client_args(args))
+
     logger.info(f"Client Created {client}")
     logger.info(f"Num Workers = {get_num_workers(client)}")
     logger.info(
@@ -81,13 +82,15 @@ def main(args):
         bucket_field=args.input_bucket_field,
         logger=logger,
     )
+
     st = time.time()
     buckets_df = DocumentDataset(
         dask_cudf.read_parquet(input_bucket_path, split_row_groups=False)
     )
     _ = buckets_to_edges(buckets_df)
+
     et = time.time()
-    logger.info(f"Bucket to Edges conversion took = {et-st} s")
+    logger.info(f"Bucket to edges conversion took {et-st} seconds")
 
 
 def console_script():

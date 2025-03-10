@@ -21,6 +21,7 @@ from typing import List, Optional, Union
 
 import dask.bag as db
 
+from nemo_curator.cache import Cache
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.config import SemDedupConfig
@@ -36,13 +37,13 @@ class SemanticClusterLevelDedup:
     def __init__(
         self,
         n_clusters: int = 1000,
-        emb_by_clust_dir: str = "./clustering_results/embs_by_nearest_center",
-        sorted_clusters_dir: str = "./clustering_results/sorted",
         id_column: str = "id",
         id_column_type: str = "int",
         which_to_keep: str = "hard",
-        output_dir: str = "./clustering_results",
+        output_dir: Optional[str] = None,
+        cache_dir: Optional[str] = None,
         embedding_column: str = "embeddings",
+        clustering_save_loc: str = "clustering_results",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
     ) -> None:
@@ -51,19 +52,18 @@ class SemanticClusterLevelDedup:
 
         Args:
             n_clusters (int): Number of clusters. Default is 1000.
-            emb_by_clust_dir (str): Directory containing embeddings by cluster.
-                Default is "./clustering_results/embs_by_nearest_center".
-            sorted_clusters_dir (str): Directory containing sorted clusters.
-                Default is "./clustering_results/sorted".
             id_column (str): Column name used as the identifier in the dataset.
                 Default is "id".
             id_column_type (str): Data type of id_column. Default is "int".
             which_to_keep (str): Method to determine which duplicates to keep.
                 Default is "hard".
-            output_dir (str): Directory to save output files.
-                Default is "./clustering_results".
+            output_dir (str, optional): Directory to save output files.
+                If None, it will be saved to cache_dir/clustering_save_loc.
+                Default is None.
+            cache_dir (str, optional): Should be the same as specified in ClusteringModel.
             embedding_column (str): The column name that stores the embeddings.
                 Default is "embeddings".
+            clustering_save_loc (str): Should be the same as specified in ClusteringModel.
             logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
             profile_dir (Optional[str]): If specified, directory to write Dask profile.
@@ -71,19 +71,36 @@ class SemanticClusterLevelDedup:
 
         """
         self.n_clusters = n_clusters
-        self.emb_by_clust_dir = emb_by_clust_dir
-        self.sorted_clusters_dir = sorted_clusters_dir
         self.id_col = id_column
         self.id_col_type = id_column_type
         self.which_to_keep = which_to_keep
-        self.output_dir = output_dir
-        self.semdedup_pruning_tables_dir = os.path.join(
-            output_dir, "semdedup_pruning_tables"
-        )
         self.computed_semantic_match_dfs = False
         self.embedding_column = embedding_column
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
+
+        if cache_dir is None:
+            if Cache().get_cache_directory() is None:
+                raise RuntimeError(
+                    "No cache directory specified. Please initialize with Cache(cache_dir=...) "
+                    "or SemanticClusterLevelDedup(cache_dir=...)"
+                )
+            else:
+                cache_dir = Cache().get_cache_directory()
+        self.emb_by_clust_dir = os.path.join(
+            cache_dir, clustering_save_loc, "embs_by_nearest_center"
+        )
+        self.sorted_clusters_dir = os.path.join(
+            cache_dir, clustering_save_loc, "sorted"
+        )
+
+        if output_dir is None:
+            self.output_dir = os.path.join(cache_dir, clustering_save_loc)
+        else:
+            self.output_dir = output_dir
+        self.semdedup_pruning_tables_dir = os.path.join(
+            output_dir, "semdedup_pruning_tables"
+        )
 
     def _setup_logger(self, logger: Union[logging.Logger, str]) -> logging.Logger:
         """
@@ -126,6 +143,7 @@ class SemanticClusterLevelDedup:
             )
             shutil.rmtree(self.semdedup_pruning_tables_dir)
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
+
         t0 = time.time()
 
         with performance_report_if_with_ts_suffix(

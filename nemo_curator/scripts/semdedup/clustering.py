@@ -52,9 +52,6 @@ def main(args):
     embedding_fp = os.path.join(
         semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
-    clustering_output_dir = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.clustering_save_loc
-    )
 
     # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
     # When we fix that
@@ -65,7 +62,8 @@ def main(args):
         id_column=args.id_column,
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
-        clustering_output_dir=clustering_output_dir,
+        cache_dir=semdedup_config.cache_dir,
+        clustering_save_loc=semdedup_config.clustering_save_loc,
         embedding_column=semdedup_config.embedding_column,
         random_state=semdedup_config.random_state,
         sim_metric=semdedup_config.sim_metric,

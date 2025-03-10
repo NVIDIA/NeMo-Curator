@@ -172,7 +172,8 @@ Use Individual Components
     embedding_creator = EmbeddingCreator(
         embedding_model_name_or_path="path/to/pretrained/model",
         embedding_batch_size=128,
-        embedding_output_dir="path/to/output/embeddings",
+        cache_dir="path/to/output",
+        embeddings_save_loc="embeddings",
         input_column="text",
         logger="path/to/log/dir",
     )
@@ -190,7 +191,8 @@ Use Individual Components
         id_column="doc_id",
         max_iter=100,
         n_clusters=50000,
-        clustering_output_dir="path/to/output/clusters",
+        cache_dir="path/to/output",
+        clustering_save_loc="clustering_results",
         logger="path/to/log/dir"
     )
     clustered_dataset = clustering_model(embeddings_dataset)
@@ -204,12 +206,13 @@ Use Individual Components
     # Step 3: Semantic Deduplication
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=50000,
-        emb_by_clust_dir="path/to/embeddings/by/cluster",
-        sorted_clusters_dir="path/to/sorted/clusters",
         id_column="doc_id",
         id_column_type="str",
         which_to_keep="hard",
         output_dir="path/to/output/deduped",
+        # cache_dir and clustering_save_loc should match ClusteringModel
+        cache_dir="path/to/output",
+        clustering_save_loc="clustering_results",
         logger="path/to/log/dir"
     )
     semantic_dedup.compute_semantic_match_dfs()

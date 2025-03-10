@@ -38,8 +38,10 @@ def main(args):
     logger.info(f"Starting workflow with args:\n {args}")
 
     assert args.hash_method == "md5", "Currently only md5 hash is supported"
+
     client = get_client(**ArgumentHelper.parse_client_args(args))
-    logger.info(f"Client Created {client}")
+    logger.info(f"Client created: {client}")
+
     if args.device == "gpu":
         client.run(pre_imports)
         logger.info("Pre imports complete")
@@ -48,16 +50,21 @@ def main(args):
     id_field = args.input_json_id_field
     text_field = args.input_json_text_field
     num_files = args.num_files
+
     t0 = time.time()
+
     dfs = []
     for data_path in data_paths:
         data_path = strip_trailing_sep(data_path)
+
         if num_files is not None and num_files <= 0:
             logger.info(f"Processed {num_files}... quitting")
             break
+
         files = get_all_files_paths_under(
             root=data_path, recurse_subdirectories=False, keep_extensions="jsonl"
         )
+
         df = read_data(
             files[:num_files] if num_files else files,
             file_type="jsonl",
@@ -65,12 +72,15 @@ def main(args):
             files_per_partition=args.files_per_partition,
             add_filename=False,
         )[[id_field, text_field]]
+
         if num_files is not None:
             num_files -= len(files)
+
         dfs.append(df)
         logger.info(f"Lazy read complete for {dfs[-1].npartitions} partitions")
 
     input_df = dask_cudf.concat(dfs, ignore_unknown_divisions=True)
+
     exact_dups = ExactDuplicates(
         logger=logger,
         id_field=id_field,
@@ -80,8 +90,10 @@ def main(args):
         cache_dir=args.output_dir,
     )
     exact_dups(dataset=DocumentDataset(input_df))
+
     logger.info(
-        f"Exact deduplication computation across datasets took {time.time() - t0}s complete at {args.output_dir}"  # noqa:E501
+        f"Exact deduplication computation across datasets took {time.time() - t0}s \n"
+        f"Output written at {args.output_dir}"  # noqa:E501
     )
 
 

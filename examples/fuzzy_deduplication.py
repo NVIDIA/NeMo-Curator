@@ -38,7 +38,7 @@ def main(args):
 
     filetype = "parquet"
 
-    # Fuzzy dup calculation only supports the cuDF/GPU backend
+    # Fuzzy deduplication only supports the cuDF/GPU backend
     backend = "cudf"
     assert args.device == "gpu"
 
@@ -89,12 +89,12 @@ def main(args):
 
         if duplicates is None:
             print("No duplicates found")
-            print(f"Time taken:{time.time() - t0}s")
+            print(f"Time taken: {time.time() - t0}s")
             return
 
         result = fuzzy_dup.remove(input_dataset, duplicates)
         write_to_disk(result, output_dir, output_type=filetype)
-        print(f"Time taken:{time.time() - t0}s")
+        print(f"Time taken: {time.time() - t0}s")
 
 
 def attach_args(

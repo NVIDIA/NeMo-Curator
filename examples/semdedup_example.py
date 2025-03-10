@@ -49,13 +49,18 @@ def main(args):
         log_level=logging.INFO,
         stdout=True,
     )
+
     st = time.time()
+
     input_files = get_all_files_paths_under(
         root=args.input_data_dir,
     )
+
     if semdedup_config.num_files > 0:
         input_files = input_files[: semdedup_config.num_files]
+
     logger.info(f"Processing {len(input_files)} files")
+
     ddf = read_data(
         input_files=input_files,
         file_type=args.input_file_type,
@@ -63,9 +68,11 @@ def main(args):
         backend="cudf",
     )
     dataset = DocumentDataset(ddf)
+
     semdup = SemDedup(semdedup_config, logger=logger)
     dedup_ids = semdup(dataset)
     print(dedup_ids.df.head())
+
     logger.info(f"Time taken: {time.time() - st}")
     client.cancel(client.futures, force=True)
     client.close()
