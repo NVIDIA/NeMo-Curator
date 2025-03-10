@@ -275,16 +275,14 @@ class TestPairwiseCosineSimilarity:
         assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
-    @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5])
+    @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5, 6])
     def test_pairwise_cosine_similarity_batched(
         self, device: Literal["cpu", "cuda"], batch_size: int
     ):
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
             self.input_arr.to(device), device, batch_size
         )
-        torch.testing.assert_close(
-            max_similarity, self.expected_similarity
-        )
+        torch.testing.assert_close(max_similarity, self.expected_similarity)
         assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
