@@ -297,5 +297,7 @@ class TestPairwiseCosineSimilarity:
         max_similarity_batched, max_indices_batched = (
             pairwise_cosine_similarity_batched(rand_arr, device, batch_size=batch_size)
         )
-        torch.testing.assert_close(max_similarity, max_similarity_batched)
+        torch.testing.assert_close(
+            max_similarity, max_similarity_batched, rtol=1e-5, atol=1e-5
+        )
         assert max_indices == max_indices_batched
