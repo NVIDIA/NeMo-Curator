@@ -137,7 +137,7 @@ def extract_contents():
             ).dedup(
                 content_type="image",
                 filter=True,
-            )
+            ).caption()
         )
         
         generated_metadata = ingestor.ingest()[0]
