@@ -94,7 +94,7 @@ jobs:
 
           docker exec nemo-curator-container coverage xml
 
-          docker cp nemo-curator-container:/opt/.coverage $DIR/.coverage 
+          docker cp nemo-curator-container:/opt/.coverage $DIR/.coverage
           docker cp nemo-curator-container:/opt/coverage.xml $DIR/coverage.xml
           coverage_report="codecov"
           echo "report=$coverage_report" | tee -a "$GITHUB_OUTPUT"
