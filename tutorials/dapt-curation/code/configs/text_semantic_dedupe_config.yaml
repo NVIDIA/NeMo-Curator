@@ -17,6 +17,7 @@ n_clusters: 15
 clustering_save_loc: "clustering_results"
 sim_metric: "cosine"
 which_to_keep: "hard"
+batched_cosine_similarity: 1024
 sort_clusters: true
 kmeans_with_cos_dist: false
 partition_size: "2gb"
