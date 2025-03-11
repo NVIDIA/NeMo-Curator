@@ -13,14 +13,13 @@ write_to_filename: false
 
 # Clustering configuration
 max_iter: 100
-n_clusters: 20
+n_clusters: 15
 clustering_save_loc: "clustering_results"
-random_state: 1234
 sim_metric: "cosine"
 which_to_keep: "hard"
 sort_clusters: true
 kmeans_with_cos_dist: false
-clustering_input_partition_size: "2gb"
+partition_size: "2gb"
 
 # Extract dedup configuration
 eps_thresholds:
