@@ -136,18 +136,21 @@ def filter_text(dataset: DocumentDataset) -> DocumentDataset:
     filtered_dataset = filters(dataset)
     return filtered_dataset
 
+
 def redact_PII(dataset: DocumentDataset) -> DocumentDataset:
 
     modifier = PiiModifier(
-            log_dir="./logs",
-            batch_size=2000,
-            language="en",
-            supported_entities=["PERSON", "EMAIL_ADDRESS"],
-            anonymize_action="replace",)
+        log_dir="./logs",
+        batch_size=2000,
+        language="en",
+        supported_entities=["PERSON", "EMAIL_ADDRESS"],
+        anonymize_action="replace",
+    )
 
     modify = Modify(modifier)
     redacted_dataset = modify(dataset)
     return redacted_dataset
+
 
 def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     """
@@ -211,8 +214,7 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
         return DocumentDataset(dataset_df)
 
 
-def semantic_dedupe(
-    dataset: DocumentDataset, sem_dedupe_config_yaml_path: str):
+def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path: str):
     """
     Perform semantic deduplication on the given dataset.
 
@@ -255,7 +257,7 @@ class TextLineCountFilter(DocumentFilter):
     def keep_document(self, score) -> bool:
         return score
 
+
 def rm_dir(cache_dir):
     if os.path.isdir(cache_dir):
         os.system(f"rm -rf {cache_dir}")
-

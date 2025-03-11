@@ -1,25 +1,25 @@
+import argparse
+import json
 import os
 import re
 import shutil
 import time
-import json
-from PIL import Image
-from io import BytesIO
-from collections import defaultdict
-import pandas as pd
-import arxiv as arxiv
-import argparse
 from base64 import b64decode
+from collections import defaultdict
+from io import BytesIO
 
+import arxiv as arxiv
+import pandas as pd
 from nv_ingest_client.client import Ingestor
+from PIL import Image
 
 # Constants for configuration and paths
-HTTP_HOST = os.environ.get('HTTP_HOST', "localhost")
-HTTP_PORT = os.environ.get('HTTP_PORT', "7670")
-TASK_QUEUE = os.environ.get('TASK_QUEUE', "morpheus_task_queue")
+HTTP_HOST = os.environ.get("HTTP_HOST", "localhost")
+HTTP_PORT = os.environ.get("HTTP_PORT", "7670")
+TASK_QUEUE = os.environ.get("TASK_QUEUE", "morpheus_task_queue")
 
-MINIO_ACCESS_KEY = os.environ.get('MINIO_ACCESS_KEY', "minioadmin")
-MINIO_SECRET_KEY = os.environ.get('MINIO_SECRET_KEY', "minioadmin")
+MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "minioadmin")
+MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
 
 DEFAULT_JOB_TIMEOUT = 10000  # Timeout for job completion (in ms)
 
@@ -27,6 +27,7 @@ SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "sources")
 RESULT_DIR = os.path.join(DATA_DIR, "extracted_data")
 OUTPUT_DIR = os.path.join(DATA_DIR, "separated_extracted_data")
+
 
 def parse_id(input_string):
     """
@@ -50,6 +51,7 @@ def parse_id(input_string):
         f"The provided input '{input_string}' does not match the expected URL or ID format."
     )
 
+
 def download_arxiv_data():
     """
     Download arXiv articles from URLs listed in arxiv_urls.jsonl and save them as PDFs.
@@ -57,10 +59,10 @@ def download_arxiv_data():
     pdf_root_dir = os.path.join(DATA_DIR, "pdfs")
     os.makedirs(pdf_root_dir, exist_ok=True)
 
-    source_links_file = os.path.join(DATA_DIR, 'arxiv_urls.jsonl')
+    source_links_file = os.path.join(DATA_DIR, "arxiv_urls.jsonl")
     if not os.path.exists(source_links_file):
         raise FileNotFoundError(f"File '{source_links_file}' not found.")
-    
+
     urls = pd.read_json(path_or_buf=source_links_file, lines=True)
     urls = urls[0].tolist()
 
@@ -81,6 +83,7 @@ def download_arxiv_data():
                 print(f"Failed to download article '{url}'.")
                 return None
 
+
 def separate_extracted_contents():
     jsonl_text_list = []
     jsonl_image_list = []
@@ -90,39 +93,44 @@ def separate_extracted_contents():
         "text": jsonl_text_list,
         "image": jsonl_image_list,
         "structured": jsonl_structured_list,
-        }
+    }
 
-    for file in os.listdir(RESULT_DIR):  
+    for file in os.listdir(RESULT_DIR):
         file_path = os.path.join(RESULT_DIR, file)
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             jsonl_loaded = json.load(f)
             for jsonl_chunk in jsonl_loaded:
                 data_type = jsonl_chunk.get("document_type")
                 if data_type in data_type_map:
                     data_type_map[data_type].append(jsonl_chunk)
                 else:
-                    print(f"Unknown document type {data_type}. Add code to support this type.")
+                    print(
+                        f"Unknown document type {data_type}. Add code to support this type."
+                    )
 
-    print(f"Processed {len(data_type_map['text'])} text chunks, {len(data_type_map['image'])} image chunks and {len(data_type_map['structured'])} table/chart chunks")
-   
+    print(
+        f"Processed {len(data_type_map['text'])} text chunks, {len(data_type_map['image'])} image chunks and {len(data_type_map['structured'])} table/chart chunks"
+    )
+
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(f'{OUTPUT_DIR}/data_type_map.json', "w", encoding="utf-8") as f:
+    with open(f"{OUTPUT_DIR}/data_type_map.json", "w", encoding="utf-8") as f:
         json.dump(data_type_map, f, indent=4, ensure_ascii=False)
+
 
 def extract_contents():
     """
     Extract contents from downloaded PDFs and send them for processing.
     """
     downloaded_path = os.path.join(DATA_DIR, "pdfs")
-    
+
     if os.path.exists(RESULT_DIR):
         shutil.rmtree(RESULT_DIR)
     os.makedirs(RESULT_DIR, exist_ok=True)
 
     for file in os.listdir(downloaded_path):
-        print(f'Extracting contents from file {file}')
+        print(f"Extracting contents from file {file}")
         sample_pdf = os.path.join(downloaded_path, file)
 
         ingestor = (
@@ -134,17 +142,22 @@ def extract_contents():
                 extract_charts=True,
                 extract_images=True,
                 text_depth="document",
-            ).dedup(
+            )
+            .dedup(
                 content_type="image",
                 filter=True,
-            ).caption()
+            )
+            .caption()
         )
-        
+
         generated_metadata = ingestor.ingest()[0]
 
         # Save extracted metadata
-        with open(os.path.join(RESULT_DIR, f'generated_metadata_{file}.json'), 'w') as f:
+        with open(
+            os.path.join(RESULT_DIR, f"generated_metadata_{file}.json"), "w"
+        ) as f:
             json.dump(generated_metadata, f, indent=4)
+
 
 def analyze_contents():
     """
@@ -157,22 +170,25 @@ def analyze_contents():
     # Iterate through the generated metadata files
     for file in os.listdir(RESULT_DIR):
         file_path = os.path.join(RESULT_DIR, file)
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             generated_metadata = json.load(f)
 
         for i in range(len(generated_metadata)):
-            description = generated_metadata[i]['metadata']['content_metadata']['description']
+            description = generated_metadata[i]["metadata"]["content_metadata"][
+                "description"
+            ]
             unique_desc.add(description)
 
-            content_type = generated_metadata[i]['metadata']['content_metadata']['type']
+            content_type = generated_metadata[i]["metadata"]["content_metadata"]["type"]
             unique_types.add(content_type)
             type_indices[content_type].append(i)
 
-    print("Unique types:", *unique_types, sep='\n')
+    print("Unique types:", *unique_types, sep="\n")
     print("Number of contents extracted")
     for content_type, indices in type_indices.items():
         print(f"{content_type}: {len(indices)}")
-    
+
+
 def display_contents():
     """
     Display the extracted image or table contents as base64 decoded files.
@@ -185,38 +201,46 @@ def display_contents():
 
     for file in os.listdir(RESULT_DIR):
         file_path = os.path.join(RESULT_DIR, file)
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             generated_metadata = json.load(f)
-        
+
         for idx, metadata in enumerate(generated_metadata):
-            content = metadata["metadata"]['content_metadata']['type']
-            if content in ['image', 'table']:
+            content = metadata["metadata"]["content_metadata"]["type"]
+            if content in ["image", "table"]:
                 # Decode and save image data
                 image_data_b64 = metadata["metadata"]["content"]
                 image_data = b64decode(image_data_b64)
                 image = Image.open(BytesIO(image_data))
-                image_filename = os.path.join(output_folder, f'{file}_{idx}.png')
-                image.save(image_filename, format='PNG')
+                image_filename = os.path.join(output_folder, f"{file}_{idx}.png")
+                image.save(image_filename, format="PNG")
+
 
 def main():
     """
     Main function to execute the workflow with optional analysis and display.
     """
-    parser = argparse.ArgumentParser(description="Execute workflow with optional analysis and display.")
-    parser.add_argument("--analyze", action="store_true", help="Enable analysis of contents")
-    parser.add_argument("--display", action="store_true", help="Enable displaying of contents")
+    parser = argparse.ArgumentParser(
+        description="Execute workflow with optional analysis and display."
+    )
+    parser.add_argument(
+        "--analyze", action="store_true", help="Enable analysis of contents"
+    )
+    parser.add_argument(
+        "--display", action="store_true", help="Enable displaying of contents"
+    )
 
     args = parser.parse_args()
 
     download_arxiv_data()
     extract_contents()
     separate_extracted_contents()
-    
+
     if args.analyze:
         analyze_contents()
-    
+
     if args.display:
         display_contents()
+
 
 if __name__ == "__main__":
     main()

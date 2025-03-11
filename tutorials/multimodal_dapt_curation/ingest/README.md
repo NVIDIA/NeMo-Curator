@@ -71,4 +71,3 @@ python main.py --analyze --display
 
 ## License
 Refer to the original repository for licensing details.
-

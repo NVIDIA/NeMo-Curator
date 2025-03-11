@@ -1,16 +1,16 @@
 # Multi-Modal Data Curation from PDFs
 
 ## Overview
-This is Part 2 of the tutorial that provides best practices for data curation in Domain-Adaptive Pre-Training (DAPT). 
+This is Part 2 of the tutorial that provides best practices for data curation in Domain-Adaptive Pre-Training (DAPT).
 The dataset used in this tutorial is small, making it ideal for developing and validating data curation pipelines on either a local machine or a computing cluster. The playbook employs specialized tools and techniques for high-quality text curation and refinement.
 
 ## Hardware Requirements
-This playbook is compatible with both CPUs and GPUs. 
-While most steps can run on a CPU, the semantic and fuzzy deduplication modules require a GPU. 
+This playbook is compatible with both CPUs and GPUs.
+While most steps can run on a CPU, the semantic and fuzzy deduplication modules require a GPU.
 If GPUs are available, the PII redaction and exact deduplication processes will be accelerated.
 
 ## Walkthrough
-The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/multimodal_dapt_curation/ingest/sources/separated_extracted_data/data_type_map.json` file. 
+The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/multimodal_dapt_curation/ingest/sources/separated_extracted_data/data_type_map.json` file.
 
 The tutorial follows these steps:
 1. Install Requirements and Import Libraries
