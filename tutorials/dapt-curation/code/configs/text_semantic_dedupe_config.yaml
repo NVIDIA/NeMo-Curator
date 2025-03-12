@@ -20,7 +20,7 @@ which_to_keep: "hard"
 batched_cosine_similarity: 1024
 sort_clusters: true
 kmeans_with_cos_dist: false
-partition_size: "2gb"
+clustering_input_partition_size: "2gb"
 
 # Extract dedup configuration
 eps_thresholds:
