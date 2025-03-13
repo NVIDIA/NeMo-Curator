@@ -7,7 +7,7 @@ class DataSizeTracker:
         self.data_list = []  # Store data in a list to track order
         self.logger = logging.getLogger(__name__)
 
-    def record_size(self, stage_name, size=-1):
+    def record_size(self, stage_name, size=0):
         if size == -1:
             if self.data_list:
                 size = self.data_list[-1][1]
@@ -20,7 +20,7 @@ class DataSizeTracker:
     def get_data(self):
         return self.data
 
-    def calculate_incremental_reduction(self, stage_name):
+    def calculate_incremental_change(self, stage_name):
         if stage_name not in self.data:
             self.logger.warning(f"Stage {stage_name} not found in data.")
             return None
@@ -40,17 +40,17 @@ class DataSizeTracker:
             previous_size = self.data_list[current_index - 1][1]
 
         current_size = self.data[stage_name]
-        reduction = previous_size - current_size
+        change = previous_size - current_size
 
         if previous_size != 0:
-            percent_reduction = (reduction / previous_size) * 100
+            percent_change = (change / previous_size) * 100
         else:
-            percent_reduction = 0.0
+            percent_change = 0.0
 
-        self.logger.debug(f"Incremental reduction for {stage_name}: {reduction}")
-        return reduction, percent_reduction
+        self.logger.debug(f"Incremental change for {stage_name}: {change}")
+        return change, percent_change
 
-    def calculate_overall_reduction(self):
+    def calculate_overall_change(self):
         if not self.data:
             self.logger.warning("No data recorded yet.")
             return 0
@@ -68,10 +68,21 @@ class DataSizeTracker:
         return overall_reduction, percent_reduction
 
     def print_summary(self):
+        print("Data Processing Summary:")
         print(f"Original Size: {self.original_size}")
-        overall_reduction, overall_percent_reduction = self.calculate_overall_reduction()
+
+        overall_change, overall_percent_change = self.calculate_overall_change()
+        print(f"Overall Reduction: {overall_change} ({overall_percent_change:.2f}%)")
+
+        print("\nStage-wise Changes:")
         for stage, size in self.data.items():
-            incremental_reduction, percent_reduction = self.calculate_incremental_reduction(stage)
-            print(f"{stage}: {size}, Incremental Reduction: {incremental_reduction} ({percent_reduction:.2f}%)")
-        print(f"Overall Reduction: {overall_reduction} ({overall_percent_reduction:.2f}%)")
-        print(f"Remaining dataset: {self.original_size - overall_reduction}")
+            incremental_change, percent_change = self.calculate_incremental_change(stage)
+            if incremental_change is not None:
+                print(f"  {stage}: {size}, Incremental Change: {incremental_change} ({percent_change:.2f}%)")
+            else:
+                print(f"  {stage}: {size}, Incremental Change: Not Available")
+
+        final_stage = self.data_list[-1][0]
+        final_size = self.data[final_stage]
+        print(f"\nFinal Size: {final_size}")
+        print(f"Original Size - Overall Reduction: {self.original_size - overall_change}")
