@@ -7,7 +7,12 @@ class DataSizeTracker:
         self.data_list = []  # Store data in a list to track order
         self.logger = logging.getLogger(__name__)
 
-    def record_size(self, stage_name, size):
+    def record_size(self, stage_name, size=-1):
+        if size == -1:
+            if self.data_list:
+                size = self.data_list[-1][1]
+            else:
+                size = self.original_size
         self.data[stage_name] = size
         self.data_list.append((stage_name, size))  # Append to the list
         self.logger.debug(f"Recorded size for {stage_name}: {size}")
