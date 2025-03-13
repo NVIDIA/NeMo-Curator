@@ -49,6 +49,7 @@ class FastTextQualityClassifier:
             Tuple[float, int]: A tuple containing the confidence score (float) and binary indicator (int).
         """
         model = load_object_on_worker(self.model_identifier, self._load_fasttext_model, {})
+        text = text.replace("\n", "")
         predictions = model.predict(text, k=2)  
         # predictions[0]: labels, predictions[1]: scores
         # If the top predicted label contains "hq", return the first score; otherwise, use the second.
