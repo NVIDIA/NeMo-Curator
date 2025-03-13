@@ -181,75 +181,86 @@ def build_wikipedia_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def wikipedia_rephraser():
-    
-    input_data_path = "/home/rywolf/Documents/data/books/books.jsonl"
-    output_path = "/home/rywolf/Documents/data/books/books_rephrased.jsonl"
-    text_field = "EN"
-    rephrased_field = "rewritten"
-    postprocess_only = True
-
+def wikipedia_rephraser(
+    dataset: DocumentDataset,
+    text_field: str = "text",
+    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-NV-api-key>"),
+    api_model_name: str = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+):
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-    openai_client = OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert-api-key>",  # NV DEV API KEY
-    )
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client, tokenizer)
-    api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+    rephrased_field = "rephrased"
+    config = {
+        "MIN_DOCUMENT_TOKENS": 30,
+        "MIN_SEGMENT_TOKENS": 10,
+        "MAX_INPUT_TOKENS": 512,
+        "MAX_OUTPUT_TOKENS": 512,
+        "TOP_K": 0,
+        "TOP_P": 0.9,
+        "END_STRINGS": "['</s>']",
+        "TEMPERATURE": 0.5,
+    }
 
-    if not postprocess_only:
-        dataset = DocumentDataset.read_json(input_data_path)
+    preprocessing_pipeline = build_preprocessing_pipeline(
+        tokenizer,
+        text_field,
+        NEMOTRON_CC_SYSTEM_PROMPT,
+        WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
+        config["MIN_DOCUMENT_TOKENS"],
+        config["MIN_SEGMENT_TOKENS"],
+        config["MAX_INPUT_TOKENS"],
+    )
 
-        MIN_DOCUMENT_TOKENS = 30
-        MIN_SEGMENT_TOKENS = 10
-        MAX_INPUT_TOKENS = 512
-        preprocessing_pipeline = build_preprocessing_pipeline(
-            tokenizer,
-            text_field,
-            NEMOTRON_CC_SYSTEM_PROMPT,
-            WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
-            MIN_DOCUMENT_TOKENS,
-            MIN_SEGMENT_TOKENS,
-            MAX_INPUT_TOKENS,
+    from tqdm import tqdm
+    print("Running Wikipedia rephraser preprocessing pipeline")
+    dataset = preprocessing_pipeline(dataset)
+
+    rewritten_texts = []
+    for text in tqdm(dataset.df[text_field], desc="Rephrasing texts"):
+        rewritten_text = nemotron_cc.rewrite_to_wikipedia_style(
+            text,
+            api_model_name,
+            model_kwargs={
+                "top_k": config["TOP_K"],
+                "top_p": config["TOP_P"],
+                "stop": config["END_STRINGS"],
+                "max_tokens": config["MAX_OUTPUT_TOKENS"],
+                "temperature": config["TEMPERATURE"],
+            },
         )
+        rewritten_texts.append(rewritten_text[0])
 
-        dataset = preprocessing_pipeline(dataset)
+    dataset.df[rephrased_field] = rewritten_texts
 
-        MAX_OUTPUT_TOKENS = 512
-        TOP_K = 0
-        TOP_P = 0.9
-        END_STRINGS = "['</s>']"
-        TEMPERATURE = 0.5
-        rewritten_texts = []
-        for text in first_entries["EN"]:
-            rewritten_text = nemotron_cc.rewrite_to_wikipedia_style(
-                text,
-                api_model_name,
-                model_kwargs={
-                    "top_k": TOP_K,
-                    "top_p": TOP_P,
-                    "stop": END_STRINGS,
-                    "max_tokens": MAX_OUTPUT_TOKENS,
-                    "temperature": TEMPERATURE,
-                },
-            )
-            rewritten_texts.append(rewritten_text[0])
-
-        first_entries[rephrased_field] = rewritten_texts
-        first_entries.to_json(output_path, orient="records", lines=True)
-    else:
-        first_entries = pd.read_json(output_path, lines=True)
-        first_entries[rephrased_field] = first_entries[rephrased_field].apply(
-            lambda x: x[0] if isinstance(x, list) else x
-        )
-
-    rephrased_dataset = DocumentDataset.from_pandas(first_entries)
-    postprocessed_pipeline = build_wikipedia_postprocessing_pipeline(
+    postprocessing_pipeline = build_wikipedia_postprocessing_pipeline(
         tokenizer, rephrased_field
     )
-    rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
+    dataset.df = postprocessing_pipeline(dataset.df)
+    
+    rewritten_texts = []
+    for text in dataset.df[text_field]:
+        rewritten_text = nemotron_cc.rewrite_to_wikipedia_style(
+            text,
+            api_model_name,
+            model_kwargs={
+                "top_k": config["TOP_K"],
+                "top_p": config["TOP_P"],
+                "stop": config["END_STRINGS"],
+                "max_tokens": config["MAX_OUTPUT_TOKENS"],
+                "temperature": config["TEMPERATURE"],
+            },
+        )
+        rewritten_texts.append(rewritten_text[0])
+
+    dataset.df[rephrased_field] = rewritten_texts
+
+    print("Running Wikipedia rephraser postprocessing pipeline")
+    postprocessing_pipeline = build_wikipedia_postprocessing_pipeline(
+        tokenizer, rephrased_field
+    )
+    dataset.df = postprocessing_pipeline(dataset.df)
+    print("Wikipedia rephraser postprocessing complete.")
 
 
 def build_diverse_qa_postprocessing_pipeline(
@@ -292,21 +303,16 @@ def build_diverse_qa_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def diverse_qa():
-    
-    input_data_path = "/home/rywolf/Documents/data/books/books.jsonl"
-    output_path = "/home/rywolf/Documents/data/books/books_diverse_qa.jsonl"
-    final_output_path = "/home/rywolf/Documents/data/books/books_diverse_qa_final.jsonl"
-    text_field = "EN"
-    llm_response_field = "qa_response"
-    postprocess_only = True
-
+def diverse_qa(
+    input_data_path: str,
+    output_path: str,
+    final_output_path: str,
+    text_field: str,
+    llm_response_field: str,
+    postprocess_only: bool,
+    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-NV-api-key>"),
+):
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-    openai_client = OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert-api-key>",  # NV DEV API KEY
-    )
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client, tokenizer)
     api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
@@ -425,22 +431,17 @@ def build_distill_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def distill():
-    
-    input_data_path = "/home/rywolf/Documents/data/books/books.jsonl"
-    output_path = "/home/rywolf/Documents/data/books/books_distill.jsonl"
-    final_output_path = "/home/rywolf/Documents/data/books/books_distill_final.jsonl"
-    text_field = "EN"
-    llm_response_field = "distill_response"
-    postprocess_only = False
-
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-    openai_client = OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert-api-key>",  # NV DEV API KEY
-    )
+def distill(
+    input_data_path: str,
+    output_path: str,
+    final_output_path: str,
+    text_field: str,
+    llm_response_field: str,
+    postprocess_only: bool,
+    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-NV-api-key>"),
+):
     client = OpenAIClient(openai_client)
+    tokenizer = AutoTokenizer.from_pretrained("gpt2")
     nemotron_cc = NemotronCCGenerator(client, tokenizer)
     api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
 
@@ -547,23 +548,19 @@ def build_extract_knowledge_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def extract_knowledge():
-    
-    input_data_path = "/home/rywolf/Documents/data/books/books.jsonl"
-    output_path = "/home/rywolf/Documents/data/books/books_extract_knowledge.jsonl"
-    final_output_path = (
-        "/home/rywolf/Documents/data/books/books_extract_knowledge_final.jsonl"
-    )
-    text_field = "EN"
-    llm_response_field = "extract_knowledge_response"
-    postprocess_only = False
-
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-    openai_client = OpenAI(
+def extract_knowledge(
+    input_data_path: str,
+    output_path: str,
+    final_output_path: str,
+    text_field: str,
+    llm_response_field: str,
+    postprocess_only: bool,
+    openai_client: OpenAI = OpenAI(
         base_url="https://integrate.api.nvidia.com/v1",
         api_key="<insert-api-key>",  # NV DEV API KEY
-    )
+    ),
+):
+    tokenizer = AutoTokenizer.from_pretrained("gpt2")
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client, tokenizer)
     api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
@@ -665,23 +662,16 @@ def build_knowledge_list_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def knowledge_list():
-    
-    input_data_path = "/home/rywolf/Documents/data/books/books.jsonl"
-    output_path = "/home/rywolf/Documents/data/books/books_knowledge_list.jsonl"
-    final_output_path = (
-        "/home/rywolf/Documents/data/books/books_knowledge_list_final.jsonl"
-    )
-    text_field = "EN"
-    llm_response_field = "knowledge_list_response"
-    postprocess_only = False
-
+def knowledge_list(
+    input_data_path: str,
+    output_path: str,
+    final_output_path: str,
+    text_field: str,
+    llm_response_field: str,
+    postprocess_only: bool,
+    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-api-key>"),
+):
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-    openai_client = OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert-api-key>",  # NV DEV API KEY
-    )
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client, tokenizer)
     api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
