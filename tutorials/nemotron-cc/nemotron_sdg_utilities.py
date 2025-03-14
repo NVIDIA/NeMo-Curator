@@ -189,7 +189,7 @@ def wikipedia_rephraser(
     tokenizer: AutoTokenizer,
     api_model_name: str,
     n_entries:int=5
-):
+) -> DocumentDataset:
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
     rephrased_field = "rephrased"
@@ -215,15 +215,13 @@ def wikipedia_rephraser(
     )
 
     print("Running Wikipedia rephraser preprocessing pipeline")
-
     dataset = preprocessing_pipeline(dataset)
 
+    print("Taking out a small portion of the input dataset to save time.")
     first_entries = dataset.df.head(n_entries)
-    print("Using only a small portion of the input dataset to save time: ")
-    print(first_entries)
 
     rewritten_texts = []
-    for text in tqdm(first_entries[text_field], desc="Rephrasing texts"):
+    for text in tqdm(first_entries[text_field], desc="Rephrasing texts.."):
         rewritten_text = nemotron_cc.rewrite_to_wikipedia_style(
             text,
             api_model_name,
@@ -292,77 +290,71 @@ def build_diverse_qa_postprocessing_pipeline(
 
 
 def diverse_qa(
-    input_data_path: str,
-    output_path: str,
-    final_output_path: str,
+    dataset: DocumentDataset,
     text_field: str,
-    llm_response_field: str,
-    postprocess_only: bool,
-    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-NV-api-key>"),
-):
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    openai_client: OpenAI,
+    tokenizer: AutoTokenizer,
+    api_model_name: str,
+    n_entries: int = 5
+) -> DocumentDataset:
     client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client, tokenizer)
-    api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+    nemotron_cc = NemotronCCGenerator(client)
+    llm_response_field = "llm_response"
 
-    if not postprocess_only:
-        dataset = DocumentDataset.read_json(input_data_path)
+    config = {
+        "MIN_DOCUMENT_TOKENS": 30,
+        "MIN_SEGMENT_TOKENS": 30,
+        "MAX_INPUT_TOKENS": 1000,
+        "MAX_OUTPUT_TOKENS": 600,
+        "TOP_K": 0,
+        "TOP_P": 0.9,
+        "END_STRINGS": "['</s>']",
+        "TEMPERATURE": 0.5    
+    }
 
-        MIN_DOCUMENT_TOKENS = 30
-        MIN_SEGMENT_TOKENS = 30
-        MAX_INPUT_TOKENS = 1000
-        preprocessing_pipeline = build_preprocessing_pipeline(
-            tokenizer,
-            text_field,
-            NEMOTRON_CC_SYSTEM_PROMPT,
-            DIVERSE_QA_PROMPT_TEMPLATE,
-            MIN_DOCUMENT_TOKENS,
-            MIN_SEGMENT_TOKENS,
-            MAX_INPUT_TOKENS,
+    preprocessing_pipeline = build_preprocessing_pipeline(
+        tokenizer,
+        text_field,
+        NEMOTRON_CC_SYSTEM_PROMPT,
+        DIVERSE_QA_PROMPT_TEMPLATE,
+        config["MIN_DOCUMENT_TOKENS"],
+        config["MIN_SEGMENT_TOKENS"],
+        config["MAX_INPUT_TOKENS"],
+    )
+
+    print("Running DiverseQA preprocessing pipeline")
+    dataset = preprocessing_pipeline(dataset)
+    
+    print("Taking out a small portion of the input dataset to save time.")
+    first_entries = dataset.df.head(n_entries)
+    
+    rewritten_texts = []
+    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
+        llm_response = nemotron_cc.generate_diverse_qa(
+            text,
+            api_model_name,
+            model_kwargs={
+                "top_k": config["TOP_K"],
+                "top_p": config["TOP_P"],
+                "stop": config["END_STRINGS"],
+                "max_tokens": config["MAX_OUTPUT_TOKENS"],
+                "temperature": config["TEMPERATURE"],
+            },
         )
+        rewritten_texts.append(llm_response[0])
 
-        dataset = preprocessing_pipeline(dataset)
+    first_entries[llm_response_field] = rewritten_texts
 
-        first_entries = dataset.df.head()
-        print(first_entries)
-
-        MAX_OUTPUT_TOKENS = 600
-        TOP_K = 0
-        TOP_P = 0.9
-        END_STRINGS = "['</s>']"
-        TEMPERATURE = 0.5
-        rewritten_texts = []
-        for text in first_entries["EN"]:
-            llm_response = nemotron_cc.generate_diverse_qa(
-                text,
-                api_model_name,
-                model_kwargs={
-                    "top_k": TOP_K,
-                    "top_p": TOP_P,
-                    "stop": END_STRINGS,
-                    "max_tokens": MAX_OUTPUT_TOKENS,
-                    "temperature": TEMPERATURE,
-                },
-            )
-            rewritten_texts.append(llm_response[0])
-
-        first_entries[llm_response_field] = rewritten_texts
-        first_entries.to_json(output_path, orient="records", lines=True)
-    else:
-        first_entries = pd.read_json(output_path, lines=True)
-        first_entries[llm_response_field] = first_entries[llm_response_field].apply(
-            lambda x: x[0] if isinstance(x, list) else x
-        )
-
-    print(first_entries)
     rephrased_dataset = DocumentDataset.from_pandas(first_entries)
+    print("Running DiverseQA postprocessing pipeline")
     postprocessed_pipeline = build_diverse_qa_postprocessing_pipeline(
         tokenizer, text_field, llm_response_field
     )
     rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    rephrased_head = rephrased_dataset.df.head()
-    print(rephrased_head)
-    rephrased_head.to_json(final_output_path, orient="records", lines=True)
+    print("DiverseQA generation complete.")
+    print("Merging results with original dataset.")
+    dataset.df = dataset.df.merge(rephrased_dataset.df, on="id", how="left", suffixes=('_original', '_diverseqa'))
+
 
 
 def build_distill_postprocessing_pipeline(
@@ -420,77 +412,69 @@ def build_distill_postprocessing_pipeline(
 
 
 def distill(
-    input_data_path: str,
-    output_path: str,
-    final_output_path: str,
+    dataset: DocumentDataset,
     text_field: str,
-    llm_response_field: str,
-    postprocess_only: bool,
-    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-NV-api-key>"),
-):
+    openai_client: OpenAI,
+    tokenizer: AutoTokenizer,
+    api_model_name: str,
+    n_entries: int = 5
+) :
     client = OpenAIClient(openai_client)
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    nemotron_cc = NemotronCCGenerator(client, tokenizer)
-    api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+    nemotron_cc = NemotronCCGenerator(client)
+    llm_response_field = "llm_response"
+    config = {
+        "MIN_DOCUMENT_TOKENS": 30,
+        "MIN_SEGMENT_TOKENS": 10,
+        "MAX_INPUT_TOKENS": 2000,
+        "MAX_OUTPUT_TOKENS": 1600,
+        "TOP_K": 0,
+        "TOP_P": 0.9,
+        "END_STRINGS": "['</s>']",
+        "TEMPERATURE": 0.5
+    }
 
-    if not postprocess_only:
-        dataset = DocumentDataset.read_json(input_data_path)
+    preprocessing_pipeline = build_preprocessing_pipeline(
+        tokenizer,
+        text_field,
+        NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
+        DISTILL_PROMPT_TEMPLATE,
+        config["MIN_DOCUMENT_TOKENS"],
+        config["MIN_SEGMENT_TOKENS"],
+        config["MAX_INPUT_TOKENS"],
+    )
 
-        MIN_DOCUMENT_TOKENS = 30
-        MIN_SEGMENT_TOKENS = 10
-        MAX_INPUT_TOKENS = 2000
-        preprocessing_pipeline = build_preprocessing_pipeline(
-            tokenizer,
-            text_field,
-            NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
-            DISTILL_PROMPT_TEMPLATE,
-            MIN_DOCUMENT_TOKENS,
-            MIN_SEGMENT_TOKENS,
-            MAX_INPUT_TOKENS,
+    print("Running Distill preprocessing pipeline")
+    dataset = preprocessing_pipeline(dataset)
+
+    print("Taking out a small portion of the input dataset to save time.")
+    first_entries = dataset.df.head(n_entries)
+
+    rewritten_texts = []
+    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
+        llm_response = nemotron_cc.distill(
+            text,
+            api_model_name,
+            model_kwargs={
+                "top_k": config["TOP_K"],
+                "top_p": config["TOP_P"],
+                "stop": config["END_STRINGS"],
+                "max_tokens": config["MAX_OUTPUT_TOKENS"],
+                "temperature": config["TEMPERATURE"],
+            },
         )
+        rewritten_texts.append(llm_response[0])
 
-        dataset = preprocessing_pipeline(dataset)
+    first_entries[llm_response_field] = rewritten_texts
 
-        first_entries = dataset.df.head()
-        print(first_entries)
-
-        MAX_OUTPUT_TOKENS = 1600
-        TOP_K = 0
-        TOP_P = 0.9
-        END_STRINGS = "['</s>']"
-        TEMPERATURE = 0.5
-        rewritten_texts = []
-        for text in first_entries["EN"]:
-            llm_response = nemotron_cc.distill(
-                text,
-                api_model_name,
-                model_kwargs={
-                    "top_k": TOP_K,
-                    "top_p": TOP_P,
-                    "stop": END_STRINGS,
-                    "max_tokens": MAX_OUTPUT_TOKENS,
-                    "temperature": TEMPERATURE,
-                },
-            )
-            rewritten_texts.append(llm_response[0])
-
-        first_entries[llm_response_field] = rewritten_texts
-        first_entries.to_json(output_path, orient="records", lines=True)
-    else:
-        first_entries = pd.read_json(output_path, lines=True)
-        first_entries[llm_response_field] = first_entries[llm_response_field].apply(
-            lambda x: x[0] if isinstance(x, list) else x
-        )
-
-    print(first_entries)
-    rephrased_dataset = DocumentDataset.from_pandas(first_entries)
+    distilled_dataset = DocumentDataset.from_pandas(first_entries)
+    print("Running Distill postprocessing pipeline")
     postprocessed_pipeline = build_distill_postprocessing_pipeline(
         tokenizer, llm_response_field
     )
-    rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    rephrased_head = rephrased_dataset.df.head()
-    print(rephrased_head)
-    rephrased_head.to_json(final_output_path, orient="records", lines=True)
+    distilled_dataset = postprocessed_pipeline(distilled_dataset)
+    print("Distill postprocessing pipeline complete.")
+    print("Merging results with original dataset.")
+    dataset.df = dataset.df.merge(distilled_dataset.df, on="id", how="left", suffixes=('_original', '_distill'))
 
 
 def build_extract_knowledge_postprocessing_pipeline(
@@ -537,80 +521,71 @@ def build_extract_knowledge_postprocessing_pipeline(
 
 
 def extract_knowledge(
-    input_data_path: str,
-    output_path: str,
-    final_output_path: str,
+    dataset: DocumentDataset,
     text_field: str,
-    llm_response_field: str,
-    postprocess_only: bool,
-    openai_client: OpenAI = OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key="<insert-api-key>",  # NV DEV API KEY
-    ),
+    openai_client: OpenAI,
+    tokenizer: AutoTokenizer,
+    api_model_name: str,
+    n_entries: int = 5
 ):
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
     client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client, tokenizer)
-    api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+    nemotron_cc = NemotronCCGenerator(client)
+    llm_response_field = "llm_response"
 
-    if not postprocess_only:
-        dataset = DocumentDataset.read_json(input_data_path)
+    config = {
+        "MIN_DOCUMENT_TOKENS": 30,
+        "MIN_SEGMENT_TOKENS": 30,
+        "MAX_INPUT_TOKENS": 1400,
+        "MAX_OUTPUT_TOKENS": 1400,
+        "TOP_K": 0,
+        "TOP_P": 0.9,
+        "END_STRINGS": "['</s>']",
+        "TEMPERATURE": 0.5        
 
-        MIN_DOCUMENT_TOKENS = 30
-        MIN_SEGMENT_TOKENS = 30
-        MAX_INPUT_TOKENS = 1400
-        preprocessing_pipeline = build_preprocessing_pipeline(
-            tokenizer,
-            text_field,
-            NEMOTRON_CC_SYSTEM_PROMPT,
-            EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
-            MIN_DOCUMENT_TOKENS,
-            MIN_SEGMENT_TOKENS,
-            MAX_INPUT_TOKENS,
+    }
+
+    preprocessing_pipeline = build_preprocessing_pipeline(
+        tokenizer,
+        text_field,
+        NEMOTRON_CC_SYSTEM_PROMPT,
+        EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
+        config["MIN_DOCUMENT_TOKENS"],
+        config["MIN_SEGMENT_TOKENS"],
+        config["MAX_INPUT_TOKENS"],
+    )
+
+    print("Running extract knowledge preprocessing pipeline")
+    dataset = preprocessing_pipeline(dataset)
+
+    print("Taking out a small portion of the input dataset to save time.")
+    first_entries = dataset.df.head(n_entries)
+
+    rewritten_texts = []
+    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
+        llm_response = nemotron_cc.extract_knowledge(
+            text,
+            api_model_name,
+            model_kwargs={
+                "top_k": config["TOP_K"],
+                "top_p": config["TOP_P"],
+                "stop": config["END_STRINGS"],
+                "max_tokens": config["MAX_OUTPUT_TOKENS"],
+                "temperature": config["TEMPERATURE"],
+            },
         )
+        rewritten_texts.append(llm_response[0])
 
-        dataset = preprocessing_pipeline(dataset)
+    first_entries[llm_response_field] = rewritten_texts
 
-        first_entries = dataset.df.head()
-        print(first_entries)
-
-        MAX_OUTPUT_TOKENS = 1400
-        TOP_K = 0
-        TOP_P = 0.9
-        END_STRINGS = "['</s>']"
-        TEMPERATURE = 0.5
-        rewritten_texts = []
-        for text in first_entries["EN"]:
-            llm_response = nemotron_cc.extract_knowledge(
-                text,
-                api_model_name,
-                model_kwargs={
-                    "top_k": TOP_K,
-                    "top_p": TOP_P,
-                    "stop": END_STRINGS,
-                    "max_tokens": MAX_OUTPUT_TOKENS,
-                    "temperature": TEMPERATURE,
-                },
-            )
-            rewritten_texts.append(llm_response[0])
-
-        first_entries[llm_response_field] = rewritten_texts
-        first_entries.to_json(output_path, orient="records", lines=True)
-    else:
-        first_entries = pd.read_json(output_path, lines=True)
-        first_entries[llm_response_field] = first_entries[llm_response_field].apply(
-            lambda x: x[0] if isinstance(x, list) else x
-        )
-
-    print(first_entries)
     rephrased_dataset = DocumentDataset.from_pandas(first_entries)
+    print("Running extract knowledge postprocessing pipeline")
     postprocessed_pipeline = build_extract_knowledge_postprocessing_pipeline(
         tokenizer, llm_response_field
     )
     rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    rephrased_head = rephrased_dataset.df.head()
-    print(rephrased_head)
-    rephrased_head.to_json(final_output_path, orient="records", lines=True)
+    print("Extract knowledge generation complete.")
+    print("Extract knowledge results: ")    
+    dataset.df = dataset.df.merge(rephrased_dataset.df, on="id", how="left", suffixes=('_original', '_extract'))
 
 
 def build_knowledge_list_postprocessing_pipeline(
@@ -651,82 +626,69 @@ def build_knowledge_list_postprocessing_pipeline(
 
 
 def knowledge_list(
-    input_data_path: str,
-    output_path: str,
-    final_output_path: str,
+    dataset: DocumentDataset,
     text_field: str,
-    llm_response_field: str,
-    postprocess_only: bool,
-    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-api-key>"),
+    openai_client: OpenAI,
+    tokenizer: AutoTokenizer,
+    api_model_name: str,
+    n_entries: int = 5
 ):
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+
     client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client, tokenizer)
-    api_model_name = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+    nemotron_cc = NemotronCCGenerator(client)
+    llm_response_field = "llm_response"
 
-    if not postprocess_only:
-        dataset = DocumentDataset.read_json(input_data_path)
+    config = {
+        "MIN_DOCUMENT_TOKENS": 30,
+        "MIN_SEGMENT_TOKENS": 30,
+        "MAX_INPUT_TOKENS": 1000,
+        "MAX_OUTPUT_TOKENS": 600,
+        "TOP_K": 0,
+        "TOP_P": 0.9,
+        "END_STRINGS": "['</s>']",
+        "TEMPERATURE": 0.5
+    }
 
-        MIN_DOCUMENT_TOKENS = 30
-        MIN_SEGMENT_TOKENS = 30
-        MAX_INPUT_TOKENS = 1000
-        preprocessing_pipeline = build_preprocessing_pipeline(
-            tokenizer,
-            text_field,
-            NEMOTRON_CC_SYSTEM_PROMPT,
-            KNOWLEDGE_LIST_PROMPT_TEMPLATE,
-            MIN_DOCUMENT_TOKENS,
-            MIN_SEGMENT_TOKENS,
-            MAX_INPUT_TOKENS,
+    preprocessing_pipeline = build_preprocessing_pipeline(
+        tokenizer,
+        text_field,
+        NEMOTRON_CC_SYSTEM_PROMPT,
+        KNOWLEDGE_LIST_PROMPT_TEMPLATE,
+        config["MIN_DOCUMENT_TOKENS"],
+        config["MIN_SEGMENT_TOKENS"],
+        config["MAX_INPUT_TOKENS"],
+    )
+
+    print("Running Knowledge list preprocessing pipeline")
+    dataset = preprocessing_pipeline(dataset)
+
+    print("Taking out a small portion of the input dataset to save time.")
+    first_entries = dataset.df.head(n_entries)
+
+    rewritten_texts = []
+    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
+        llm_response = nemotron_cc.generate_knowledge_list(
+            text,
+            api_model_name,
+            model_kwargs={
+                "top_k": config["TOP_K"],
+                "top_p": config["TOP_P"],
+                "stop": config["END_STRINGS"],
+                "max_tokens": config["MAX_OUTPUT_TOKENS"],
+                "temperature": config["TEMPERATURE"],
+            },
         )
+        rewritten_texts.append(llm_response[0])
 
-        dataset = preprocessing_pipeline(dataset)
+    first_entries[llm_response_field] = rewritten_texts
 
-        first_entries = dataset.df.head()
-        print(first_entries)
-
-        MAX_OUTPUT_TOKENS = 600
-        TOP_K = 0
-        TOP_P = 0.9
-        END_STRINGS = "['</s>']"
-        TEMPERATURE = 0.5
-        rewritten_texts = []
-        for text in first_entries["EN"]:
-            llm_response = nemotron_cc.generate_knowledge_list(
-                text,
-                api_model_name,
-                model_kwargs={
-                    "top_k": TOP_K,
-                    "top_p": TOP_P,
-                    "stop": END_STRINGS,
-                    "max_tokens": MAX_OUTPUT_TOKENS,
-                    "temperature": TEMPERATURE,
-                },
-            )
-            rewritten_texts.append(llm_response[0])
-
-        first_entries[llm_response_field] = rewritten_texts
-        first_entries.to_json(output_path, orient="records", lines=True)
-    else:
-        first_entries = pd.read_json(output_path, lines=True)
-        first_entries[llm_response_field] = first_entries[llm_response_field].apply(
-            lambda x: x[0] if isinstance(x, list) else x
-        )
-
-    print(first_entries)
     rephrased_dataset = DocumentDataset.from_pandas(first_entries)
+    print("Running Knowledge list postprocessing pipeline")
     postprocessed_pipeline = build_knowledge_list_postprocessing_pipeline(
         tokenizer, llm_response_field
     )
     rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    rephrased_head = rephrased_dataset.df.head()
-    print(rephrased_head)
-    rephrased_head.to_json(final_output_path, orient="records", lines=True)
-
-
-if __name__ == "__main__":
-    # wikipedia_rephraser()
-    # diverse_qa()
-    # distill()
-    # extract_knowledge()
-    knowledge_list()
+    print("Knowledge list generation complete.")
+    print("Knowledge list results: ")
+    print("Merging results with original dataset.")
+    dataset.df = dataset.df.merge(rephrased_dataset.df, on="id", how="left", suffixes=('_original', '_knowledge'))
