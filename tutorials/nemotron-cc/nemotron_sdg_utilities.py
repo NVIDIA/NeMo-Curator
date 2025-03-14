@@ -34,6 +34,7 @@ from nemo_curator.synthetic.prompts import (
     KNOWLEDGE_LIST_PROMPT_TEMPLATE,
     NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
 )
+from tqdm import tqdm
 
 
 def get_prefix_token_count(
@@ -183,13 +184,14 @@ def build_wikipedia_postprocessing_pipeline(
 
 def wikipedia_rephraser(
     dataset: DocumentDataset,
-    text_field: str = "text",
-    openai_client: OpenAI = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="<insert-NV-api-key>"),
-    api_model_name: str = "nvdev/nv-mistralai/mistral-nemo-12b-instruct"
+    text_field: str,
+    openai_client: OpenAI,
+    tokenizer: AutoTokenizer,
+    api_model_name: str,
+    n_entries:int=5
 ):
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
     client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client, tokenizer)
+    nemotron_cc = NemotronCCGenerator(client)
     rephrased_field = "rephrased"
     config = {
         "MIN_DOCUMENT_TOKENS": 30,
@@ -212,12 +214,16 @@ def wikipedia_rephraser(
         config["MAX_INPUT_TOKENS"],
     )
 
-    from tqdm import tqdm
     print("Running Wikipedia rephraser preprocessing pipeline")
+
     dataset = preprocessing_pipeline(dataset)
 
+    first_entries = dataset.df.head(n_entries)
+    print("Using only a small portion of the input dataset to save time: ")
+    print(first_entries)
+
     rewritten_texts = []
-    for text in tqdm(dataset.df[text_field], desc="Rephrasing texts"):
+    for text in tqdm(first_entries[text_field], desc="Rephrasing texts"):
         rewritten_text = nemotron_cc.rewrite_to_wikipedia_style(
             text,
             api_model_name,
@@ -231,36 +237,18 @@ def wikipedia_rephraser(
         )
         rewritten_texts.append(rewritten_text[0])
 
-    dataset.df[rephrased_field] = rewritten_texts
+    first_entries[rephrased_field] = rewritten_texts
 
-    postprocessing_pipeline = build_wikipedia_postprocessing_pipeline(
-        tokenizer, rephrased_field
-    )
-    dataset.df = postprocessing_pipeline(dataset.df)
-    
-    rewritten_texts = []
-    for text in dataset.df[text_field]:
-        rewritten_text = nemotron_cc.rewrite_to_wikipedia_style(
-            text,
-            api_model_name,
-            model_kwargs={
-                "top_k": config["TOP_K"],
-                "top_p": config["TOP_P"],
-                "stop": config["END_STRINGS"],
-                "max_tokens": config["MAX_OUTPUT_TOKENS"],
-                "temperature": config["TEMPERATURE"],
-            },
-        )
-        rewritten_texts.append(rewritten_text[0])
-
-    dataset.df[rephrased_field] = rewritten_texts
+    rephrased_dataset = DocumentDataset.from_pandas(first_entries)
 
     print("Running Wikipedia rephraser postprocessing pipeline")
     postprocessing_pipeline = build_wikipedia_postprocessing_pipeline(
         tokenizer, rephrased_field
     )
-    dataset.df = postprocessing_pipeline(dataset.df)
+
+    rephrased_dataset = postprocessing_pipeline(rephrased_dataset)
     print("Wikipedia rephraser postprocessing complete.")
+    return rephrased_dataset
 
 
 def build_diverse_qa_postprocessing_pipeline(
