@@ -353,9 +353,7 @@ def diverse_qa(
     rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
     print("DiverseQA generation complete.")
     print("Merging results with original dataset.")
-    dataset.df = dataset.df.merge(rephrased_dataset.df, on="id", how="left", suffixes=('_original', '_diverseqa'))
-
-
+    return rephrased_dataset
 
 def build_distill_postprocessing_pipeline(
     tokenizer: AutoTokenizer, llm_response_field: str
@@ -418,7 +416,7 @@ def distill(
     tokenizer: AutoTokenizer,
     api_model_name: str,
     n_entries: int = 5
-) :
+)->DocumentDataset:
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
     llm_response_field = "llm_response"
@@ -474,7 +472,7 @@ def distill(
     distilled_dataset = postprocessed_pipeline(distilled_dataset)
     print("Distill postprocessing pipeline complete.")
     print("Merging results with original dataset.")
-    dataset.df = dataset.df.merge(distilled_dataset.df, on="id", how="left", suffixes=('_original', '_distill'))
+    return distilled_dataset
 
 
 def build_extract_knowledge_postprocessing_pipeline(
@@ -527,7 +525,7 @@ def extract_knowledge(
     tokenizer: AutoTokenizer,
     api_model_name: str,
     n_entries: int = 5
-):
+)->DocumentDataset:
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
     llm_response_field = "llm_response"
@@ -585,7 +583,7 @@ def extract_knowledge(
     rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
     print("Extract knowledge generation complete.")
     print("Extract knowledge results: ")    
-    dataset.df = dataset.df.merge(rephrased_dataset.df, on="id", how="left", suffixes=('_original', '_extract'))
+    return rephrased_dataset
 
 
 def build_knowledge_list_postprocessing_pipeline(
@@ -632,7 +630,7 @@ def knowledge_list(
     tokenizer: AutoTokenizer,
     api_model_name: str,
     n_entries: int = 5
-):
+)->DocumentDataset:
 
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
@@ -691,4 +689,4 @@ def knowledge_list(
     print("Knowledge list generation complete.")
     print("Knowledge list results: ")
     print("Merging results with original dataset.")
-    dataset.df = dataset.df.merge(rephrased_dataset.df, on="id", how="left", suffixes=('_original', '_knowledge'))
+    return rephrased_dataset
