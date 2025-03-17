@@ -64,9 +64,7 @@ def main(args):
         )
 
     end_time = time.time()
-    print(
-        "Total time taken for PII job: %0.3f seconds" % (end_time - start_time)
-    )
+    print("Total time taken for PII job: %0.3f seconds" % (end_time - start_time))
 
 
 def attach_args(
