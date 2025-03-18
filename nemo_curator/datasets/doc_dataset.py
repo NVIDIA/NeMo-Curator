@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -182,7 +182,7 @@ class DocumentDataset:
                 and read all files under the directory.
                 If input_file is a list of strings, we assume each string is a file path.
             file_type: The type of the file to read.
-            read_func_single_partition: A function that reads a single file or a list of files in an single dask partition.
+            read_func_single_partition: A function that reads a single file or a list of files in an single Dask partition.
                 The function should take the following arguments:
                 - files: A list of file paths.
                 - file_type: The type of the file to read (in case you want to handle different file types differently).
@@ -199,6 +199,7 @@ class DocumentDataset:
             input_meta: A dictionary or a string formatted as a dictionary, which outlines
                 the field names and their respective data types within the JSONL input file.
         """
+
         if isinstance(input_files, str):
             if input_files.endswith(file_type):
                 files = [input_files]
@@ -212,9 +213,11 @@ class DocumentDataset:
             files = input_files
         else:
             raise TypeError("input_files must be a string or list")
+
         return cls(
             read_data(
                 input_files=files,
+                file_type=file_type,
                 backend=backend,
                 files_per_partition=files_per_partition,
                 blocksize=None,
