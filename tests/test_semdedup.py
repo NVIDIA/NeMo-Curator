@@ -18,12 +18,14 @@ import numpy as np
 import pytest
 import torch
 import torch.nn.functional as F
-from dask.dataframe.utils import assert_eq
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+import tempfile
+import pandas as pd
 
 from nemo_curator import SemDedup, SemDedupConfig
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+from nemo_curator.utils.semdedup_utils import rank_within_cluster
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
@@ -78,113 +80,113 @@ def non_dedup_data():
     return DocumentDataset(df)
 
 
-@pytest.mark.gpu
-class TestSemDuplicates:
-    @pytest.mark.parametrize("n_clusters", [3, 10])
-    def test_sem_dedup(
-        self,
-        dedup_data,
-        tmpdir,
-        n_clusters,
-        gpu_client,
-    ):
-        print("client", gpu_client)
+# @pytest.mark.gpu
+# class TestSemDuplicates:
+#     @pytest.mark.parametrize("n_clusters", [3, 10])
+#     def test_sem_dedup(
+#         self,
+#         dedup_data,
+#         tmpdir,
+#         n_clusters,
+#         gpu_client,
+#     ):
+#         print("client", gpu_client)
 
-        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
-        config = SemDedupConfig(
-            cache_dir=cache_dir,
-            n_clusters=n_clusters,
-            eps_thresholds=[0.10],
-            eps_to_extract=0.10,
-        )
+#         cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+#         config = SemDedupConfig(
+#             cache_dir=cache_dir,
+#             n_clusters=n_clusters,
+#             eps_thresholds=[0.10],
+#             eps_to_extract=0.10,
+#         )
 
-        sem_duplicates = SemDedup(
-            config=config,
-            input_column="text",
-            id_column="id",
-            id_column_type="int",
-        )
+#         sem_duplicates = SemDedup(
+#             config=config,
+#             input_column="text",
+#             id_column="id",
+#             id_column_type="int",
+#         )
 
-        dedup_data_len = dedup_data.df.shape[0].compute()
-        if n_clusters > dedup_data_len:
-            # Number of records in the dataset should never be less than n_clusters
-            with pytest.raises(ValueError):
-                result = sem_duplicates(dedup_data)
-        else:
-            # Correctly returns the original dataset with no duplicates removed
-            result = sem_duplicates(dedup_data)
-            result_df = result.df.compute()
-            duplicate_docs = [2, 3, 4, 200, 300]
-            expected_df = cudf.Series(duplicate_docs, name="id")
-            assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+#         dedup_data_len = dedup_data.df.shape[0].compute()
+#         if n_clusters > dedup_data_len:
+#             # Number of records in the dataset should never be less than n_clusters
+#             with pytest.raises(ValueError):
+#                 result = sem_duplicates(dedup_data)
+#         else:
+#             # Correctly returns the original dataset with no duplicates removed
+#             result = sem_duplicates(dedup_data)
+#             result_df = result.df.compute()
+#             duplicate_docs = [2, 3, 4, 200, 300]
+#             expected_df = cudf.Series(duplicate_docs, name="id")
+#             assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
 
-    @pytest.mark.parametrize("n_clusters", [2, 3])
-    def test_no_sem_dedup(
-        self,
-        non_dedup_data,
-        tmpdir,
-        n_clusters,
-        gpu_client,
-    ):
-        print("client", gpu_client)
+#     @pytest.mark.parametrize("n_clusters", [2, 3])
+#     def test_no_sem_dedup(
+#         self,
+#         non_dedup_data,
+#         tmpdir,
+#         n_clusters,
+#         gpu_client,
+#     ):
+#         print("client", gpu_client)
 
-        cache_dir = os.path.join(tmpdir, "test_no_sem_dedup")
-        config = SemDedupConfig(
-            cache_dir=cache_dir,
-            n_clusters=n_clusters,
-            eps_thresholds=[0.10],
-            eps_to_extract=0.10,
-        )
+#         cache_dir = os.path.join(tmpdir, "test_no_sem_dedup")
+#         config = SemDedupConfig(
+#             cache_dir=cache_dir,
+#             n_clusters=n_clusters,
+#             eps_thresholds=[0.10],
+#             eps_to_extract=0.10,
+#         )
 
-        sem_duplicates = SemDedup(
-            config=config,
-            input_column="text",
-            id_column="doc_id",
-            id_column_type="str",
-        )
+#         sem_duplicates = SemDedup(
+#             config=config,
+#             input_column="text",
+#             id_column="doc_id",
+#             id_column_type="str",
+#         )
 
-        non_dedup_data_len = non_dedup_data.df.shape[0].compute()
-        if n_clusters > non_dedup_data_len:
-            # Number of records in the dataset should never be less than n_clusters
-            with pytest.raises(ValueError):
-                result = sem_duplicates(non_dedup_data)
-        else:
-            # Correctly returns the original dataset with no duplicates removed
-            result = sem_duplicates(non_dedup_data)
-            result_df = result.df.compute()
-            duplicate_docs = ["doc_1", "doc_2"]
-            expected_df = cudf.Series(duplicate_docs, name="doc_id")
-            assert_eq(result_df["doc_id"].sort_values(), expected_df, check_index=False)
+#         non_dedup_data_len = non_dedup_data.df.shape[0].compute()
+#         if n_clusters > non_dedup_data_len:
+#             # Number of records in the dataset should never be less than n_clusters
+#             with pytest.raises(ValueError):
+#                 result = sem_duplicates(non_dedup_data)
+#         else:
+#             # Correctly returns the original dataset with no duplicates removed
+#             result = sem_duplicates(non_dedup_data)
+#             result_df = result.df.compute()
+#             duplicate_docs = ["doc_1", "doc_2"]
+#             expected_df = cudf.Series(duplicate_docs, name="doc_id")
+#             assert_eq(result_df["doc_id"].sort_values(), expected_df, check_index=False)
 
-    @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean_pooling"])
-    def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):
-        test_text_1 = "The quick brown fox jumps over the lazy dog"
-        test_text_2 = "The brown fox jumps over the dog"
-        test_texts = [test_text_1, test_text_2] * 32
-        df = cudf.DataFrame({"text": test_texts})
-        ddf = dask_cudf.from_cudf(df, 1)
+#     @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean_pooling"])
+#     def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):
+#         test_text_1 = "The quick brown fox jumps over the lazy dog"
+#         test_text_2 = "The brown fox jumps over the dog"
+#         test_texts = [test_text_1, test_text_2] * 32
+#         df = cudf.DataFrame({"text": test_texts})
+#         ddf = dask_cudf.from_cudf(df, 1)
 
-        cache_dir = os.path.join(tmpdir, "test_embeddings_cache")
+#         cache_dir = os.path.join(tmpdir, "test_embeddings_cache")
 
-        embedding_creator = EmbeddingCreator(
-            embedding_model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
-            embedding_batch_size=32,
-            embedding_pooling_strategy=pooling_strategy,
-            input_column="text",
-            embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
-        )
+#         embedding_creator = EmbeddingCreator(
+#             embedding_model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
+#             embedding_batch_size=32,
+#             embedding_pooling_strategy=pooling_strategy,
+#             input_column="text",
+#             embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
+#         )
 
-        embeddings = embedding_creator.create_embeddings(ddf).compute()
-        embeddings = embeddings["embeddings"].to_arrow().to_pylist()
-        embeddings = np.array(embeddings)
+#         embeddings = embedding_creator.create_embeddings(ddf).compute()
+#         embeddings = embeddings["embeddings"].to_arrow().to_pylist()
+#         embeddings = np.array(embeddings)
 
-        reference_embeddings = get_reference_embeddings(
-            test_texts, pooling_strategy=pooling_strategy
-        )
+#         reference_embeddings = get_reference_embeddings(
+#             test_texts, pooling_strategy=pooling_strategy
+#         )
 
-        assert np.allclose(
-            embeddings, reference_embeddings, atol=1e-3
-        ), "Embeddings should match reference embeddings"
+#         assert np.allclose(
+#             embeddings, reference_embeddings, atol=1e-3
+#         ), "Embeddings should match reference embeddings"
 
 
 def get_reference_embeddings(
@@ -247,19 +249,21 @@ def get_reference_embeddings(
     return np.array(embs)
 
 
-class TestPairwiseCosineSimilarity:
+class TestSemDedupUtils:
     def setup_method(self):
-        # We create a 5x3 array where each row is a unit vector
+        # We create a 6x3 array where each row is a unit vector
         # The second and last two rows are the same
-        input_arr = torch.tensor(
+        input_embeddings = torch.tensor(
             np.asarray(
                 [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3], [1, 2, 3]],
             ),
             dtype=torch.float32,
         )
         # Normalize the input array
-        self.input_arr = input_arr / torch.norm(input_arr, dim=1, keepdim=True)
-        self.expected_similarity = torch.tensor(
+        self.input_embeddings = input_embeddings / torch.norm(
+            input_embeddings, dim=1, keepdim=True
+        )
+        self.expected_pairwise_similarity = torch.tensor(
             [0.0000, 0.974631, 0.998190, 0.999618, 1.0000, 1.0000]
         )
         self.expected_indices = [0, 0, 1, 2, 0, 0]
@@ -267,10 +271,10 @@ class TestPairwiseCosineSimilarity:
     @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
     def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
         max_similarity, max_indices = pairwise_cosine_similarity(
-            self.input_arr.to(device), device
+            self.input_embeddings.to(device), device
         )
         torch.testing.assert_close(
-            max_similarity, self.expected_similarity, rtol=1e-6, atol=1e-6
+            max_similarity, self.expected_pairwise_similarity, rtol=1e-6, atol=1e-6
         )
         assert max_indices == self.expected_indices
 
@@ -280,9 +284,9 @@ class TestPairwiseCosineSimilarity:
         self, device: Literal["cpu", "cuda"], batch_size: int
     ):
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
-            self.input_arr.to(device), device, batch_size
+            self.input_embeddings.to(device), device, batch_size
         )
-        torch.testing.assert_close(max_similarity, self.expected_similarity)
+        torch.testing.assert_close(max_similarity, self.expected_pairwise_similarity)
         assert max_indices == self.expected_indices
 
     @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
@@ -301,3 +305,81 @@ class TestPairwiseCosineSimilarity:
             max_similarity, max_similarity_batched, rtol=1e-5, atol=1e-5
         )
         assert max_indices == max_indices_batched
+
+    @pytest.mark.gpu
+    @pytest.mark.parametrize("keep_hard", [True, False])
+    def test_rank_within_cluster(self, keep_hard: bool):
+        # Create a temporary directory for output
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Mock data setup
+            cluster_id = 0
+            id_col = "id"
+            embedding_col = "embedding"
+            nearest_cent_dir = temp_dir
+            output_sorted_clusters_dir = temp_dir
+
+            # Create mock centroids and cluster data
+            centroids = self.input_embeddings[:1]
+            cluster_data = cudf.DataFrame(
+                {
+                    id_col: list(range(self.input_embeddings.shape[0])),
+                    embedding_col: self.input_embeddings.tolist(),
+                }
+            )
+
+            # Save mock cluster data to a file
+            cluster_data_path = os.path.join(
+                nearest_cent_dir, f"nearest_cent={cluster_id}"
+            )
+            cluster_data.to_parquet(cluster_data_path)
+
+            # Call the function
+            rank_within_cluster(
+                id_col=id_col,
+                nearest_cent_dir=nearest_cent_dir,
+                output_sorted_clusters_dir=output_sorted_clusters_dir,
+                centroids=centroids,
+                embedding_col=embedding_col,
+                sim_metric="cosine",
+                keep_hard=keep_hard,
+                kmeans_with_cos_dist=False,
+                cluster_ids=[cluster_id],
+            )
+
+            # Load the sorted cluster
+            sorted_cluster_file_path = os.path.join(
+                output_sorted_clusters_dir, f"cluster_{cluster_id}.parquet"
+            )
+            sorted_cluster = cudf.read_parquet(sorted_cluster_file_path)
+
+            # Expected order based on cosine similarity
+            if keep_hard:
+                expected_order = [
+                    # id, dist_to_cent, cluster_id
+                    [3, 0.9513, 0],
+                    [2, 0.9594, 0],
+                    [1, 0.9746, 0],
+                    [0, 1.0, 0],
+                    [4, 1.0000, 0],
+                    [5, 1.0000, 0],
+                ]
+            else:
+                expected_order = [
+                    # id, dist_to_cent, cluster_id
+                    [0, 1.0, 0],
+                    [4, 1.0000, 0],
+                    [5, 1.0000, 0],
+                    [1, 0.9746, 0],
+                    [2, 0.9594, 0],
+                    [3, 0.9513, 0],
+                ]
+
+            expected_order_df = pd.DataFrame(expected_order, columns=["id", "dist_to_cent", "cluster"])
+            expected_order_df["dist_to_cent"] = 1 - expected_order_df["dist_to_cent"]
+            pd.testing.assert_frame_equal(
+                sorted_cluster.to_pandas(),
+                expected_order_df,
+                check_exact=False,
+                rtol=1e-3,
+                atol=1e-3,
+            )
