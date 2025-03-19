@@ -27,9 +27,18 @@ import numpy as np
 import pandas as pd
 import torch
 from dask.distributed import progress
-
+import cupy as cp
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+import pyarrow.parquet as pq
+
+L2_DIST_TO_CENT_COL = "l2_dist_to_cent"
+COSINE_DIST_TO_CENT_COL = "cosine_dist_to_cent"
+
+def get_normalized_embedding_array(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
+    tensor = torch.Tensor(df[embedding_col].list.leaves.values.reshape(len(df), -1))
+    normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
+    return cp.asarray(normalized_tensor)
 
 
 def assign_and_sort_clusters(
@@ -39,9 +48,7 @@ def assign_and_sort_clusters(
     output_sorted_clusters_dir: str,
     cluster_ids: List[int],
     embedding_col: str,
-    sim_metric: str = "cosine",
     keep_hard: bool = True,
-    kmeans_with_cos_dist: bool = True,
     logger: Optional[logging.Logger] = None,
     profile_dir: Optional[str] = None,
 ):
@@ -87,9 +94,7 @@ def assign_and_sort_clusters(
                 output_sorted_clusters_dir=output_sorted_clusters_dir,
                 centroids=kmeans_centroids,
                 embedding_col=embedding_col,
-                sim_metric=sim_metric,
                 keep_hard=keep_hard,
-                kmeans_with_cos_dist=kmeans_with_cos_dist,
                 cluster_ids=[cluster_c],
             )
         ).compute()
@@ -108,13 +113,11 @@ def rank_within_cluster(
     output_sorted_clusters_dir: str,
     centroids: np.ndarray,
     embedding_col: str,
-    sim_metric: str = "cosine",
     keep_hard: bool = True,
-    kmeans_with_cos_dist: bool = False,
     cluster_ids: List[int] = range(50000),
 ):
     """
-    Sorts each cluster's items by their distance to the cluster centroid.
+    Sorts each cluster's items by their distance (based on cosine similarity) to the cluster centroid.
 
     Args:
         id_col (str): The column name representing the unique identifier for each data point.
@@ -129,10 +132,6 @@ def rank_within_cluster(
     Returns:
         None
     """
-    assert sim_metric in [
-        "cosine",
-    ], "sim_metric should be in ['cosine']"
-
     missing_files = 0
     for cluster_c in cluster_ids:
         cluster_c_path = os.path.join(nearest_cent_dir, f"nearest_cent={cluster_c}")
@@ -141,41 +140,27 @@ def rank_within_cluster(
             continue
 
         cluster_df = cudf.read_parquet(
-            cluster_c_path, columns=[id_col, "dist_to_cent", embedding_col]
+            cluster_c_path, columns=[id_col, embedding_col]
         )
+
         embeds = torch.as_tensor(
             cluster_df[embedding_col].list.leaves.values.reshape(
                 cluster_df.shape[0], -1
             ),
             device="cuda",
         )
-        cluster_df = cluster_df.to_pandas()
+        cluster_c_centroid = torch.as_tensor(centroids[cluster_c], device="cuda")
+        sim_to_cent = torch.nn.CosineSimilarity(dim=1)(embeds, cluster_c_centroid)
+        cluster_dists_to_cent = cp.asarray(1 - sim_to_cent)
+        cluster_df[COSINE_DIST_TO_CENT_COL] = cluster_dists_to_cent
+        # Drop the columns that are not needed
+        cluster_df = cluster_df.drop(columns=[embedding_col])
+        cluster_df["cluster"] = cluster_c
 
-        assert kmeans_with_cos_dist is False
-
-        if sim_metric == "cosine":
-            cluster_c_centroid = torch.as_tensor(centroids[cluster_c], device="cuda")
-            sim_to_cent = torch.nn.CosineSimilarity(dim=1)(embeds, cluster_c_centroid)
-            sim_to_cent = sim_to_cent.cpu().numpy()
-            cluster_dists_to_cent = (1 - sim_to_cent).tolist()
-        elif sim_metric == "l2":
-            # Used when kmeans_with_cos_dist is True
-            cluster_dists_to_cent = list(cluster_df["dist_to_cent"])
-
-        cluster_label = np.full((len(cluster_df)), cluster_c).tolist()
-        example_id = list(cluster_df[id_col])
-        sort_descending = keep_hard
-        cluster_sorted = sorted(
-            zip(example_id, cluster_dists_to_cent, cluster_label),
-            key=lambda x: x[1],
-            reverse=sort_descending,
-        )  # -- sort_descending = True for descending sort
-
-        sorted_cluster_file_path = os.path.join(
-            output_sorted_clusters_dir, f"cluster_{cluster_c}.npy"
+        cluster_df[["id", COSINE_DIST_TO_CENT_COL, "cluster"]].sort_values(by=COSINE_DIST_TO_CENT_COL, ascending=not keep_hard).to_parquet(
+            os.path.join(output_sorted_clusters_dir, f"cluster_{cluster_c}.parquet"),
+            index=False,
         )
-        np.save(sorted_cluster_file_path, cluster_sorted)
-
     return len(cluster_ids) - missing_files
 
 
@@ -232,19 +217,19 @@ def pairwise_cosine_similarity_batched(
     return max_similarity.cpu(), max_indices.cpu().numpy().tolist()
 
 
-def get_normalized_cluster_reps(
+def get_cluster_reps(
     cluster_id: int,
     emb_by_clust_dir: str,
     id_col: str,
     embedding_col: str,
     sorted_ids: np.ndarray,
 ) -> torch.Tensor:
+    # TODO remove this logic so we can just sort here based on which_to_leep
     cluster_i_path = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
     cluster_reps = cudf.read_parquet(
         cluster_i_path, columns=[embedding_col, id_col]
     ).sort_values(by=id_col)
     num = cluster_reps.shape[0]
-
     df_ = pd.DataFrame(
         {"sorted_ids": sorted_ids, "inverse_sort": list(range(num))}
     ).sort_values(by="sorted_ids")
@@ -256,7 +241,6 @@ def get_normalized_cluster_reps(
         device="cuda",
     )
     # Normalize embeddings
-    cluster_reps = cluster_reps / cluster_reps.norm(dim=1, keepdim=True)
     return cluster_reps
 
 
@@ -275,15 +259,16 @@ def get_semantic_matches_per_cluster(
 
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
 
-    sorted_file = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
+    sorted_file = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.parquet")
     if not os.path.exists(sorted_file):
         logging.info(f"{sorted_file} does not exist. Continue")
         return
 
-    cluster_i = np.load(sorted_file)
-    cluster_size = cluster_i.shape[0]
+    cluster_i = cudf.read_parquet(sorted_file)
+    cluster_size = len(cluster_i)
     logging.info(f"{cluster_id}: cluster_size: {cluster_size}")
 
+    # Handle edge case where cluster is a singleton
     if cluster_size == 1:
         points_to_remove_df = pd.DataFrame()
         points_to_remove_df["indices"] = [0]
@@ -292,20 +277,20 @@ def get_semantic_matches_per_cluster(
         points_to_remove_df.to_parquet(output_df_file_path)
         return
 
+    # TODO move this logic to get_cluster_reps
     clutser_items_indices = list(range(cluster_size))
-
     which_to_keep = which_to_keep.lower()
     if which_to_keep == "random":
         random.shuffle(clutser_items_indices)
         cluster_i = cluster_i[clutser_items_indices]
     elif which_to_keep == "easy":
         clutser_items_indices = clutser_items_indices[::-1]
-        cluster_i = cluster_i[clutser_items_indices]
+        cluster_i = cluster_i[::-1]
 
-    text_ids = cluster_i[:, 0].astype(id_col_type)
+    ids = cluster_i[id_col].to_arrow().to_pylist()
 
-    cluster_reps = get_normalized_cluster_reps(
-        cluster_id, emb_by_clust_dir, id_col, embedding_col, text_ids
+    cluster_reps = get_cluster_reps(
+        cluster_id, emb_by_clust_dir, id_col, embedding_col, sorted_ids=ids
     )
     if batched_cosine_similarity > 0:
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
@@ -313,12 +298,14 @@ def get_semantic_matches_per_cluster(
         )
     else:
         max_similarity, max_indices = pairwise_cosine_similarity(cluster_reps, "cuda")
-    assert cluster_reps.shape[0] == len(text_ids)
-    max_indices_id = [text_ids[m] for m in max_indices]
+    
+    assert cluster_reps.shape[0] == len(ids)
+    max_indices_id = [ids[m] for m in max_indices]
 
     points_to_remove_df = cudf.DataFrame()
+    # TODO we can remove this column indixes
     points_to_remove_df["indices"] = clutser_items_indices
-    points_to_remove_df["id"] = text_ids
+    points_to_remove_df["id"] = ids
     points_to_remove_df["max_id"] = max_indices_id
     points_to_remove_df["cosine_sim_score"] = max_similarity.numpy().tolist()
 
@@ -329,14 +316,13 @@ def get_semantic_matches_per_cluster(
     points_to_remove_df.to_parquet(output_df_file_path)
 
 
-def get_num_records(file_path):
+def get_num_records_from_parquet(file_path : str) -> int:
     if not os.path.exists(file_path):
         return 0
     with open(file_path, "rb") as f:
-        # Read the header of the npy file
-        version = np.lib.format.read_magic(f)
-        shape, _, _ = np.lib.format._read_array_header(f, version)
-    return shape[0]
+        metadata = pq.read_metadata(f)
+    return metadata.num_rows
+
 
 
 def _get_empty_results_df(id_col, id_col_type):
@@ -373,27 +359,19 @@ def prune_single_cluster(
     Returns:
         cudf.DataFrame: A DataFrame of the pruned cluster data
     """
-    sorted_fname = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
+    sorted_fname = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.parquet")
     if not os.path.exists(sorted_fname):
         return _get_empty_results_df(id_col, id_col_type)
 
-    cluster_data = np.load(sorted_fname)
-    df_cluster = cudf.DataFrame(
-        {
-            id_col: cluster_data[:, 0],
-            "dist": cluster_data[:, 1],
-            "cluster": cluster_data[:, 2],
-        }
-    )
+    # Read the sorted cluster file
+    df_cluster = cudf.read_parquet(sorted_fname)
 
-    df_cluster[id_col] = df_cluster[id_col].astype(id_col_type)
-    df_cluster["dist"] = df_cluster["dist"].astype("float32")
-    df_cluster["cluster"] = df_cluster["cluster"].astype("int32")
-
-    cluster_df_fname = os.path.join(
+    # TODO : we don't need to read the pruning table here as we can just filter on the cosine_sim_score in the sorted cluster file
+    # Read the pruning table
+    pruning_table_fname = os.path.join(
         semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet"
     )
-    pruning_table = cudf.read_parquet(cluster_df_fname)
+    pruning_table = cudf.read_parquet(pruning_table_fname)
     if pruning_table.shape[0] == 1:
         return df_cluster
 
@@ -462,10 +440,10 @@ def extract_pruned_data(
 
     total_kept = len(results_df)
 
-    np_files = [
-        os.path.join(sorted_clusters_dir, f"cluster_{i}.npy") for i in range(n_clusters)
+    sorted_parquet_files = [
+        os.path.join(sorted_clusters_dir, f"cluster_{i}.parquet") for i in range(n_clusters)
     ]
-    total_records = sum(get_num_records(file_path) for file_path in np_files)
+    total_records = sum(get_num_records_from_parquet(file_path) for file_path in sorted_parquet_files)
     # Aggregate results
     total_removed = total_records - total_kept
     return total_kept, total_removed, total_records

@@ -16,8 +16,8 @@
 import logging
 import os
 import shutil
-import time
-from typing import Optional, Union
+import time 
+from typing import Literal, Optional, Union
 
 import cudf
 import cupy as cp
@@ -29,20 +29,21 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
-from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters
+from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters, get_normalized_embedding_array, L2_DIST_TO_CENT_COL
 
 
-def get_embedding_ar(df: "cudf.DataFrame", embedding_col: str) -> cp.ndarray:
-    return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
-
-def add_dist_to_cents(
+def add_l2_dist_to_cents(
     df: "cudf.DataFrame", embedding_col: str, centroids: cp.ndarray
 ) -> "cudf.DataFrame":
-    embed_array = get_embedding_ar(df, embedding_col)
+    """ 
+    Computes the L2 distance to nearest centroid to each embedding in the dataframe.
+    Both embeddings and centroids are normalized.
+    """
+    normalized_embeddings = get_normalized_embedding_array(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
-    dist_to_cents = cp.sqrt(np.sum((embed_array - centroids_ar) ** 2, axis=1))
-    df["dist_to_cent"] = dist_to_cents
+    dist_to_cents = cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
+    df[L2_DIST_TO_CENT_COL] = dist_to_cents
     return df
 
 
@@ -56,10 +57,8 @@ class ClusteringModel:
         clustering_output_dir: str = "./clustering_results",
         embedding_column: str = "embeddings",
         random_state: int = 1234,
-        sim_metric: str = "cosine",
-        which_to_keep: str = "hard",
+        which_to_keep: Literal["hard", "random", "easy"] = "hard",
         sort_clusters: bool = True,
-        kmeans_with_cos_dist: bool = False,
         clustering_input_partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
@@ -99,9 +98,7 @@ class ClusteringModel:
         self.clustering_output_dir = clustering_output_dir
         self.embedding_column = embedding_column
         self.random_state = random_state
-        self.sim_metric = sim_metric
         self.keep_hard = which_to_keep == "hard"
-        self.kmeans_with_cos_dist = kmeans_with_cos_dist
         self.clustering_input_partition_size = clustering_input_partition_size
         self.sort_clusters = sort_clusters
         self.logger = self._setup_logger(logger)
@@ -160,18 +157,22 @@ class ClusteringModel:
 
             embeddings_df = embeddings_df.to_backend("cudf")
 
-            cupy_darr = embeddings_df.map_partitions(
-                get_embedding_ar, self.embedding_column, meta=cp.ndarray([1, 1])
+            # We normalize before clustering, this ensures all subsequent steps can rely on normalized embeddings
+            cupy_normalized_darr = embeddings_df.map_partitions(
+                get_normalized_embedding_array, 
+                self.embedding_column, 
+                meta=cp.ndarray([1, 1])
             )
-            cupy_darr.compute_chunk_sizes()
+            cupy_normalized_darr.compute_chunk_sizes()
             t0 = time.time()
             kmeans = KMeans(
                 n_clusters=self.n_clusters,
                 max_iter=self.max_iter,
                 random_state=self.random_state,
+                n_init=1
             )
             self.logger.info("KMeans starting fit")
-            kmeans.fit(cupy_darr)
+            kmeans.fit(cupy_normalized_darr)
             self.logger.info("KMeans fit complete")
             self.logger.info(f"Time taken for KMeans fit: {time.time() - t0}")
 
@@ -179,16 +180,16 @@ class ClusteringModel:
                 "Computing nearest centroids and distance to centers using kmeans.predict"
             )
             t0 = time.time()
-            nearest_cents = kmeans.predict(cupy_darr)
+            nearest_cents = kmeans.predict(cupy_normalized_darr)
             self.logger.info(f"Time taken for KMeans predict: {time.time() - t0}")
 
             t0 = time.time()
             embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
             del nearest_cents
             meta_df = embeddings_df._meta.copy()
-            meta_df["dist_to_cent"] = cp.zeros(1)
+            meta_df[L2_DIST_TO_CENT_COL] = cp.zeros(1)
             embeddings_df = embeddings_df.map_partitions(
-                add_dist_to_cents,
+                add_l2_dist_to_cents,
                 embedding_col=self.embedding_column,
                 centroids=kmeans.cluster_centers_,
                 meta=meta_df,
@@ -200,7 +201,7 @@ class ClusteringModel:
             )
             np.save(kmeans_centroids_file, centroids)
             self.logger.info("Saving centroids complete")
-            del kmeans, cupy_darr, centroids
+            del kmeans, cupy_normalized_darr, centroids
 
             clustering_output_dir = os.path.join(
                 self.clustering_output_dir, "embs_by_nearest_center"
@@ -222,6 +223,7 @@ class ClusteringModel:
             del embeddings_df
 
         if self.sort_clusters:
+            # TODO this can be deleted and we can just sort clusters from the parquet files in embs_by_nearest_center
             assign_and_sort_clusters(
                 id_col=self.id_col,
                 kmeans_centroids_file=kmeans_centroids_file,
@@ -230,9 +232,7 @@ class ClusteringModel:
                     self.clustering_output_dir, "sorted"
                 ),
                 embedding_col=self.embedding_column,
-                sim_metric=self.sim_metric,
                 keep_hard=self.keep_hard,
-                kmeans_with_cos_dist=self.kmeans_with_cos_dist,
                 cluster_ids=range(self.n_clusters),
                 logger=self.logger,
                 profile_dir=self.profile_dir,
