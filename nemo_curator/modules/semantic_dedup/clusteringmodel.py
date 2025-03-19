@@ -32,7 +32,7 @@ from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters, get_normalized_embedding_array, L2_DIST_TO_CENT_COL
 
 
-
+# TODO : add cosine distance also while we are computing distance to centroids, will allow us for more flexibility in later stages
 def add_l2_dist_to_cents(
     df: "cudf.DataFrame", embedding_col: str, centroids: cp.ndarray
 ) -> "cudf.DataFrame":
@@ -40,10 +40,18 @@ def add_l2_dist_to_cents(
     Computes the L2 distance to nearest centroid to each embedding in the dataframe.
     Both embeddings and centroids are normalized.
     """
+    print(df.head())
     normalized_embeddings = get_normalized_embedding_array(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
+    print(normalized_embeddings)
+    print(centroids_ar)
+    print((normalized_embeddings - centroids_ar) ** 2)
+    print(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
+    print(cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1)))
     dist_to_cents = cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
+    print(dist_to_cents)
     df[L2_DIST_TO_CENT_COL] = dist_to_cents
+    print(df.head())
     return df
 
 
@@ -57,6 +65,8 @@ class ClusteringModel:
         clustering_output_dir: str = "./clustering_results",
         embedding_column: str = "embeddings",
         random_state: int = 1234,
+        # TODO : add l2 distance support
+        sim_metric: Literal["cosine"] = "cosine",
         which_to_keep: Literal["hard", "random", "easy"] = "hard",
         sort_clusters: bool = True,
         clustering_input_partition_size: str = "2gb",
@@ -82,8 +92,6 @@ class ClusteringModel:
             which_to_keep (str): Method to determine which duplicates to keep.
                 Default is "hard".
             sort_clusters (bool): Whether to sort clusters. Default is True.
-            kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
-                Default is False.
             clustering_input_partition_size (str): The size of data partition with which to run KMeans.
                 Default is "2gb".
             logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
@@ -101,6 +109,7 @@ class ClusteringModel:
         self.keep_hard = which_to_keep == "hard"
         self.clustering_input_partition_size = clustering_input_partition_size
         self.sort_clusters = sort_clusters
+        self.sim_metric = sim_metric
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
@@ -232,6 +241,7 @@ class ClusteringModel:
                     self.clustering_output_dir, "sorted"
                 ),
                 embedding_col=self.embedding_column,
+                sim_metric=self.sim_metric,
                 keep_hard=self.keep_hard,
                 cluster_ids=range(self.n_clusters),
                 logger=self.logger,
