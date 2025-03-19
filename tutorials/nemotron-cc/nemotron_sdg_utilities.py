@@ -285,75 +285,8 @@ def build_diverse_qa_postprocessing_pipeline(
             ),
         ]
     )
-
     return postprocessing_pipeline
 
-
-def diverse_qa(
-    dataset: DocumentDataset,
-    text_field: str,
-    openai_client: OpenAI,
-    tokenizer: AutoTokenizer,
-    api_model_name: str,
-    n_entries: int = 5
-) -> DocumentDataset:
-    client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client)
-    llm_response_field = "llm_response"
-
-    config = {
-        "MIN_DOCUMENT_TOKENS": 30,
-        "MIN_SEGMENT_TOKENS": 30,
-        "MAX_INPUT_TOKENS": 1000,
-        "MAX_OUTPUT_TOKENS": 600,
-        "TOP_K": 0,
-        "TOP_P": 0.9,
-        "END_STRINGS": "['</s>']",
-        "TEMPERATURE": 0.5    
-    }
-
-    preprocessing_pipeline = build_preprocessing_pipeline(
-        tokenizer,
-        text_field,
-        NEMOTRON_CC_SYSTEM_PROMPT,
-        DIVERSE_QA_PROMPT_TEMPLATE,
-        config["MIN_DOCUMENT_TOKENS"],
-        config["MIN_SEGMENT_TOKENS"],
-        config["MAX_INPUT_TOKENS"],
-    )
-
-    print("Running DiverseQA preprocessing pipeline")
-    dataset = preprocessing_pipeline(dataset)
-    
-    print("Taking out a small portion of the input dataset to save time.")
-    first_entries = dataset.df.head(n_entries)
-    
-    rewritten_texts = []
-    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
-        llm_response = nemotron_cc.generate_diverse_qa(
-            text,
-            api_model_name,
-            model_kwargs={
-                "top_k": config["TOP_K"],
-                "top_p": config["TOP_P"],
-                "stop": config["END_STRINGS"],
-                "max_tokens": config["MAX_OUTPUT_TOKENS"],
-                "temperature": config["TEMPERATURE"],
-            },
-        )
-        rewritten_texts.append(llm_response[0])
-
-    first_entries[llm_response_field] = rewritten_texts
-
-    rephrased_dataset = DocumentDataset.from_pandas(first_entries)
-    print("Running DiverseQA postprocessing pipeline")
-    postprocessed_pipeline = build_diverse_qa_postprocessing_pipeline(
-        tokenizer, text_field, llm_response_field
-    )
-    rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    print("DiverseQA generation complete.")
-    print("Merging results with original dataset.")
-    return rephrased_dataset
 
 def build_distill_postprocessing_pipeline(
     tokenizer: AutoTokenizer, llm_response_field: str
@@ -409,72 +342,6 @@ def build_distill_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def distill(
-    dataset: DocumentDataset,
-    text_field: str,
-    openai_client: OpenAI,
-    tokenizer: AutoTokenizer,
-    api_model_name: str,
-    n_entries: int = 5
-)->DocumentDataset:
-    client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client)
-    llm_response_field = "llm_response"
-    config = {
-        "MIN_DOCUMENT_TOKENS": 30,
-        "MIN_SEGMENT_TOKENS": 10,
-        "MAX_INPUT_TOKENS": 2000,
-        "MAX_OUTPUT_TOKENS": 1600,
-        "TOP_K": 0,
-        "TOP_P": 0.9,
-        "END_STRINGS": "['</s>']",
-        "TEMPERATURE": 0.5
-    }
-
-    preprocessing_pipeline = build_preprocessing_pipeline(
-        tokenizer,
-        text_field,
-        NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
-        DISTILL_PROMPT_TEMPLATE,
-        config["MIN_DOCUMENT_TOKENS"],
-        config["MIN_SEGMENT_TOKENS"],
-        config["MAX_INPUT_TOKENS"],
-    )
-
-    print("Running Distill preprocessing pipeline")
-    dataset = preprocessing_pipeline(dataset)
-
-    print("Taking out a small portion of the input dataset to save time.")
-    first_entries = dataset.df.head(n_entries)
-
-    rewritten_texts = []
-    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
-        llm_response = nemotron_cc.distill(
-            text,
-            api_model_name,
-            model_kwargs={
-                "top_k": config["TOP_K"],
-                "top_p": config["TOP_P"],
-                "stop": config["END_STRINGS"],
-                "max_tokens": config["MAX_OUTPUT_TOKENS"],
-                "temperature": config["TEMPERATURE"],
-            },
-        )
-        rewritten_texts.append(llm_response[0])
-
-    first_entries[llm_response_field] = rewritten_texts
-
-    distilled_dataset = DocumentDataset.from_pandas(first_entries)
-    print("Running Distill postprocessing pipeline")
-    postprocessed_pipeline = build_distill_postprocessing_pipeline(
-        tokenizer, llm_response_field
-    )
-    distilled_dataset = postprocessed_pipeline(distilled_dataset)
-    print("Distill postprocessing pipeline complete.")
-    print("Merging results with original dataset.")
-    return distilled_dataset
-
-
 def build_extract_knowledge_postprocessing_pipeline(
     tokenizer: AutoTokenizer, llm_response_field: str
 ):
@@ -518,74 +385,6 @@ def build_extract_knowledge_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def extract_knowledge(
-    dataset: DocumentDataset,
-    text_field: str,
-    openai_client: OpenAI,
-    tokenizer: AutoTokenizer,
-    api_model_name: str,
-    n_entries: int = 5
-)->DocumentDataset:
-    client = OpenAIClient(openai_client)
-    nemotron_cc = NemotronCCGenerator(client)
-    llm_response_field = "llm_response"
-
-    config = {
-        "MIN_DOCUMENT_TOKENS": 30,
-        "MIN_SEGMENT_TOKENS": 30,
-        "MAX_INPUT_TOKENS": 1400,
-        "MAX_OUTPUT_TOKENS": 1400,
-        "TOP_K": 0,
-        "TOP_P": 0.9,
-        "END_STRINGS": "['</s>']",
-        "TEMPERATURE": 0.5        
-
-    }
-
-    preprocessing_pipeline = build_preprocessing_pipeline(
-        tokenizer,
-        text_field,
-        NEMOTRON_CC_SYSTEM_PROMPT,
-        EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
-        config["MIN_DOCUMENT_TOKENS"],
-        config["MIN_SEGMENT_TOKENS"],
-        config["MAX_INPUT_TOKENS"],
-    )
-
-    print("Running extract knowledge preprocessing pipeline")
-    dataset = preprocessing_pipeline(dataset)
-
-    print("Taking out a small portion of the input dataset to save time.")
-    first_entries = dataset.df.head(n_entries)
-
-    rewritten_texts = []
-    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
-        llm_response = nemotron_cc.extract_knowledge(
-            text,
-            api_model_name,
-            model_kwargs={
-                "top_k": config["TOP_K"],
-                "top_p": config["TOP_P"],
-                "stop": config["END_STRINGS"],
-                "max_tokens": config["MAX_OUTPUT_TOKENS"],
-                "temperature": config["TEMPERATURE"],
-            },
-        )
-        rewritten_texts.append(llm_response[0])
-
-    first_entries[llm_response_field] = rewritten_texts
-
-    rephrased_dataset = DocumentDataset.from_pandas(first_entries)
-    print("Running extract knowledge postprocessing pipeline")
-    postprocessed_pipeline = build_extract_knowledge_postprocessing_pipeline(
-        tokenizer, llm_response_field
-    )
-    rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    print("Extract knowledge generation complete.")
-    print("Extract knowledge results: ")    
-    return rephrased_dataset
-
-
 def build_knowledge_list_postprocessing_pipeline(
     tokenizer: AutoTokenizer, llm_response_field: str
 ):
@@ -623,49 +422,112 @@ def build_knowledge_list_postprocessing_pipeline(
     return postprocessing_pipeline
 
 
-def knowledge_list(
+def generate_content(
     dataset: DocumentDataset,
     text_field: str,
     openai_client: OpenAI,
     tokenizer: AutoTokenizer,
     api_model_name: str,
-    n_entries: int = 5
+    task_type: str,
 )->DocumentDataset:
+    """
+    Generates content based on the specified task type.
+
+    Args:
+        dataset (DocumentDataset): The input dataset.
+        text_field (str): The field containing the input text.
+        openai_client (OpenAI): The OpenAI client.
+        tokenizer (AutoTokenizer): The tokenizer.
+        api_model_name (str): The name of the OpenAI model to use.
+        task_type (str): The type of task to perform ('distill', 'diverse_qa', 'extract_knowledge', 'knowledge_list').
+        n_entries (int): The number of entries to process.
+
+    Returns:
+        DocumentDataset: The processed dataset.
+    """
 
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
-    llm_response_field = "llm_response"
+    llm_response_field = task_type
+    
+    # Define configurations for different task types
+    task_configs = {
+        "distill": {
+            "system_prompt": NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
+            "prompt_template": DISTILL_PROMPT_TEMPLATE,
+            "min_document_tokens": 30,
+            "min_segment_tokens": 10,
+            "max_input_tokens": 2000,
+            "max_output_tokens": 1600,
+            "postprocessing_pipeline_builder": build_distill_postprocessing_pipeline,
+            "generation_function": nemotron_cc.distill,
+        },
+        "diverse_qa": {
+            "system_prompt": NEMOTRON_CC_SYSTEM_PROMPT,
+            "prompt_template": DIVERSE_QA_PROMPT_TEMPLATE,
+            "min_document_tokens": 30,
+            "min_segment_tokens": 30,
+            "max_input_tokens": 1000,
+            "max_output_tokens": 600,
+            "postprocessing_pipeline_builder": build_diverse_qa_postprocessing_pipeline,
+            "generation_function": nemotron_cc.generate_diverse_qa,
+        },
+        "extract_knowledge": {
+            "system_prompt": NEMOTRON_CC_SYSTEM_PROMPT,
+            "prompt_template": EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
+            "min_document_tokens": 30,
+            "min_segment_tokens": 30,
+            "max_input_tokens": 1400,
+            "max_output_tokens": 1400,
+            "postprocessing_pipeline_builder": build_extract_knowledge_postprocessing_pipeline,
+            "generation_function": nemotron_cc.extract_knowledge,
+        },
+        "knowledge_list": {
+            "system_prompt": NEMOTRON_CC_SYSTEM_PROMPT,
+            "prompt_template": KNOWLEDGE_LIST_PROMPT_TEMPLATE,
+            "min_document_tokens": 30,
+            "min_segment_tokens": 30,
+            "max_input_tokens": 1000,
+            "max_output_tokens": 600,
+            "postprocessing_pipeline_builder": build_knowledge_list_postprocessing_pipeline,
+            "generation_function": nemotron_cc.generate_knowledge_list,
+        },
+    }
 
     config = {
         "MIN_DOCUMENT_TOKENS": 30,
-        "MIN_SEGMENT_TOKENS": 30,
-        "MAX_INPUT_TOKENS": 1000,
-        "MAX_OUTPUT_TOKENS": 600,
+        "MIN_SEGMENT_TOKENS": 10,
+        "MAX_INPUT_TOKENS": 2000,
+        "MAX_OUTPUT_TOKENS": 1600,
         "TOP_K": 0,
         "TOP_P": 0.9,
         "END_STRINGS": "['</s>']",
         "TEMPERATURE": 0.5
     }
 
+    task_config = task_configs.get(task_type)
+    if not task_config:
+        raise ValueError(f"Invalid task type: {task_type}")
+
     preprocessing_pipeline = build_preprocessing_pipeline(
         tokenizer,
         text_field,
-        NEMOTRON_CC_SYSTEM_PROMPT,
-        KNOWLEDGE_LIST_PROMPT_TEMPLATE,
-        config["MIN_DOCUMENT_TOKENS"],
-        config["MIN_SEGMENT_TOKENS"],
-        config["MAX_INPUT_TOKENS"],
+        task_config["system_prompt"],
+        task_config["prompt_template"],
+        task_config["min_document_tokens"],
+        task_config["min_segment_tokens"],
+        task_config["max_input_tokens"],
     )
 
-    print("Running Knowledge list preprocessing pipeline")
+    print(f"Running {task_type} preprocessing pipeline")
     dataset = preprocessing_pipeline(dataset)
 
-    print("Taking out a small portion of the input dataset to save time.")
-    first_entries = dataset.df.head(n_entries)
-
+    pandas_df = dataset.df.compute()
+    
+    # Process with pandas
     rewritten_texts = []
-    for text in tqdm(first_entries[text_field], desc="Querying LLM.."):
-        llm_response = nemotron_cc.generate_knowledge_list(
+    for text in tqdm(pandas_df[text_field], desc=f"Querying LLM for {task_type}"):
+        llm_response = task_config["generation_function"](
             text,
             api_model_name,
             model_kwargs={
@@ -677,16 +539,22 @@ def knowledge_list(
             },
         )
         rewritten_texts.append(llm_response[0])
+    
+    # Assign new column in pandas
+    pandas_df[llm_response_field] = rewritten_texts
+    
+    # Convert back to Dask
+    rephrased_dataset = DocumentDataset.from_pandas(pandas_df)
 
-    first_entries[llm_response_field] = rewritten_texts
-
-    rephrased_dataset = DocumentDataset.from_pandas(first_entries)
-    print("Running Knowledge list postprocessing pipeline")
-    postprocessed_pipeline = build_knowledge_list_postprocessing_pipeline(
-        tokenizer, llm_response_field
-    )
+    
+    if task_type == "diverse_qa":
+        postprocessed_pipeline = task_config["postprocessing_pipeline_builder"](
+            tokenizer, text_field, llm_response_field
+        )
+    else:
+        postprocessed_pipeline = task_config["postprocessing_pipeline_builder"](
+            tokenizer, llm_response_field
+        )
     rephrased_dataset = postprocessed_pipeline(rephrased_dataset)
-    print("Knowledge list generation complete.")
-    print("Knowledge list results: ")
-    print("Merging results with original dataset.")
+    print(f"{task_type} generation complete.")
     return rephrased_dataset
