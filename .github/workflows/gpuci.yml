@@ -11,8 +11,7 @@ on:
       - "[rv][0-9].[0-9].[0-9]"
       - "[rv][0-9].[0-9].[0-9]rc[0-9]"
     # PR has to be labeled with "gpuCI" label
-    # If new commits are added, the "gpuCI" label has to be removed and re-added to rerun gpuCI
-    types: [labeled]
+    types: [labeled, synchronize]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -43,7 +42,6 @@ jobs:
     # Unit tests shouldn't take longer than 30minutes
     timeout-minutes: 30
     # "run-gpu-tests" job is run if the PR has the "gpuci" label or if the PR has been merged to main
-    # test
     if: contains(github.event.pull_request.labels.*.name, 'gpuci') || github.ref == 'refs/heads/main'
     env:
       DIR: ${{ github.run_id }}
