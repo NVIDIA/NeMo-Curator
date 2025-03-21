@@ -25,7 +25,7 @@ NeMo Curator provides several tools for PII identification and removal.
 
 The ``PiiModifier`` class utilizes the `Presidio <https://microsoft.github.io/presidio/>`_ library to identify and redact PII in text.
 `Dask <https://dask.org>`_ is used to parallelize tasks and hence it can be used to scale up to terabytes of data easily.
-Although Dask can be deployed on various distributed compute environments, such as HPC clusters, Kubernetes, and other cloud offerings 
+Although Dask can be deployed on various distributed compute environments, such as HPC clusters, Kubernetes, and other cloud offerings
 (such as Amazon EKS, Google Cloud, etc.), the current implementation only supports Dask on HPC clusters that use Slurm as the resource manager.
 
 The ``LLMPiiModifier`` and ``AsyncLLMPiiModifier`` classes utilize LLM models to identify PII in text.
@@ -57,6 +57,8 @@ You could read, de-identify the dataset, and write it to an output directory usi
     from nemo_curator.modules.modify import Modify
     from nemo_curator.modifiers.pii_modifier import PiiModifier
 
+    client = get_client(cluster_type="cpu")
+
     modifier = PiiModifier(
         language="en",
         supported_entities=["PERSON", "EMAIL_ADDRESS"],
@@ -66,7 +68,7 @@ You could read, de-identify the dataset, and write it to an output directory usi
     )
 
     for file_names in get_batched_files(
-        "book_dataset,
+        "book_dataset",
         "output_directory",
         "jsonl",
         32
@@ -83,14 +85,14 @@ You could read, de-identify the dataset, and write it to an output directory usi
             modified_dataset.df,
             "output_directory",
             write_to_filename=True,
-            output_type="jsonl"
+            output_type="jsonl",
         )
 
 Let's walk through this code line by line:
 
 * ``modifier = PiiModifier(...)`` creates an instance of ``PiiModifier`` class that is responsible for PII de-identification.
 * ``supported_entities=["PERSON", "EMAIL_ADDRESS"]`` specifies the PII entities that the ``PiiModifier`` will identify and redact. By default, the ``PiiModifier`` will identify and redact the following entities:
-:: 
+::
 
     [
         "ADDRESS",
@@ -145,6 +147,8 @@ After setting up a NIM endpoint, you can read, de-identify the dataset, and writ
     from nemo_curator.modules.modify import Modify
     from nemo_curator.modifiers.async_llm_pii_modifier import AsyncLLMPiiModifier
 
+    client = get_client(cluster_type="cpu")
+
     modifier = AsyncLLMPiiModifier(
         # Endpoint for the user's NIM
         base_url="http://0.0.0.0:8000/v1",
@@ -157,7 +161,7 @@ After setting up a NIM endpoint, you can read, de-identify the dataset, and writ
     )
 
     for file_names in get_batched_files(
-        "book_dataset,
+        "book_dataset",
         "output_directory",
         "jsonl",
         32
@@ -174,7 +178,7 @@ After setting up a NIM endpoint, you can read, de-identify the dataset, and writ
             modified_dataset.df,
             "output_directory",
             write_to_filename=True,
-            output_type="jsonl"
+            output_type="jsonl",
         )
 
 Let's walk through this code line by line:
