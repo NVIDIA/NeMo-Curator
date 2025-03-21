@@ -21,8 +21,8 @@ concurrency:
 jobs:
   # First, we build and push a NeMo-Curator container
   build-container:
-    # "build-container" job is run if the "gpuci" label is added to the PR
-    if: ${{ github.event.label.name == 'gpuci' || github.ref == 'refs/heads/main' }}
+    # "build-container" job is run if the PR has the "gpuci" label or if the PR has been merged to main
+    if: contains(github.event.pull_request.labels.*.name, 'gpuci') || github.ref == 'refs/heads/main'
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.18.0
     with:
       image-name: nemo_curator_container
@@ -42,8 +42,8 @@ jobs:
     runs-on: self-hosted-azure
     # Unit tests shouldn't take longer than 30minutes
     timeout-minutes: 30
-    # "run-gpu-tests" job is run if the "gpuci" label is added to the PR
-    if: ${{ github.event.label.name == 'gpuci' || github.ref == 'refs/heads/main' }}
+    # "run-gpu-tests" job is run if the PR has the "gpuci" label or if the PR has been merged to main
+    if: contains(github.event.pull_request.labels.*.name, 'gpuci') || github.ref == 'refs/heads/main'
     env:
       DIR: ${{ github.run_id }}
     steps:
