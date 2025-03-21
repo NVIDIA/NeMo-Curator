@@ -29,7 +29,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
-from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters, get_normalized_embedding_array, L2_DIST_TO_CENT_COL
+from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters, get_array_from_df, L2_DIST_TO_CENT_COL, normalize_embeddings_col_in_df
 
 
 # TODO : add cosine distance also while we are computing distance to centroids, will allow us for more flexibility in later stages
@@ -40,18 +40,10 @@ def add_l2_dist_to_cents(
     Computes the L2 distance to nearest centroid to each embedding in the dataframe.
     Both embeddings and centroids are normalized.
     """
-    print(df.head())
-    normalized_embeddings = get_normalized_embedding_array(df, embedding_col)
+    normalized_embeddings = get_array_from_df(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
-    print(normalized_embeddings)
-    print(centroids_ar)
-    print((normalized_embeddings - centroids_ar) ** 2)
-    print(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
-    print(cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1)))
     dist_to_cents = cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
-    print(dist_to_cents)
     df[L2_DIST_TO_CENT_COL] = dist_to_cents
-    print(df.head())
     return df
 
 
@@ -165,10 +157,14 @@ class ClusteringModel:
                 )
 
             embeddings_df = embeddings_df.to_backend("cudf")
-
-            # We normalize before clustering, this ensures all subsequent steps can rely on normalized embeddings
+            # Normalize embeddings before clustering
+            embeddings_df = embeddings_df.map_partitions(
+                normalize_embeddings_col_in_df,
+                embedding_col=self.embedding_column,
+                meta=embeddings_df._meta.copy()
+            )
             cupy_normalized_darr = embeddings_df.map_partitions(
-                get_normalized_embedding_array, 
+                get_array_from_df, 
                 self.embedding_column, 
                 meta=cp.ndarray([1, 1])
             )
@@ -195,13 +191,13 @@ class ClusteringModel:
             t0 = time.time()
             embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
             del nearest_cents
-            meta_df = embeddings_df._meta.copy()
-            meta_df[L2_DIST_TO_CENT_COL] = cp.zeros(1)
+            meta_df_with_l2_dist = embeddings_df._meta.copy()
+            meta_df_with_l2_dist[L2_DIST_TO_CENT_COL] = cp.zeros(1)
             embeddings_df = embeddings_df.map_partitions(
                 add_l2_dist_to_cents,
                 embedding_col=self.embedding_column,
                 centroids=kmeans.cluster_centers_,
-                meta=meta_df,
+                meta=meta_df_with_l2_dist,
             )
             embeddings_df = embeddings_df.reset_index(drop=True)
             centroids = kmeans.cluster_centers_
@@ -222,7 +218,7 @@ class ClusteringModel:
                 shutil.rmtree(clustering_output_dir)
 
             embeddings_df.to_parquet(
-                clustering_output_dir, index=False, partition_on="nearest_cent"
+                clustering_output_dir, index=False, partition_on="nearest_cent", write_index=False
             )
             self.logger.info(
                 f"Time taken for assigning distance to each embedding: {time.time() - t0}s"

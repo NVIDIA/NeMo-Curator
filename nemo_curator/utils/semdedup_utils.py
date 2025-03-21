@@ -30,18 +30,22 @@ from dask.distributed import progress
 import cupy as cp
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
-import pyarrow.parquet as pq
 
 L2_DIST_TO_CENT_COL = "l2_dist_to_cent"
 COSINE_DIST_TO_CENT_COL = "cosine_dist_to_cent"
 
 
-def get_normalized_embedding_array(
+def normalize_embeddings_col_in_df(df: cudf.DataFrame, embedding_col: str) -> cudf.DataFrame:
+    tensor = torch.Tensor(get_array_from_df(df, embedding_col))
+    normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
+    df[embedding_col] = normalized_tensor.tolist()
+    return df
+    
+
+def get_array_from_df(
     df: cudf.DataFrame, embedding_col: str
 ) -> cp.ndarray:
-    tensor = torch.Tensor(df[embedding_col].list.leaves.values.reshape(len(df), -1))
-    normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
-    return cp.asarray(normalized_tensor)
+    return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
 def assign_and_sort_clusters(
@@ -149,17 +153,18 @@ def rank_within_cluster(
         cluster_df = cudf.read_parquet(cluster_c_path, columns=[id_col, embedding_col])
 
         embeds = torch.as_tensor(
-            cluster_df[embedding_col].list.leaves.values.reshape(
-                cluster_df.shape[0], -1
-            ),
+            get_array_from_df(cluster_df, embedding_col),
             device="cuda",
         )
         cluster_df = cluster_df.to_pandas()
 
         if sim_metric == "cosine":
             cluster_c_centroid = torch.as_tensor(centroids[cluster_c], device="cuda")
+            # TODO because emebds are already normalized we can just use the dot product after normalizing the centroid
             sim_to_cent = torch.nn.CosineSimilarity(dim=1)(embeds, cluster_c_centroid)
+            # cosine_similarity increases as the similarity increases
             sim_to_cent = sim_to_cent.cpu().numpy()
+            # distance increases as the similarity decreases
             cluster_dists_to_cent = (1 - sim_to_cent).tolist()
         elif sim_metric == "l2":
             # Used when kmeans_with_cos_dist is True
@@ -167,13 +172,15 @@ def rank_within_cluster(
 
         cluster_label = np.full((len(cluster_df)), cluster_c).tolist()
         example_id = list(cluster_df[id_col])
-        sort_descending = keep_hard
+
+        # when keep_hard is True, most dissimilar items first, those with highest distance to the centroid
+        # when keep_hard is False, most similar items first, those with lowest distance to the centroid
         cluster_sorted = sorted(
             zip(example_id, cluster_dists_to_cent, cluster_label),
-            key=lambda x: x[1],
-            reverse=sort_descending,
-        )  # -- sort_descending = True for descending sort
-
+            key=lambda x: (x[1], x[0]),
+            reverse=keep_hard,
+        )
+        
         sorted_cluster_file_path = os.path.join(
             output_sorted_clusters_dir, f"cluster_{cluster_c}.npy"
         )
@@ -234,7 +241,7 @@ def pairwise_cosine_similarity_batched(
     return max_similarity.cpu(), max_indices.cpu().numpy().tolist()
 
 
-def read_cluster_reps_and_sort_by_id(
+def read_cluster_embeddings_and_sort_by_id(
     cluster_id: int,
     emb_by_clust_dir: str,
     id_col: str,
@@ -257,9 +264,27 @@ def read_cluster_reps_and_sort_by_id(
         cluster_reps[embedding_col].list.leaves.values.reshape(len(cluster_reps), -1),
         device="cuda",
     )
-    # Normalize embeddings
     return cluster_reps
 
+def get_ids_within_cluster(
+    cluster_id: int,
+    sorted_clusters_dir: str,
+    id_col_type: str,
+    which_to_keep: Literal["hard", "random", "easy"],
+) -> Optional[np.ndarray]:
+    sorted_file = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
+    if not os.path.exists(sorted_file):
+        logging.info(f"{sorted_file} does not exist. Continue")
+        return
+    
+    cluster_i = np.load(sorted_file)
+    cluster_size = cluster_i.shape[0]
+    cluster_items_indices = list(range(cluster_size))
+    which_to_keep = which_to_keep.lower()
+    if which_to_keep == "random":
+        random.shuffle(cluster_items_indices)
+        cluster_i = cluster_i[cluster_items_indices]
+    return cluster_i[:, 0].astype(id_col_type)
 
 def get_semantic_matches_per_cluster(
     cluster_id: int,
@@ -274,18 +299,11 @@ def get_semantic_matches_per_cluster(
     batched_cosine_similarity: int = 1024,
 ) -> None:
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
-
-    sorted_file = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
-    if not os.path.exists(sorted_file):
-        logging.info(f"{sorted_file} does not exist. Continue")
+    ids = get_ids_within_cluster(cluster_id, sorted_clusters_dir, id_col_type, which_to_keep)
+    if ids is None:
         return
-
-    cluster_i = np.load(sorted_file)
-    cluster_size = cluster_i.shape[0]
-    logging.info(f"{cluster_id}: cluster_size: {cluster_size}")
-
     # Handle edge case where cluster is a singleton
-    if cluster_size == 1:
+    if len(ids) == 1:
         points_to_remove_df = pd.DataFrame()
         points_to_remove_df["indices"] = [0]
         for eps in eps_list:
@@ -293,19 +311,7 @@ def get_semantic_matches_per_cluster(
         points_to_remove_df.to_parquet(output_df_file_path)
         return
 
-    # TODO move this logic to get_cluster_reps
-    clutser_items_indices = list(range(cluster_size))
-    which_to_keep = which_to_keep.lower()
-    if which_to_keep == "random":
-        random.shuffle(clutser_items_indices)
-        cluster_i = cluster_i[clutser_items_indices]
-    elif which_to_keep == "easy":
-        clutser_items_indices = clutser_items_indices[::-1]
-        cluster_i = cluster_i[::-1]
-
-    ids = cluster_i[:, 0].astype(id_col_type)
-
-    cluster_reps = read_cluster_reps_and_sort_by_id(
+    cluster_reps = read_cluster_embeddings_and_sort_by_id(
         cluster_id, emb_by_clust_dir, id_col, embedding_col, sorted_ids=ids
     )
     if batched_cosine_similarity > 0:
@@ -319,11 +325,12 @@ def get_semantic_matches_per_cluster(
 
     points_to_remove_df = cudf.DataFrame()
     # TODO we can remove this column indixes
-    points_to_remove_df["indices"] = clutser_items_indices
+    points_to_remove_df["indices"] = list(range(len(ids)))
     points_to_remove_df["id"] = ids
     points_to_remove_df["max_id"] = max_indices_id
     points_to_remove_df["cosine_sim_score"] = max_similarity.numpy().tolist()
 
+    # TODO : what's the benefit of having this as a column?
     for eps in eps_list:
         eps_points_to_remove = max_similarity > 1 - eps
         points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
