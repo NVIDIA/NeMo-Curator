@@ -344,6 +344,33 @@ class TestSemDedupUtils:
         )
         assert max_indices == max_indices_batched
 
+    @pytest.mark.parametrize("which_to_keep", ["hard", "easy"])
+    def test_pairwise_similarity_and_which_to_keep(self, which_to_keep: Literal["hard", "easy"]):
+        self.centroid = self.input_embeddings[:1]
+        # Step 1) Simulate rank_within_cluster
+        cosine_similarity = torch.nn.CosineSimilarity(dim=1)(self.input_embeddings, self.centroid)
+
+        # Step 2) Simulate get_ids_within_cluster
+        if which_to_keep == "hard":
+            # When hard then we write dissimilar items first, and in case of ties we write the items with the highest id first
+            indices = torch.argsort(cosine_similarity, descending=True)
+        else:
+            # When easy then we write similar items first, and in case of ties we write the items with the lowest id first
+            indices = torch.argsort(cosine_similarity, descending=False)
+
+        # Step 3) Simulate read_cluster_embeddings_and_sort_by_id
+        sorted_embeddings = self.input_embeddings[indices]
+
+        # Step 4) Call pairwise similarity on it and assert it matches our expected output
+        max_similarity, max_indices = pairwise_cosine_similarity(sorted_embeddings, "cuda")
+        print(f"{which_to_keep=}")
+        print(f"{cosine_similarity=}")
+        print(f"max_similarity: {max_similarity=}")
+        print(f"max_indices: {max_indices=}")
+
+        # TODO check this test
+        raise ValueError("Not implemented")
+    
     @pytest.mark.parametrize("keep_hard", [True, False])
     def test_rank_within_cluster(self, keep_hard: bool):
         # Create a temporary directory for output
