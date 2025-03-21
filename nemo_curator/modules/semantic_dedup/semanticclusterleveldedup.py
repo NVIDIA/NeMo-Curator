@@ -171,6 +171,7 @@ class SemanticClusterLevelDedup:
             raise ValueError(
                 "Run compute_semantic_match_dfs before calling extract_dedup_data"
             )
+        assert isinstance(eps_to_extract, float), "eps_to_extract must be a float"
 
         output_summary_file = os.path.join(
             self.output_dir, f"dedup_summary_{eps_to_extract}.csv"
