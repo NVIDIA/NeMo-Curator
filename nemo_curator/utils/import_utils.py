@@ -305,15 +305,13 @@ def safe_import_from(module, symbol, *, msg=None, alt=None):
         return getattr(imported_module, symbol)
     except ImportError:
         exception_text = traceback.format_exc()
-        print(f"Import of {module} failed with: {exception_text}")
+        logger.debug(f"Import of {module} failed with: {exception_text}")
     except AttributeError:
         exception_text = traceback.format_exc()
-        print(f"Import of {symbol} from {module} failed with: {exception_text}")
+        logger.info(f"Import of {symbol} from {module} failed with: {exception_text}")
     except Exception:
         exception_text = traceback.format_exc()
-        print(f"Import of {symbol} from {module} failed with: {exception_text}")
         raise
-    print("HEREHERHERHE ")
     if msg is None:
         msg = f"{module}.{symbol} could not be imported"
     if alt is None:
@@ -345,7 +343,7 @@ def gpu_only_import(module, *, alt=None):
         The imported module, the given alternate, or a class derived from
         UnavailableMeta.
     """
-    print("HERE 1")
+
     return safe_import(
         module,
         msg=f"{module} is not enabled in non GPU-enabled installations or environments. {GPU_INSTALL_STRING}",
