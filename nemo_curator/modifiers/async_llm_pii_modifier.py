@@ -103,6 +103,7 @@ class AsyncLLMPiiModifier(DocumentModifier):
         system_prompt=SYSTEM_PROMPT,
         pii_labels=PII_LABELS,
         language="en",
+        max_concurrent_requests=10,
     )
 
     modify = Modify(modifier)
