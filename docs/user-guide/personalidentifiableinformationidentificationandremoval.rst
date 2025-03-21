@@ -90,7 +90,23 @@ Let's walk through this code line by line:
 
 * ``modifier = PiiModifier(...)`` creates an instance of ``PiiModifier`` class that is responsible for PII de-identification.
 * ``supported_entities=["PERSON", "EMAIL_ADDRESS"]`` specifies the PII entities that the ``PiiModifier`` will identify and redact. By default, the ``PiiModifier`` will identify and redact the following entities:
-``["ADDRESS", "CREDIT_CARD", "EMAIL_ADDRESS", "DATE_TIME", "IP_ADDRESS", "LOCATION", "PERSON", "URL", "US_SSN", "US_PASSPORT", "US_DRIVER_LICENSE", "PHONE_NUMBER"]``
+:: 
+
+    [
+        "ADDRESS",
+        "CREDIT_CARD",
+        "EMAIL_ADDRESS",
+        "DATE_TIME",
+        "IP_ADDRESS",
+        "LOCATION",
+        "PERSON",
+        "URL",
+        "US_SSN",
+        "US_PASSPORT",
+        "US_DRIVER_LICENSE",
+        "PHONE_NUMBER",
+    ]
+
 * ``for file_names in get_batched_files`` retrieves a batch of 32 documents from the ``book_dataset`` directory.
 * ``source_data = read_data(...)`` reads the data from all the files using Dask using Pandas as the backend. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
 * ``dataset = DocumentDataset(source_data)``  creates an instance of ``DocumentDataset`` using the batch files. ``DocumentDataset`` is the standard format for text datasets in NeMo Curator.
@@ -165,7 +181,43 @@ Let's walk through this code line by line:
 
 * ``modifier = AsyncLLMPiiModifier(...)`` creates an instance of ``AsyncLLMPiiModifier`` class that is responsible for PII de-identification.
 * ``pii_labels=["name", "email"]`` specifies the PII entities that the ``AsyncLLMPiiModifier`` will identify and redact. By default, the ``AsyncLLMPiiModifier`` will identify and redact the following entities:
-``["medical_record_number", "location", "address", "ssn", "date_of_birth", "date_time", "name", "email", "customer_id", "employee_id", "phone_number", "ip_address", "credit_card_number", "user_name", "device_identifier", "bank_routing_number", "company_name", "unique_identifier", "biometric_identifier", "account_number", "certificate_license_number", "license_plate", "vehicle_identifier", "api_key", "password", "health_plan_beneficiary_number", "national_id", "tax_id", "url", "swift_bic", "cvv", "pin"]``
+::
+
+    [
+        "medical_record_number",
+        "location",
+        "address",
+        "ssn",
+        "date_of_birth",
+        "date_time",
+        "name",
+        "email",
+        "customer_id",
+        "employee_id",
+        "phone_number",
+        "ip_address",
+        "credit_card_number",
+        "user_name",
+        "device_identifier",
+        "bank_routing_number",
+        "company_name",
+        "unique_identifier",
+        "biometric_identifier",
+        "account_number",
+        "certificate_license_number",
+        "license_plate",
+        "vehicle_identifier",
+        "api_key",
+        "password",
+        "health_plan_beneficiary_number",
+        "national_id",
+        "tax_id",
+        "url",
+        "swift_bic",
+        "cvv",
+        "pin",
+    ]
+
 * We recommend setting ``max_concurrent_requests=10`` to avoid overwhelming the NIM endpoint. However, the user can set this to a higher or lower value depending on their use case.
 * ``for file_names in get_batched_files`` retrieves a batch of 32 documents from the ``book_dataset`` directory.
 * ``source_data = read_data(...)`` reads the data from all the files using Dask using Pandas as the backend. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
@@ -204,7 +256,7 @@ The ``LLMPiiModifier`` module can be invoked via the ``nemo_curator/scripts/llm_
 ``llm_pii_redaction --help``
 
 ############################
-Resuming from Interruptions
+Resuming from interruptions
 ############################
 
 It can be helpful to track which documents in a dataset have already been processed so that long curation jobs can be resumed if they are interrupted.
