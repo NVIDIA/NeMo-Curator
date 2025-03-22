@@ -40,7 +40,7 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 
-MaybeToTensor = gpu_only_import("timm.data.transforms", "MaybeToTensor")
+MaybeToTensor = gpu_only_import_from("timm.data.transforms", "MaybeToTensor")
 ImageTextPairDataset = gpu_only_import_from(
     "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
 )
