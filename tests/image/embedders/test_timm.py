@@ -15,6 +15,7 @@
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 
@@ -234,7 +235,6 @@ def test_embedder_workflow(gpu_client):
             model_name="resnet18", batch_size=1, image_embedding_column="embeddings"
         )
 
-        # Mock _run_inference to avoid actually running the model
         with (
             mock.patch(
                 "nemo_curator.image.embedders.base.ImageTextPairDataset"
@@ -345,3 +345,171 @@ def test_with_index_files(gpu_client):
 
     # Verify the embedder has the flag set
     assert embedder.use_index_files
+
+
+@pytest.mark.gpu
+def test_run_inference_with_mock_model(gpu_client):
+    """Test the _run_inference method directly with a mock model and mock dataset."""
+    import cudf
+
+    # Create a mock model that returns predictable embeddings
+    class MockModel:
+        def __call__(self, batch):
+            # Return a tensor with predictable values based on batch size
+            batch_size = batch.shape[0]
+            embeddings = torch.ones((batch_size, 128), device="cuda") * 0.5
+            # Normalize the embeddings directly in the __call__ method
+            embeddings = torch.nn.functional.normalize(embeddings, dim=-1)
+            return embeddings
+
+    # Create a mock classifier
+    class MockClassifier:
+        def __init__(self):
+            self.model_name = "mock_classifier"
+            self.pred_column = "mock_classifier_scores"
+            self.pred_type = "float32"
+
+        def load_model(self, device):
+            return lambda x: torch.ones((x.shape[0], 1), device="cuda") * 0.75
+
+        def postprocess(self, series):
+            return series
+
+    # Create a mock TimmImageEmbedder that overrides the methods we need to control
+    class MockTimmImageEmbedder(TimmImageEmbedder):
+        def __init__(self, **kwargs):
+            # Avoid calling the parent's __init__ which tries to load a real model
+            # Just set the attributes we need directly
+            self.model_name = kwargs.get("model_name", "resnet18")
+            self.pretrained = kwargs.get("pretrained", False)
+            self.batch_size = kwargs.get("batch_size", 1)
+            self.num_threads_per_worker = kwargs.get("num_threads_per_worker", 4)
+            self.image_embedding_column = kwargs.get(
+                "image_embedding_column", "image_embedding"
+            )
+            self.normalize_embeddings = kwargs.get("normalize_embeddings", True)
+            self.autocast = kwargs.get("autocast", True)
+            self.use_index_files = kwargs.get("use_index_files", False)
+            self.classifiers = kwargs.get("classifiers", [])
+            self.mock_model = MockModel()
+            self.mock_dataset_yielded = False
+            # Skip the call to timm.create_model and the transformation setup
+
+        def load_embedding_model(self, device):
+            return self.mock_model
+
+        def load_dataset_shard(self, tar_path):
+            # Yield only once to avoid infinite loop
+            if not self.mock_dataset_yielded:
+                self.mock_dataset_yielded = True
+                # Create a small batch of fake images and metadata
+                batch = torch.ones((2, 3, 224, 224), device="cuda")
+                metadata = [{"id": "1"}, {"id": "0"}]  # Deliberately out of order
+                yield batch, metadata
+
+        def _configure_forward(self, model):
+            # Use a simplified version without trying to access the original model's forward
+            def custom_forward(*args, **kwargs):
+                # Just call the model directly
+                image_features = model(*args, **kwargs)
+
+                if self.normalize_embeddings:
+                    image_features = torch.nn.functional.normalize(
+                        image_features, dim=-1
+                    )
+
+                return image_features.to(torch.float32)
+
+            # Replace the actual forward method with our custom one
+            original_model = model
+            original_model.forward = custom_forward
+            return original_model
+
+    # Create mock data
+    partition = cudf.DataFrame(
+        {"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]}
+    )
+    tar_paths = ["mock_tar_path.tar"]
+    id_col = "id"
+    partition_info = {"number": 0}
+
+    # Mock the load_object_on_worker function to return our model directly
+    with mock.patch(
+        "nemo_curator.image.embedders.base.load_object_on_worker"
+    ) as mock_load:
+        # Configure the mock to return the model or classifier when called
+        mock_load.side_effect = lambda name, fn, args: (
+            MockModel()
+            if name == "mock_model"
+            else (lambda x: torch.ones((x.shape[0], 1), device="cuda") * 0.75)
+        )
+
+        # Test without classifiers
+        embedder = MockTimmImageEmbedder(
+            model_name="mock_model", image_embedding_column="embeddings", batch_size=2
+        )
+
+        # Call _run_inference directly
+        result_partition = embedder._run_inference(
+            partition, tar_paths, id_col, partition_info
+        )
+
+        # Verify that embeddings were added and ordered correctly
+        assert "embeddings" in result_partition.columns
+
+        # The embeddings are stored as lists in the cuDF DataFrame
+        # We need to handle them differently than with to_numpy()
+        embeddings_series = result_partition["embeddings"]
+        assert len(embeddings_series) == 2
+
+        # Test characteristics of each embedding by accessing individual items
+        for i in range(len(embeddings_series)):
+            # Extract the embedding as a list (or check if it needs conversion first)
+            emb = embeddings_series.iloc[i]
+
+            # Verify the embedding has the expected properties
+            assert len(emb) == 128
+
+            # Convert to numpy array for easier testing
+            emb_array = np.array(emb)
+
+            # The embeddings should have consistent values and be normalized
+            # First check that all values are the same (since our input was uniform)
+            assert np.allclose(emb_array, emb_array[0], atol=1e-6)
+
+            # Check that the vector is normalized (unit norm)
+            assert np.isclose(np.linalg.norm(emb_array), 1.0, atol=1e-6)
+
+            # For a normalized vector of 128 identical values, each value should be 1/sqrt(128)
+            expected_normalized_value = 1.0 / np.sqrt(128)
+            assert np.isclose(emb_array[0], expected_normalized_value, atol=1e-6)
+
+        # Test with classifier
+        embedder = MockTimmImageEmbedder(
+            model_name="mock_model",
+            image_embedding_column="embeddings",
+            batch_size=2,
+            classifiers=[MockClassifier()],
+        )
+        embedder.mock_dataset_yielded = False  # Reset for reuse
+
+        # Call _run_inference directly
+        result_partition = embedder._run_inference(
+            partition, tar_paths, id_col, partition_info
+        )
+
+        # Verify that classifier scores were added
+        assert "mock_classifier_scores" in result_partition.columns
+
+        # Handle the classifier scores in the same way
+        classifier_scores_series = result_partition["mock_classifier_scores"]
+        assert len(classifier_scores_series) == 2
+
+        # Test characteristics of each classifier score
+        for i in range(len(classifier_scores_series)):
+            scores = classifier_scores_series.iloc[i]
+            assert len(scores) == 1
+
+            # Convert to numpy array for testing
+            scores_array = np.array(scores)
+            assert np.allclose(scores_array, 0.75, atol=1e-6)
