@@ -26,13 +26,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
-from torchvision.transforms.transforms import (
-    CenterCrop,
-    Compose,
-    InterpolationMode,
-    Normalize,
-    Resize,
-)
+from fsspec.core import open_files
 
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
@@ -41,6 +35,14 @@ cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 
 MaybeToTensor = gpu_only_import_from("timm.data.transforms", "MaybeToTensor")
+CenterCrop = gpu_only_import_from("torchvision.transforms.transforms", "CenterCrop")
+Compose = gpu_only_import_from("torchvision.transforms.transforms", "Compose")
+InterpolationMode = gpu_only_import_from(
+    "torchvision.transforms.transforms", "InterpolationMode"
+)
+Normalize = gpu_only_import_from("torchvision.transforms.transforms", "Normalize")
+Resize = gpu_only_import_from("torchvision.transforms.transforms", "Resize")
+
 ImageTextPairDataset = gpu_only_import_from(
     "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
 )
@@ -654,7 +656,7 @@ class TestImageTextPairDatasetConversion:
 
     @pytest.mark.gpu
     def test_to_webdataset_mock(self, temp_dataset_dir):
-        """Test to_webdataset method using mocks to control all IO operations."""
+        """Test to_webdataset method using mocks to control file I/O but real sample extraction logic."""
         # Create a sample dataset
         metadata = cudf.DataFrame(
             {
@@ -667,56 +669,43 @@ class TestImageTextPairDatasetConversion:
         # Convert to Dask-cuDF DataFrame to support name_function parameter
         dask_metadata = dask_cudf.from_cudf(metadata, npartitions=1)
 
-        tar_files = [os.path.join(temp_dataset_dir, "00000.tar")]
-        dataset = ImageTextPairDataset(temp_dataset_dir, dask_metadata, tar_files, "id")
+        # Create a real temporary tar file instead of just mocking it
+        tar_path = os.path.join(temp_dataset_dir, "00000.tar")
+        with tarfile.open(tar_path, "w") as tar:
+            for sample_id in range(3):  # For each sample ID (0, 1, 2)
+                # Create sample files (jpg, txt, json) for this ID
+                for ext, content_type in [
+                    ("jpg", "image"),
+                    ("txt", "text"),
+                    ("json", "json"),
+                ]:
+                    filename = f"{sample_id:06d}.{ext}"
+                    content = create_mock_tar_content(filename, content_type)
 
-        # Create mock tar files and Parquet files
+                    # Create a TarInfo object
+                    info = tarfile.TarInfo(filename)
+                    info.size = len(content)
+
+                    # Add the file to the tar
+                    tar.addfile(info, io.BytesIO(content))
+
+        # Set up the output directory
         output_dir = os.path.join(temp_dataset_dir, "output")
         os.makedirs(output_dir, exist_ok=True)
 
-        # Create and write a temp parquet file
-        metadata.to_pandas().to_parquet(
-            os.path.join(temp_dataset_dir, "temp_00000.parquet")
+        # Create temp parquet file that to_webdataset will read
+        filtered_metadata = metadata[metadata["filter_col"]].reset_index(drop=True)
+        filtered_metadata.to_pandas().to_parquet(
+            os.path.join(output_dir, "temp_00000.parquet")
         )
 
-        # Mock the file contents
-        mock_members = [
-            MockTarFileInfo("000000.jpg"),
-            MockTarFileInfo("000000.txt"),
-            MockTarFileInfo("000000.json"),
-            MockTarFileInfo("000001.jpg"),
-            MockTarFileInfo("000001.txt"),
-            MockTarFileInfo("000001.json"),
-            MockTarFileInfo("000002.jpg"),
-            MockTarFileInfo("000002.txt"),
-            MockTarFileInfo("000002.json"),
-        ]
+        # Create the dataset
+        dataset = ImageTextPairDataset(
+            temp_dataset_dir, dask_metadata, [tar_path], "id"
+        )
 
-        # Mock internal methods
-        with (
-            mock.patch.object(
-                ImageTextPairDataset, "_get_eligible_samples"
-            ) as mock_get_eligible_samples,
-            mock.patch("tarfile.open", autospec=True) as mock_tarfile_open,
-            mock.patch("fsspec.open", autospec=True) as mock_fsspec_open,
-        ):
-            # Mock the tarfile
-            mock_tar = mock.MagicMock()
-            mock_tar.getmembers.return_value = mock_members
-
-            # Set up extractfile to return different content based on extension
-            def mock_extractfile(member):
-                ext = member.name.split(".")[-1]
-                content_type = {"jpg": "image", "txt": "text", "json": "json"}[ext]
-                mock_file = mock.MagicMock()
-                mock_file.read.return_value = create_mock_tar_content(
-                    member.name, content_type
-                )
-                return mock_file
-
-            mock_tar.extractfile = mock_extractfile
-            mock_tarfile_open.return_value = mock_tar
-
+        # Mock fsspec.open to handle file operations without actually writing to disk
+        with mock.patch("fsspec.open", autospec=True) as mock_fsspec_open:
             # Mock the filesystem opening with a proper file-like object
             class MockFileContext:
                 def __init__(self, path, mode):
@@ -724,73 +713,103 @@ class TestImageTextPairDatasetConversion:
                     self.mode = mode
                     self.buffer = io.BytesIO()
 
+                    # For handling parquet file delete operation
+                    self.fs = mock.MagicMock()
+                    self.fs.delete = mock.MagicMock(side_effect=self._handle_delete)
+
+                def _handle_delete(self, path):
+                    # If it's a temp parquet file, actually delete it to prevent it from being found in next iteration
+                    if os.path.exists(path) and "temp_" in path:
+                        os.remove(path)
+
                 def __enter__(self):
                     return self.buffer
 
                 def __exit__(self, exc_type, exc_val, exc_tb):
                     pass
 
-            mock_fsspec_open.side_effect = lambda path, mode, **kwargs: MockFileContext(
-                path, mode
-            )
+            # Create a custom side effect that handles the file operations
+            # but preserves the temp_00000.parquet file
+            original_open_files = open_files
 
-            # Mock the eligible samples generator
-            filtered_df = (
-                metadata[metadata["filter_col"]].reset_index(drop=True).to_pandas()
-            )
-            mock_get_eligible_samples.return_value = [
-                (
-                    filtered_df,
-                    # Return tar entries for the two samples that pass the filter
-                    [
-                        (
-                            mock_members[0],
-                            create_mock_tar_content("000000.jpg", "image"),
-                        ),
-                        (
-                            mock_members[1],
-                            create_mock_tar_content("000000.txt", "text"),
-                        ),
-                        (
-                            mock_members[2],
-                            create_mock_tar_content("000000.json", "json"),
-                        ),
-                        (
-                            mock_members[3],
-                            create_mock_tar_content("000001.jpg", "image"),
-                        ),
-                        (
-                            mock_members[4],
-                            create_mock_tar_content("000001.txt", "text"),
-                        ),
-                        (
-                            mock_members[5],
-                            create_mock_tar_content("000001.json", "json"),
-                        ),
-                    ],
+            def mock_open_side_effect(path, mode="rb", **kwargs):
+                # For deleting files, provide a mock with delete method
+                if "temp_" in path and "w" in mode:
+                    mock_file = MockFileContext(path, mode)
+                    return mock_file
+
+                # For output files (creating new tar/parquet), use a mock
+                if "/output/" in path and "w" in mode:
+                    mock_file = MockFileContext(path, mode)
+                    return mock_file
+
+                # For all other cases, use the real file handling
+                return open(path, mode)
+
+            mock_fsspec_open.side_effect = mock_open_side_effect
+
+            # Patch open_files to ensure it finds our temp parquet file
+            with mock.patch(
+                "nemo_curator.datasets.image_text_pair_dataset.open_files"
+            ) as mock_open_files:
+
+                def custom_open_files(path_glob):
+                    if "temp_*.parquet" in path_glob:
+                        # Return a list with our real parquet file
+                        mock_file = mock.MagicMock()
+                        mock_file.path = os.path.join(output_dir, "temp_00000.parquet")
+
+                        # Check if file exists - after first iteration it will be deleted
+                        if os.path.exists(mock_file.path):
+                            mock_file.__enter__ = lambda self: open(self.path, "rb")
+                            mock_file.__exit__ = lambda self, *args: None
+                            mock_file.fs = mock.MagicMock()
+                            mock_file.fs.delete = mock.MagicMock(
+                                side_effect=lambda path: (
+                                    os.remove(path)
+                                    if "temp_" in path and os.path.exists(path)
+                                    else None
+                                )
+                            )
+                            return [mock_file]
+                        else:
+                            # Return empty list if file doesn't exist anymore
+                            return []
+                    elif "*.tar" in path_glob:
+                        # Return a list with our real tar file
+                        mock_file = mock.MagicMock()
+                        mock_file.path = tar_path
+                        mock_file.__enter__ = lambda self: open(self.path, "rb")
+                        mock_file.__exit__ = lambda self, *args: None
+                        return [mock_file]
+                    else:
+                        # Return actual results for other globs
+                        return original_open_files(path_glob)
+
+                mock_open_files.side_effect = custom_open_files
+
+                # Call to_webdataset with actual _get_eligible_samples implementation
+                dataset.to_webdataset(
+                    output_dir,
+                    filter_column="filter_col",
+                    samples_per_shard=2,
+                    old_id_col="original_id",
                 )
-            ]
 
-            # Call to_webdataset
-            dataset.to_webdataset(
-                output_dir,
-                filter_column="filter_col",
-                samples_per_shard=2,
-                old_id_col="original_id",
-            )
+                # Verify the results
+                # Check that fsspec.open was called for the output files
+                assert (
+                    mock_fsspec_open.call_count >= 2
+                )  # At least once for parquet and once for tar
 
-            # Verify the results
-            # Check that fsspec.open was called for the output files
-            assert (
-                mock_fsspec_open.call_count >= 2
-            )  # At least once for parquet and once for tar
+                # Verify tarfile operations were properly handled
+                assert (
+                    mock_open_files.call_count >= 2
+                )  # Called for both tar and parquet globs
 
-            # Verify tarfile operations
-            mock_tarfile_open.assert_called()
-            mock_tar.addfile.assert_called()
-
-            # Check number of calls to addfile (should be 6 for 2 samples * 3 files per sample)
-            assert mock_tar.addfile.call_count >= 6
+                # Verify that the temp file was properly handled
+                temp_file_path = os.path.join(output_dir, "temp_00000.parquet")
+                assert not os.path.exists(temp_file_path), "Temp file should be deleted"
 
     @pytest.mark.gpu
     def test_to_webdataset_integration(self, sample_data_path, temp_dataset_dir):

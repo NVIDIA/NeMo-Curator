@@ -198,8 +198,9 @@ class ImageTextPairDataset:
                     samples_per_shard * entries_per_sample :
                 ]
 
-        # Return the remaining df and samples
-        yield curr_df, total_tar_samples
+        # Return the remaining df and samples if it's not empty
+        if len(curr_df) > 0:
+            yield curr_df, total_tar_samples
 
     @staticmethod
     def _combine_id(shard_id, sample_id, max_shards=5, max_samples_per_shard=4) -> str:
