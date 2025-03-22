@@ -236,7 +236,6 @@ def test_embedder_workflow(gpu_client):
 
         # Mock _run_inference to avoid actually running the model
         with (
-            mock.patch.object(embedder, "_run_inference") as mock_run_inference,
             mock.patch(
                 "nemo_curator.image.embedders.base.ImageTextPairDataset"
             ) as mock_dataset_class,
