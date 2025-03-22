@@ -16,14 +16,16 @@ import os
 from pathlib import Path
 from unittest import mock
 
-import cudf
 import numpy as np
 import pytest
 import torch
 
-from nemo_curator.utils.import_utils import gpu_only_import_from
+from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 # These imports should only work on GPU systems
+cudf = gpu_only_import("cudf")
+cp = gpu_only_import("cupy")
+
 AestheticClassifier = gpu_only_import_from(
     "nemo_curator.image.classifiers.aesthetic", "AestheticClassifier"
 )
@@ -33,6 +35,9 @@ ImageTextPairDataset = gpu_only_import_from(
 )
 TimmImageEmbedder = gpu_only_import_from(
     "nemo_curator.image.embedders.timm", "TimmImageEmbedder"
+)
+create_list_series_from_1d_or_2d_ar = gpu_only_import_from(
+    "crossfit.backend.cudf.series", "create_list_series_from_1d_or_2d_ar"
 )
 
 
@@ -149,7 +154,7 @@ def test_load_model(gpu_client):
 # Test _configure_forward method
 @pytest.mark.gpu
 def test_configure_forward(gpu_client):
-    """Test that the _configure_forward method correctly modifies the forward method."""
+    """Test that the _configure_forward method appropriately wraps the model's forward method."""
     classifier = AestheticClassifier()
 
     # Create a mock model with a forward method
@@ -163,7 +168,7 @@ def test_configure_forward(gpu_client):
             self.forward_called = True
             self.forward_args = args
             self.forward_kwargs = kwargs
-            # Return a tensor with a single dimension (shape [batch_size, 1])
+            # Return a tensor to simulate model output
             return torch.ones((2, 1), device="cuda")
 
     mock_model = MockModel()
@@ -178,8 +183,9 @@ def test_configure_forward(gpu_client):
     # Check that the original forward was called
     assert mock_model.forward_called
 
-    # Check that the output has the expected shape (should be squeezed to [batch_size])
-    assert output.shape == (2,)  # Squeezed from [2, 1] to [2]
+    # Check that output has the expected shape
+    assert output.shape == (2,)
+    assert output.dtype == torch.float32
 
 
 # Test postprocess method
@@ -311,3 +317,196 @@ def test_postprocess_with_real_data(gpu_client):
     except (ImportError, AttributeError):
         # Skip this test if running without GPU or required libraries
         pytest.skip("This test requires cuDF and related GPU libraries")
+
+
+@pytest.mark.gpu
+def test_run_inference_with_mock_model(gpu_client):
+    """Test the _run_inference method directly with a mock model."""
+
+    # Create a mock model that returns predictable scores
+    class MockModel:
+        def __call__(self, embeddings):
+            # Return a tensor with predictable values
+            batch_size = embeddings.shape[0]
+            scores = torch.ones((batch_size, 1), device="cuda") * 0.75
+            # Keep the dimension when batch_size=1 by using squeeze(1) instead of squeeze()
+            return scores.squeeze(1)
+
+    # Create a mock AestheticClassifier that overrides methods we need to control
+    class MockAestheticClassifier(AestheticClassifier):
+        def __init__(self, **kwargs):
+            # Only set the attributes we need for the test
+            self.model_name = "mock_aesthetic_classifier"
+            self.embedding_column = kwargs.get("embedding_column", "image_embedding")
+            self.pred_column = kwargs.get("pred_column", "aesthetic_score")
+            self.pred_type = float
+            self.batch_size = kwargs.get("batch_size", -1)
+            self.embedding_size = 768
+            # Avoid downloading the actual model
+            self.model_path = "mock_model_path"
+            self.mock_model = MockModel()
+
+        def load_model(self, device):
+            return self.mock_model
+
+        def _get_default_model(self):
+            return "mock_model_path"
+
+    # Create mock data
+    # Create a 2x768 array of image embeddings (2 samples with 768-dimensional embeddings)
+    embeddings = np.ones((2, 768), dtype=np.float32) * 0.5
+
+    # Create a cuDF DataFrame with the embeddings
+    partition = cudf.DataFrame(
+        {"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]}
+    )
+
+    # Add the embeddings as a list-like column
+    embedding_series = create_list_series_from_1d_or_2d_ar(
+        cp.asarray(embeddings), index=partition.index
+    )
+    partition["image_embedding"] = embedding_series
+
+    # Create partition info
+    partition_info = {"number": 0}
+
+    # Mock the load_object_on_worker function to return our model directly
+    with mock.patch(
+        "nemo_curator.image.classifiers.base.load_object_on_worker"
+    ) as mock_load:
+        # Configure the mock to return our model when called
+        mock_load.return_value = MockModel()
+
+        # Test with default parameters
+        classifier = MockAestheticClassifier()
+
+        # Call _run_inference directly
+        result_partition = classifier._run_inference(partition, partition_info)
+
+        # Verify that aesthetic scores were added
+        assert "aesthetic_score" in result_partition.columns
+
+        # Verify the scores have expected values
+        aesthetic_scores = result_partition["aesthetic_score"]
+        assert len(aesthetic_scores) == 2
+
+        # Test each score
+        for i in range(len(aesthetic_scores)):
+            score = aesthetic_scores.iloc[i]
+            assert np.isclose(score, 0.75, atol=1e-6)
+
+        # Test with custom parameters
+        classifier = MockAestheticClassifier(
+            embedding_column="image_embedding", pred_column="custom_score", batch_size=1
+        )
+
+        # Call _run_inference directly
+        result_partition = classifier._run_inference(partition, partition_info)
+
+        # Verify that custom score column was added
+        assert "custom_score" in result_partition.columns
+
+        # Verify the scores have expected values
+        custom_scores = result_partition["custom_score"]
+        assert len(custom_scores) == 2
+
+        # Test each score
+        for i in range(len(custom_scores)):
+            score = custom_scores.iloc[i]
+            assert np.isclose(score, 0.75, atol=1e-6)
+
+
+@pytest.mark.gpu
+def test_classifier_call_with_mock_dataset(gpu_client):
+    """Test the __call__ method with a mock dataset"""
+
+    # Create a mock model
+    class MockModel:
+        def __call__(self, embeddings):
+            batch_size = embeddings.shape[0]
+            scores = torch.ones((batch_size, 1), device="cuda") * 0.75
+            # Keep the dimension when batch_size=1 by using squeeze(1) instead of squeeze()
+            return scores.squeeze(1)
+
+    # Mock AestheticClassifier to avoid downloading the model
+    class MockAestheticClassifier(AestheticClassifier):
+        def __init__(self, **kwargs):
+            # Set the attributes we need for testing
+            self.model_name = "mock_aesthetic_classifier"
+            self.embedding_column = kwargs.get("embedding_column", "image_embedding")
+            self.pred_column = kwargs.get("pred_column", "aesthetic_score")
+            self.pred_type = float
+            self.batch_size = kwargs.get("batch_size", -1)
+            self.embedding_size = 768
+            # Avoid downloading the actual model
+            self.model_path = "mock_model_path"
+
+        def load_model(self, device):
+            return MockModel()
+
+        def _get_default_model(self):
+            return "mock_model_path"
+
+    # Create mock data for the dataset
+    embeddings = np.ones((2, 768), dtype=np.float32) * 0.5
+
+    # Create a cuDF DataFrame with the embeddings
+    df = cudf.DataFrame(
+        {"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]}
+    )
+
+    # Add embeddings as a list-like column
+    embedding_series = create_list_series_from_1d_or_2d_ar(
+        cp.asarray(embeddings), index=df.index
+    )
+    df["image_embedding"] = embedding_series
+
+    # Create a mock Dask DataFrame instead of trying to mock map_partitions on a regular DataFrame
+    mock_dask_df = mock.MagicMock()
+    mock_dask_df.dtypes.to_dict.return_value = {
+        "id": "object",
+        "caption": "object",
+        "image_embedding": "object",
+    }
+
+    # Configure map_partitions to return a new mock DataFrame with our expected output
+    def mock_map_partitions_implementation(func, meta=None):
+        # Apply the function to our test data and add the expected column
+        result_df = df.copy()
+        # Add the aesthetic score column that would be generated by the classifier
+        result_df[mock_classifier.pred_column] = 0.75
+        return result_df
+
+    mock_dask_df.map_partitions = mock.MagicMock(
+        side_effect=mock_map_partitions_implementation
+    )
+
+    # Mock a dataset object with our mock Dask DataFrame
+    mock_dataset = mock.MagicMock(spec=ImageTextPairDataset)
+    mock_dataset.path = "mock_dataset_path"
+    mock_dataset.metadata = mock_dask_df
+    mock_dataset.tar_files = ["mock_tar_1.tar", "mock_tar_2.tar"]
+    mock_dataset.id_col = "id"
+
+    # Mock ImageTextPairDataset to return a new dataset
+    with mock.patch(
+        "nemo_curator.image.classifiers.base.ImageTextPairDataset"
+    ) as mock_itpd_class:
+        # Configure mock_itpd_class to return a new mock dataset
+        new_dataset = mock.MagicMock(spec=ImageTextPairDataset)
+        mock_itpd_class.return_value = new_dataset
+
+        # Create the classifier
+        mock_classifier = MockAestheticClassifier()
+
+        # Call the classifier
+        result = mock_classifier(mock_dataset)
+
+        # Verify that map_partitions was called
+        mock_dask_df.map_partitions.assert_called_once()
+
+        # Verify that a new ImageTextPairDataset was created
+        mock_itpd_class.assert_called_once()
+
+        # Verify the dataset was returned
+        assert result == new_dataset
