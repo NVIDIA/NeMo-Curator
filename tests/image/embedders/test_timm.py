@@ -30,6 +30,7 @@ TimmImageEmbedder = gpu_only_import_from(
 
 
 # Test initialization parameters
+@pytest.mark.gpu
 def test_init_defaults():
     """Test that TimmImageEmbedder initializes with default parameters correctly."""
     embedder = TimmImageEmbedder(model_name="resnet18")
@@ -44,6 +45,7 @@ def test_init_defaults():
     assert len(embedder.classifiers) == 0
 
 
+@pytest.mark.gpu
 def test_init_custom_params():
     """Test that TimmImageEmbedder initializes with custom parameters correctly."""
     embedder = TimmImageEmbedder(
