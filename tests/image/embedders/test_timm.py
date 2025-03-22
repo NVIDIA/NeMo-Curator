@@ -18,12 +18,15 @@ from unittest import mock
 import pytest
 import torch
 
-from nemo_curator.image.embedders.timm import TimmImageEmbedder
-from nemo_curator.utils.import_utils import gpu_only_import
+from nemo_curator.utils.import_utils import gpu_only_import_from
 
 # These imports should only work on GPU systems
-cudf = gpu_only_import("cudf")
-dask_cudf = gpu_only_import("dask_cudf")
+ImageTextPairDataset = gpu_only_import_from(
+    "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
+)
+TimmImageEmbedder = gpu_only_import_from(
+    "nemo_curator.image.embedders.timm", "TimmImageEmbedder"
+)
 
 
 # Test initialization parameters
@@ -182,8 +185,6 @@ def test_load_dataset_shard(gpu_client):
 @pytest.mark.gpu
 def test_embedder_workflow(gpu_client):
     """Test the complete workflow of the TimmImageEmbedder."""
-    from nemo_curator.datasets import ImageTextPairDataset
-
     # Get the real sample dataset path
     sample_tar_path = Path(__file__).parent.parent.parent / "image_data" / "00000.tar"
 
