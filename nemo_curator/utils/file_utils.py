@@ -383,7 +383,10 @@ def separate_by_metadata(
 
 def parse_str_of_num_bytes(s: str, return_str: bool = False) -> Union[str, int]:
     try:
-        power = "kmg".find(s[-1].lower()) + 1
+        last_char = s[-1].lower()
+        if last_char not in "kmg":
+            raise ValueError("Invalid size: {}".format(s))
+        power = "kmg".find(last_char) + 1
         size = float(s[:-1]) * 1024**power
     except ValueError:
         raise ValueError("Invalid size: {}".format(s))
