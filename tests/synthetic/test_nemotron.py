@@ -965,7 +965,7 @@ class TestNemotronGenerator:
                 llm_response="Test text",
                 model="test_model",
             )
-        assert "Failed to parse YAML" in str(excinfo.value)
+        assert "Error parsing yaml response" in str(excinfo.value)
 
         # Test with valid YAML but not a list
         mock_llm_client.query_model.return_value = [yaml.dump({"key": "value"})]
@@ -1031,14 +1031,20 @@ class TestNemotronGenerator:
             ) as mock_convert:
                 # Setup the side effect to first fail with error, then return valid results
                 # This simulates the pipeline continuing after an error
-                mock_convert.side_effect = [
-                    YamlConversionError(
-                        "Test conversion error"
-                    ),  # First call: macro topics - fail
-                    ["Topic 1", "Topic 2"],  # Second call: subtopics - succeed
-                    ["Question 1", "Question 2"],  # Third call: openlines - succeed
-                    ["Revised Q1", "Revised Q2"],  # Fourth call: revisions - succeed
-                ]
+                # Use cycle to create an infinite iterator that won't run out of values
+                mock_convert.side_effect = cycle(
+                    [
+                        YamlConversionError(
+                            "Test conversion error"
+                        ),  # First call: macro topics - fail
+                        ["Topic 1", "Topic 2"],  # Second call: subtopics - succeed
+                        ["Question 1", "Question 2"],  # Third call: openlines - succeed
+                        [
+                            "Revised Q1",
+                            "Revised Q2",
+                        ],  # Fourth call: revisions - succeed
+                    ]
+                )
 
                 # With ignore_conversion_failure=True, should handle the error and continue
                 result = generator.run_open_qa_pipeline(
@@ -1129,10 +1135,14 @@ class TestNemotronGenerator:
             ) as mock_convert:
                 # First call will be for macro_topics, which we want to simulate as failing
                 # If additional_macro_topics is provided, the pipeline should still continue
-                mock_convert.side_effect = [
-                    YamlConversionError("Test conversion error"),  # First call fails
-                    ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
-                ]
+                mock_convert.side_effect = cycle(
+                    [
+                        YamlConversionError(
+                            "Test conversion error"
+                        ),  # First call fails
+                        ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                    ]
+                )
 
                 result = generator.run_math_pipeline(
                     n_macro_topics=2,
@@ -1207,10 +1217,14 @@ class TestNemotronGenerator:
             ) as mock_convert:
                 # First call will be for macro_topics, which we want to simulate as failing
                 # If additional_macro_topics is provided, the pipeline should still continue
-                mock_convert.side_effect = [
-                    YamlConversionError("Test conversion error"),  # First call fails
-                    ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
-                ]
+                mock_convert.side_effect = cycle(
+                    [
+                        YamlConversionError(
+                            "Test conversion error"
+                        ),  # First call fails
+                        ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                    ]
+                )
 
                 result = generator.run_python_pipeline(
                     n_macro_topics=2,

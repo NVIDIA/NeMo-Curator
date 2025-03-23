@@ -106,7 +106,7 @@ class TestAsyncNemotronGenerator:
         result = await generator._try_convert_yaml_list(
             response="Original response with Item 1 and Item 2",
             model="test_model",
-            yaml_conversion_prompt_template="Template: {input}",
+            yaml_conversion_prompt_template="Template: {llm_response}",
             conversion_model_kwargs={},
             expected_length=2,
             ignore_conversion_failure=False,
@@ -119,7 +119,7 @@ class TestAsyncNemotronGenerator:
             await generator._try_convert_yaml_list(
                 response="Original response",
                 model="test_model",
-                yaml_conversion_prompt_template="Template: {input}",
+                yaml_conversion_prompt_template="Template: {llm_response}",
                 conversion_model_kwargs={},
                 expected_length=2,
                 ignore_conversion_failure=False,
@@ -129,7 +129,7 @@ class TestAsyncNemotronGenerator:
         result = await generator._try_convert_yaml_list(
             response="Original response",
             model="test_model",
-            yaml_conversion_prompt_template="Template: {input}",
+            yaml_conversion_prompt_template="Template: {llm_response}",
             conversion_model_kwargs={},
             expected_length=2,
             ignore_conversion_failure=True,
@@ -142,7 +142,7 @@ class TestAsyncNemotronGenerator:
             await generator._try_convert_yaml_list(
                 response="Original response",
                 model="test_model",
-                yaml_conversion_prompt_template="Template: {input}",
+                yaml_conversion_prompt_template="Template: {llm_response}",
                 conversion_model_kwargs={},
                 expected_length=2,
                 ignore_conversion_failure=False,
@@ -156,7 +156,7 @@ class TestAsyncNemotronGenerator:
             await generator._try_convert_yaml_list(
                 response="Original response",
                 model="test_model",
-                yaml_conversion_prompt_template="Template: {input}",
+                yaml_conversion_prompt_template="Template: {llm_response}",
                 conversion_model_kwargs={},
                 expected_length=2,  # Expected 2 items
                 ignore_conversion_failure=False,
@@ -164,13 +164,13 @@ class TestAsyncNemotronGenerator:
 
         # Test with hallucination - should raise exception when ignore_conversion_failure=False
         mock_llm_client.query_model.return_value = [
-            yaml.dump(["In text", "Not in text"])
+            yaml.dump(["Item in response", "Hallucinated item"])
         ]
         with pytest.raises(YamlConversionError):
             await generator._try_convert_yaml_list(
-                response="Original response with In text",
+                response="Original response with Item in response",
                 model="test_model",
-                yaml_conversion_prompt_template="Template: {input}",
+                yaml_conversion_prompt_template="Template: {llm_response}",
                 conversion_model_kwargs={},
                 expected_length=2,
                 ignore_conversion_failure=False,
@@ -1556,11 +1556,11 @@ class TestAsyncNemotronGenerator:
         """Test error handling in all pipeline methods."""
         generator = AsyncNemotronGenerator(mock_llm_client)
 
-        # Prepare a side effect that raises YamlConversionError
-        error_side_effect = AsyncMock(side_effect=YamlConversionError("Test error"))
+        # Test open_qa_pipeline with error handling
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # Setup to raise error for ignore_conversion_failure=False test
+            mock_convert.side_effect = YamlConversionError("Test error")
 
-        # Test open_qa_pipeline
-        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
             # Should raise with ignore_conversion_failure=False
             with pytest.raises(YamlConversionError):
                 await generator.run_open_qa_pipeline(
@@ -1571,6 +1571,17 @@ class TestAsyncNemotronGenerator:
                     model="test_model",
                     ignore_conversion_failure=False,
                 )
+
+            # Reset the mock for the next test and configure it to handle both calls appropriately
+            mock_convert.reset_mock()
+            # First call to generate macro topics fails, but we have additional_macro_topics
+            # Later calls for subtopics and openlines succeed
+            mock_convert.side_effect = [
+                YamlConversionError("Test error"),  # First call fails
+                ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                ["Question 1", "Question 2"],
+                ["Revised 1", "Revised 2"],
+            ]
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_open_qa_pipeline(
@@ -1586,8 +1597,11 @@ class TestAsyncNemotronGenerator:
             )
             assert isinstance(result, list)
 
-        # Test writing_pipeline
-        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+        # Test writing pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # Setup to raise error for ignore_conversion_failure=False test
+            mock_convert.side_effect = YamlConversionError("Test error")
+
             # Should raise with ignore_conversion_failure=False
             with pytest.raises(YamlConversionError):
                 await generator.run_writing_pipeline(
@@ -1598,6 +1612,13 @@ class TestAsyncNemotronGenerator:
                     model="test_model",
                     ignore_conversion_failure=False,
                 )
+
+            # Reset the mock for the next test and configure it
+            mock_convert.reset_mock()
+            mock_convert.side_effect = [
+                ["Task 1", "Task 2"],  # First call succeeds
+                ["Revised 1", "Revised 2"],  # Second call succeeds
+            ]
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_writing_pipeline(
@@ -1610,8 +1631,11 @@ class TestAsyncNemotronGenerator:
             )
             assert isinstance(result, list)
 
-        # Test closed_qa_pipeline
-        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+        # Test closed_qa pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # Setup to raise error for ignore_conversion_failure=False test
+            mock_convert.side_effect = YamlConversionError("Test error")
+
             # Should raise with ignore_conversion_failure=False
             with pytest.raises(YamlConversionError):
                 await generator.run_closed_qa_pipeline(
@@ -1620,6 +1644,10 @@ class TestAsyncNemotronGenerator:
                     model="test_model",
                     ignore_conversion_failure=False,
                 )
+
+            # Reset the mock for the next test and configure it
+            mock_convert.reset_mock()
+            mock_convert.return_value = ["Question 1", "Question 2"]
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_closed_qa_pipeline(
@@ -1630,8 +1658,11 @@ class TestAsyncNemotronGenerator:
             )
             assert isinstance(result, list)
 
-        # Test math_pipeline
-        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+        # Test math pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # Setup to raise error for ignore_conversion_failure=False test
+            mock_convert.side_effect = YamlConversionError("Test error")
+
             # Should raise with ignore_conversion_failure=False
             with pytest.raises(YamlConversionError):
                 await generator.run_math_pipeline(
@@ -1642,6 +1673,14 @@ class TestAsyncNemotronGenerator:
                     model="test_model",
                     ignore_conversion_failure=False,
                 )
+
+            # Reset the mock for the next test and configure it
+            mock_convert.reset_mock()
+            mock_convert.side_effect = [
+                YamlConversionError("Test error"),  # First call fails
+                ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                ["Problem 1", "Problem 2"],
+            ]
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_math_pipeline(
@@ -1657,8 +1696,11 @@ class TestAsyncNemotronGenerator:
             )
             assert isinstance(result, list)
 
-        # Test python_pipeline
-        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+        # Test python pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # Setup to raise error for ignore_conversion_failure=False test
+            mock_convert.side_effect = YamlConversionError("Test error")
+
             # Should raise with ignore_conversion_failure=False
             with pytest.raises(YamlConversionError):
                 await generator.run_python_pipeline(
@@ -1668,6 +1710,14 @@ class TestAsyncNemotronGenerator:
                     model="test_model",
                     ignore_conversion_failure=False,
                 )
+
+            # Reset the mock for the next test and configure it
+            mock_convert.reset_mock()
+            mock_convert.side_effect = [
+                YamlConversionError("Test error"),  # First call fails
+                ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                ["Problem 1", "Problem 2"],
+            ]
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_python_pipeline(
