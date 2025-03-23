@@ -1,0 +1,712 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+import shutil
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import dask
+import dask.dataframe as dd
+import numpy as np
+import pandas as pd
+import pytest
+from dask.distributed import Client, Worker
+
+from nemo_curator.utils.distributed_utils import (
+    NoWorkerError,
+    _enable_spilling,
+    _resolve_filename_col,
+    _set_torch_to_use_rmm,
+    check_dask_cwd,
+    get_client,
+    get_current_client,
+    get_network_interfaces,
+    get_num_workers,
+    load_object_on_worker,
+    offload_object_on_worker,
+    performance_report_if,
+    performance_report_if_with_ts_suffix,
+    process_all_batches,
+    process_batch,
+    read_data,
+    read_data_blocksize,
+    read_data_files_per_partition,
+    read_pandas_pickle,
+    read_single_partition,
+    seed_all,
+    select_columns,
+    single_partition_write_with_filename,
+    start_dask_cpu_local_cluster,
+    start_dask_gpu_local_cluster,
+    write_to_disk,
+)
+
+
+@pytest.fixture
+def temp_dir():
+    """Create a temporary directory for test files."""
+    temp_dir = tempfile.mkdtemp()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
+
+
+class TestClientFunctions:
+    @patch("nemo_curator.utils.distributed_utils.LocalCUDACluster")
+    @patch("nemo_curator.utils.distributed_utils.Client")
+    def test_start_dask_gpu_local_cluster(self, mock_client, mock_cuda_cluster):
+        """Test starting a GPU local cluster."""
+        # Setup mock return values
+        mock_cluster_instance = MagicMock()
+        mock_cuda_cluster.return_value = mock_cluster_instance
+        mock_client_instance = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock get_num_workers to return a positive value
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
+        ):
+            # Call the function
+            client = start_dask_gpu_local_cluster()
+
+            # Verify the client was created with the right cluster
+            mock_client.assert_called_once_with(mock_cluster_instance)
+            assert client == mock_client_instance
+
+    @patch("nemo_curator.utils.distributed_utils.LocalCluster")
+    @patch("nemo_curator.utils.distributed_utils.Client")
+    def test_start_dask_cpu_local_cluster(self, mock_client, mock_local_cluster):
+        """Test starting a CPU local cluster."""
+        # Setup mock return values
+        mock_cluster_instance = MagicMock()
+        mock_local_cluster.return_value = mock_cluster_instance
+        mock_client_instance = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock get_num_workers to return a positive value
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
+        ):
+            # Call the function
+            client = start_dask_cpu_local_cluster()
+
+            # Verify the client was created with the right cluster
+            mock_client.assert_called_once_with(mock_cluster_instance)
+            assert client == mock_client_instance
+
+    @patch("nemo_curator.utils.distributed_utils.start_dask_gpu_local_cluster")
+    @patch("nemo_curator.utils.distributed_utils.start_dask_cpu_local_cluster")
+    @patch("nemo_curator.utils.distributed_utils.Client")
+    def test_get_client(self, mock_client, mock_cpu_cluster, mock_gpu_cluster):
+        """Test get_client function with different params."""
+        # Test with scheduler_address
+        mock_client_instance = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock get_num_workers to return a positive value
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
+        ):
+            # Test with scheduler_address
+            client = get_client(scheduler_address="tcp://localhost:8786")
+            mock_client.assert_called_with(
+                address="tcp://localhost:8786", timeout="30s"
+            )
+
+            # Test with scheduler_file
+            client = get_client(scheduler_file="/path/to/scheduler.json")
+            mock_client.assert_called_with(
+                scheduler_file="/path/to/scheduler.json", timeout="30s"
+            )
+
+            # Test with CPU cluster
+            client = get_client(cluster_type="cpu")
+            mock_cpu_cluster.assert_called_once()
+
+            # Test with GPU cluster
+            client = get_client(cluster_type="gpu")
+            mock_gpu_cluster.assert_called_once()
+
+            # Test with invalid cluster type
+            with pytest.raises(ValueError):
+                get_client(cluster_type="invalid")
+
+
+class TestDataReadingFunctions:
+    def test_resolve_filename_col(self):
+        """Test _resolve_filename_col function."""
+        assert _resolve_filename_col(False) is False
+        assert _resolve_filename_col(True) == "file_name"
+        assert _resolve_filename_col("custom_name") == "custom_name"
+
+        with pytest.raises(ValueError):
+            _resolve_filename_col(123)
+
+    @patch("nemo_curator.utils.distributed_utils.cudf")
+    def test_select_columns(self, mock_cudf):
+        """Test select_columns function."""
+        # Create a pandas DataFrame
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "file_name": ["f1", "f2"]})
+
+        # Test with no column selection
+        result = select_columns(df, None, "jsonl", False)
+        assert result is df
+
+        # Test with column selection and jsonl type
+        result = select_columns(df, ["a"], "jsonl", False)
+        pd.testing.assert_frame_equal(result, df[["a"]])
+
+        # Test with column selection, jsonl type, and add_filename=True
+        result = select_columns(df, ["a"], "jsonl", True)
+        pd.testing.assert_frame_equal(result, df[["a", "file_name"]])
+
+        # Test with column selection, jsonl type, and add_filename as string
+        result = select_columns(df, ["a"], "jsonl", "custom_name")
+        pd.testing.assert_frame_equal(result, df[["a", "custom_name"]])
+
+        # Test with parquet type (should not filter)
+        result = select_columns(df, ["a"], "parquet", False)
+        assert result is df
+
+    @patch("nemo_curator.utils.distributed_utils.cudf")
+    @patch("nemo_curator.utils.distributed_utils.pd")
+    def test_read_single_partition(self, mock_pd, mock_cudf, temp_dir):
+        """Test read_single_partition function."""
+        # Setup mocks
+        mock_cudf.read_json.return_value = MagicMock()
+        mock_cudf.read_parquet.return_value = MagicMock()
+        mock_pd.read_json.return_value = pd.DataFrame({"a": [1, 2]})
+        mock_pd.read_parquet.return_value = pd.DataFrame({"a": [1, 2]})
+
+        # Test reading jsonl with cudf backend
+        with patch(
+            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True
+        ):
+            with patch(
+                "nemo_curator.utils.distributed_utils.select_columns",
+                return_value=mock_cudf.read_json.return_value,
+            ):
+                result = read_single_partition(
+                    files=["file.jsonl"], backend="cudf", file_type="jsonl"
+                )
+                mock_cudf.read_json.assert_called_once()
+                assert result == mock_cudf.read_json.return_value
+
+        # Test reading parquet with pandas backend
+        with patch(
+            "nemo_curator.utils.distributed_utils.select_columns",
+            return_value=mock_pd.read_parquet.return_value,
+        ):
+            result = read_single_partition(
+                files=["file.parquet"], backend="pandas", file_type="parquet"
+            )
+            mock_pd.read_parquet.assert_called_once()
+            assert result.equals(mock_pd.read_parquet.return_value)
+
+    @patch("nemo_curator.utils.distributed_utils.read_single_partition")
+    def test_read_data_files_per_partition(self, mock_read_single, temp_dir):
+        """Test read_data_files_per_partition function."""
+        # Create test files
+        files = [os.path.join(temp_dir, f"file{i}.jsonl") for i in range(5)]
+        for file in files:
+            with open(file, "w") as f:
+                f.write('{"a": 1}\n')
+
+        # Setup mock
+        mock_read_single.return_value = pd.DataFrame({"a": [1]})
+
+        # Test with files_per_partition = 2
+        with patch(
+            "nemo_curator.utils.distributed_utils.dd.from_map",
+            return_value=dd.from_pandas(pd.DataFrame({"a": [1, 2]}), npartitions=2),
+        ):
+            result = read_data_files_per_partition(
+                input_files=files,
+                file_type="jsonl",
+                backend="pandas",
+                files_per_partition=2,
+            )
+            # Should split 5 files into 3 partitions (2 files + 2 files + 1 file)
+            assert mock_read_single.call_count == 3
+
+    @patch("nemo_curator.utils.distributed_utils.dd.read_json")
+    @patch("nemo_curator.utils.distributed_utils.dd.read_parquet")
+    def test_read_data_blocksize(self, mock_read_parquet, mock_read_json, temp_dir):
+        """Test read_data_blocksize function."""
+        # Setup mocks
+        mock_read_json.return_value = dd.from_pandas(
+            pd.DataFrame({"a": [1, 2]}), npartitions=2
+        )
+        mock_read_parquet.return_value = dd.from_pandas(
+            pd.DataFrame({"a": [1, 2]}), npartitions=2
+        )
+
+        # Test with jsonl
+        with patch(
+            "nemo_curator.utils.distributed_utils.select_columns",
+            return_value=mock_read_json.return_value,
+        ):
+            with dask.config.set({"dataframe.backend": "pandas"}):
+                result = read_data_blocksize(
+                    input_files=["file.jsonl"],
+                    backend="pandas",
+                    file_type="jsonl",
+                    blocksize="1MB",
+                )
+                mock_read_json.assert_called_once()
+
+        # Test with parquet
+        with patch(
+            "nemo_curator.utils.distributed_utils.select_columns",
+            return_value=mock_read_parquet.return_value,
+        ):
+            with dask.config.set({"dataframe.backend": "pandas"}):
+                result = read_data_blocksize(
+                    input_files=["file.parquet"],
+                    backend="pandas",
+                    file_type="parquet",
+                    blocksize="1MB",
+                )
+                mock_read_parquet.assert_called_once()
+
+        # Test with unsupported file type
+        with pytest.raises(ValueError):
+            read_data_blocksize(
+                input_files=["file.txt"],
+                backend="pandas",
+                file_type="txt",
+                blocksize="1MB",
+            )
+
+    def test_read_pandas_pickle(self, temp_dir):
+        """Test read_pandas_pickle function."""
+        # Create a test pickle file
+        data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        pickle_path = os.path.join(temp_dir, "data.pkl")
+        data.to_pickle(pickle_path)
+
+        # Test reading the full DataFrame
+        result = read_pandas_pickle(pickle_path)
+        pd.testing.assert_frame_equal(result, data)
+
+        # Test reading with column selection
+        result = read_pandas_pickle(pickle_path, columns=["a"])
+        pd.testing.assert_frame_equal(result, data[["a"]])
+
+        # Test that warning is raised with add_filename
+        with pytest.warns(UserWarning):
+            result = read_pandas_pickle(pickle_path, add_filename=True)
+
+    @patch("nemo_curator.utils.distributed_utils.read_data_blocksize")
+    @patch("nemo_curator.utils.distributed_utils.read_data_files_per_partition")
+    @patch("nemo_curator.utils.distributed_utils.read_pandas_pickle")
+    @patch("nemo_curator.utils.distributed_utils.check_dask_cwd")
+    def test_read_data(
+        self,
+        mock_check_cwd,
+        mock_read_pickle,
+        mock_read_fpp,
+        mock_read_blocksize,
+        temp_dir,
+    ):
+        """Test the main read_data function."""
+        # Setup mocks
+        mock_read_pickle.return_value = pd.DataFrame({"a": [1, 2]})
+        mock_read_fpp.return_value = dd.from_pandas(
+            pd.DataFrame({"a": [1, 2]}), npartitions=2
+        )
+        mock_read_blocksize.return_value = dd.from_pandas(
+            pd.DataFrame({"a": [1, 2]}), npartitions=2
+        )
+
+        # Test reading pickle
+        with patch(
+            "nemo_curator.utils.distributed_utils.dd.from_pandas",
+            return_value=dd.from_pandas(mock_read_pickle.return_value, npartitions=16),
+        ):
+            result = read_data(["file.pkl"], file_type="pickle")
+            mock_read_pickle.assert_called_once()
+
+        # Test reading jsonl with blocksize
+        result = read_data(
+            ["file1.jsonl", "file2.jsonl"], file_type="jsonl", blocksize="1MB"
+        )
+        mock_read_blocksize.assert_called_once()
+
+        # Test reading jsonl with files_per_partition
+        result = read_data(
+            ["file1.jsonl", "file2.jsonl"], file_type="jsonl", files_per_partition=1
+        )
+        mock_read_fpp.assert_called_once()
+
+        # Test error handling for mixed file extensions
+        with patch("os.path.splitext", side_effect=[(".jsonl",), (".parquet",)]):
+            with pytest.raises(RuntimeError):
+                read_data(["file1.jsonl", "file2.parquet"], file_type="jsonl")
+
+        # Test invalid file type
+        with pytest.raises(RuntimeError):
+            read_data(["file.txt"], file_type="txt")
+
+
+class TestDataWritingFunctions:
+    @patch("nemo_curator.utils.distributed_utils.is_cudf_type")
+    def test_single_partition_write_with_filename(self, mock_is_cudf, temp_dir):
+        """Test single_partition_write_with_filename function."""
+        # Create output directory
+        os.makedirs(os.path.join(temp_dir, "output"), exist_ok=True)
+
+        # Create test dataframe
+        df = pd.DataFrame(
+            {"text": ["hello", "world"], "file_name": ["file1.jsonl", "file2.jsonl"]}
+        )
+
+        # Test with empty dataframe
+        mock_is_cudf.return_value = False
+        empty_df = pd.DataFrame(columns=df.columns)
+        result = single_partition_write_with_filename(
+            empty_df, os.path.join(temp_dir, "output"), filename_col="file_name"
+        )
+        assert result[0] is False
+
+        # Test with non-empty dataframe, jsonl output
+        mock_is_cudf.return_value = False
+        result = single_partition_write_with_filename(
+            df,
+            os.path.join(temp_dir, "output"),
+            output_type="jsonl",
+            filename_col="file_name",
+        )
+        assert result[0] is True
+        assert os.path.exists(os.path.join(temp_dir, "output", "file1.jsonl"))
+        assert os.path.exists(os.path.join(temp_dir, "output", "file2.jsonl"))
+
+        # Test with non-empty dataframe, parquet output
+        os.makedirs(os.path.join(temp_dir, "output2"), exist_ok=True)
+        result = single_partition_write_with_filename(
+            df,
+            os.path.join(temp_dir, "output2"),
+            output_type="parquet",
+            filename_col="file_name",
+        )
+        assert result[0] is True
+        assert os.path.exists(os.path.join(temp_dir, "output2", "file1.parquet"))
+        assert os.path.exists(os.path.join(temp_dir, "output2", "file2.parquet"))
+
+        # Test with unknown output type
+        with pytest.raises(ValueError):
+            single_partition_write_with_filename(
+                df,
+                os.path.join(temp_dir, "output"),
+                output_type="unknown",
+                filename_col="file_name",
+            )
+
+    @patch("nemo_curator.utils.distributed_utils.single_partition_write_with_filename")
+    @patch("nemo_curator.utils.distributed_utils._write_to_jsonl_or_parquet")
+    def test_write_to_disk(self, mock_write_jsonl, mock_write_with_filename, temp_dir):
+        """Test write_to_disk function."""
+        # Create test dataframe
+        df = dd.from_pandas(
+            pd.DataFrame(
+                {
+                    "text": ["hello", "world"],
+                    "file_name": ["file1.jsonl", "file2.jsonl"],
+                }
+            ),
+            npartitions=1,
+        )
+
+        # Mock compute to return a MagicMock
+        df.compute = MagicMock(return_value=MagicMock())
+
+        # Test writing to a single JSONL file
+        with pytest.raises(RuntimeError):
+            # Should raise error for multi-partition dataframe
+            df.npartitions = 2
+            write_to_disk(df, os.path.join(temp_dir, "output.jsonl"))
+
+        # Test writing with filename column
+        df.npartitions = 1
+        write_to_disk(
+            df,
+            os.path.join(temp_dir, "output"),
+            write_to_filename=True,
+            output_type="jsonl",
+        )
+        mock_write_with_filename.assert_called_once()
+
+        # Test error when write_to_filename is True but column doesn't exist
+        with patch.object(df, "columns", []):
+            with pytest.raises(ValueError):
+                write_to_disk(
+                    df, os.path.join(temp_dir, "output"), write_to_filename=True
+                )
+
+        # Test error when both partition_on and write_to_filename are used
+        with pytest.raises(ValueError):
+            write_to_disk(
+                df,
+                os.path.join(temp_dir, "output"),
+                write_to_filename=True,
+                partition_on="text",
+            )
+
+        # Test writing normal jsonl
+        write_to_disk(df, os.path.join(temp_dir, "output"), output_type="jsonl")
+        mock_write_jsonl.assert_called_with(
+            df, os.path.join(temp_dir, "output"), "jsonl", None
+        )
+
+        # Test writing parquet
+        write_to_disk(df, os.path.join(temp_dir, "output"), output_type="parquet")
+        mock_write_jsonl.assert_called_with(
+            df, os.path.join(temp_dir, "output"), "parquet", None
+        )
+
+        # Test with unknown output type
+        with pytest.raises(ValueError):
+            write_to_disk(df, os.path.join(temp_dir, "output"), output_type="unknown")
+
+
+class TestWorkerFunctions:
+    def test_load_object_on_worker(self):
+        """Test load_object_on_worker function."""
+        # Mock worker and functions
+        mock_worker = MagicMock()
+        mock_worker.attr = "existing_value"
+
+        # Test with existing attribute
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
+        ):
+            result = load_object_on_worker("attr", lambda: "new_value", {})
+            assert result == "existing_value"
+
+        # Test with new attribute
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
+        ):
+            delattr(mock_worker, "attr")
+            load_fn = MagicMock(return_value="new_value")
+            result = load_object_on_worker("attr", load_fn, {"arg": "value"})
+            load_fn.assert_called_once_with(arg="value")
+            assert result == "new_value"
+            assert mock_worker.attr == "new_value"
+
+        # Test with no worker available
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_worker",
+            side_effect=ValueError("No worker"),
+        ):
+            with pytest.raises(NoWorkerError):
+                load_object_on_worker("attr", lambda: "value", {})
+
+    def test_offload_object_on_worker(self):
+        """Test offload_object_on_worker function."""
+        # Mock worker
+        mock_worker = MagicMock()
+        mock_worker.attr = "value"
+
+        # Test with existing attribute
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
+        ):
+            result = offload_object_on_worker("attr")
+            assert result is True
+            assert not hasattr(mock_worker, "attr")
+
+        # Test with non-existing attribute
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
+        ):
+            result = offload_object_on_worker("nonexistent")
+            assert result is True
+
+    def test_process_batch(self):
+        """Test process_batch function."""
+        # Mock functions and model
+        load_model_fn = MagicMock(return_value="model")
+        run_inference_fn = MagicMock(return_value="inference_result")
+
+        # Test with successful model loading
+        with patch(
+            "nemo_curator.utils.distributed_utils.load_object_on_worker",
+            return_value="model",
+        ):
+            result = process_batch(
+                load_model_fn,
+                {"arg": "value"},
+                run_inference_fn,
+                {"data": "batch_data"},
+            )
+            run_inference_fn.assert_called_once_with(data="batch_data", model="model")
+            assert result == "inference_result"
+
+    def test_process_all_batches(self):
+        """Test process_all_batches function."""
+        # Mock functions and data
+        load_model_fn = MagicMock()
+        run_inference_fn = MagicMock(return_value=MagicMock())
+        loader = [MagicMock(), MagicMock()]
+
+        # Mock torch.cat
+        with patch("torch.cat", return_value="concatenated_result"):
+            with patch(
+                "nemo_curator.utils.distributed_utils.process_batch",
+                side_effect=["result1", "result2"],
+            ):
+                result = process_all_batches(
+                    loader,
+                    load_model_fn,
+                    {"arg": "value"},
+                    run_inference_fn,
+                    {"param": "value"},
+                )
+                assert result == "concatenated_result"
+
+
+class TestUtilityFunctions:
+    def test_get_num_workers(self):
+        """Test get_num_workers function."""
+        # Test with None client
+        assert get_num_workers(None) is None
+
+        # Test with valid client
+        mock_client = MagicMock()
+        mock_client.scheduler_info.return_value = {
+            "workers": {"worker1": {}, "worker2": {}}
+        }
+        assert get_num_workers(mock_client) == 2
+
+    def test_get_current_client(self):
+        """Test get_current_client function."""
+        # Test when client exists
+        with patch(
+            "nemo_curator.utils.distributed_utils.Client.current", return_value="client"
+        ):
+            assert get_current_client() == "client"
+
+        # Test when no client exists
+        with patch(
+            "nemo_curator.utils.distributed_utils.Client.current",
+            side_effect=ValueError("No client"),
+        ):
+            assert get_current_client() is None
+
+    def test_check_dask_cwd(self):
+        """Test check_dask_cwd function."""
+        # Test with absolute paths
+        check_dask_cwd(["/path/to/file1", "/path/to/file2"])
+
+        # Test with relative paths and matching CWD
+        mock_client = MagicMock()
+        mock_client.run.return_value = {"worker1": "/cwd", "worker2": "/cwd"}
+
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_current_client",
+            return_value=mock_client,
+        ):
+            with patch("subprocess.check_output", return_value="/cwd\n"):
+                check_dask_cwd(["file1", "file2"])
+
+        # Test with relative paths and mismatched CWD
+        mock_client.run.return_value = {
+            "worker1": "/worker_cwd",
+            "worker2": "/worker_cwd",
+        }
+
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_current_client",
+            return_value=mock_client,
+        ):
+            with patch("subprocess.check_output", return_value="/client_cwd\n"):
+                with pytest.raises(RuntimeError):
+                    check_dask_cwd(["file1", "file2"])
+
+        # Test with relative paths and mismatched worker CWDs
+        mock_client.run.return_value = {"worker1": "/cwd1", "worker2": "/cwd2"}
+
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_current_client",
+            return_value=mock_client,
+        ):
+            with pytest.raises(RuntimeError):
+                check_dask_cwd(["file1", "file2"])
+
+    def test_performance_report_if(self):
+        """Test performance_report_if function."""
+        # Test with None path
+        with performance_report_if(None) as ctx:
+            assert ctx is None
+
+        # Test with valid path
+        with patch(
+            "nemo_curator.utils.distributed_utils.performance_report"
+        ) as mock_perf_report:
+            mock_perf_report.return_value = "report_context"
+            with performance_report_if("/path/to/reports") as ctx:
+                mock_perf_report.assert_called_once_with(
+                    "/path/to/reports/dask-profile.html"
+                )
+
+    def test_performance_report_if_with_ts_suffix(self):
+        """Test performance_report_if_with_ts_suffix function."""
+        # Test with None path
+        with performance_report_if_with_ts_suffix(None) as ctx:
+            assert ctx is None
+
+        # Test with valid path
+        with patch(
+            "nemo_curator.utils.distributed_utils.performance_report"
+        ) as mock_perf_report:
+            mock_perf_report.return_value = "report_context"
+            with patch(
+                "nemo_curator.utils.distributed_utils.datetime"
+            ) as mock_datetime:
+                mock_datetime.now.return_value.strftime.return_value = "20240715_120000"
+                with performance_report_if_with_ts_suffix(
+                    "/path/to/reports", "custom-report"
+                ) as ctx:
+                    mock_perf_report.assert_called_once_with(
+                        "/path/to/reports/custom-report-20240715_120000.html"
+                    )
+
+    def test_seed_all(self):
+        """Test seed_all function."""
+        with patch("random.seed") as mock_random_seed:
+            with patch("numpy.random.seed") as mock_np_seed:
+                with patch("torch.manual_seed") as mock_torch_seed:
+                    with patch("torch.cuda.is_available", return_value=True):
+                        with patch("torch.cuda.manual_seed") as mock_cuda_seed:
+                            with patch(
+                                "torch.cuda.manual_seed_all"
+                            ) as mock_cuda_seed_all:
+                                with patch("torch.backends.cudnn.deterministic", True):
+                                    with patch("torch.backends.cudnn.benchmark", False):
+                                        seed_all(123)
+
+                                        mock_random_seed.assert_called_once_with(123)
+                                        mock_np_seed.assert_called_once_with(123)
+                                        mock_torch_seed.assert_called_once_with(123)
+                                        mock_cuda_seed.assert_called_once_with(123)
+                                        mock_cuda_seed_all.assert_called_once_with(123)
+                                        assert os.environ["PYTHONHASHSEED"] == "123"
+
+    def test_get_network_interfaces(self):
+        """Test get_network_interfaces function."""
+        with patch("psutil.net_if_addrs", return_value={"eth0": [], "lo": []}):
+            interfaces = get_network_interfaces()
+            assert interfaces == ["eth0", "lo"]
