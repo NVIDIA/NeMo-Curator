@@ -69,7 +69,10 @@ class TestClientFunctions:
     @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.LocalCUDACluster")
     @patch("nemo_curator.utils.distributed_utils.Client")
-    def test_start_dask_gpu_local_cluster(self, mock_client, mock_cuda_cluster):
+    @patch("nemo_curator.utils.distributed_utils._set_torch_to_use_rmm")
+    def test_start_dask_gpu_local_cluster(
+        self, mock_set_torch_rmm, mock_client, mock_cuda_cluster
+    ):
         """Test starting a GPU local cluster."""
         # Setup mock return values
         mock_cluster_instance = MagicMock()
@@ -87,6 +90,9 @@ class TestClientFunctions:
             # Verify the client was created with the right cluster
             mock_client.assert_called_once_with(mock_cluster_instance)
             assert client == mock_client_instance
+
+            # Verify _set_torch_to_use_rmm was called
+            mock_set_torch_rmm.assert_called_once()
 
     @patch("nemo_curator.utils.distributed_utils.LocalCluster")
     @patch("nemo_curator.utils.distributed_utils.Client")
@@ -145,7 +151,10 @@ class TestClientFunctions:
     @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.start_dask_gpu_local_cluster")
     @patch("nemo_curator.utils.distributed_utils.Client")
-    def test_get_client_gpu_cluster(self, mock_client, mock_gpu_cluster):
+    @patch("nemo_curator.utils.distributed_utils._set_torch_to_use_rmm")
+    def test_get_client_gpu_cluster(
+        self, mock_set_torch_rmm, mock_client, mock_gpu_cluster
+    ):
         """Test get_client function with GPU cluster type."""
         mock_client_instance = MagicMock()
         mock_client.return_value = mock_client_instance
