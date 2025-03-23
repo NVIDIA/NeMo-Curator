@@ -101,7 +101,8 @@ def get_all_files_paths_under(
             for f in files
         ]
     else:
-        file_ls = [entry.path for entry in os.scandir(root)]
+        # Only include files, not directories
+        file_ls = [entry.path for entry in os.scandir(root) if entry.is_file()]
 
     file_ls.sort()
 
