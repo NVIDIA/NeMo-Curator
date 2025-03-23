@@ -66,6 +66,7 @@ def temp_dir():
 
 
 class TestClientFunctions:
+    @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.LocalCUDACluster")
     @patch("nemo_curator.utils.distributed_utils.Client")
     def test_start_dask_gpu_local_cluster(self, mock_client, mock_cuda_cluster):
@@ -137,13 +138,26 @@ class TestClientFunctions:
             client = get_client(cluster_type="cpu")
             mock_cpu_cluster.assert_called_once()
 
-            # Test with GPU cluster
-            client = get_client(cluster_type="gpu")
-            mock_gpu_cluster.assert_called_once()
-
             # Test with invalid cluster type
             with pytest.raises(ValueError):
                 get_client(cluster_type="invalid")
+
+    @pytest.mark.gpu
+    @patch("nemo_curator.utils.distributed_utils.start_dask_gpu_local_cluster")
+    @patch("nemo_curator.utils.distributed_utils.Client")
+    def test_get_client_gpu_cluster(self, mock_client, mock_gpu_cluster):
+        """Test get_client function with GPU cluster type."""
+        mock_client_instance = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock get_num_workers to return a positive value
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
+        ):
+            # Test with GPU cluster
+            client = get_client(cluster_type="gpu")
+            mock_gpu_cluster.assert_called_once()
+            assert client == mock_client_instance
 
 
 class TestDataReadingFunctions:
@@ -156,6 +170,7 @@ class TestDataReadingFunctions:
         with pytest.raises(ValueError):
             _resolve_filename_col(123)
 
+    @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.cudf")
     def test_select_columns(self, mock_cudf):
         """Test select_columns function."""
@@ -185,6 +200,7 @@ class TestDataReadingFunctions:
         result = select_columns(df, ["a"], "parquet", False)
         assert result is df
 
+    @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.cudf")
     @patch("nemo_curator.utils.distributed_utils.pd")
     def test_read_single_partition(self, mock_pd, mock_cudf, temp_dir):
@@ -220,6 +236,7 @@ class TestDataReadingFunctions:
             mock_pd.read_parquet.assert_called_once()
             assert result.equals(mock_pd.read_parquet.return_value)
 
+    @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.read_single_partition")
     def test_read_data_files_per_partition(self, mock_read_single, temp_dir):
         """Test read_data_files_per_partition function."""
@@ -263,6 +280,7 @@ class TestDataReadingFunctions:
             assert file_groups[1] == files[2:4]  # Second group: next 2 files
             assert file_groups[2] == files[4:]  # Third group: last file
 
+    @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.dd.read_json")
     @patch("nemo_curator.utils.distributed_utils.dd.read_parquet")
     def test_read_data_blocksize(self, mock_read_parquet, mock_read_json, temp_dir):
@@ -331,6 +349,7 @@ class TestDataReadingFunctions:
         with pytest.warns(UserWarning):
             result = read_pandas_pickle(pickle_path, add_filename=True)
 
+    @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.read_data_blocksize")
     @patch("nemo_curator.utils.distributed_utils.read_data_files_per_partition")
     @patch("nemo_curator.utils.distributed_utils.read_pandas_pickle")
@@ -520,6 +539,7 @@ class TestDataWritingFunctions:
 
 
 class TestWorkerFunctions:
+    @pytest.mark.gpu
     def test_load_object_on_worker(self):
         """Test load_object_on_worker function."""
         # Mock worker and functions
@@ -552,6 +572,7 @@ class TestWorkerFunctions:
             with pytest.raises(NoWorkerError):
                 load_object_on_worker("attr", lambda: "value", {})
 
+    @pytest.mark.gpu
     def test_offload_object_on_worker(self):
         """Test offload_object_on_worker function."""
         # Mock worker
@@ -573,6 +594,7 @@ class TestWorkerFunctions:
             result = offload_object_on_worker("nonexistent")
             assert result is True
 
+    @pytest.mark.gpu
     def test_process_batch(self):
         """Test process_batch function."""
         # Mock functions and model
@@ -593,6 +615,7 @@ class TestWorkerFunctions:
             run_inference_fn.assert_called_once_with(data="batch_data", model="model")
             assert result == "inference_result"
 
+    @pytest.mark.gpu
     def test_process_all_batches(self):
         """Test process_all_batches function."""
         # Mock functions and data
@@ -728,6 +751,7 @@ class TestUtilityFunctions:
                         report_name="custom-report-20240715_120000.html",
                     )
 
+    @pytest.mark.gpu
     def test_seed_all(self):
         """Test seed_all function."""
         with patch("random.seed") as mock_random_seed:

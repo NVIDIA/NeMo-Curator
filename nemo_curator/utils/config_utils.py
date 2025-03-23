@@ -76,10 +76,12 @@ def build_downloader(downloader_config_file, default_download_dir=None):
         downloader_params = yaml.load(config_file, Loader=yaml.FullLoader)
 
     download_class = import_downloader(downloader_params["download_module"])
-    no_download_dir = ("download_dir" not in downloader_params["download_params"]) or (
-        downloader_params["download_params"] is None
+    no_download_dir = (downloader_params["download_params"] is None) or (
+        "download_dir" not in downloader_params["download_params"]
     )
     if no_download_dir and default_download_dir:
+        if downloader_params["download_params"] is None:
+            downloader_params["download_params"] = {}
         downloader_params["download_params"]["download_dir"] = default_download_dir
     expand_outdir_and_mkdir(downloader_params["download_params"]["download_dir"])
     downloader = download_class(**downloader_params["download_params"])
