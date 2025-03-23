@@ -171,8 +171,6 @@ def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
 
 @pytest.mark.gpu
 def test_instruction_data_guard_classifier(gpu_client):
-    import os
-
     from nemo_curator.classifiers import InstructionDataGuardClassifier
 
     # Skip the test if the HF_TOKEN is not set

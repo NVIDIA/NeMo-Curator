@@ -84,8 +84,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          docker exec nemo-curator-container bash -c '
-            export HF_TOKEN=$HF_TOKEN && \
+          docker exec -e HF_TOKEN=$HF_TOKEN nemo-curator-container bash -c '
             cd /opt/NeMo-Curator && \
             coverage run \
             --branch \
