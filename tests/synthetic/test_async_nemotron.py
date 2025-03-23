@@ -1576,12 +1576,15 @@ class TestAsyncNemotronGenerator:
             mock_convert.reset_mock()
             # First call to generate macro topics fails, but we have additional_macro_topics
             # Later calls for subtopics and openlines succeed
-            mock_convert.side_effect = [
-                YamlConversionError("Test error"),  # First call fails
-                ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
-                ["Question 1", "Question 2"],
-                ["Revised 1", "Revised 2"],
-            ]
+            # Use cycle to create an infinite iterator that won't run out of values
+            mock_convert.side_effect = cycle(
+                [
+                    YamlConversionError("Test error"),  # First call fails
+                    ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                    ["Question 1", "Question 2"],
+                    ["Revised 1", "Revised 2"],
+                ]
+            )
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_open_qa_pipeline(
@@ -1615,10 +1618,13 @@ class TestAsyncNemotronGenerator:
 
             # Reset the mock for the next test and configure it
             mock_convert.reset_mock()
-            mock_convert.side_effect = [
-                ["Task 1", "Task 2"],  # First call succeeds
-                ["Revised 1", "Revised 2"],  # Second call succeeds
-            ]
+            # Use cycle to create an infinite iterator that won't run out of values
+            mock_convert.side_effect = cycle(
+                [
+                    ["Task 1", "Task 2"],  # First call succeeds
+                    ["Revised 1", "Revised 2"],  # Second call succeeds
+                ]
+            )
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_writing_pipeline(
@@ -1676,11 +1682,14 @@ class TestAsyncNemotronGenerator:
 
             # Reset the mock for the next test and configure it
             mock_convert.reset_mock()
-            mock_convert.side_effect = [
-                YamlConversionError("Test error"),  # First call fails
-                ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
-                ["Problem 1", "Problem 2"],
-            ]
+            # Use cycle to create an infinite iterator that won't run out of values
+            mock_convert.side_effect = cycle(
+                [
+                    YamlConversionError("Test error"),  # First call fails
+                    ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                    ["Problem 1", "Problem 2"],
+                ]
+            )
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_math_pipeline(
@@ -1713,11 +1722,14 @@ class TestAsyncNemotronGenerator:
 
             # Reset the mock for the next test and configure it
             mock_convert.reset_mock()
-            mock_convert.side_effect = [
-                YamlConversionError("Test error"),  # First call fails
-                ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
-                ["Problem 1", "Problem 2"],
-            ]
+            # Use cycle to create an infinite iterator that won't run out of values
+            mock_convert.side_effect = cycle(
+                [
+                    YamlConversionError("Test error"),  # First call fails
+                    ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
+                    ["Problem 1", "Problem 2"],
+                ]
+            )
 
             # Should not raise with ignore_conversion_failure=True
             result = await generator.run_python_pipeline(
