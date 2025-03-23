@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from openai._types import NOT_GIVEN
@@ -199,7 +199,9 @@ class TestAsyncOpenAIClient:
         choice = MagicMock()
         choice.message.content = "This is a mock async response"
         completion_response.choices = [choice]
-        mock_client.chat.completions.create = MagicMock()
+
+        # Use AsyncMock for asynchronous method
+        mock_client.chat.completions.create = AsyncMock()
         mock_client.chat.completions.create.return_value = completion_response
         return mock_client
 
