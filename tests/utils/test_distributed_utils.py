@@ -14,7 +14,9 @@
 
 import os
 import shutil
+import sys
 import tempfile
+import warnings
 from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -793,3 +795,57 @@ class TestUtilityFunctions:
         with patch("psutil.net_if_addrs", return_value={"eth0": [], "lo": []}):
             interfaces = get_network_interfaces()
             assert interfaces == ["eth0", "lo"]
+
+    @pytest.mark.gpu
+    @patch("nemo_curator.utils.distributed_utils.cudf")
+    def test_enable_spilling(self, mock_cudf):
+        """Test _enable_spilling function."""
+        # Call the function
+        _enable_spilling()
+
+        # Verify that cudf.set_option was called with the correct parameters
+        mock_cudf.set_option.assert_called_once_with("spill", True)
+
+    @pytest.mark.gpu
+    def test_set_torch_to_use_rmm(self):
+        """Test _set_torch_to_use_rmm function."""
+        # Mock the imports inside the function
+        with patch.dict(
+            "sys.modules", {"torch": MagicMock(), "rmm.allocators.torch": MagicMock()}
+        ):
+            # Create our mock torch module with cuda attributes
+            mock_torch = sys.modules["torch"]
+            mock_torch.cuda = MagicMock()
+            mock_torch.cuda.get_allocator_backend = MagicMock()
+            mock_torch.cuda.memory = MagicMock()
+            mock_rmm_torch = sys.modules["rmm.allocators.torch"]
+            mock_rmm_torch.rmm_torch_allocator = "mock_allocator"
+
+            # Test case 1: Allocator not already set
+            mock_torch.cuda.get_allocator_backend.return_value = "default"
+
+            # Call the function
+            _set_torch_to_use_rmm()
+
+            # Verify that torch.cuda.memory.change_current_allocator was called
+            mock_torch.cuda.memory.change_current_allocator.assert_called_once_with(
+                mock_rmm_torch.rmm_torch_allocator
+            )
+
+            # Reset the mock call history
+            mock_torch.cuda.memory.change_current_allocator.reset_mock()
+
+            # Test case 2: Allocator already pluggable
+            mock_torch.cuda.get_allocator_backend.return_value = "pluggable"
+
+            # Call the function again with warning module mocked
+            with patch(
+                "nemo_curator.utils.distributed_utils.warnings"
+            ) as mock_warnings:
+                _set_torch_to_use_rmm()
+
+                # Verify warning was issued
+                mock_warnings.warn.assert_called_once()
+
+                # Verify that torch.cuda.memory.change_current_allocator was not called
+                mock_torch.cuda.memory.change_current_allocator.assert_not_called()
