@@ -953,3 +953,201 @@ class TestNemotronGenerator:
 
         # Check the result
         assert result == ["This is a mock response"]
+
+    def test_convert_response_with_different_exception_types(self, mock_llm_client):
+        """Test that different types of conversion errors are properly raised."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        # Test with a completely invalid YAML
+        mock_llm_client.query_model.return_value = ["[This is not valid YAML: {"]
+        with pytest.raises(YamlConversionError) as excinfo:
+            generator.convert_response_to_yaml_list(
+                llm_response="Test text",
+                model="test_model",
+            )
+        assert "Failed to parse YAML" in str(excinfo.value)
+
+        # Test with valid YAML but not a list
+        mock_llm_client.query_model.return_value = [yaml.dump({"key": "value"})]
+        with pytest.raises(YamlConversionError) as excinfo:
+            generator.convert_response_to_yaml_list(
+                llm_response="Test text",
+                model="test_model",
+            )
+        assert "not a list" in str(excinfo.value)
+
+        # Test with list containing items not in the source text (hallucination)
+        mock_llm_client.query_model.return_value = [
+            yaml.dump(["Item in source", "Hallucinated item"])
+        ]
+        with pytest.raises(YamlConversionError) as excinfo:
+            generator.convert_response_to_yaml_list(
+                llm_response="Source text with Item in source",
+                model="test_model",
+            )
+        assert "hallucination" in str(excinfo.value).lower()
+
+    def test_pipeline_error_propagation(self, mock_llm_client):
+        """Test that pipeline methods propagate conversion errors properly."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        # Setup to trigger a YamlConversionError in the first conversion step
+        mock_llm_client.query_model.return_value = ["Valid response"]
+
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # Make the first call raise an exception
+            mock_convert.side_effect = YamlConversionError("Test conversion error")
+
+            # Verify exception is propagated with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                generator.run_open_qa_pipeline(
+                    n_macro_topics=2,
+                    n_subtopics=2,
+                    n_openlines=2,
+                    n_revisions=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+    def test_pipeline_error_suppression(self, mock_llm_client):
+        """Test that pipeline methods suppress errors when configured to do so."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        # Setup for testing
+        mock_llm_client.query_model.return_value = ["Valid response"]
+
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            # First call raises an exception, second call returns a valid list
+            mock_convert.side_effect = [
+                YamlConversionError(
+                    "Test conversion error"
+                ),  # First call: macro topics
+                ["Topic 1", "Topic 2"],  # Second call (if reached): subtopics
+            ]
+
+            # With ignore_conversion_failure=True, should handle the error and continue
+            result = generator.run_open_qa_pipeline(
+                n_macro_topics=2,
+                n_subtopics=2,
+                n_openlines=2,
+                n_revisions=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+                additional_macro_topics=[
+                    "Backup Topic"
+                ],  # To ensure we have something to process
+            )
+
+            # Check that the pipeline didn't fail and attempted to continue processing
+            assert mock_convert.call_count >= 1
+
+            # Result could be empty or contain processed items depending on the mock setup
+            # In a real case with errors being ignored, we might get partial results
+            assert isinstance(result, list)
+
+    def test_other_pipelines_error_handling(self, mock_llm_client):
+        """Test error handling in other pipeline methods."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        # Setup for testing
+        mock_llm_client.query_model.return_value = ["Valid response"]
+
+        # Test writing pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            mock_convert.side_effect = YamlConversionError("Test conversion error")
+
+            # Should raise exception with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                generator.run_writing_pipeline(
+                    topics=["Topic"],
+                    text_material_types=["Essay"],
+                    n_openlines=2,
+                    n_revisions=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise exception with ignore_conversion_failure=True
+            result = generator.run_writing_pipeline(
+                topics=["Topic"],
+                text_material_types=["Essay"],
+                n_openlines=2,
+                n_revisions=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+            )
+            assert isinstance(result, list)
+
+        # Test math pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            mock_convert.side_effect = YamlConversionError("Test conversion error")
+
+            # Should raise exception with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                generator.run_math_pipeline(
+                    n_macro_topics=2,
+                    school_level="High School",
+                    n_subtopics=2,
+                    n_openlines=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise exception with ignore_conversion_failure=True
+            result = generator.run_math_pipeline(
+                n_macro_topics=2,
+                school_level="High School",
+                n_subtopics=2,
+                n_openlines=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+                additional_macro_topics=["Backup Topic"],
+            )
+            assert isinstance(result, list)
+
+        # Test closed_qa pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            mock_convert.side_effect = YamlConversionError("Test conversion error")
+
+            # Should raise exception with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                generator.run_closed_qa_pipeline(
+                    documents=["Test document"],
+                    n_openlines=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise exception with ignore_conversion_failure=True
+            result = generator.run_closed_qa_pipeline(
+                documents=["Test document"],
+                n_openlines=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+            )
+            assert isinstance(result, list)
+
+        # Test python pipeline
+        with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
+            mock_convert.side_effect = YamlConversionError("Test conversion error")
+
+            # Should raise exception with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                generator.run_python_pipeline(
+                    n_macro_topics=2,
+                    n_subtopics=2,
+                    n_openlines=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise exception with ignore_conversion_failure=True
+            result = generator.run_python_pipeline(
+                n_macro_topics=2,
+                n_subtopics=2,
+                n_openlines=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+                additional_macro_topics=["Backup Topic"],
+            )
+            assert isinstance(result, list)

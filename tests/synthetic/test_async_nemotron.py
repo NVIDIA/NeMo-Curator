@@ -98,71 +98,83 @@ class TestAsyncNemotronGenerator:
 
     @pytest.mark.asyncio
     async def test_try_convert_yaml_list(self, mock_llm_client):
-        """Test the _try_convert_yaml_list helper method."""
+        """Test _try_convert_yaml_list method for handling YAML conversion errors."""
         generator = AsyncNemotronGenerator(mock_llm_client)
 
-        # Mock the convert_response_to_yaml_list method
-        with patch.object(
-            AsyncNemotronGenerator,
-            "convert_response_to_yaml_list",
-            new_callable=AsyncMock,
-        ) as mock_convert:
-            # Setup mock to return valid result
-            mock_convert.return_value = ["Item 1", "Item 2"]
+        # Test successful conversion
+        mock_llm_client.query_model.return_value = [yaml.dump(["Item 1", "Item 2"])]
+        result = await generator._try_convert_yaml_list(
+            response="Original response with Item 1 and Item 2",
+            model="test_model",
+            yaml_conversion_prompt_template="Template: {input}",
+            conversion_model_kwargs={},
+            expected_length=2,
+            ignore_conversion_failure=False,
+        )
+        assert result == ["Item 1", "Item 2"]
 
-            result = await generator._try_convert_yaml_list(
-                response="Raw response",
+        # Test with invalid YAML - should raise exception when ignore_conversion_failure=False
+        mock_llm_client.query_model.return_value = ["[This is not valid YAML"]
+        with pytest.raises(YamlConversionError):
+            await generator._try_convert_yaml_list(
+                response="Original response",
                 model="test_model",
-                yaml_conversion_prompt_template="Template",
+                yaml_conversion_prompt_template="Template: {input}",
                 conversion_model_kwargs={},
                 expected_length=2,
                 ignore_conversion_failure=False,
             )
 
-            # Verify the method was called and returned expected result
-            mock_convert.assert_called_once()
-            assert result == ["Item 1", "Item 2"]
+        # Test with invalid YAML - should return empty list when ignore_conversion_failure=True
+        result = await generator._try_convert_yaml_list(
+            response="Original response",
+            model="test_model",
+            yaml_conversion_prompt_template="Template: {input}",
+            conversion_model_kwargs={},
+            expected_length=2,
+            ignore_conversion_failure=True,
+        )
+        assert result == []
 
-            # Test with length mismatch
-            mock_convert.reset_mock()
-            mock_convert.return_value = ["Item 1"]  # Only one item
-
-            with pytest.raises(YamlConversionError):
-                await generator._try_convert_yaml_list(
-                    response="Raw response",
-                    model="test_model",
-                    yaml_conversion_prompt_template="Template",
-                    conversion_model_kwargs={},
-                    expected_length=2,  # Expect 2 items
-                    ignore_conversion_failure=False,
-                )
-
-            # Test with ignoring conversion failure
-            mock_convert.reset_mock()
-            mock_convert.side_effect = YamlConversionError("Test error")
-
-            with pytest.raises(YamlConversionError):
-                await generator._try_convert_yaml_list(
-                    response="Raw response",
-                    model="test_model",
-                    yaml_conversion_prompt_template="Template",
-                    conversion_model_kwargs={},
-                    expected_length=2,
-                    ignore_conversion_failure=False,
-                )
-
-            # Now test with ignore_conversion_failure=True
-            result = await generator._try_convert_yaml_list(
-                response="Raw response",
+        # Test with YAML that's not a list - should raise exception when ignore_conversion_failure=False
+        mock_llm_client.query_model.return_value = [yaml.dump({"key": "value"})]
+        with pytest.raises(YamlConversionError):
+            await generator._try_convert_yaml_list(
+                response="Original response",
                 model="test_model",
-                yaml_conversion_prompt_template="Template",
+                yaml_conversion_prompt_template="Template: {input}",
                 conversion_model_kwargs={},
                 expected_length=2,
-                ignore_conversion_failure=True,
+                ignore_conversion_failure=False,
             )
 
-            # Should return empty list when ignoring failure
-            assert result == []
+        # Test with YAML list of wrong length - should raise exception when ignore_conversion_failure=False
+        mock_llm_client.query_model.return_value = [
+            yaml.dump(["Item 1"])
+        ]  # Only 1 item
+        with pytest.raises(YamlConversionError):
+            await generator._try_convert_yaml_list(
+                response="Original response",
+                model="test_model",
+                yaml_conversion_prompt_template="Template: {input}",
+                conversion_model_kwargs={},
+                expected_length=2,  # Expected 2 items
+                ignore_conversion_failure=False,
+            )
+
+        # Test with hallucination - should raise exception when ignore_conversion_failure=False
+        mock_llm_client.query_model.return_value = [
+            yaml.dump(["In text", "Not in text"])
+        ]
+        with pytest.raises(YamlConversionError):
+            await generator._try_convert_yaml_list(
+                response="Original response with In text",
+                model="test_model",
+                yaml_conversion_prompt_template="Template: {input}",
+                conversion_model_kwargs={},
+                expected_length=2,
+                ignore_conversion_failure=False,
+            )
 
     @pytest.mark.asyncio
     async def test_generate_macro_topics(self, mock_llm_client):
@@ -1538,3 +1550,134 @@ class TestAsyncNemotronGenerator:
                                 len(result) == 8
                             )  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
                             assert all("Problem" in item for item in result)
+
+    @pytest.mark.asyncio
+    async def test_pipeline_error_handling(self, mock_llm_client):
+        """Test error handling in all pipeline methods."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Prepare a side effect that raises YamlConversionError
+        error_side_effect = AsyncMock(side_effect=YamlConversionError("Test error"))
+
+        # Test open_qa_pipeline
+        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+            # Should raise with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                await generator.run_open_qa_pipeline(
+                    n_macro_topics=2,
+                    n_subtopics=2,
+                    n_openlines=2,
+                    n_revisions=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise with ignore_conversion_failure=True
+            result = await generator.run_open_qa_pipeline(
+                n_macro_topics=2,
+                n_subtopics=2,
+                n_openlines=2,
+                n_revisions=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+                additional_macro_topics=[
+                    "Backup Topic"
+                ],  # Ensure we have something to process
+            )
+            assert isinstance(result, list)
+
+        # Test writing_pipeline
+        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+            # Should raise with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                await generator.run_writing_pipeline(
+                    topics=["Topic"],
+                    text_material_types=["Essay"],
+                    n_openlines=2,
+                    n_revisions=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise with ignore_conversion_failure=True
+            result = await generator.run_writing_pipeline(
+                topics=["Topic"],
+                text_material_types=["Essay"],
+                n_openlines=2,
+                n_revisions=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+            )
+            assert isinstance(result, list)
+
+        # Test closed_qa_pipeline
+        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+            # Should raise with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                await generator.run_closed_qa_pipeline(
+                    documents=["Test document"],
+                    n_openlines=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise with ignore_conversion_failure=True
+            result = await generator.run_closed_qa_pipeline(
+                documents=["Test document"],
+                n_openlines=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+            )
+            assert isinstance(result, list)
+
+        # Test math_pipeline
+        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+            # Should raise with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                await generator.run_math_pipeline(
+                    n_macro_topics=2,
+                    school_level="High School",
+                    n_subtopics=2,
+                    n_openlines=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise with ignore_conversion_failure=True
+            result = await generator.run_math_pipeline(
+                n_macro_topics=2,
+                school_level="High School",
+                n_subtopics=2,
+                n_openlines=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+                additional_macro_topics=[
+                    "Backup Topic"
+                ],  # Ensure we have something to process
+            )
+            assert isinstance(result, list)
+
+        # Test python_pipeline
+        with patch.object(generator, "_try_convert_yaml_list", new=error_side_effect):
+            # Should raise with ignore_conversion_failure=False
+            with pytest.raises(YamlConversionError):
+                await generator.run_python_pipeline(
+                    n_macro_topics=2,
+                    n_subtopics=2,
+                    n_openlines=2,
+                    model="test_model",
+                    ignore_conversion_failure=False,
+                )
+
+            # Should not raise with ignore_conversion_failure=True
+            result = await generator.run_python_pipeline(
+                n_macro_topics=2,
+                n_subtopics=2,
+                n_openlines=2,
+                model="test_model",
+                ignore_conversion_failure=True,
+                additional_macro_topics=[
+                    "Backup Topic"
+                ],  # Ensure we have something to process
+            )
+            assert isinstance(result, list)
