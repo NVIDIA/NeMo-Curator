@@ -964,3 +964,577 @@ class TestAsyncNemotronGenerator:
 
                     # Should return empty list due to empty macro topics
                     assert result == []
+
+    @pytest.mark.asyncio
+    async def test_revise_parse_openline(self, mock_llm_client):
+        """Test the _revise_parse_openline helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "revise_open_qa",
+            new_callable=AsyncMock,
+        ) as mock_revise:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_revise.return_value = ["Raw revision"]
+                mock_convert.return_value = ["Revised Q1", "Revised Q2"]
+
+                # Call the method
+                result = await generator._revise_parse_openline(
+                    openline="Original question",
+                    n_revisions=2,
+                    model="test_model",
+                    revise_open_qa_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_revise.assert_called_once_with(
+                    openline="Original question",
+                    n_revisions=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Revised Q1", "Revised Q2"]
+
+    @pytest.mark.asyncio
+    async def test_generate_parse_writing_task(self, mock_llm_client):
+        """Test the _generate_parse_writing_task helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_writing_tasks",
+            new_callable=AsyncMock,
+        ) as mock_generate:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_generate.return_value = ["Raw writing tasks"]
+                mock_convert.return_value = ["Task 1", "Task 2"]
+
+                # Call the method
+                result = await generator._generate_parse_writing_task(
+                    topic="Science",
+                    material="Essay",
+                    n_openlines=2,
+                    model="test_model",
+                    writing_task_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_generate.assert_called_once_with(
+                    topic="Science",
+                    text_material_type="Essay",
+                    n_openlines=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Task 1", "Task 2"]
+
+    @pytest.mark.asyncio
+    async def test_revise_parse_writing_task(self, mock_llm_client):
+        """Test the _revise_parse_writing_task helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "revise_writing_tasks",
+            new_callable=AsyncMock,
+        ) as mock_revise:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_revise.return_value = ["Raw revision"]
+                mock_convert.return_value = ["Revised Task 1", "Revised Task 2"]
+
+                # Call the method
+                result = await generator._revise_parse_writing_task(
+                    task="Original task",
+                    n_revisions=2,
+                    model="test_model",
+                    revise_writing_task_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_revise.assert_called_once_with(
+                    openline="Original task",
+                    n_revisions=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Revised Task 1", "Revised Task 2"]
+
+    @pytest.mark.asyncio
+    async def test_generate_parse_closed_qa(self, mock_llm_client):
+        """Test the _generate_parse_closed_qa helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_closed_qa_instructions",
+            new_callable=AsyncMock,
+        ) as mock_generate:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_generate.return_value = ["Raw closed QA"]
+                mock_convert.return_value = ["Question 1", "Question 2"]
+
+                # Call the method
+                result = await generator._generate_parse_closed_qa(
+                    document_id=1,
+                    document="Document content",
+                    n_openlines=2,
+                    model="test_model",
+                    closed_qa_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_generate.assert_called_once_with(
+                    document="Document content",
+                    n_openlines=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result has the document ID and questions
+                assert len(result) == 2
+                assert all(isinstance(item, tuple) for item in result)
+                assert result[0][0] == 1  # document_id
+                assert result[0][1] in ["Question 1", "Question 2"]
+                assert result[1][0] == 1  # document_id
+                assert result[1][1] in ["Question 1", "Question 2"]
+
+    @pytest.mark.asyncio
+    async def test_run_closed_qa_pipeline(self, mock_llm_client):
+        """Test run_closed_qa_pipeline pipeline method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "_generate_parse_closed_qa",
+            new_callable=AsyncMock,
+        ) as mock_parse_qa:
+            with patch.object(
+                AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
+            ) as mock_gather:
+                # Set up return values
+                mock_parse_qa.side_effect = [
+                    [(0, "Question 1"), (0, "Question 2")],  # Document 0
+                    [(1, "Question 3"), (1, "Question 4")],  # Document 1
+                ]
+                mock_gather.return_value = [
+                    [(0, "Question 1"), (0, "Question 2")],
+                    [(1, "Question 3"), (1, "Question 4")],
+                ]
+
+                documents = ["Document 1", "Document 2"]
+
+                # Call the pipeline
+                result = await generator.run_closed_qa_pipeline(
+                    documents=documents,
+                    n_openlines=2,
+                    model="test_model",
+                )
+
+                # Check methods were called correctly
+                assert mock_parse_qa.call_count == 2  # Called for each document
+                mock_gather.assert_called_once()
+
+                # Verify the result format
+                assert len(result) == 4  # 2 documents x 2 questions each
+                assert all(isinstance(item, tuple) for item in result)
+                assert result[0][0] == 0  # First document index
+                assert result[2][0] == 1  # Second document index
+
+    @pytest.mark.asyncio
+    async def test_generate_parse_math_subtopic(self, mock_llm_client):
+        """Test the _generate_parse_math_subtopic helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_math_subtopics",
+            new_callable=AsyncMock,
+        ) as mock_subtopics:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_subtopics.return_value = ["Raw math subtopics"]
+                mock_convert.return_value = ["Algebra", "Calculus"]
+
+                # Call the method
+                result = await generator._generate_parse_math_subtopic(
+                    macro_topic="Mathematics",
+                    n_subtopics=2,
+                    model="test_model",
+                    subtopic_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_subtopics.assert_called_once_with(
+                    macro_topic="Mathematics",
+                    n_subtopics=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Algebra", "Calculus"]
+
+    @pytest.mark.asyncio
+    async def test_generate_parse_math_openline(self, mock_llm_client):
+        """Test the _generate_parse_math_openline helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_math_problem",
+            new_callable=AsyncMock,
+        ) as mock_problem:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_problem.return_value = ["Raw math problem"]
+                mock_convert.return_value = ["Problem 1", "Problem 2"]
+
+                # Call the method
+                result = await generator._generate_parse_math_openline(
+                    subtopic="Algebra",
+                    n_openlines=2,
+                    model="test_model",
+                    math_problem_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_problem.assert_called_once_with(
+                    topic="Algebra",
+                    n_openlines=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Problem 1", "Problem 2"]
+
+    @pytest.mark.asyncio
+    async def test_run_math_pipeline(self, mock_llm_client):
+        """Test run_math_pipeline pipeline method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch all the required methods
+        with patch.object(
+            AsyncNemotronGenerator, "generate_math_macro_topics", new_callable=AsyncMock
+        ) as mock_macro_topics:
+            with patch.object(
+                AsyncNemotronGenerator,
+                "convert_response_to_yaml_list",
+                new_callable=AsyncMock,
+            ) as mock_convert:
+                with patch.object(
+                    AsyncNemotronGenerator,
+                    "_generate_parse_math_subtopic",
+                    new_callable=AsyncMock,
+                ) as mock_parse_subtopic:
+                    with patch.object(
+                        AsyncNemotronGenerator,
+                        "_generate_parse_math_openline",
+                        new_callable=AsyncMock,
+                    ) as mock_parse_openline:
+                        with patch.object(
+                            AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
+                        ) as mock_gather:
+
+                            # Set up return values
+                            mock_macro_topics.return_value = ["Math topics response"]
+                            mock_convert.return_value = [
+                                "Algebra",
+                                "Geometry",
+                            ]  # Macro topics conversion
+                            mock_parse_subtopic.side_effect = [
+                                ["Equations", "Polynomials"],  # Subtopics for Algebra
+                                ["Triangles", "Circles"],  # Subtopics for Geometry
+                            ]
+                            mock_parse_openline.side_effect = [
+                                ["Problem 1", "Problem 2"]
+                            ] * 4  # For each subtopic
+
+                            # Setup gather to return all problems
+                            mock_gather.side_effect = [
+                                [
+                                    ["Equations", "Polynomials"],
+                                    ["Triangles", "Circles"],
+                                ],  # First gather for subtopics
+                                [
+                                    ["Problem 1", "Problem 2"],
+                                    ["Problem 1", "Problem 2"],
+                                    ["Problem 1", "Problem 2"],
+                                    ["Problem 1", "Problem 2"],
+                                ],  # Second gather for problems
+                            ]
+
+                            # Call the pipeline
+                            result = await generator.run_math_pipeline(
+                                n_macro_topics=2,
+                                school_level="High School",
+                                n_subtopics=2,
+                                n_openlines=2,
+                                model="test_model",
+                            )
+
+                            # Check that methods were called correctly
+                            mock_macro_topics.assert_called_once_with(
+                                n_macro_topics=2,
+                                school_level="High School",
+                                model="test_model",
+                                prompt_template=mock_macro_topics.call_args[1][
+                                    "prompt_template"
+                                ],
+                                model_kwargs={},
+                            )
+                            mock_convert.assert_called_once()
+                            assert mock_gather.call_count >= 2
+
+                            # Check the result
+                            assert (
+                                len(result) == 8
+                            )  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
+                            assert all("Problem" in item for item in result)
+
+    @pytest.mark.asyncio
+    async def test_generate_parse_python_subtopic(self, mock_llm_client):
+        """Test the _generate_parse_python_subtopic helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_python_subtopics",
+            new_callable=AsyncMock,
+        ) as mock_subtopics:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_subtopics.return_value = ["Raw python subtopics"]
+                mock_convert.return_value = ["Lists", "Dictionaries"]
+
+                # Call the method
+                result = await generator._generate_parse_python_subtopic(
+                    macro_topic="Data Structures",
+                    n_subtopics=2,
+                    model="test_model",
+                    subtopic_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_subtopics.assert_called_once_with(
+                    macro_topic="Data Structures",
+                    n_subtopics=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Lists", "Dictionaries"]
+
+    @pytest.mark.asyncio
+    async def test_generate_parse_python_openline(self, mock_llm_client):
+        """Test the _generate_parse_python_openline helper method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch the methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_python_problem",
+            new_callable=AsyncMock,
+        ) as mock_problem:
+            with patch.object(
+                AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
+            ) as mock_convert:
+                # Set up return values
+                mock_problem.return_value = ["Raw python problem"]
+                mock_convert.return_value = ["Problem 1", "Problem 2"]
+
+                # Call the method
+                result = await generator._generate_parse_python_openline(
+                    subtopic="Lists",
+                    n_openlines=2,
+                    model="test_model",
+                    python_problem_prompt_template="template",
+                    yaml_conversion_prompt_template="conversion_template",
+                    base_model_kwargs={},
+                    conversion_model_kwargs={},
+                    ignore_conversion_failure=False,
+                )
+
+                # Check methods were called correctly
+                mock_problem.assert_called_once_with(
+                    topic="Lists",
+                    n_openlines=2,
+                    model="test_model",
+                    prompt_template="template",
+                    model_kwargs={},
+                )
+
+                mock_convert.assert_called_once()
+
+                # Check result
+                assert result == ["Problem 1", "Problem 2"]
+
+    @pytest.mark.asyncio
+    async def test_run_python_pipeline(self, mock_llm_client):
+        """Test run_python_pipeline pipeline method."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Patch all the required methods
+        with patch.object(
+            AsyncNemotronGenerator,
+            "generate_python_macro_topics",
+            new_callable=AsyncMock,
+        ) as mock_macro_topics:
+            with patch.object(
+                AsyncNemotronGenerator,
+                "convert_response_to_yaml_list",
+                new_callable=AsyncMock,
+            ) as mock_convert:
+                with patch.object(
+                    AsyncNemotronGenerator,
+                    "_generate_parse_python_subtopic",
+                    new_callable=AsyncMock,
+                ) as mock_parse_subtopic:
+                    with patch.object(
+                        AsyncNemotronGenerator,
+                        "_generate_parse_python_openline",
+                        new_callable=AsyncMock,
+                    ) as mock_parse_openline:
+                        with patch.object(
+                            AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
+                        ) as mock_gather:
+
+                            # Set up return values
+                            mock_macro_topics.return_value = ["Python topics response"]
+                            mock_convert.return_value = [
+                                "Data Structures",
+                                "Functions",
+                            ]  # Macro topics conversion
+                            mock_parse_subtopic.side_effect = [
+                                [
+                                    "Lists",
+                                    "Dictionaries",
+                                ],  # Subtopics for Data Structures
+                                ["Lambda", "Decorators"],  # Subtopics for Functions
+                            ]
+                            mock_parse_openline.side_effect = [
+                                ["Problem 1", "Problem 2"]
+                            ] * 4  # For each subtopic
+
+                            # Setup gather to return all problems
+                            mock_gather.side_effect = [
+                                [
+                                    ["Lists", "Dictionaries"],
+                                    ["Lambda", "Decorators"],
+                                ],  # First gather for subtopics
+                                [
+                                    ["Problem 1", "Problem 2"],
+                                    ["Problem 1", "Problem 2"],
+                                    ["Problem 1", "Problem 2"],
+                                    ["Problem 1", "Problem 2"],
+                                ],  # Second gather for problems
+                            ]
+
+                            # Call the pipeline
+                            result = await generator.run_python_pipeline(
+                                n_macro_topics=2,
+                                n_subtopics=2,
+                                n_openlines=2,
+                                model="test_model",
+                            )
+
+                            # Check that methods were called correctly
+                            mock_macro_topics.assert_called_once_with(
+                                n_macro_topics=2,
+                                model="test_model",
+                                prompt_template=mock_macro_topics.call_args[1][
+                                    "prompt_template"
+                                ],
+                                model_kwargs={},
+                            )
+                            mock_convert.assert_called_once()
+                            assert mock_gather.call_count >= 2
+
+                            # Check the result
+                            assert (
+                                len(result) == 8
+                            )  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
+                            assert all("Problem" in item for item in result)

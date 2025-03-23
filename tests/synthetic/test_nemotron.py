@@ -804,3 +804,152 @@ class TestNemotronGenerator:
                 "Extra subtopic"
             ],  # Added to ensure we have something to process
         )
+
+    def test_revise_writing_tasks(self, mock_llm_client):
+        """Test revise_writing_tasks method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.revise_writing_tasks(
+            openline="Write an essay about climate change.",
+            n_revisions=2,
+            model="test_model",
+        )
+
+        # Check the right parameters were passed to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "Write an essay about climate change." in messages[0]["content"]
+        ), "Openline wasn't passed to the prompt"
+        assert (
+            "2" in messages[0]["content"]
+        ), "Number of revisions wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
+
+    def test_generate_math_macro_topics(self, mock_llm_client):
+        """Test generate_math_macro_topics method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.generate_math_macro_topics(
+            n_macro_topics=3,
+            school_level="Middle School",
+            model="test_model",
+        )
+
+        # Check the parameters sent to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "3" in messages[0]["content"]
+        ), "Number of topics wasn't passed to the prompt"
+        assert (
+            "Middle School" in messages[0]["content"]
+        ), "School level wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
+
+    def test_generate_math_subtopics(self, mock_llm_client):
+        """Test generate_math_subtopics method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.generate_math_subtopics(
+            macro_topic="Algebra",
+            n_subtopics=4,
+            model="test_model",
+        )
+
+        # Check the parameters sent to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "Algebra" in messages[0]["content"]
+        ), "Macro topic wasn't passed to the prompt"
+        assert (
+            "4" in messages[0]["content"]
+        ), "Number of subtopics wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
+
+    def test_classify_math_entity(self, mock_llm_client):
+        """Test classify_math_entity method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.classify_math_entity(
+            entity="Quadratic Equations",
+            model="test_model",
+        )
+
+        # Check the parameters sent to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "Quadratic Equations" in messages[0]["content"]
+        ), "Entity wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
+
+    def test_generate_python_macro_topics(self, mock_llm_client):
+        """Test generate_python_macro_topics method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.generate_python_macro_topics(
+            n_macro_topics=3,
+            model="test_model",
+        )
+
+        # Check the parameters sent to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "3" in messages[0]["content"]
+        ), "Number of topics wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
+
+    def test_generate_python_subtopics(self, mock_llm_client):
+        """Test generate_python_subtopics method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.generate_python_subtopics(
+            macro_topic="Web Development",
+            n_subtopics=4,
+            model="test_model",
+        )
+
+        # Check the parameters sent to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "Web Development" in messages[0]["content"]
+        ), "Macro topic wasn't passed to the prompt"
+        assert (
+            "4" in messages[0]["content"]
+        ), "Number of subtopics wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
+
+    def test_classify_python_entity(self, mock_llm_client):
+        """Test classify_python_entity method."""
+        generator = NemotronGenerator(mock_llm_client)
+
+        result = generator.classify_python_entity(
+            entity="Object-Oriented Programming",
+            model="test_model",
+        )
+
+        # Check the parameters sent to query_model
+        mock_llm_client.query_model.assert_called_once()
+        messages = mock_llm_client.query_model.call_args[1]["messages"]
+        assert (
+            "Object-Oriented Programming" in messages[0]["content"]
+        ), "Entity wasn't passed to the prompt"
+
+        # Check the result
+        assert result == ["This is a mock response"]
