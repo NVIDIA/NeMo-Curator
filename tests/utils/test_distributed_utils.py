@@ -149,6 +149,8 @@ class TestClientFunctions:
         """Test get_client function with GPU cluster type."""
         mock_client_instance = MagicMock()
         mock_client.return_value = mock_client_instance
+        # Make the mock_gpu_cluster return the same mock_client_instance
+        mock_gpu_cluster.return_value = mock_client_instance
 
         # Mock get_num_workers to return a positive value
         with patch(
