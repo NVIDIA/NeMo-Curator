@@ -281,7 +281,7 @@ def write_record(
 
         output_dir = os.path.join(output_dir, category, rel_path)
         os.makedirs(output_dir, exist_ok=True)
-        with open(f"{output_dir}/{file_name}", "a") as f:
+        with open(os.path.join(output_dir, file_name), "a") as f:
             f.write(json.dumps(line) + "\n")
 
         return category

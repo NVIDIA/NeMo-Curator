@@ -454,10 +454,10 @@ class TestDataFrameUtils:
                 )
                 assert result == "A"
                 mock_makedirs.assert_called_once_with(
-                    os.path.join(output_dir, "A"), exist_ok=True
+                    os.path.join(output_dir, "A", ""), exist_ok=True
                 )
                 mock_file.assert_called_once_with(
-                    f"{os.path.join(output_dir, 'A')}/file1.txt", "a"
+                    os.path.join(output_dir, "A", "file1.txt"), "a"
                 )
                 mock_file().write.assert_called_once_with(
                     '{"text": "hello", "category": "A"}\n'
@@ -544,35 +544,69 @@ class TestDataFrameUtils:
         with patch.object(
             df, "to_delayed", return_value=[mock_partition]
         ) as mock_to_delayed:
-            # Create a mock for the delayed function that will track calls
-            mock_delayed_func = MagicMock()
-            mock_delayed_obj = MagicMock()
-            mock_delayed_func.return_value = mock_delayed_obj
+            # Create a final result mock that will be returned from the function
+            final_result_mock = MagicMock()
 
-            # Setup mock for reduce function
+            # Setup write_dataframe_by_meta mock
+            mock_write = MagicMock()
+            write_delayed_mock = MagicMock()
+            # This mock will represent the delayed function that will be called with arguments
+            delayed_write_fn = MagicMock()
+            delayed_write_fn.return_value = write_delayed_mock
+
+            # Setup mock for reduce function and merge_counts
+            mock_merge_counts = MagicMock()
             mock_reduce = MagicMock()
-            mock_reduce_result = MagicMock()
-            mock_reduce.return_value = mock_reduce_result
+            delayed_reduce_fn = MagicMock()
+            delayed_reduce_fn.return_value = final_result_mock
 
-            with patch("nemo_curator.utils.file_utils.delayed", mock_delayed_func):
+            with patch("nemo_curator.utils.file_utils.delayed") as mock_delayed:
                 with patch(
-                    "nemo_curator.utils.file_utils.write_dataframe_by_meta"
-                ) as mock_write:
-                    with patch("nemo_curator.utils.file_utils.reduce", mock_reduce):
-                        # Call the function
-                        result = separate_by_metadata(df, temp_dir, "category")
+                    "nemo_curator.utils.file_utils.write_dataframe_by_meta", mock_write
+                ):
+                    with patch(
+                        "nemo_curator.utils.file_utils.merge_counts", mock_merge_counts
+                    ):
+                        with patch("nemo_curator.utils.file_utils.reduce", mock_reduce):
+                            # Configure the mocks to return the expected values
+                            # Mock delayed to return a callable that we can check later
+                            mock_delayed.side_effect = lambda func: (
+                                delayed_write_fn
+                                if func is mock_write
+                                else (
+                                    delayed_reduce_fn
+                                    if func is mock_reduce
+                                    else MagicMock()
+                                )
+                            )
 
-                        # Verify to_delayed was called
-                        mock_to_delayed.assert_called_once()
+                            # Call the function
+                            result = separate_by_metadata(df, temp_dir, "category")
 
-                        # Verify delayed was called with write_dataframe_by_meta
-                        mock_delayed_func.assert_any_call(write_dataframe_by_meta)
+                            # Verify to_delayed was called
+                            mock_to_delayed.assert_called_once()
 
-                        # Verify delayed was called with reduce
-                        mock_delayed_func.assert_any_call(reduce)
+                            # Verify delayed was called with write_dataframe_by_meta
+                            mock_delayed.assert_any_call(mock_write)
 
-                        # Verify the result is the mock_reduce_result
-                        assert result == mock_reduce_result
+                            # Verify the delayed function was called with the right arguments
+                            delayed_write_fn.assert_called_with(
+                                mock_partition,
+                                temp_dir,
+                                "category",
+                                False,
+                                "jsonl",
+                                None,
+                                None,
+                                "file_name",
+                            )
+
+                            # Verify reduce was called correctly
+                            mock_delayed.assert_any_call(mock_reduce)
+                            delayed_reduce_fn.assert_called_once()
+
+                            # Verify the final result
+                            assert result == final_result_mock
 
         # Case 2: Input is a directory with jsonl files when both input and output are jsonl
         test_file = os.path.join(input_dir, "test.jsonl")
@@ -589,10 +623,25 @@ class TestDataFrameUtils:
         mock_bag.map.return_value = mock_bag
 
         with patch("nemo_curator.utils.file_utils.db.read_text", return_value=mock_bag):
+            # Create a final result for this test case
+            final_result = {"A": 1, "B": 1}
+
+            # Update how we patch delayed and reduce
             with patch("nemo_curator.utils.file_utils.delayed") as mock_delayed:
-                with patch("nemo_curator.utils.file_utils.reduce") as mock_reduce:
-                    mock_reduce.return_value = {"A": 1, "B": 1}
-                    mock_delayed.return_value = mock_reduce
+                with patch(
+                    "nemo_curator.utils.file_utils.reduce", autospec=True
+                ) as mock_reduce:
+                    # Create a properly callable delayed_reduce mock
+                    delayed_reduce_mock = MagicMock()
+                    delayed_reduce_mock.return_value = final_result
+
+                    # Configure mock_delayed to return delayed_reduce_mock when called with mock_reduce
+                    def delayed_side_effect(func, *args, **kwargs):
+                        if func is mock_reduce:
+                            return delayed_reduce_mock
+                        return MagicMock()
+
+                    mock_delayed.side_effect = delayed_side_effect
 
                     # Call the function with a directory path
                     result = separate_by_metadata(
@@ -603,8 +652,15 @@ class TestDataFrameUtils:
                         output_type="jsonl",
                     )
 
-                    # Verify db.read_text was used and map was called
-                    assert mock_bag.map.called
+                    # Verify that delayed was called with reduce
+                    mock_delayed.assert_called_with(mock_reduce)
+
+                    # Verify that delayed_reduce_mock was called with the expected arguments
+                    frequencies = {"A": 1, "B": 1}  # After None is removed
+                    delayed_reduce_mock.assert_called_once()
+
+                    # Verify the result
+                    assert result == final_result
 
         # Test with both include_values and exclude_values provided
         with patch("builtins.print") as mock_print:
