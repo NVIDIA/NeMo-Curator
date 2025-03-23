@@ -26,7 +26,9 @@ class TestNemoDeployClient:
         """Create a mock NemoQueryLLM client for testing."""
         mock_client = MagicMock()
         # Configure the mock response structure to match what NemoQueryLLM returns
-        mock_client.query_llm.return_value = ["This is a mock NeMo response"]
+        # NemoQueryLLM.query_llm returns a list, and we're accessing the first item [0]
+        # So the return value should be a list containing a single string
+        mock_client.query_llm.return_value = [["This is a mock NeMo response"]]
         return mock_client
 
     @pytest.fixture
@@ -74,7 +76,7 @@ class TestNemoDeployClient:
         messages = [{"role": "user", "content": "Hello"}]
 
         # Set up specific stop words for testing postprocessing
-        mock_nemo_deploy.query_llm.return_value = ["Response with stop_token"]
+        mock_nemo_deploy.query_llm.return_value = [["Response with stop_token"]]
 
         with pytest.warns(UserWarning, match="n is not supported"):
             with pytest.warns(UserWarning, match="streamming is not supported"):
@@ -113,6 +115,9 @@ class TestNemoDeployClient:
         client = NemoDeployClient(mock_nemo_deploy)
         messages = [{"role": "user", "content": "Hello"}]
 
+        # Configure mock to return a properly nested response
+        mock_nemo_deploy.query_llm.return_value = [["Response text"]]
+
         client.query_model(
             messages=messages,
             model="nemo_model",
@@ -130,6 +135,9 @@ class TestNemoDeployClient:
         """Test that query_model properly handles None stop words."""
         client = NemoDeployClient(mock_nemo_deploy)
         messages = [{"role": "user", "content": "Hello"}]
+
+        # Configure mock to return a properly nested response
+        mock_nemo_deploy.query_llm.return_value = [["Response text"]]
 
         # Patch the _postprocess_response method to avoid the None error
         with patch.object(
@@ -191,16 +199,11 @@ class TestNemoDeployClient:
 
     def test_postprocess_response_with_none_stop(self, mock_nemo_deploy):
         """Test that _postprocess_response handles None stop_words gracefully."""
-        # Test with None stop_words - we need to patch this method to fix it
-        with patch.object(
-            NemoDeployClient,
-            "_postprocess_response",
-            wraps=NemoDeployClient._postprocess_response,
-        ) as patched_method:
-            with pytest.raises(TypeError):
-                NemoDeployClient._postprocess_response(["Response text"], None)
+        # Test with None stop_words - this should raise a TypeError
+        with pytest.raises(TypeError):
+            NemoDeployClient._postprocess_response(["Response text"], None)
 
-            # This verifies the error is reproduced and needs to be fixed
+        # This verifies that we need to handle None stop_words in query_model before calling _postprocess_response
 
     def test_query_reward_model_not_implemented(self, mock_nemo_deploy):
         """Test that query_reward_model raises NotImplementedError."""
