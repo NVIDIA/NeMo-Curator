@@ -6,10 +6,7 @@ num_files: 16
 embedding_model_name_or_path: "sentence-transformers/all-MiniLM-L6-v2"
 embedding_batch_size: 128
 embeddings_save_loc: "embeddings"
-embedding_pooling_strategy: "mean_pooling"
-embedding_column: "embeddings"
-write_embeddings_to_disk: true
-write_to_filename: false
+write_embeddings_to_disk: false
 
 # Clustering configuration
 max_iter: 100
@@ -17,10 +14,6 @@ n_clusters: 15
 clustering_save_loc: "clustering_results"
 sim_metric: "cosine"
 which_to_keep: "hard"
-batched_cosine_similarity: 1024
-sort_clusters: true
-kmeans_with_cos_dist: false
-partition_size: "2gb"
 
 # Extract dedup configuration
 eps_thresholds:
@@ -29,4 +22,3 @@ eps_thresholds:
 
 # Which threshold to use for extracting deduped data
 eps_to_extract: 0.1
-
