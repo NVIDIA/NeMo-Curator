@@ -16,7 +16,7 @@
 import logging
 import os
 import shutil
-import time 
+import time
 from typing import Literal, Optional, Union
 
 import cudf
@@ -29,14 +29,19 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
-from nemo_curator.utils.semdedup_utils import assign_and_sort_clusters, get_array_from_df, L2_DIST_TO_CENT_COL, normalize_embeddings_col_in_df
+from nemo_curator.utils.semdedup_utils import (
+    L2_DIST_TO_CENT_COL,
+    assign_and_sort_clusters,
+    get_array_from_df,
+    normalize_embeddings_col_in_df,
+)
 
 
 # TODO : add cosine distance also while we are computing distance to centroids, will allow us for more flexibility in later stages
 def add_l2_dist_to_cents(
     df: "cudf.DataFrame", embedding_col: str, centroids: cp.ndarray
 ) -> "cudf.DataFrame":
-    """ 
+    """
     Computes the L2 distance to nearest centroid to each embedding in the dataframe.
     Both embeddings and centroids are normalized.
     """
@@ -161,12 +166,10 @@ class ClusteringModel:
             embeddings_df = embeddings_df.map_partitions(
                 normalize_embeddings_col_in_df,
                 embedding_col=self.embedding_column,
-                meta=embeddings_df._meta.copy()
+                meta=embeddings_df._meta.copy(),
             )
             cupy_normalized_darr = embeddings_df.map_partitions(
-                get_array_from_df, 
-                self.embedding_column, 
-                meta=cp.ndarray([1, 1])
+                get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
             cupy_normalized_darr.compute_chunk_sizes()
             t0 = time.time()
@@ -174,7 +177,7 @@ class ClusteringModel:
                 n_clusters=self.n_clusters,
                 max_iter=self.max_iter,
                 random_state=self.random_state,
-                n_init=1
+                n_init=1,
             )
             self.logger.info("KMeans starting fit")
             kmeans.fit(cupy_normalized_darr)
@@ -219,7 +222,10 @@ class ClusteringModel:
                 shutil.rmtree(clustering_output_dir)
 
             embeddings_df.to_parquet(
-                clustering_output_dir, index=False, partition_on="nearest_cent", write_index=False
+                clustering_output_dir,
+                index=False,
+                partition_on="nearest_cent",
+                write_index=False,
             )
             self.logger.info(
                 f"Time taken for assigning distance to each embedding: {time.time() - t0}s"
