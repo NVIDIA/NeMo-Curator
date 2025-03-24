@@ -201,6 +201,7 @@ class ClusteringModel:
             )
             embeddings_df = embeddings_df.reset_index(drop=True)
             centroids = kmeans.cluster_centers_
+            print(f"{centroids=}")
             kmeans_centroids_file = os.path.join(
                 self.clustering_output_dir, "kmeans_centroids.npy"
             )

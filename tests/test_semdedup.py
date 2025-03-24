@@ -69,6 +69,9 @@ get_ids_within_cluster = gpu_only_import_from(
 read_cluster_embeddings_and_sort_by_id = gpu_only_import_from(
     "nemo_curator.utils.semdedup_utils", "read_cluster_embeddings_and_sort_by_id"
 )
+get_semantic_matches_per_cluster = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "get_semantic_matches_per_cluster"
+)
 
 if TYPE_CHECKING:
     from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
@@ -86,6 +89,7 @@ if TYPE_CHECKING:
         pairwise_cosine_similarity_batched,
         read_cluster_embeddings_and_sort_by_id,
         get_ids_within_cluster,
+        get_semantic_matches_per_cluster
     )
 
 
@@ -228,9 +232,9 @@ class TestSemDuplicates:
             test_texts, pooling_strategy=pooling_strategy
         )
 
-        assert np.allclose(
-            embeddings, reference_embeddings, atol=1e-3
-        ), "Embeddings should match reference embeddings"
+        assert np.allclose(embeddings, reference_embeddings, atol=1e-3), (
+            "Embeddings should match reference embeddings"
+        )
 
 
 def get_reference_embeddings(
@@ -344,33 +348,7 @@ class TestSemDedupUtils:
         )
         assert max_indices == max_indices_batched
 
-    @pytest.mark.parametrize("which_to_keep", ["hard", "easy"])
-    def test_pairwise_similarity_and_which_to_keep(self, which_to_keep: Literal["hard", "easy"]):
-        self.centroid = self.input_embeddings[:1]
-        # Step 1) Simulate rank_within_cluster
-        cosine_similarity = torch.nn.CosineSimilarity(dim=1)(self.input_embeddings, self.centroid)
-
-        # Step 2) Simulate get_ids_within_cluster
-        if which_to_keep == "hard":
-            # When hard then we write dissimilar items first, and in case of ties we write the items with the highest id first
-            indices = torch.argsort(cosine_similarity, descending=True)
-        else:
-            # When easy then we write similar items first, and in case of ties we write the items with the lowest id first
-            indices = torch.argsort(cosine_similarity, descending=False)
-
-        # Step 3) Simulate read_cluster_embeddings_and_sort_by_id
-        sorted_embeddings = self.input_embeddings[indices]
-
-        # Step 4) Call pairwise similarity on it and assert it matches our expected output
-        max_similarity, max_indices = pairwise_cosine_similarity(sorted_embeddings, "cuda")
-        print(f"{which_to_keep=}")
-        print(f"{cosine_similarity=}")
-        print(f"max_similarity: {max_similarity=}")
-        print(f"max_indices: {max_indices=}")
-
-        # TODO check this test
-        raise ValueError("Not implemented")
-    
+           
     @pytest.mark.parametrize("keep_hard", [True, False])
     def test_rank_within_cluster(self, keep_hard: bool):
         # Create a temporary directory for output
@@ -504,6 +482,7 @@ class TestSemDedupUtils:
             get_array_from_df(df, "embedding"), expected_array, rtol=1e-5, atol=1e-5
         )
 
+
     def test_normalize_embeddings_col_in_df(self):
         # Mock data setup
         df = cudf.DataFrame(
@@ -580,12 +559,88 @@ class TestSemDedupUtils:
         )
 
 
+    @pytest.mark.parametrize("which_to_keep", ["hard", "easy"])
+    def test_get_semantic_matches_per_cluster(
+        self, which_to_keep: Literal["hard", "easy"], tmpdir
+    ):
+        cluster_c = 0
+        self.centroid = self.input_embeddings[:1]
+        os.makedirs(os.path.join(tmpdir, f"nearest_cent={cluster_c}"), exist_ok=True)
+        # Step 1) Simulate rank_within_cluster
+        cudf.DataFrame(
+            {
+                "embedding": self.input_embeddings.tolist(),
+                "id": list(range(self.input_embeddings.shape[0])),
+            }
+        ).to_parquet(os.path.join(tmpdir, f"nearest_cent={cluster_c}/file.parquet"))
+
+        # Step 1) Call rank_within_cluster
+        rank_within_cluster(
+            id_col="id",
+            nearest_cent_dir=tmpdir,
+            output_sorted_clusters_dir=tmpdir,
+            centroids=self.centroid,
+            embedding_col="embedding",
+            sim_metric="cosine",
+            keep_hard=which_to_keep == "hard",
+            cluster_ids=[cluster_c],
+        )
+        # Step 2) Call get_semantic_matches_per_cluster
+        # this internally calls read_cluster_embeddings_and_sort_by_id and pairwise_cosine_similarity
+        get_semantic_matches_per_cluster(
+            cluster_id=cluster_c,
+            emb_by_clust_dir=tmpdir,
+            sorted_clusters_dir=tmpdir,
+            id_col="id",
+            id_col_type="int",
+            eps_list=[0.001],
+            output_dir=tmpdir,
+            embedding_col="embedding",
+            which_to_keep=which_to_keep,
+            batched_cosine_similarity=1024,
+        )
+
+        # Read the output
+        output_df = pd.read_parquet(os.path.join(tmpdir, f"cluster_{cluster_c}.parquet"))
+        # https://docs.google.com/spreadsheets/d/1s3unF6RRCDNpAam7GpU3pidbluoQXOzi0yKlokuV0ag/edit?gid=0#gid=0
+        # The spreadsheet has the expected output and the walkthrough for the hard and easy cases
+        if which_to_keep == "hard":
+            expected_ids = [3, 2, 1, 5, 4, 0]
+            expected_max_ids = [3, 3, 2, 1, 5, 5]
+            expected_cosine_sim_scores = [0.0000, 0.99961, 0.99819, 0.974631, 1.0000, 1.0000]
+            eps_list = [False, True, False, False, True, True]
+        else:
+            expected_ids = [0, 4, 5, 1, 2, 3]
+            expected_max_ids = [0, 0, 0, 0, 1, 2]
+            expected_cosine_sim_scores = [0.0000, 1.0000, 1.0000, 0.97464, 0.99819, 0.999618] 
+            eps_list = [False, True, True, False, False, True]
+        pd.testing.assert_frame_equal(
+            output_df,
+                pd.DataFrame(
+                {
+                    "indices": list(range(len(expected_ids))),
+                    "id": expected_ids,
+                    "max_id": expected_max_ids,
+                    "cosine_sim_score": expected_cosine_sim_scores,
+                    "eps=0.001": eps_list,
+                }
+            ),
+            check_exact=False,
+            rtol=1e-5,
+            atol=1e-5,
+        )
+
 @pytest.mark.gpu
 class TestSemanticDedupWithoutEmbeddingCreation:
     def setup_method(self):
         self.n_clusters = 5
         self.n_samples_per_cluster = [100 * (i + 1) for i in range(self.n_clusters)]
         self.n_features = 3
+        # reset all random state here to undeterministic results
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
+        torch.cuda.manual_seed_all(42)
 
         self.X, _ = make_blobs(
             n_samples=self.n_samples_per_cluster,
@@ -696,7 +751,6 @@ class TestSemanticDedupWithoutEmbeddingCreation:
     def test_sematnic_cluster_level_dedup(self, tmpdir, which_to_keep):
         clustering_output_dir = os.path.join(tmpdir, "clustering_output")
         semantic_extraction_output_dir = os.path.join(tmpdir, "extraction")
-        print(f"{tmpdir=}\n{clustering_output_dir=}\n{semantic_extraction_output_dir=}")
         # Initialize ClusteringModel
         clustering_model = ClusteringModel(
             id_column="id",
@@ -727,11 +781,15 @@ class TestSemanticDedupWithoutEmbeddingCreation:
 
         # Call compute_semantic_match_dfs
         semantic_cluster_level_dedup.compute_semantic_match_dfs(eps_list=[0.01, 0.02])
-        
+
         output_samples_per_cluster = []
         # Check content of semdedup_pruning_tables
         for i in range(self.n_clusters):
-            cluster_i_path = os.path.join(semantic_extraction_output_dir, "semdedup_pruning_tables", f"cluster_{i}.parquet")
+            cluster_i_path = os.path.join(
+                semantic_extraction_output_dir,
+                "semdedup_pruning_tables",
+                f"cluster_{i}.parquet",
+            )
             assert os.path.exists(cluster_i_path)
             df = pd.read_parquet(cluster_i_path)
             output_samples_per_cluster.append(df.shape[0])
@@ -743,8 +801,6 @@ class TestSemanticDedupWithoutEmbeddingCreation:
                 "eps=0.01",
                 "eps=0.02",
             ]
-
-            print(df[["eps=0.01", "eps=0.02"]].sum())
         np.testing.assert_allclose(
             sorted(output_samples_per_cluster),
             self.n_samples_per_cluster,
@@ -754,7 +810,30 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         # Call extract_dedup_data
         semantic_cluster_level_dedup.extract_dedup_data(eps_to_extract=0.01)
         # Check content of unique_ids
-        unique_ids_path = os.path.join(semantic_extraction_output_dir, "unique_ids_0.01.parquet")
+        unique_ids_path = os.path.join(
+            semantic_extraction_output_dir, "unique_ids_0.01.parquet"
+        )
         assert os.path.exists(unique_ids_path)
         df = pd.read_parquet(unique_ids_path)
         assert df.columns.tolist() == ["id", "dist", "cluster"]
+
+         # Check content of summary file
+        summary_path = os.path.join(
+            semantic_extraction_output_dir, "dedup_summary_0.01.csv"
+        )
+        assert os.path.exists(summary_path)
+        df = pd.read_csv(summary_path)
+        if which_to_keep == "hard":
+            _kept, _removed = 29, 1471
+        elif which_to_keep == "easy":
+            _kept, _removed = 5, 1495
+        else:
+            # random is not deterministic, so we skip this test
+            return
+
+        pd.testing.assert_frame_equal(
+            df,
+            pd.DataFrame(
+                {"eps": [0.01], "kept": [_kept], "removed": [_removed], "total": [1500]}
+            ),
+        )
