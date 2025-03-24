@@ -21,13 +21,14 @@ import time
 from typing import List, Literal, Optional, Tuple
 
 import cudf
+import cupy as cp
 import dask.bag as db
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import torch
 from dask.distributed import progress
-import cupy as cp
+
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 
@@ -35,16 +36,16 @@ L2_DIST_TO_CENT_COL = "l2_dist_to_cent"
 COSINE_DIST_TO_CENT_COL = "cosine_dist_to_cent"
 
 
-def normalize_embeddings_col_in_df(df: cudf.DataFrame, embedding_col: str) -> cudf.DataFrame:
+def normalize_embeddings_col_in_df(
+    df: cudf.DataFrame, embedding_col: str
+) -> cudf.DataFrame:
     tensor = torch.Tensor(get_array_from_df(df, embedding_col))
     normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
     df[embedding_col] = normalized_tensor.tolist()
     return df
-    
 
-def get_array_from_df(
-    df: cudf.DataFrame, embedding_col: str
-) -> cp.ndarray:
+
+def get_array_from_df(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
@@ -180,7 +181,7 @@ def rank_within_cluster(
             key=lambda x: (x[1], x[0]),
             reverse=keep_hard,
         )
-        
+
         sorted_cluster_file_path = os.path.join(
             output_sorted_clusters_dir, f"cluster_{cluster_c}.npy"
         )
@@ -266,6 +267,7 @@ def read_cluster_embeddings_and_sort_by_id(
     )
     return cluster_reps
 
+
 def get_ids_within_cluster(
     cluster_id: int,
     sorted_clusters_dir: str,
@@ -276,7 +278,7 @@ def get_ids_within_cluster(
     if not os.path.exists(sorted_file):
         logging.info(f"{sorted_file} does not exist. Continue")
         return
-    
+
     cluster_i = np.load(sorted_file)
     cluster_size = cluster_i.shape[0]
     cluster_items_indices = list(range(cluster_size))
@@ -285,6 +287,7 @@ def get_ids_within_cluster(
         random.shuffle(cluster_items_indices)
         cluster_i = cluster_i[cluster_items_indices]
     return cluster_i[:, 0].astype(id_col_type)
+
 
 def get_semantic_matches_per_cluster(
     cluster_id: int,
@@ -299,7 +302,9 @@ def get_semantic_matches_per_cluster(
     batched_cosine_similarity: int = 1024,
 ) -> None:
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
-    ids = get_ids_within_cluster(cluster_id, sorted_clusters_dir, id_col_type, which_to_keep)
+    ids = get_ids_within_cluster(
+        cluster_id, sorted_clusters_dir, id_col_type, which_to_keep
+    )
     if ids is None:
         return
     # Handle edge case where cluster is a singleton
@@ -476,8 +481,7 @@ def extract_pruned_data(
     total_kept = len(results_df)
 
     sorted_npy_files = [
-        os.path.join(sorted_clusters_dir, f"cluster_{i}.npy")
-        for i in range(n_clusters)
+        os.path.join(sorted_clusters_dir, f"cluster_{i}.npy") for i in range(n_clusters)
     ]
     total_records = sum(
         get_num_records_from_npy(file_path) for file_path in sorted_npy_files
