@@ -52,7 +52,7 @@ def get_array_from_df(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
 def pairwise_cosine_similarity(
     cluster_reps: torch.Tensor,
     device: Literal["cuda", "cpu"],
-) -> Tuple[torch.Tensor, List[int]]:
+) -> Tuple[cp.ndarray, cp.ndarray]:
     """
     Compute pairwise cosine similarity between cluster items,
     then replace to diagonal with zeros to ignore self similarity
@@ -67,16 +67,16 @@ def pairwise_cosine_similarity(
     triu_sim_mat = torch.triu(pairwise_sim_matrix, diagonal=1)
     # Get max similarity and indices
     max_values_and_indices = torch.max(triu_sim_mat, dim=0)
-    max_similarity = max_values_and_indices[0].cpu()
-    max_indices = max_values_and_indices[1].cpu().numpy().tolist()
-    return max_similarity, max_indices
+    max_similarity = max_values_and_indices[0]
+    max_indices = max_values_and_indices[1]
+    return cp.asarray(max_similarity, dtype=cp.float32), cp.asarray(max_indices)
 
 
 def pairwise_cosine_similarity_batched(
     cluster_reps: torch.Tensor,
     device: Literal["cuda", "cpu"],
     batch_size: int = 1024,
-) -> Tuple[torch.Tensor, List[int]]:
+) -> Tuple[cp.ndarray, cp.ndarray]:
     """
     Computes pairwise cosine similarity between cluster items,
     then replace to diagonal with zeros to ignore self similarity.
@@ -87,7 +87,7 @@ def pairwise_cosine_similarity_batched(
     instead of O(N^2) for the full matrix.
     """
     cluster_reps = cluster_reps.to(device)
-    max_similarity = torch.zeros(cluster_reps.shape[0], device=device)
+    max_similarity = torch.zeros(cluster_reps.shape[0], dtype=torch.float32, device=device)
     max_indices = torch.zeros(cluster_reps.shape[0], dtype=torch.int64, device=device)
     for start_idx in range(0, cluster_reps.shape[0], batch_size):
         end_idx = min(start_idx + batch_size, cluster_reps.shape[0])
@@ -99,7 +99,7 @@ def pairwise_cosine_similarity_batched(
         max_similarity[start_idx:end_idx] = max_values_and_indices[0]
         max_indices[start_idx:end_idx] = max_values_and_indices[1]
 
-    return max_similarity.cpu(), max_indices.cpu().numpy().tolist()
+    return cp.asarray(max_similarity), cp.asarray(max_indices)
 
 
 def get_semantic_matches_per_cluster(
@@ -112,17 +112,16 @@ def get_semantic_matches_per_cluster(
     which_to_keep: str,
     batched_cosine_similarity: int = 1024,
 ) -> None:
-    output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
     cluster_df = cudf.read_parquet(
         os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}"),
         columns=[embedding_col, id_col, COSINE_DIST_TO_CENT_COL],
     )
+    output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
     if len(cluster_df) == 1:
         cluster_df["indices"] = [0]
+        cluster_df["id"] = cluster_df[id_col]
         cluster_df["max_id"] = cluster_df[id_col]
         cluster_df["cosine_sim_score"] = [0]
-        # rearrange columns 
-        cluster_df = cluster_df[["indices", "id", "max_id", "cosine_sim_score"]]
         for eps in eps_list:
             cluster_df[f"eps={eps}"] = [False]
         cluster_df.to_parquet(output_df_file_path)
@@ -142,7 +141,7 @@ def get_semantic_matches_per_cluster(
     cluster_embeddings = torch.as_tensor(
         get_array_from_df(cluster_df, embedding_col), device="cuda"
     )
-    ids = cluster_df[id_col].to_arrow().to_pylist()
+    ids = cluster_df[id_col]
     assert cluster_embeddings.shape[0] == len(ids)
 
     if batched_cosine_similarity > 0:
@@ -154,14 +153,13 @@ def get_semantic_matches_per_cluster(
             cluster_embeddings, "cuda"
         )
 
-    max_indices_id = [ids[m] for m in max_indices]
-    # TODO make sure we don't go GPU -> CPU -> GPU
+    max_indices_id = cluster_df[id_col].iloc[max_indices].values
     points_to_remove_df = cudf.DataFrame(
         {
             "indices": list(range(len(ids))),
             "id": ids,
             "max_id": max_indices_id,
-            "cosine_sim_score": max_similarity.numpy().tolist(),
+            "cosine_sim_score": max_similarity,
         }
     )
 
@@ -229,16 +227,14 @@ def prune_single_cluster(
         semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet"
     )
     # TODO should we add max_id to for the user
-    print(f"{os.listdir(semdedup_pruning_tables_dir)=}")
     pruning_table = cudf.read_parquet(
         pruning_table_fname, columns=["id","cosine_sim_score"]
     )
-    print(f"pruning_table: {pruning_table}")
     pruning_table = pruning_table[pruning_table["cosine_sim_score"] > 1 - eps][["id"]]
     if pruning_table.shape[0] == 1:
         return df_cluster
 
-    return df_cluster.merge(pruning_table, on="id", how="left")
+    return df_cluster.merge(pruning_table.rename(columns={"id" : id_col}), on=id_col, how="left")
 
 
 def extract_pruned_data(
