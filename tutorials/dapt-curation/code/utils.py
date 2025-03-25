@@ -310,6 +310,9 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache_dir: str) -> DocumentDataset:
     fuzzy_dup = FuzzyDuplicates(config=fuzzy_dedup_config)
     duplicates = fuzzy_dup(dataset)
 
+    if duplicates is None:
+        return dataset
+
     docs_to_remove = duplicates.df.map_partitions(
         lambda x: x[x.group.duplicated(keep="first")]
     )
