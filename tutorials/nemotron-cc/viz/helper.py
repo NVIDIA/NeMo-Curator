@@ -1,4 +1,5 @@
 import logging
+import matplotlib.pyplot as plt
 
 class DataSizeTracker:
     def __init__(self, original_size):
@@ -25,30 +26,25 @@ class DataSizeTracker:
             self.logger.warning(f"Stage {stage_name} not found in data.")
             return None
 
-        # Find the index of the current stage
-        current_index = -1
-        for i, (name, _) in enumerate(self.data_list):
-            if name == stage_name:
-                current_index = i
-                break
+        # Find the current stage's index and get its size
+        current_index = next((i for i, (name, _) in enumerate(self.data_list) if name == stage_name), -1)
+        current_size = self.data[stage_name]
 
-        if current_index <= 0:
-            # If it's the first stage, compare to original size
-            previous_size = self.original_size
-        else:
-            # Get the size of the previous stage
+        # Get previous stage's size, or use original size if this is the first stage
+        previous_size = self.original_size
+        if current_index > 0:
             previous_size = self.data_list[current_index - 1][1]
 
-        current_size = self.data[stage_name]
-        change = previous_size - current_size
+        filtered_out = previous_size - current_size
 
-        if previous_size != 0:
-            percent_change = (change / previous_size) * 100
+        if filtered_out != 0:
+            # Calculate percentage based on original size
+            percent_filtered = (filtered_out / self.original_size) * 100
         else:
-            percent_change = 0.0
+            percent_filtered = 0.0
 
-        self.logger.debug(f"Incremental change for {stage_name}: {change}")
-        return change, percent_change
+        self.logger.debug(f"Incremental change for {stage_name}: {filtered_out}")
+        return filtered_out, percent_filtered
 
     def calculate_overall_change(self):
         if not self.data:
@@ -57,32 +53,61 @@ class DataSizeTracker:
 
         final_stage = self.data_list[-1][0]
         final_size = self.data[final_stage]
-        overall_reduction = self.original_size - final_size
+        total_filtered = self.original_size - final_size
 
         if self.original_size != 0:
-            percent_reduction = (overall_reduction / self.original_size) * 100
+            # Calculate what percentage of original data was filtered out
+            percent_filtered = (total_filtered / self.original_size) * 100
         else:
-            percent_reduction = 0.0
+            percent_filtered = 0.0
 
-        self.logger.debug(f"Overall reduction: {overall_reduction}")
-        return overall_reduction, percent_reduction
+        self.logger.debug(f"Overall filtered amount: {total_filtered}")
+        return total_filtered, percent_filtered
 
     def print_summary(self):
         print("Data Processing Summary:")
         print(f"Original Size: {self.original_size}")
+        print(f"Final Size: {self.data_list[-1][1]}")
+        total_filtered, total_percent = self.calculate_overall_change()
+        print(f"Total Filtered: {total_filtered} ({total_percent:.2f}% of original)")
 
-        overall_change, overall_percent_change = self.calculate_overall_change()
-        print(f"Overall Reduction: {overall_change} ({overall_percent_change:.2f}%)")
-
-        print("\nStage-wise Changes:")
+        print("\nStage-wise Filtering:")
         for stage, size in self.data.items():
-            incremental_change, percent_change = self.calculate_incremental_change(stage)
-            if incremental_change is not None:
-                print(f"  {stage}: {size}, Incremental Change: {incremental_change} ({percent_change:.2f}%)")
+            filtered_amount, percent = self.calculate_incremental_change(stage)
+            if filtered_amount is not None:
+                print(f"  Stage: {stage}, Result Size: {size}, Filtered Out: {filtered_amount} ({percent:.2f}% of original)")
             else:
-                print(f"  {stage}: {size}, Incremental Change: Not Available")
+                print(f"  Stage: {stage}, Size: {size}, Filtered Amount: Not Available")
 
-        final_stage = self.data_list[-1][0]
-        final_size = self.data[final_stage]
-        print(f"\nFinal Size: {final_size}")
-        print(f"Original Size - Overall Reduction: {self.original_size - overall_change}")
+    def plot_size_reduction(self):
+        """Plot the dataset size reduction after each filtering stage."""
+        stages = ['Original'] + [stage for stage, _ in self.data_list]
+        sizes = [self.original_size] + [size for _, size in self.data_list]
+
+        # Calculate filtered amounts and percentages using calculate_incremental_change
+        filtered_info = []
+        filtered_info.append((0, 0.0))  # For original stage
+        for stage, _ in self.data_list:
+            filtered_amount, percent = self.calculate_incremental_change(stage)
+            filtered_info.append((filtered_amount, percent))
+
+        fig = plt.figure(figsize=(12, 6))
+        ax = fig.add_subplot(111)
+        ax.plot(range(len(stages)), sizes, marker='o')
+
+        # Rotate x-axis labels for better readability
+        ax.set_xticks(range(len(stages)))
+        ax.set_xticklabels(stages, rotation=45, ha='right')
+
+        ax.set_title('Dataset Size Reduction by Filtering Stage')
+        ax.set_xlabel('Filtering Stage')
+        ax.set_ylabel('Dataset Size')
+
+        # Add both size and filtered percentage labels on top of each point
+        for i, (size, (filtered_amt, pct)) in enumerate(zip(sizes, filtered_info)):
+            label = f'{size:,}\n(-{filtered_amt:,}, {pct:.1f}%)' if i > 0 else f'{size:,}'
+            ax.text(i, size, label, ha='center', va='bottom')
+
+        ax.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()  # Adjust layout to prevent label cutoff
+        plt.show()
