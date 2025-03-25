@@ -264,7 +264,7 @@ class TestDataReadingFunctions:
         # Test warning when input_meta is provided for non-jsonl file
         with pytest.warns(
             UserWarning,
-            match="input_meta is only valid for JSONL files and will be ignored for other file formats..",
+            match="input_meta is only valid for JSONL files and will be ignored for other\\s+file formats..",
         ):
             with patch(
                 "nemo_curator.utils.distributed_utils.select_columns",
