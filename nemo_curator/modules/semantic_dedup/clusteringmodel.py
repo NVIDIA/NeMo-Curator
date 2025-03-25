@@ -31,24 +31,32 @@ from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_s
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
     L2_DIST_TO_CENT_COL,
-    assign_and_sort_clusters,
+    COSINE_DIST_TO_CENT_COL,
     get_array_from_df,
     normalize_embeddings_col_in_df,
 )
 
 
-# TODO : add cosine distance also while we are computing distance to centroids, will allow us for more flexibility in later stages
-def add_l2_dist_to_cents(
+def add_l2_cosine_dist_to_centroid(
     df: "cudf.DataFrame", embedding_col: str, centroids: cp.ndarray
 ) -> "cudf.DataFrame":
     """
     Computes the L2 distance to nearest centroid to each embedding in the dataframe.
-    Both embeddings and centroids are normalized.
+    Embeddings are normalized. For cosine we'll need to normalize the centroids as well.
     """
     normalized_embeddings = get_array_from_df(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
     dist_to_cents = cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
     df[L2_DIST_TO_CENT_COL] = dist_to_cents
+    del centroids_ar
+
+    centroids_norm = centroids / cp.linalg.norm(centroids, axis=1, keepdims=True)
+    centroids_ar = centroids_norm[df["nearest_cent"].values]
+    # We normalize the centroids as well
+    cosine_similarities = (
+        cp.sum(normalized_embeddings * centroids_ar, axis=1)
+    )
+    df[COSINE_DIST_TO_CENT_COL] = 1 - cosine_similarities
     return df
 
 
@@ -65,6 +73,7 @@ class ClusteringModel:
         # TODO : add l2 distance support
         sim_metric: Literal["cosine"] = "cosine",
         which_to_keep: Literal["hard", "random", "easy"] = "hard",
+        # TODO remove this
         sort_clusters: bool = True,
         clustering_input_partition_size: str = "2gb",
         logger: Union[logging.Logger, str] = "./",
@@ -196,15 +205,16 @@ class ClusteringModel:
             del nearest_cents
             meta_df_with_l2_dist = embeddings_df._meta.copy()
             meta_df_with_l2_dist[L2_DIST_TO_CENT_COL] = cp.zeros(1)
+            meta_df_with_l2_dist[COSINE_DIST_TO_CENT_COL] = cp.zeros(1)
+
             embeddings_df = embeddings_df.map_partitions(
-                add_l2_dist_to_cents,
+                add_l2_cosine_dist_to_centroid,
                 embedding_col=self.embedding_column,
                 centroids=kmeans.cluster_centers_,
                 meta=meta_df_with_l2_dist,
             )
             embeddings_df = embeddings_df.reset_index(drop=True)
             centroids = kmeans.cluster_centers_
-            print(f"{centroids=}")
             kmeans_centroids_file = os.path.join(
                 self.clustering_output_dir, "kmeans_centroids.npy"
             )
@@ -233,23 +243,6 @@ class ClusteringModel:
             )
 
             del embeddings_df
-
-        if self.sort_clusters:
-            # TODO this can be deleted and we can just sort clusters from the parquet files in embs_by_nearest_center
-            assign_and_sort_clusters(
-                id_col=self.id_col,
-                kmeans_centroids_file=kmeans_centroids_file,
-                nearest_cent_dir=clustering_output_dir,
-                output_sorted_clusters_dir=os.path.join(
-                    self.clustering_output_dir, "sorted"
-                ),
-                embedding_col=self.embedding_column,
-                sim_metric=self.sim_metric,
-                keep_hard=self.keep_hard,
-                cluster_ids=range(self.n_clusters),
-                logger=self.logger,
-                profile_dir=self.profile_dir,
-            )
 
         fps = [
             os.path.join(clustering_output_dir, file_name)

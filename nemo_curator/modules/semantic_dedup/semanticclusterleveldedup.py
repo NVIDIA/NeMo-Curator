@@ -141,9 +141,7 @@ class SemanticClusterLevelDedup:
                 lambda cluster_id: get_semantic_matches_per_cluster(
                     cluster_id=cluster_id,
                     emb_by_clust_dir=self.emb_by_clust_dir,
-                    sorted_clusters_dir=self.sorted_clusters_dir,
                     id_col=self.id_col,
-                    id_col_type=self.id_col_type,
                     eps_list=eps_list,
                     output_dir=self.semdedup_pruning_tables_dir,
                     embedding_col=self.embedding_column,
@@ -184,7 +182,7 @@ class SemanticClusterLevelDedup:
             n_clusters=self.n_clusters,
             id_col=self.id_col,
             id_col_type=self.id_col_type,
-            sorted_clusters_dir=self.sorted_clusters_dir,
+            emb_by_clust_dir=self.emb_by_clust_dir,
             semdedup_pruning_tables_dir=self.semdedup_pruning_tables_dir,
             output_summary_file=output_summary_file,
             output_parquet_path=output_parquet_path,

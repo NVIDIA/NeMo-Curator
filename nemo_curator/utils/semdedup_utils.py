@@ -49,146 +49,6 @@ def get_array_from_df(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
-def assign_and_sort_clusters(
-    id_col: str,
-    kmeans_centroids_file: str,
-    nearest_cent_dir: str,
-    output_sorted_clusters_dir: str,
-    cluster_ids: List[int],
-    # TODO : add l2 distance support
-    sim_metric: Literal["cosine"],
-    embedding_col: str,
-    keep_hard: bool = True,
-    logger: Optional[logging.Logger] = None,
-    profile_dir: Optional[str] = None,
-):
-    """
-    Args:
-        id_col (str): The column name representing the unique identifier for each data point.
-        centroids_path (str): The location of the K-means centroids file.
-        nearest_cent_dir (str): The location of the nearest center files.
-        output_sorted_clusters_dir (str): The location to save the sorted clusters.
-        sim_metric (str): The similarity metric to use for clustering. Currently only "cosine" is supported.
-        keep_hard (bool): When True, sorts cluster items in descending order by similarity to the cluster centroid. Defaults to True.
-        sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to an empty string.
-        cluster_ids (list): The range of cluster IDs to sort.
-        logger (logging.Logger): A logger object to log messages. Defaults to None.
-        profile_dir (str): If specified directory to write dask profile. Default is None.
-
-    Returns:
-        None
-    """
-    # Step 3: Sort each class/cluster
-    logger.info("Ranking...")
-    if os.path.exists(output_sorted_clusters_dir):
-        logger.info(
-            f"Removing existing sorted cluster directory: {output_sorted_clusters_dir}"
-        )
-        shutil.rmtree(output_sorted_clusters_dir)
-
-    expand_outdir_and_mkdir(output_sorted_clusters_dir)
-
-    kmeans_centroids = np.load(kmeans_centroids_file)
-    start_time = time.time()
-
-    with performance_report_if_with_ts_suffix(
-        profile_dir,
-        "ranking-clusters",
-    ):
-        cluster_ids_bag = db.from_sequence(cluster_ids, npartitions=len(cluster_ids))
-        completed_count = cluster_ids_bag.map(
-            lambda cluster_c: rank_within_cluster(
-                id_col=id_col,
-                nearest_cent_dir=nearest_cent_dir,
-                output_sorted_clusters_dir=output_sorted_clusters_dir,
-                centroids=kmeans_centroids,
-                embedding_col=embedding_col,
-                sim_metric=sim_metric,
-                keep_hard=keep_hard,
-                cluster_ids=[cluster_c],
-            )
-        ).compute()
-
-        missing = len(cluster_ids) - sum(completed_count)
-    logger.info(
-        f"Completed {sum(completed_count)} clusters. Missing {missing} clusters."
-    )
-    logger.info(f"Time taken for Ranking Clusters: {time.time() - start_time}")
-    logger.info("DONE!")
-
-
-# TODO : Deprecate this function and just add cosine distance to the cluster df
-def rank_within_cluster(
-    id_col: str,
-    nearest_cent_dir: str,
-    output_sorted_clusters_dir: str,
-    centroids: np.ndarray,
-    embedding_col: str,
-    sim_metric: Literal["cosine"],
-    keep_hard: bool = True,
-    cluster_ids: List[int] = range(50000),
-):
-    """
-    Sorts each cluster's items by their distance (based on cosine similarity) to the cluster centroid.
-
-    Args:
-        id_col (str): The column name representing the unique identifier for each data point.
-        nearest_cent_dir (str): The location of the nearest center files.
-        output_sorted_clusters_dir (str): The location to save the sorted clusters.
-        centroids (np.ndarray): The centroids for each cluster.
-        sim_metric (str): The similarity metric used to compute distances. Currently only "cosine" is supported.
-        keep_hard (bool): When True, sorts cluster items in descending order by similarity to the cluster centroid. Defaults to True.
-        cluster_ids (List[int]): The list of cluster IDs to process. Defaults to range(50000).
-
-    Returns:
-        None
-    """
-    assert sim_metric in ["cosine"], "sim_metric should be in ['cosine']"
-    missing_files = 0
-    for cluster_c in cluster_ids:
-        cluster_c_path = os.path.join(nearest_cent_dir, f"nearest_cent={cluster_c}")
-        if not os.path.exists(cluster_c_path):
-            missing_files += 1
-            continue
-
-        cluster_df = cudf.read_parquet(cluster_c_path, columns=[id_col, embedding_col])
-
-        embeds = torch.as_tensor(
-            get_array_from_df(cluster_df, embedding_col),
-            device="cuda",
-        )
-        cluster_df = cluster_df.to_pandas()
-
-        if sim_metric == "cosine":
-            cluster_c_centroid = torch.as_tensor(centroids[cluster_c], device="cuda")
-            # TODO because emebds are already normalized we can just use the dot product after normalizing the centroid
-            sim_to_cent = torch.nn.CosineSimilarity(dim=1)(embeds, cluster_c_centroid)
-            # cosine_similarity increases as the similarity increases
-            sim_to_cent = sim_to_cent.cpu().numpy()
-            # distance increases as the similarity decreases
-            cluster_dists_to_cent = (1 - sim_to_cent).tolist()
-        elif sim_metric == "l2":
-            # Used when kmeans_with_cos_dist is True
-            cluster_dists_to_cent = list(cluster_df["dist_to_cent"])
-
-        cluster_label = np.full((len(cluster_df)), cluster_c).tolist()
-        example_id = list(cluster_df[id_col])
-
-        # when keep_hard is True, most dissimilar items first, those with highest distance to the centroid
-        # when keep_hard is False, most similar items first, those with lowest distance to the centroid
-        cluster_sorted = sorted(
-            zip(example_id, cluster_dists_to_cent, cluster_label),
-            key=lambda x: (x[1], x[0]),
-            reverse=keep_hard,
-        )
-
-        sorted_cluster_file_path = os.path.join(
-            output_sorted_clusters_dir, f"cluster_{cluster_c}.npy"
-        )
-        np.save(sorted_cluster_file_path, cluster_sorted)
-    return len(cluster_ids) - missing_files
-
-
 def pairwise_cosine_similarity(
     cluster_reps: torch.Tensor,
     device: Literal["cuda", "cpu"],
@@ -242,59 +102,10 @@ def pairwise_cosine_similarity_batched(
     return max_similarity.cpu(), max_indices.cpu().numpy().tolist()
 
 
-def read_cluster_embeddings_and_sort_by_id(
-    cluster_id: int,
-    emb_by_clust_dir: str,
-    id_col: str,
-    embedding_col: str,
-    sorted_ids: np.ndarray,
-) -> torch.Tensor:
-    # TODO remove this logic so we can just sort here based on which_to_keep
-    cluster_i_path = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
-    cluster_reps = cudf.read_parquet(
-        cluster_i_path, columns=[embedding_col, id_col]
-    ).sort_values(by=id_col)
-    num = cluster_reps.shape[0]
-    df_ = pd.DataFrame(
-        {"sorted_ids": sorted_ids, "inverse_sort": list(range(num))}
-    ).sort_values(by="sorted_ids")
-    cluster_reps["inverse_sort_id"] = df_["inverse_sort"].values
-    cluster_reps = cluster_reps.sort_values(by="inverse_sort_id")
-
-    cluster_reps = torch.as_tensor(
-        cluster_reps[embedding_col].list.leaves.values.reshape(len(cluster_reps), -1),
-        device="cuda",
-    )
-    return cluster_reps
-
-
-def get_ids_within_cluster(
-    cluster_id: int,
-    sorted_clusters_dir: str,
-    id_col_type: str,
-    which_to_keep: Literal["hard", "random", "easy"],
-) -> Optional[np.ndarray]:
-    sorted_file = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
-    if not os.path.exists(sorted_file):
-        logging.info(f"{sorted_file} does not exist. Continue")
-        return
-
-    cluster_i = np.load(sorted_file)
-    cluster_size = cluster_i.shape[0]
-    cluster_items_indices = list(range(cluster_size))
-    which_to_keep = which_to_keep.lower()
-    if which_to_keep == "random":
-        random.shuffle(cluster_items_indices)
-        cluster_i = cluster_i[cluster_items_indices]
-    return cluster_i[:, 0].astype(id_col_type)
-
-
 def get_semantic_matches_per_cluster(
     cluster_id: int,
     emb_by_clust_dir: str,
-    sorted_clusters_dir: str,
     id_col: str,
-    id_col_type: str,
     eps_list: List[float],
     output_dir: str,
     embedding_col: str,
@@ -302,38 +113,57 @@ def get_semantic_matches_per_cluster(
     batched_cosine_similarity: int = 1024,
 ) -> None:
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
-    ids = get_ids_within_cluster(
-        cluster_id, sorted_clusters_dir, id_col_type, which_to_keep
+    cluster_df = cudf.read_parquet(
+        os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}"),
+        columns=[embedding_col, id_col, COSINE_DIST_TO_CENT_COL],
     )
-    if ids is None:
-        return
-    # Handle edge case where cluster is a singleton
-    if len(ids) == 1:
-        points_to_remove_df = pd.DataFrame()
-        points_to_remove_df["indices"] = [0]
+    if len(cluster_df) == 1:
+        cluster_df["indices"] = [0]
+        cluster_df["max_id"] = cluster_df[id_col]
+        cluster_df["cosine_sim_score"] = [0]
+        # rearrange columns 
+        cluster_df = cluster_df[["indices", "id", "max_id", "cosine_sim_score"]]
         for eps in eps_list:
-            points_to_remove_df[f"eps={eps}"] = [False]
-        points_to_remove_df.to_parquet(output_df_file_path)
+            cluster_df[f"eps={eps}"] = [False]
+        cluster_df.to_parquet(output_df_file_path)
         return
 
-    cluster_reps = read_cluster_embeddings_and_sort_by_id(
-        cluster_id, emb_by_clust_dir, id_col, embedding_col, sorted_ids=ids
+    if which_to_keep == "hard":
+        cluster_df = cluster_df.sort_values(
+            by=[COSINE_DIST_TO_CENT_COL, id_col], ascending=False, ignore_index=True
+        )
+    elif which_to_keep == "easy":
+        cluster_df = cluster_df.sort_values(
+            by=[COSINE_DIST_TO_CENT_COL, id_col], ascending=True, ignore_index=True
+        )
+    elif which_to_keep == "random":
+        cluster_df = cluster_df.sample(frac=1).reset_index(drop=True)
+
+    cluster_embeddings = torch.as_tensor(
+        get_array_from_df(cluster_df, embedding_col), device="cuda"
     )
+    ids = cluster_df[id_col].to_arrow().to_pylist()
+    assert cluster_embeddings.shape[0] == len(ids)
+
     if batched_cosine_similarity > 0:
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
-            cluster_reps, "cuda", batched_cosine_similarity
+            cluster_embeddings, "cuda", batched_cosine_similarity
         )
     else:
-        max_similarity, max_indices = pairwise_cosine_similarity(cluster_reps, "cuda")
-    assert cluster_reps.shape[0] == len(ids)
-    max_indices_id = [ids[m] for m in max_indices]
+        max_similarity, max_indices = pairwise_cosine_similarity(
+            cluster_embeddings, "cuda"
+        )
 
-    points_to_remove_df = cudf.DataFrame()
-    # TODO we can remove this column indixes
-    points_to_remove_df["indices"] = list(range(len(ids)))
-    points_to_remove_df["id"] = ids
-    points_to_remove_df["max_id"] = max_indices_id
-    points_to_remove_df["cosine_sim_score"] = max_similarity.numpy().tolist()
+    max_indices_id = [ids[m] for m in max_indices]
+    # TODO make sure we don't go GPU -> CPU -> GPU
+    points_to_remove_df = cudf.DataFrame(
+        {
+            "indices": list(range(len(ids))),
+            "id": ids,
+            "max_id": max_indices_id,
+            "cosine_sim_score": max_similarity.numpy().tolist(),
+        }
+    )
 
     # TODO : what's the benefit of having this as a column?
     for eps in eps_list:
@@ -369,7 +199,7 @@ def prune_single_cluster(
     cluster_id: int,
     id_col: str,
     id_col_type: str,
-    sorted_clusters_dir: str,
+    emb_by_clust_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,
 ) -> cudf.DataFrame:
@@ -380,54 +210,41 @@ def prune_single_cluster(
         cluster_id (int): The specific cluster ID to process.
         id_col (str): The name of the ID column.
         id_col_type (str): The data type of the ID column.
-        sorted_clusters_dir (str): Path to the sorted clusters directory.
+        emb_by_clust_dir (str): Path to where clustered embeddings are stored.
         semdedup_pruning_tables_dir (str): Path to the pruning tables directory.
         eps (float): Epsilon value for pruning.
 
     Returns:
         cudf.DataFrame: A DataFrame of the pruned cluster data
     """
-    sorted_fname = os.path.join(sorted_clusters_dir, f"cluster_{cluster_id}.npy")
-    if not os.path.exists(sorted_fname):
+    cluster_dir = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
+    try:
+        df_cluster = cudf.read_parquet(
+            cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]
+        ).assign(cluster=cluster_id)
+    except FileNotFoundError:
         return _get_empty_results_df(id_col, id_col_type)
 
-    # Read the sorted cluster file
-    # Once we change sorted file to parquet we can just read the DF here instead of loading the npy file and converting to DF
-    cluster_data = np.load(sorted_fname)
-    df_cluster = cudf.DataFrame(
-        {
-            id_col: cluster_data[:, 0],
-            "dist": cluster_data[:, 1],
-            "cluster": cluster_data[:, 2],
-        }
-    )
-
-    df_cluster[id_col] = df_cluster[id_col].astype(id_col_type)
-    df_cluster["dist"] = df_cluster["dist"].astype("float32")
-    df_cluster["cluster"] = df_cluster["cluster"].astype("int32")
-
-    # TODO : we don't need to read the pruning table here as we can just filter on the cosine_sim_score in the sorted cluster file once we add it
-    # Read the pruning table
     pruning_table_fname = os.path.join(
         semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet"
     )
-    pruning_table = cudf.read_parquet(pruning_table_fname)
+    # TODO should we add max_id to for the user
+    print(f"{os.listdir(semdedup_pruning_tables_dir)=}")
+    pruning_table = cudf.read_parquet(
+        pruning_table_fname, columns=["id","cosine_sim_score"]
+    )
+    print(f"pruning_table: {pruning_table}")
+    pruning_table = pruning_table[pruning_table["cosine_sim_score"] > 1 - eps][["id"]]
     if pruning_table.shape[0] == 1:
         return df_cluster
 
-    # TODO: Fix this without going to host
-    items_to_keep = (
-        pruning_table[pruning_table[f"eps={eps}"] == False]["id"].to_arrow().to_pylist()
-    )
-    pruned_cluster = df_cluster[df_cluster[id_col].isin(items_to_keep)]
-    pruned_cluster[id_col] = pruned_cluster[id_col].astype(id_col_type)
-    return pruned_cluster
+    return df_cluster.merge(pruning_table, on="id", how="left")
 
 
 def extract_pruned_data(
     id_col: str,
     id_col_type: str,
-    sorted_clusters_dir: str,
+    emb_by_clust_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,
     n_clusters: int,
@@ -441,7 +258,7 @@ def extract_pruned_data(
     Args:
         id_col (str): The name of the ID column.
         id_col_type (str): The data type of the ID column.
-        sorted_clusters_dir (str): Path to the sorted clusters directory.
+        emb_by_clust_dir (str): Path to where clustered embeddings are stored.
         semdedup_pruning_tables_dir (str): Path to the pruning tables directory.
         eps (float): Epsilon value for pruning.
         n_clusters (int): Number of clusters.
@@ -464,31 +281,15 @@ def extract_pruned_data(
             range(n_clusters),
             id_col=id_col,
             id_col_type=id_col_type,
-            sorted_clusters_dir=sorted_clusters_dir,
+            emb_by_clust_dir=emb_by_clust_dir,
             semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
             eps=eps,
         )
-        results_df[id_col] = results_df[id_col].astype(id_col_type)
-        results_df = results_df.persist()
-        progress(results_df)
-
         results_df.to_parquet(output_parquet_path)
     if logger:
         logger.info(
             f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"
         )
-
-    total_kept = len(results_df)
-
-    sorted_npy_files = [
-        os.path.join(sorted_clusters_dir, f"cluster_{i}.npy") for i in range(n_clusters)
-    ]
-    total_records = sum(
-        get_num_records_from_npy(file_path) for file_path in sorted_npy_files
-    )
-    # Aggregate results
-    total_removed = total_records - total_kept
-    return total_kept, total_removed, total_records
 
 
 def extract_dedup_data(
@@ -496,8 +297,8 @@ def extract_dedup_data(
     n_clusters,
     id_col,
     id_col_type,
-    sorted_clusters_dir,
-    semdedup_pruning_tables_dir,
+    emb_by_clust_dir: str,
+    semdedup_pruning_tables_dir: str,
     output_summary_file,
     output_parquet_path,
     logger: logging.Logger,
@@ -510,10 +311,10 @@ def extract_dedup_data(
 
     """
 
-    kept, removed, total = extract_pruned_data(
+    extract_pruned_data(
         id_col=id_col,
         id_col_type=id_col_type,
-        sorted_clusters_dir=sorted_clusters_dir,
+        emb_by_clust_dir=emb_by_clust_dir,
         semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
         eps=eps,
         n_clusters=n_clusters,
@@ -521,6 +322,10 @@ def extract_dedup_data(
         logger=logger,
         profile_dir=profile_dir,
     )
+
+    kept = len(dd.read_parquet(output_parquet_path))
+    total = len(dd.read_parquet(emb_by_clust_dir))
+    removed = total - kept
 
     logger.info(
         f"DONE saving {kept} out of {total}. Removed: {removed}. Epsilon: {eps:.4f}"
