@@ -42,21 +42,6 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
     
     # Define theme colors
     themes = {
-        'nvidia': {
-            'bg': '#1a1a1a',
-            'header_bg': '#1a1a1a',
-            'border': '#444444',
-            'id_bg': '#252525',
-            'text_bg': '#252525',
-            'text_color': '#eeeeee',
-            'header_text': '#76b900',  /* NVIDIA's signature green */
-            'hover': '#333333',
-            'button_bg': '#76b900',
-            'button_hover': '#8bda00',
-            'button_text': '#000000',
-            'scrollbar_track': '#1a1a1a',
-            'scrollbar_thumb': '#76b900'
-        },
         'dark': {
             'bg': '#2d3748',
             'header_bg': '#1a202c',
