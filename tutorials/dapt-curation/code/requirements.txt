@@ -2,6 +2,8 @@ arxiv==2.1.0
 arxiv-downloader
 cchardet
 nltk==3.8.1
+protobuf!=4.21.0,<5
 poppler-utils
+opencv-python-headless
 unstructured[all-docs]==0.14.5
 unstructured[pdf]
