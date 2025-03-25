@@ -858,132 +858,6 @@ class TestImageTextPairDatasetConversion:
                 assert not os.path.exists(temp_file_path), "Temp file should be deleted"
 
     @pytest.mark.gpu
-    def test_to_webdataset_final_yield(self, temp_dataset_dir):
-        """Test that _get_eligible_samples yields the final batch when there are leftover samples."""
-        # Create sample dataset with multiple batches
-        metadata = cudf.DataFrame(
-            {
-                "id": ["0", "1", "2", "3", "4"],
-                "caption": [
-                    "caption 0",
-                    "caption 1",
-                    "caption 2",
-                    "caption 3",
-                    "caption 4",
-                ],
-                "filter_col": [True, True, True, True, True],  # All samples included
-            }
-        )
-
-        # Convert to Dask-cuDF DataFrame
-        dask_metadata = dask_cudf.from_cudf(metadata, npartitions=1)
-
-        # Create multiple tar files to test accumulation of curr_df
-        tar_paths = []
-        for i in range(2):  # Create 2 tar files
-            tar_path = os.path.join(temp_dataset_dir, f"{i:05d}.tar")
-            tar_paths.append(tar_path)
-
-            with tarfile.open(tar_path, "w") as tar:
-                # Each tar file will have samples for a subset of IDs
-                start_id = i * 3
-                end_id = min(start_id + 3, 5)  # Total of 5 samples across both files
-
-                for sample_id in range(start_id, end_id):
-                    if sample_id < len(metadata):  # Make sure we don't go out of bounds
-                        # Create sample files for this ID
-                        for ext, content_type in [
-                            ("jpg", "image"),
-                            ("txt", "text"),
-                            ("json", "json"),
-                        ]:
-                            filename = f"{sample_id:06d}.{ext}"
-                            content = create_mock_tar_content(filename, content_type)
-
-                            info = tarfile.TarInfo(filename)
-                            info.size = len(content)
-
-                            tar.addfile(info, io.BytesIO(content))
-
-        # Set up the output directory
-        output_dir = os.path.join(temp_dataset_dir, "output")
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Create temp parquet files that to_webdataset will read
-        # Split the metadata into two files to match our tar files
-        for i in range(2):
-            start_idx = i * 3
-            end_idx = min(start_idx + 3, 5)
-            if start_idx < len(metadata):
-                subset_df = metadata.iloc[start_idx:end_idx].reset_index(drop=True)
-                subset_df.to_pandas().to_parquet(
-                    os.path.join(output_dir, f"temp_{i:05d}.parquet")
-                )
-
-        # Create the dataset
-        dataset = ImageTextPairDataset(temp_dataset_dir, dask_metadata, tar_paths, "id")
-
-        # Override _get_eligible_samples to track the yielded batches
-        original_get_eligible_samples = dataset._get_eligible_samples
-        yielded_batches = []
-
-        def mock_get_eligible_samples(*args, **kwargs):
-            for batch_df, batch_tar in original_get_eligible_samples(*args, **kwargs):
-                yielded_batches.append((batch_df, batch_tar))
-                yield batch_df, batch_tar
-
-        dataset._get_eligible_samples = mock_get_eligible_samples
-
-        # Set samples_per_shard to 3 so we have a full shard and a partial shard
-        # The first tar file has 3 samples, and the second has 2
-        # This should result in one full shard of 3 samples and a leftover of 2 samples
-        with mock.patch("fsspec.open") as mock_fsspec_open:
-            # Mock the filesystem opening with a proper file-like object
-            class MockFileContext:
-                def __init__(self, path, mode):
-                    self.path = path
-                    self.mode = mode
-                    self.buffer = io.BytesIO()
-                    self.fs = mock.MagicMock()
-                    self.fs.delete = mock.MagicMock()
-
-                def __enter__(self):
-                    return self.buffer
-
-                def __exit__(self, exc_type, exc_val, exc_tb):
-                    pass
-
-            mock_fsspec_open.return_value = MockFileContext("mock_path", "wb")
-
-            # Call to_webdataset with a samples_per_shard that will leave leftovers
-            dataset.to_webdataset(
-                output_dir,
-                filter_column="filter_col",
-                samples_per_shard=3,  # Set to create one full shard (3) and one partial (2)
-            )
-
-        # Verify the results
-        assert (
-            len(yielded_batches) == 2
-        ), "Should have yielded twice: once for full shard, once for leftovers"
-
-        # First batch should have exactly samples_per_shard samples
-        assert len(yielded_batches[0][0]) == 3, "First batch should have 3 samples"
-
-        # Second batch should have the remaining samples (less than samples_per_shard)
-        assert (
-            len(yielded_batches[1][0]) == 2
-        ), "Second batch should have 2 samples (leftovers)"
-
-        # Verify that the leftovers were properly processed
-        # The second batch should have the remaining samples (with ids 3 and 4)
-        leftover_ids = yielded_batches[1][0]["id"].tolist()
-        assert set(leftover_ids) == {
-            "3",
-            "4",
-        }, "Leftover batch should contain IDs 3 and 4"
-
-    @pytest.mark.gpu
     def test_to_webdataset_integration(self, sample_data_path, temp_dataset_dir):
         """Test to_webdataset method with actual file operations but mocked dataset content."""
         # Copy the sample tar file to the temp directory
@@ -1127,3 +1001,150 @@ class TestImageTextPairDatasetConversion:
                         member.name.split(".")[-1] for member in filtered_subset
                     ]
                     assert len(set(extensions)) > 1
+
+    @pytest.mark.gpu
+    def test_get_eligible_samples_multiple_shards(self, temp_dataset_dir):
+        """Test the _get_eligible_samples method with multiple input shards and remainder handling."""
+        # Create temporary directories for input and output
+        input_dir = os.path.join(temp_dataset_dir, "input")
+        output_dir = os.path.join(temp_dataset_dir, "output")
+        os.makedirs(input_dir, exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Test with multiple parquet files and specific sample counts to trigger both branches:
+        # 1. When we need to combine multiple parquets (curr_df is not None)
+        # 2. When we have leftover samples at the end (len(curr_df) > 0)
+
+        # Create 3 parquet files with 3, 4, and 2 samples respectively
+        # Using pandas dataframes for simplicity in tests
+        df1 = pd.DataFrame(
+            {
+                "id": ["0", "1", "2"],
+                "caption": ["c0", "c1", "c2"],
+                "filter_col": [True, True, True],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "id": ["3", "4", "5", "6"],
+                "caption": ["c3", "c4", "c5", "c6"],
+                "filter_col": [True, True, True, True],
+            }
+        )
+        df3 = pd.DataFrame(
+            {"id": ["7", "8"], "caption": ["c7", "c8"], "filter_col": [True, True]}
+        )
+
+        # Write parquet files
+        df1.to_parquet(os.path.join(output_dir, "temp_00000.parquet"))
+        df2.to_parquet(os.path.join(output_dir, "temp_00001.parquet"))
+        df3.to_parquet(os.path.join(output_dir, "temp_00002.parquet"))
+
+        # Create 3 tar files with matching content
+        for shard_idx, df in enumerate([df1, df2, df3]):
+            tar_path = os.path.join(input_dir, f"{shard_idx:05d}.tar")
+            with tarfile.open(tar_path, "w") as tar:
+                for sample_id in df["id"]:
+                    # Create 3 files for each sample (jpg, txt, json) = 3 entries per sample
+                    for ext, content_type in [
+                        ("jpg", "image"),
+                        ("txt", "text"),
+                        ("json", "json"),
+                    ]:
+                        filename = f"{int(sample_id):06d}.{ext}"
+                        content = create_mock_tar_content(filename, content_type)
+                        info = tarfile.TarInfo(filename)
+                        info.size = len(content)
+                        tar.addfile(info, io.BytesIO(content))
+
+        # Create dataset - using just the tar files from input_dir
+        tar_files = [os.path.join(input_dir, f"{i:05d}.tar") for i in range(3)]
+
+        # We only need a mock metadata object with the id_col attribute
+        mock_metadata = mock.MagicMock()
+        dataset = ImageTextPairDataset(input_dir, mock_metadata, tar_files, "id")
+
+        # Patch open_files to return our prepared files in the right order
+        with mock.patch(
+            "nemo_curator.datasets.image_text_pair_dataset.open_files"
+        ) as mock_open_files:
+
+            def mock_open_files_side_effect(path_glob):
+                if "temp_*.parquet" in path_glob:
+                    # Return temp parquet files
+                    files = []
+                    for i in range(3):
+                        path = os.path.join(output_dir, f"temp_{i:05d}.parquet")
+                        if os.path.exists(
+                            path
+                        ):  # Only include files that haven't been deleted
+                            mock_file = mock.MagicMock()
+                            mock_file.path = path
+                            mock_file.__enter__ = lambda self: open(self.path, "rb")
+                            mock_file.__exit__ = lambda self, *args: None
+                            mock_file.fs = mock.MagicMock()
+                            mock_file.fs.delete = mock.MagicMock(
+                                side_effect=lambda path: (
+                                    os.remove(path) if os.path.exists(path) else None
+                                )
+                            )
+                            files.append(mock_file)
+                    return files
+                elif "*.tar" in path_glob:
+                    # Return tar files
+                    files = []
+                    for i in range(3):
+                        path = os.path.join(input_dir, f"{i:05d}.tar")
+                        mock_file = mock.MagicMock()
+                        mock_file.path = path
+                        mock_file.__enter__ = lambda self: open(self.path, "rb")
+                        mock_file.__exit__ = lambda self, *args: None
+                        files.append(mock_file)
+                    return files
+                return []
+
+            mock_open_files.side_effect = mock_open_files_side_effect
+
+            # Call _get_eligible_samples with samples_per_shard=5
+            # This should yield:
+            # 1. First yield: 5 samples (3 from first file + 2 from second file)
+            # 2. Second yield: 4 remaining samples (2 from second file + 2 from third file)
+            results = list(
+                dataset._get_eligible_samples(output_dir, samples_per_shard=5)
+            )
+
+            # Verify results
+            assert len(results) == 2, "Should have yielded 2 batches"
+
+            # First batch: 5 samples
+            first_df, first_samples = results[0]
+            assert len(first_df) == 5, "First dataframe should have 5 samples"
+            assert first_df["id"].tolist() == [
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+            ], "First dataframe should have IDs 0-4"
+            assert (
+                len(first_samples) == 15
+            ), "First batch should have 15 tar samples (5 samples * 3 files per sample)"
+
+            # Second batch: 4 samples
+            second_df, second_samples = results[1]
+            assert len(second_df) == 4, "Second dataframe should have 4 samples"
+            assert second_df["id"].tolist() == [
+                "5",
+                "6",
+                "7",
+                "8",
+            ], "Second dataframe should have IDs 5-8"
+            assert (
+                len(second_samples) == 12
+            ), "Second batch should have 12 tar samples (4 samples * 3 files per sample)"
+
+            # Verify all temp files were deleted
+            for i in range(3):
+                assert not os.path.exists(
+                    os.path.join(output_dir, f"temp_{i:05d}.parquet")
+                ), f"Temp file {i} should be deleted"
