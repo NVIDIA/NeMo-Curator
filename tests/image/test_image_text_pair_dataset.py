@@ -348,6 +348,52 @@ class TestImageTextPairDatasetBase:
         metadata.__getitem__.assert_called_once_with(["id", "caption"])
 
     @pytest.mark.gpu
+    def test_save_metadata_none_path(self):
+        """Test save_metadata method when path is None."""
+        # Create test data
+        df = cudf.DataFrame(
+            {
+                "id": ["0", "1"],
+                "caption": ["caption 0", "caption 1"],
+                "extra": ["e0", "e1"],
+            }
+        )
+
+        # Mock a dask DataFrame
+        metadata = mock.MagicMock(spec=dd.DataFrame)
+        metadata.columns = df.columns
+
+        # Set a specific path for testing
+        test_path = "/original/dataset/path"
+        tar_files = ["path/to/00000.tar"]
+
+        # Create a dataset with the test data
+        dataset = ImageTextPairDataset(test_path, metadata, tar_files, "id")
+
+        # Mock to_parquet to avoid actually writing files
+        metadata.to_parquet = mock.MagicMock()
+
+        # Call save_metadata with path=None
+        dataset.save_metadata(path=None)
+
+        # Verify that to_parquet was called with the original dataset path
+        metadata.to_parquet.assert_called_once_with(
+            test_path, name_function=ImageTextPairDataset._name_partition
+        )
+
+        # Test with None path and specific columns
+        metadata.reset_mock()
+        metadata.__getitem__.return_value = metadata
+
+        dataset.save_metadata(path=None, columns=["id", "caption"])
+
+        # Verify correct column selection and path
+        metadata.__getitem__.assert_called_once_with(["id", "caption"])
+        metadata.__getitem__.return_value.to_parquet.assert_called_once_with(
+            test_path, name_function=ImageTextPairDataset._name_partition
+        )
+
+    @pytest.mark.gpu
     def test_integration_with_sample_data(self, sample_data_path, temp_dataset_dir):
         """Integration test with the actual sample data file."""
         # Copy the sample tar file to the temp directory
@@ -810,6 +856,132 @@ class TestImageTextPairDatasetConversion:
                 # Verify that the temp file was properly handled
                 temp_file_path = os.path.join(output_dir, "temp_00000.parquet")
                 assert not os.path.exists(temp_file_path), "Temp file should be deleted"
+
+    @pytest.mark.gpu
+    def test_to_webdataset_final_yield(self, temp_dataset_dir):
+        """Test that _get_eligible_samples yields the final batch when there are leftover samples."""
+        # Create sample dataset with multiple batches
+        metadata = cudf.DataFrame(
+            {
+                "id": ["0", "1", "2", "3", "4"],
+                "caption": [
+                    "caption 0",
+                    "caption 1",
+                    "caption 2",
+                    "caption 3",
+                    "caption 4",
+                ],
+                "filter_col": [True, True, True, True, True],  # All samples included
+            }
+        )
+
+        # Convert to Dask-cuDF DataFrame
+        dask_metadata = dask_cudf.from_cudf(metadata, npartitions=1)
+
+        # Create multiple tar files to test accumulation of curr_df
+        tar_paths = []
+        for i in range(2):  # Create 2 tar files
+            tar_path = os.path.join(temp_dataset_dir, f"{i:05d}.tar")
+            tar_paths.append(tar_path)
+
+            with tarfile.open(tar_path, "w") as tar:
+                # Each tar file will have samples for a subset of IDs
+                start_id = i * 3
+                end_id = min(start_id + 3, 5)  # Total of 5 samples across both files
+
+                for sample_id in range(start_id, end_id):
+                    if sample_id < len(metadata):  # Make sure we don't go out of bounds
+                        # Create sample files for this ID
+                        for ext, content_type in [
+                            ("jpg", "image"),
+                            ("txt", "text"),
+                            ("json", "json"),
+                        ]:
+                            filename = f"{sample_id:06d}.{ext}"
+                            content = create_mock_tar_content(filename, content_type)
+
+                            info = tarfile.TarInfo(filename)
+                            info.size = len(content)
+
+                            tar.addfile(info, io.BytesIO(content))
+
+        # Set up the output directory
+        output_dir = os.path.join(temp_dataset_dir, "output")
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Create temp parquet files that to_webdataset will read
+        # Split the metadata into two files to match our tar files
+        for i in range(2):
+            start_idx = i * 3
+            end_idx = min(start_idx + 3, 5)
+            if start_idx < len(metadata):
+                subset_df = metadata.iloc[start_idx:end_idx].reset_index(drop=True)
+                subset_df.to_pandas().to_parquet(
+                    os.path.join(output_dir, f"temp_{i:05d}.parquet")
+                )
+
+        # Create the dataset
+        dataset = ImageTextPairDataset(temp_dataset_dir, dask_metadata, tar_paths, "id")
+
+        # Override _get_eligible_samples to track the yielded batches
+        original_get_eligible_samples = dataset._get_eligible_samples
+        yielded_batches = []
+
+        def mock_get_eligible_samples(*args, **kwargs):
+            for batch_df, batch_tar in original_get_eligible_samples(*args, **kwargs):
+                yielded_batches.append((batch_df, batch_tar))
+                yield batch_df, batch_tar
+
+        dataset._get_eligible_samples = mock_get_eligible_samples
+
+        # Set samples_per_shard to 3 so we have a full shard and a partial shard
+        # The first tar file has 3 samples, and the second has 2
+        # This should result in one full shard of 3 samples and a leftover of 2 samples
+        with mock.patch("fsspec.open") as mock_fsspec_open:
+            # Mock the filesystem opening with a proper file-like object
+            class MockFileContext:
+                def __init__(self, path, mode):
+                    self.path = path
+                    self.mode = mode
+                    self.buffer = io.BytesIO()
+                    self.fs = mock.MagicMock()
+                    self.fs.delete = mock.MagicMock()
+
+                def __enter__(self):
+                    return self.buffer
+
+                def __exit__(self, exc_type, exc_val, exc_tb):
+                    pass
+
+            mock_fsspec_open.return_value = MockFileContext("mock_path", "wb")
+
+            # Call to_webdataset with a samples_per_shard that will leave leftovers
+            dataset.to_webdataset(
+                output_dir,
+                filter_column="filter_col",
+                samples_per_shard=3,  # Set to create one full shard (3) and one partial (2)
+            )
+
+        # Verify the results
+        assert (
+            len(yielded_batches) == 2
+        ), "Should have yielded twice: once for full shard, once for leftovers"
+
+        # First batch should have exactly samples_per_shard samples
+        assert len(yielded_batches[0][0]) == 3, "First batch should have 3 samples"
+
+        # Second batch should have the remaining samples (less than samples_per_shard)
+        assert (
+            len(yielded_batches[1][0]) == 2
+        ), "Second batch should have 2 samples (leftovers)"
+
+        # Verify that the leftovers were properly processed
+        # The second batch should have the remaining samples (with ids 3 and 4)
+        leftover_ids = yielded_batches[1][0]["id"].tolist()
+        assert set(leftover_ids) == {
+            "3",
+            "4",
+        }, "Leftover batch should contain IDs 3 and 4"
 
     @pytest.mark.gpu
     def test_to_webdataset_integration(self, sample_data_path, temp_dataset_dir):

@@ -40,6 +40,9 @@ TimmImageEmbedder = gpu_only_import_from(
 create_list_series_from_1d_or_2d_ar = gpu_only_import_from(
     "crossfit.backend.cudf.series", "create_list_series_from_1d_or_2d_ar"
 )
+Normalization = gpu_only_import_from(
+    "nemo_curator.image.classifiers.nsfw", "Normalization"
+)
 
 
 # Test initialization parameters
@@ -337,6 +340,40 @@ def test_nsfw_model_architecture(gpu_client):
 
     # Check output range (should be between 0 and 1 because of sigmoid)
     assert torch.all(output >= 0) and torch.all(output <= 1)
+
+
+@pytest.mark.gpu
+def test_normalization_layer(gpu_client):
+    """Test that the Normalization layer correctly normalizes inputs."""
+    # Test shape for normalization
+    shape = [768]
+
+    # Initialize the normalization layer
+    norm = Normalization(shape).to("cuda")
+
+    # Verify buffers are initialized correctly
+    assert torch.all(norm.mean == 0)
+    assert torch.all(norm.variance == 1)
+    assert norm.mean.shape == torch.Size(shape)
+    assert norm.variance.shape == torch.Size(shape)
+
+    # Test with uniform input (should remain the same with default mean=0, variance=1)
+    test_input = torch.ones((2, 768), device="cuda")
+    with torch.no_grad():
+        output = norm(test_input)
+    assert torch.allclose(output, test_input)
+
+    # Test with custom mean and variance
+    norm.mean.data = torch.full(shape, 0.5, device="cuda")
+    norm.variance.data = torch.full(shape, 4.0, device="cuda")
+
+    # Now normalization should transform the inputs
+    with torch.no_grad():
+        output = norm(test_input)
+
+    # Expected: (1 - 0.5) / sqrt(4) = 0.5 / 2 = 0.25
+    expected = torch.full_like(test_input, 0.25)
+    assert torch.allclose(output, expected)
 
 
 # Test NSFWModel with real parameters
