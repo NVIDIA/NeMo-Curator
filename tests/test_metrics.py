@@ -649,6 +649,79 @@ class TestMetricsTasks:
         ngrams = storycloze_task.generate_ngrams()
         assert len(ngrams) > 0
 
+    # Tests for exception handling in Lambada, NumDasc, and StoryCloze
+
+    def test_lambada_exception_handling(self, tmp_path):
+        """Test that Lambada properly handles invalid JSON and prints error messages."""
+        # Create a file with invalid JSON data
+        invalid_file = tmp_path / "invalid_lambada.jsonl"
+        with open(invalid_file, "w") as f:
+            f.write('{"text": "Valid JSON line"}\n')
+            f.write("Invalid JSON line that will cause an exception\n")
+            f.write('{"incomplete": "Missing text field"}\n')
+
+        lambada_task = Lambada(
+            file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10
+        )
+
+        # Mock stdout to capture printed error messages
+        with mock.patch("builtins.print") as mock_print:
+            # This should not raise an exception
+            ngrams = lambada_task.generate_ngrams()
+
+            # Verify error was printed
+            mock_print.assert_called()
+            # At least one call should have "Error" in it
+            assert any("Error" in str(call) for call in mock_print.call_args_list)
+
+    def test_numdasc_exception_handling(self, tmp_path):
+        """Test that NumDasc properly handles invalid JSON and prints error messages."""
+        # Create a file with invalid JSON data
+        invalid_file = tmp_path / "invalid_numdasc.jsonl"
+        with open(invalid_file, "w") as f:
+            f.write('{"context": "Valid", "completion": "JSON line"}\n')
+            f.write("Invalid JSON line\n")
+            f.write('{"context": "Missing completion field"}\n')
+
+        numdasc_task = NumDasc(
+            n=2, file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10
+        )
+
+        # Mock stdout to capture printed error messages
+        with mock.patch("builtins.print") as mock_print:
+            # This should not raise an exception
+            ngrams = numdasc_task.generate_ngrams()
+
+            # Verify error was printed
+            mock_print.assert_called()
+            # At least one call should have "Error" in it
+            assert any("Error" in str(call) for call in mock_print.call_args_list)
+
+    def test_storycloze_exception_handling(self, tmp_path):
+        """Test that StoryCloze properly handles invalid JSON and prints error messages."""
+        # Create a file with invalid JSON data
+        invalid_file = tmp_path / "invalid_storycloze.jsonl"
+        with open(invalid_file, "w") as f:
+            f.write(
+                '{"InputSentence1": "Valid", "InputSentence2": "JSON", "InputSentence3": "line", "InputSentence4": "here"}\n'
+            )
+            f.write("Invalid JSON line\n")
+            f.write('{"InputSentence1": "Missing other required fields"}\n')
+
+        storycloze_task = StoryCloze(
+            file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10
+        )
+
+        # Mock stdout to capture printed error messages
+        with mock.patch("builtins.print") as mock_print:
+            # This should not raise an exception
+            ngrams = storycloze_task.generate_ngrams()
+
+            # Verify error was printed
+            mock_print.assert_called()
+            # At least one call should have "Error" in it
+            assert any("Error" in str(call) for call in mock_print.call_args_list)
+
     # Edge cases and error handling tests
 
     def test_task_with_short_texts(self, tmp_path):
