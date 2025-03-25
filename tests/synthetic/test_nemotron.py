@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -986,6 +986,17 @@ class TestNemotronGenerator:
                 model="test_model",
             )
         assert "hallucination" in str(excinfo.value).lower()
+
+        # Test with list containing non-string elements
+        mock_llm_client.query_model.return_value = [
+            yaml.dump(["Valid string", 123, True, {"nested": "dict"}])
+        ]
+        with pytest.raises(YamlConversionError) as excinfo:
+            generator.convert_response_to_yaml_list(
+                llm_response="Valid string",
+                model="test_model",
+            )
+        assert "non-string element" in str(excinfo.value).lower()
 
     def test_pipeline_error_propagation(self, mock_llm_client):
         """Test that pipeline methods propagate conversion errors properly."""

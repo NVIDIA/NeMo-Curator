@@ -97,6 +97,23 @@ class TestAsyncNemotronGenerator:
             )
 
     @pytest.mark.asyncio
+    async def test_convert_response_with_non_string_elements(self, mock_llm_client):
+        """Test handling of YAML list with non-string elements."""
+        generator = AsyncNemotronGenerator(mock_llm_client)
+
+        # Test with list containing non-string elements
+        mock_llm_client.query_model.return_value = [
+            yaml.dump(["Valid string", 123, True, {"nested": "dict"}])
+        ]
+
+        with pytest.raises(YamlConversionError) as excinfo:
+            await generator.convert_response_to_yaml_list(
+                llm_response="Valid string",
+                model="test_model",
+            )
+        assert "non-string element" in str(excinfo.value).lower()
+
+    @pytest.mark.asyncio
     async def test_try_convert_yaml_list(self, mock_llm_client):
         """Test _try_convert_yaml_list method for handling YAML conversion errors."""
         generator = AsyncNemotronGenerator(mock_llm_client)
