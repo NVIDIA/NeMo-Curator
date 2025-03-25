@@ -269,6 +269,26 @@ class TestAsyncOpenAIClient:
         assert result == ["This is a mock async response"]
 
     @pytest.mark.asyncio
+    async def test_query_model_with_warnings(self, mock_async_openai_client):
+        """Test that warnings are raised appropriately."""
+        client = AsyncOpenAIClient(mock_async_openai_client)
+        messages = [{"role": "user", "content": "Hello"}]
+
+        with pytest.warns(UserWarning, match="conversation_formatter is not used"):
+            await client.query_model(
+                messages=messages,
+                model="gpt-4",
+                conversation_formatter=MagicMock(),
+            )
+
+        with pytest.warns(UserWarning, match="top_k is not used"):
+            await client.query_model(
+                messages=messages,
+                model="gpt-4",
+                top_k=5,
+            )
+
+    @pytest.mark.asyncio
     async def test_query_reward_model(self, mock_async_openai_client):
         """Test the query_reward_model method."""
         client = AsyncOpenAIClient(mock_async_openai_client)

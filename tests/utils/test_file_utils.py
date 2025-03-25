@@ -328,6 +328,60 @@ class TestFileProcessingUtils:
                     len(result) == 1
                 )  # 3 total files - 2 already processed = 1 remaining
 
+    def test_get_remaining_files_nonexistent_output_dir(self, temp_dir):
+        """Test get_remaining_files when output directory doesn't exist."""
+        # Create input directory with test files
+        input_dir = os.path.join(temp_dir, "input")
+        os.makedirs(input_dir)
+
+        # Define a non-existent output directory
+        output_dir = os.path.join(temp_dir, "nonexistent_output")
+
+        # Create input files
+        input_files = [os.path.join(input_dir, f"file{i}.txt") for i in range(3)]
+        for file in input_files:
+            with open(file, "w") as f:
+                f.write("test content")
+
+        # Mock os.path.exists to return False for output_dir and then pass through for other paths
+        original_exists = os.path.exists
+
+        def mock_exists(path):
+            if path == output_dir:
+                return False
+            return original_exists(path)
+
+        with patch(
+            "nemo_curator.utils.file_utils.os.path.exists", side_effect=mock_exists
+        ):
+            with patch(
+                "nemo_curator.utils.file_utils.expand_outdir_and_mkdir"
+            ) as mock_mkdir:
+                with patch("nemo_curator.utils.file_utils.os.scandir") as mock_scandir:
+                    # Mock scandir for input directory to return real files
+                    mock_input_scan = MagicMock()
+                    mock_input_scan.__iter__.return_value = [
+                        MagicMock(path=f) for f in input_files
+                    ]
+
+                    # Mock scandir for output directory to return empty list (no files)
+                    mock_output_scan = MagicMock()
+                    mock_output_scan.__iter__.return_value = []
+
+                    mock_scandir.side_effect = lambda path: (
+                        mock_input_scan if path == input_dir else mock_output_scan
+                    )
+
+                    # Call get_remaining_files with non-existent output directory
+                    result = get_remaining_files(input_dir, output_dir, "txt")
+
+                    # Verify that expand_outdir_and_mkdir was called to create the directory
+                    mock_mkdir.assert_called_once_with(output_dir)
+
+                    # Verify that all input files are returned (since output dir is empty)
+                    assert len(result) == 3
+                    assert all(f"file{i}.txt" in r for i, r in zip(range(3), result))
+
     def test_get_batched_files(self, temp_dir):
         """Test get_batched_files function."""
         # Create input and output directories
@@ -769,6 +823,54 @@ class TestJSONLProcessing:
                 mock_remove.assert_called_once_with(
                     os.path.join(temp_dir, "empty.jsonl")
                 )
+
+    def test_save_jsonl_with_exception(self, temp_dir):
+        """Test _save_jsonl function when an exception occurs during file removal."""
+        # Create a mock dask bag
+        mock_bag = MagicMock()
+        mock_encoded_bag = MagicMock()
+        mock_bag.map.return_value = mock_encoded_bag
+        mock_encoded_bag.to_textfiles.return_value = [
+            os.path.join(temp_dir, "file1.jsonl"),
+            os.path.join(temp_dir, "file2.jsonl"),
+            os.path.join(temp_dir, "empty.jsonl"),
+        ]
+
+        # Mock os.path.getsize to simulate an empty file
+        def mock_getsize(path):
+            if "empty" in path:
+                return 0
+            return 100
+
+        # Mock os.remove to raise an exception
+        def mock_remove_with_exception(path):
+            if "empty" in path:
+                raise PermissionError("Permission denied")
+
+        # Mock print to capture the exception message
+        with (
+            patch(
+                "nemo_curator.utils.file_utils.os.path.getsize",
+                side_effect=mock_getsize,
+            ),
+            patch(
+                "nemo_curator.utils.file_utils.os.remove",
+                side_effect=mock_remove_with_exception,
+            ),
+            patch("nemo_curator.utils.file_utils.print") as mock_print,
+        ):
+            # Test that the function handles the exception gracefully
+            _save_jsonl(mock_bag, temp_dir, start_index=5, prefix="test_")
+
+            # Verify that map and to_textfiles were still called
+            mock_bag.map.assert_called_once()
+            mock_encoded_bag.to_textfiles.assert_called_once()
+
+            # Verify that print was called with an error message containing the exception
+            mock_print.assert_called_once()
+            call_args = mock_print.call_args[0][0]
+            assert "An exception occurred" in call_args
+            assert "Permission denied" in call_args
 
     def test_reshard_jsonl(self, temp_dir):
         """Test reshard_jsonl function."""

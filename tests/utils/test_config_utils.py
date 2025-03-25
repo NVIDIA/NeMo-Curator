@@ -105,6 +105,42 @@ class TestBuildFilter:
                 )
                 assert result == mock_score_filter_instance
 
+    def test_build_filter_with_none_params(self):
+        """Test building a filter with params explicitly set to None."""
+        # Mock the imported filter class
+        mock_filter_class = MagicMock()
+        mock_filter_instance = MagicMock()
+        mock_filter_class.return_value = mock_filter_instance
+        mock_filter_instance.name = "test_filter"
+        mock_filter_instance._name = "test_filter"
+
+        # Create filter config with params=None
+        filter_config = {
+            "name": "nemo_curator.filters.test_filter",
+            "params": None,
+            "input_field": "text",
+        }
+
+        # Mock the import_filter function
+        with patch(
+            "nemo_curator.utils.config_utils.import_filter",
+            return_value=mock_filter_class,
+        ):
+            # Mock the ScoreFilter class
+            with patch("nemo_curator.ScoreFilter") as mock_score_filter:
+                mock_score_filter_instance = MagicMock()
+                mock_score_filter.return_value = mock_score_filter_instance
+
+                # Call the function
+                result = build_filter(filter_config)
+
+                # Check assertions
+                mock_filter_class.assert_called_once_with()
+                mock_score_filter.assert_called_once_with(
+                    mock_filter_instance, filter_config["input_field"], score_field=None
+                )
+                assert result == mock_score_filter_instance
+
     def test_build_filter_with_log_score(self):
         """Test building a filter with log_score=True."""
         # Mock the imported filter class
@@ -200,6 +236,11 @@ class TestBuildFilterPipeline:
                     "params": {"param2": "value2"},
                     "input_field": "custom_field",
                 },
+                {
+                    "name": "nemo_curator.filters.filter3",
+                    "params": {"param3": "value3"},
+                    "input_field": None,
+                },
             ],
         }
 
@@ -210,9 +251,10 @@ class TestBuildFilterPipeline:
                 # Mock the build_filter function
                 mock_filter1 = MagicMock()
                 mock_filter2 = MagicMock()
+                mock_filter3 = MagicMock()
                 with patch(
                     "nemo_curator.utils.config_utils.build_filter",
-                    side_effect=[mock_filter1, mock_filter2],
+                    side_effect=[mock_filter1, mock_filter2, mock_filter3],
                 ) as mock_build_filter:
                     # Mock the Sequential class
                     with patch("nemo_curator.Sequential") as mock_sequential:
@@ -225,7 +267,7 @@ class TestBuildFilterPipeline:
                         # Check assertions
                         mock_file.assert_called_once_with("dummy_path.yaml", "r")
                         mock_load.assert_called_once()
-                        assert mock_build_filter.call_count == 2
+                        assert mock_build_filter.call_count == 3
                         # First filter should use the input_field from the config
                         assert mock_build_filter.call_args_list[0][0][0] == {
                             "name": "nemo_curator.filters.filter1",
@@ -238,8 +280,14 @@ class TestBuildFilterPipeline:
                             "params": {"param2": "value2"},
                             "input_field": "custom_field",
                         }
+                        # Third filter should have input_field replaced with parent's input_field
+                        assert mock_build_filter.call_args_list[2][0][0] == {
+                            "name": "nemo_curator.filters.filter3",
+                            "params": {"param3": "value3"},
+                            "input_field": "text",
+                        }
                         mock_sequential.assert_called_once_with(
-                            [mock_filter1, mock_filter2]
+                            [mock_filter1, mock_filter2, mock_filter3]
                         )
                         assert result == mock_sequential_instance
 

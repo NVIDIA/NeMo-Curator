@@ -121,6 +121,27 @@ class TestMainWarcPaths:
         assert "CC-MAIN-2013-04" in warc_paths[0]
         assert "CC-MAIN-2014-10" in warc_paths[1]
 
+    def test_both_dates_before_2013(self):
+        """Test when both start and end snapshots are before 2013."""
+        # Mock snapshot index
+        mock_index = [
+            {"id": "CC-MAIN-2010-10"},
+            {"id": "CC-MAIN-2011-15"},
+            {"id": "CC-MAIN-2012-20"},
+            {"id": "CC-MAIN-2013-04"},
+            {"id": "CC-MAIN-2014-10"},
+        ]
+
+        # Call the function
+        with patch("builtins.print") as mock_print:
+            warc_paths = get_main_warc_paths(mock_index, "2010-10", "2012-20")
+
+            # Check that warning was printed
+            mock_print.assert_called_once()
+
+        # Check results (should be empty since all matching snapshots are filtered out)
+        assert len(warc_paths) == 0
+
     def test_invalid_date_range(self):
         """Test with start date after end date."""
         # Mock snapshot index

@@ -34,9 +34,11 @@ from nemo_curator.utils.distributed_utils import (
     _enable_spilling,
     _resolve_filename_col,
     _set_torch_to_use_rmm,
+    _write_to_jsonl_or_parquet,
     check_dask_cwd,
     get_client,
     get_current_client,
+    get_gpu_memory_info,
     get_network_interfaces,
     get_num_workers,
     load_object_on_worker,
@@ -141,6 +143,16 @@ class TestClientFunctions:
             mock_client.assert_called_with(
                 scheduler_file="/path/to/scheduler.json", timeout="30s"
             )
+
+            # Test with both scheduler_address and scheduler_file
+            with pytest.raises(
+                ValueError,
+                match="Only one of scheduler_address or scheduler_file can be provided",
+            ):
+                get_client(
+                    scheduler_address="tcp://localhost:8786",
+                    scheduler_file="/path/to/scheduler.json",
+                )
 
             # Test with CPU cluster
             client = get_client(cluster_type="cpu")
@@ -248,6 +260,22 @@ class TestDataReadingFunctions:
             )
             mock_pd.read_parquet.assert_called_once()
             assert result.equals(mock_pd.read_parquet.return_value)
+
+        # Test warning when input_meta is provided for non-jsonl file
+        with pytest.warns(
+            UserWarning,
+            match="input_meta is only valid for JSONL files and will be ignored for other file formats..",
+        ):
+            with patch(
+                "nemo_curator.utils.distributed_utils.select_columns",
+                return_value=mock_pd.read_parquet.return_value,
+            ):
+                read_single_partition(
+                    files=["file.parquet"],
+                    backend="pandas",
+                    file_type="parquet",
+                    input_meta={"a": "int"},
+                )
 
     @pytest.mark.gpu
     @patch("nemo_curator.utils.distributed_utils.read_single_partition")
@@ -393,6 +421,15 @@ class TestDataReadingFunctions:
             result = read_data(["file.pkl"], file_type="pickle")
             mock_read_pickle.assert_called_once()
 
+        # Test reading pickle with string input instead of list
+        mock_read_pickle.reset_mock()
+        with patch(
+            "nemo_curator.utils.distributed_utils.dd.from_pandas",
+            return_value=dd.from_pandas(mock_read_pickle.return_value, npartitions=16),
+        ):
+            result = read_data("file.pkl", file_type="pickle")
+            mock_read_pickle.assert_called_once()
+
         # Test reading jsonl with blocksize
         result = read_data(
             ["file1.jsonl", "file2.jsonl"],
@@ -410,6 +447,18 @@ class TestDataReadingFunctions:
             blocksize=None,  # Explicitly set to None to avoid conflict
         )
         mock_read_fpp.assert_called_once()
+
+        # Test error when both blocksize and files_per_partition are provided
+        with pytest.raises(
+            ValueError,
+            match="blocksize and files_per_partition cannot be set at the same time",
+        ):
+            read_data(
+                ["file1.jsonl", "file2.jsonl"],
+                file_type="jsonl",
+                blocksize="1MB",
+                files_per_partition=1,
+            )
 
         # Test error handling for mixed file extensions
         with patch("os.path.splitext", side_effect=[(".jsonl",), (".parquet",)]):
@@ -549,6 +598,101 @@ class TestDataWritingFunctions:
         # Test with unknown output type
         with pytest.raises(ValueError):
             write_to_disk(df, os.path.join(temp_dir, "output"), output_type="unknown")
+
+    def test_write_to_jsonl_or_parquet(self, temp_dir):
+        """Test _write_to_jsonl_or_parquet function with all branches."""
+        # Create test dataframes - one for pandas and one for cudf
+        pandas_df = pd.DataFrame(
+            {
+                "text": ["hello", "world", "test", "data"],
+                "category": ["A", "B", "A", "B"],
+            }
+        )
+        pandas_ddf = dd.from_pandas(pandas_df, npartitions=1)
+
+        # 1. Test JSONL with partitioning
+        output_path = os.path.join(temp_dir, "partitioned_jsonl")
+        os.makedirs(output_path, exist_ok=True)
+
+        with patch(
+            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False
+        ):
+            _write_to_jsonl_or_parquet(
+                pandas_ddf,
+                output_path=output_path,
+                output_type="jsonl",
+                partition_on="category",
+            )
+            # Verify that directories were created with the partitioning
+            assert os.path.exists(os.path.join(output_path, "category=A"))
+            assert os.path.exists(os.path.join(output_path, "category=B"))
+
+        # 2. Test JSONL without partitioning for pandas dataframe
+        output_path = os.path.join(temp_dir, "pandas_jsonl")
+        os.makedirs(output_path, exist_ok=True)
+
+        with patch(
+            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False
+        ):
+            _write_to_jsonl_or_parquet(
+                pandas_ddf,
+                output_path=os.path.join(output_path, "output.jsonl"),
+                output_type="jsonl",
+            )
+            # Verify the file was created
+            assert os.path.exists(os.path.join(output_path, "output.jsonl"))
+
+        # 3. Test JSONL without partitioning for cudf dataframe
+        output_path = os.path.join(temp_dir, "cudf_jsonl")
+        os.makedirs(output_path, exist_ok=True)
+
+        with patch(
+            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True
+        ):
+            _write_to_jsonl_or_parquet(
+                pandas_ddf,  # We're still using pandas_ddf but mocking is_cudf_type to return True
+                output_path=os.path.join(output_path, "output.jsonl"),
+                output_type="jsonl",
+            )
+            # Verify the file was created
+            assert os.path.exists(os.path.join(output_path, "output.jsonl"))
+
+        # 4. Test Parquet with partitioning
+        output_path = os.path.join(temp_dir, "partitioned_parquet")
+        os.makedirs(output_path, exist_ok=True)
+
+        with patch.object(pandas_ddf, "to_parquet") as mock_to_parquet:
+            _write_to_jsonl_or_parquet(
+                pandas_ddf,
+                output_path=output_path,
+                output_type="parquet",
+                partition_on="category",
+            )
+            # Verify to_parquet was called with the correct parameters
+            mock_to_parquet.assert_called_once_with(
+                output_path, write_index=False, partition_on="category"
+            )
+
+        # 5. Test Parquet without partitioning
+        output_path = os.path.join(temp_dir, "simple_parquet")
+        os.makedirs(output_path, exist_ok=True)
+
+        with patch.object(pandas_ddf, "to_parquet") as mock_to_parquet:
+            _write_to_jsonl_or_parquet(
+                pandas_ddf, output_path=output_path, output_type="parquet"
+            )
+            # Verify to_parquet was called with the correct parameters
+            mock_to_parquet.assert_called_once_with(
+                output_path, write_index=False, partition_on=None
+            )
+
+        # 6. Test unknown output type
+        with pytest.raises(ValueError):
+            _write_to_jsonl_or_parquet(
+                pandas_ddf,
+                output_path=os.path.join(temp_dir, "unknown"),
+                output_type="unknown",
+            )
 
 
 class TestWorkerFunctions:
@@ -849,3 +993,43 @@ class TestUtilityFunctions:
 
                 # Verify that torch.cuda.memory.change_current_allocator was not called
                 mock_torch.cuda.memory.change_current_allocator.assert_not_called()
+
+    @pytest.mark.gpu
+    def test_get_gpu_memory_info_no_client(self):
+        """Test get_gpu_memory_info function with no client."""
+        # Test when no client exists
+        with patch(
+            "nemo_curator.utils.distributed_utils.get_current_client",
+            return_value=None,
+        ):
+            memory_info = get_gpu_memory_info()
+            assert memory_info == {}
+
+    @pytest.mark.gpu
+    def test_get_gpu_memory_info_with_real_client(self):
+        """Test get_gpu_memory_info function with an actual client."""
+        # Create a real Dask client
+        try:
+            client = get_client(cluster_type="gpu", n_workers=1)
+
+            # Call get_gpu_memory_info
+            memory_info = get_gpu_memory_info()
+
+            # Verify result structure
+            assert isinstance(memory_info, dict)
+            assert len(memory_info) > 0
+
+            # Verify each worker has a memory value
+            for worker_address, memory in memory_info.items():
+                assert isinstance(worker_address, str)
+                assert isinstance(memory, int)
+                assert memory > 0
+
+            # Close the client when done
+            client.close()
+
+            # Test that no client returns empty dict
+            assert get_gpu_memory_info() == {}
+
+        except Exception as e:
+            pytest.skip(f"Could not create GPU Dask client for testing: {e}")
