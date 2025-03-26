@@ -48,9 +48,6 @@ class ClusteringModel:
         clustering_output_dir: str = "./clustering_results",
         embedding_column: str = "embeddings",
         random_state: int = 1234,
-        # TODO : add l2 distance support
-        sim_metric: Literal["cosine"] = "cosine",
-        which_to_keep: Literal["hard", "random", "easy"] = "hard",
         clustering_input_partition_size: Optional[str] = "2gb",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
@@ -70,12 +67,6 @@ class ClusteringModel:
                 Default is "embeddings".
             random_state (int): KMeans random state used for reproducibility.
                 Default is 1234.
-            sim_metric (str): Similarity metric for deduplication.
-                Default is "cosine".
-            which_to_keep (str): Method to determine which duplicates to keep. Default is "hard".
-                - hard retains edge-case or outlier items farthest from the centroid.
-                - easy retains representative items closest to the centroid.
-                - random retains items randomly.
             clustering_input_partition_size (Optional[str]): The size of data partition with which to run KMeans.
                 Default is "2gb". If None, then the dataset is not repartitioned.
             logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
@@ -90,9 +81,7 @@ class ClusteringModel:
         self.clustering_output_dir = clustering_output_dir
         self.embedding_column = embedding_column
         self.random_state = random_state
-        self.keep_hard = which_to_keep == "hard"
         self.clustering_input_partition_size = clustering_input_partition_size
-        self.sim_metric = sim_metric
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 

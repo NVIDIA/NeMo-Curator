@@ -412,8 +412,12 @@ class TestSemDedupUtils:
         )
 
     @pytest.mark.parametrize("which_to_keep", ["hard", "easy"])
+    @pytest.mark.parametrize("sim_metric", ["cosine", "l2"])
     def test_get_semantic_matches_per_cluster(
-        self, which_to_keep: Literal["hard", "easy"], tmpdir
+        self,
+        which_to_keep: Literal["hard", "easy"],
+        sim_metric: Literal["cosine", "l2"],
+        tmpdir,
     ):
         cluster_c = 0
         self.centroid = self.input_embeddings[:1]
@@ -444,6 +448,7 @@ class TestSemDedupUtils:
             output_dir=tmpdir,
             embedding_col="embedding",
             which_to_keep=which_to_keep,
+            sim_metric=sim_metric,
             batched_cosine_similarity=1024,
         )
 
@@ -451,8 +456,7 @@ class TestSemDedupUtils:
         output_df = pd.read_parquet(
             os.path.join(tmpdir, f"cluster_{cluster_c}.parquet")
         )
-        # https://docs.google.com/spreadsheets/d/1s3unF6RRCDNpAam7GpU3pidbluoQXOzi0yKlokuV0ag/edit?gid=0#gid=0
-        # The spreadsheet has the expected output and the walkthrough for the hard and easy cases
+        # See https://github.com/NVIDIA/NeMo-Curator/issues/610 to understand the expected output and the walkthrough
         if which_to_keep == "hard":
             expected_ids = [3, 2, 1, 5, 4, 0]
             expected_max_ids = [3, 3, 2, 1, 5, 5]
@@ -519,8 +523,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         ddf = dd.from_pandas(df, npartitions=2)
         self.ddf = ddf.to_backend("cudf")
 
-    @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
-    def test_clustering_model(self, tmpdir, which_to_keep):
+    def test_clustering_model(self, tmpdir):
         clustering_output_dir = os.path.join(tmpdir, "clustering_output")
         # Initialize ClusteringModel
         clustering_model = ClusteringModel(
@@ -529,8 +532,6 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             clustering_output_dir=clustering_output_dir,
             embedding_column="embeddings",
             random_state=42,
-            which_to_keep=which_to_keep,
-            sim_metric="cosine",
         )
         # TODO : remove this once we figure out why fusing is causing issues
         with dask.config.set({"optimization.fuse.active": False}):
@@ -585,7 +586,8 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         )
 
     @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
-    def test_sematnic_cluster_level_dedup(self, tmpdir, which_to_keep):
+    @pytest.mark.parametrize("sim_metric", ["cosine", "l2"])
+    def test_sematnic_cluster_level_dedup(self, tmpdir, which_to_keep, sim_metric):
         clustering_output_dir = os.path.join(tmpdir, "clustering_output")
         semantic_extraction_output_dir = os.path.join(tmpdir, "extraction")
         # Initialize ClusteringModel
@@ -595,8 +597,6 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             clustering_output_dir=clustering_output_dir,
             embedding_column="embeddings",
             random_state=42,
-            which_to_keep=which_to_keep,
-            sim_metric="cosine",
         )
         with dask.config.set({"optimization.fuse.active": False}):
             _ = clustering_model(DocumentDataset(self.ddf))
@@ -608,6 +608,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             ),
             id_column="id",
             which_to_keep=which_to_keep,
+            sim_metric=sim_metric,
             output_dir=semantic_extraction_output_dir,
             embedding_column="embeddings",
             batched_cosine_similarity=20,

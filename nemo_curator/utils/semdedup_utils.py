@@ -53,7 +53,7 @@ def add_l2_cosine_dist_to_centroid(
     df: cudf.DataFrame, embedding_col: str, centroids: cp.ndarray
 ) -> cudf.DataFrame:
     """
-    Computes the L2 distance to nearest centroid to each embedding in the dataframe.
+    Computes the L2 distance to nearest centroid to each embedding in the DataFrame.
     Embeddings are normalized. For cosine we'll need to normalize the centroids as well.
     """
     normalized_embeddings = get_array_from_df(df, embedding_col)
@@ -131,16 +131,25 @@ def get_semantic_matches_per_cluster(
     id_col: str,
     output_dir: str,
     embedding_col: str,
-    which_to_keep: str,
+    which_to_keep: Literal["hard", "easy", "random"],
+    sim_metric: Literal["cosine", "l2"],
     batched_cosine_similarity: int = 1024,
 ) -> None:
     """
     Get the semantic matches for a single cluster.
     Reads the cluster embeddings and then computes pairwise cosine similarity between them.
     """
+    if sim_metric == "cosine":
+        distance_col = COSINE_DIST_TO_CENT_COL
+    elif sim_metric == "l2":
+        distance_col = L2_DIST_TO_CENT_COL
+    else:
+        msg = f"Invalid similarity metric: {sim_metric}. Only cosine and l2 are supported."
+        raise ValueError(msg)
+
     cluster_df = cudf.read_parquet(
         os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}"),
-        columns=[embedding_col, id_col, COSINE_DIST_TO_CENT_COL],
+        columns=[embedding_col, id_col, distance_col],
     )
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
     if len(cluster_df) == 1:
@@ -153,11 +162,11 @@ def get_semantic_matches_per_cluster(
 
     if which_to_keep == "hard":
         cluster_df = cluster_df.sort_values(
-            by=[COSINE_DIST_TO_CENT_COL, id_col], ascending=False, ignore_index=True
+            by=[distance_col, id_col], ascending=False, ignore_index=True
         )
     elif which_to_keep == "easy":
         cluster_df = cluster_df.sort_values(
-            by=[COSINE_DIST_TO_CENT_COL, id_col], ascending=True, ignore_index=True
+            by=[distance_col, id_col], ascending=True, ignore_index=True
         )
     elif which_to_keep == "random":
         cluster_df = cluster_df.sample(frac=1).reset_index(drop=True)
@@ -209,6 +218,7 @@ def prune_single_cluster(
         cudf.DataFrame: A DataFrame of the pruned cluster data
     """
     cluster_dir = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
+    # For the output we only return id, cosine_dist_to_cent, and cluster
     df_cluster = cudf.read_parquet(
         cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]
     ).assign(cluster=cluster_id)

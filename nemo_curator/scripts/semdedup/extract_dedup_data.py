@@ -50,6 +50,7 @@ def main(args):
         ),
         id_column=args.id_column,
         which_to_keep=semdedup_config.which_to_keep,
+        sim_metric=semdedup_config.sim_metric,
         batched_cosine_similarity=semdedup_config.batched_cosine_similarity,
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc

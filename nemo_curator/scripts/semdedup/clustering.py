@@ -68,8 +68,6 @@ def main(args):
         clustering_output_dir=clustering_output_dir,
         embedding_column=semdedup_config.embedding_column,
         random_state=semdedup_config.random_state,
-        sim_metric=semdedup_config.sim_metric,
-        which_to_keep=semdedup_config.which_to_keep,
         clustering_input_partition_size=semdedup_config.clustering_input_partition_size,
         logger=logger,
     )

@@ -17,7 +17,7 @@ import logging
 import os
 import shutil
 import time
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import dask.bag as db
 import dask.dataframe as dd
@@ -40,6 +40,7 @@ class SemanticClusterLevelDedup:
         emb_by_clust_dir: str = "./clustering_results/embs_by_nearest_center",
         id_column: str = "id",
         which_to_keep: str = "hard",
+        sim_metric: Literal["cosine", "l2"] = "cosine",
         output_dir: str = "./clustering_results",
         embedding_column: str = "embeddings",
         batched_cosine_similarity: int = 1024,
@@ -55,8 +56,12 @@ class SemanticClusterLevelDedup:
                 Default is "./clustering_results/embs_by_nearest_center".
             id_column (str): Column name used as the identifier in the dataset.
                 Default is "id".
-            which_to_keep (str): Method to determine which duplicates to keep.
-                Default is "hard".
+            which_to_keep (str): Method to determine which duplicates to keep. Default is "hard".
+                - hard retains edge-case or outlier items farthest from the centroid.
+                - easy retains representative items closest to the centroid.
+                - random retains items randomly.
+            sim_metric ("cosine" or "l2"): Similarity metric to use to rank within cluster. The order is determined by which_to_keep.
+                Default is "cosine". Supports "l2" as well.
             output_dir (str): Directory to save output files.
                 Default is "./clustering_results".
             embedding_column (str): The column name that stores the embeddings.
@@ -74,6 +79,7 @@ class SemanticClusterLevelDedup:
         self.emb_by_clust_dir = emb_by_clust_dir
         self.id_col = id_column
         self.which_to_keep = which_to_keep
+        self.sim_metric = sim_metric
         self.output_dir = output_dir
         self.semdedup_pruning_tables_dir = os.path.join(
             output_dir, "semdedup_pruning_tables"
@@ -127,6 +133,7 @@ class SemanticClusterLevelDedup:
                     output_dir=self.semdedup_pruning_tables_dir,
                     embedding_col=self.embedding_column,
                     which_to_keep=self.which_to_keep,
+                    sim_metric=self.sim_metric,
                     batched_cosine_similarity=self.batched_cosine_similarity,
                 )
             )

@@ -14,7 +14,7 @@
 
 import warnings
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import yaml
 
@@ -175,8 +175,8 @@ class SemDedupConfig(BaseConfig):
         clustering_save_loc (str): Location to save clustering results.
             Default is "clustering_results".
         random_state (int): KMeans random state used for reproducibility. Default is 1234.
-        sim_metric (str): Similarity metric for deduplication.
-            Default is "cosine".
+        sim_metric ("cosine" or "l2"): Similarity metric to use to rank within cluster. The order is determined by which_to_keep.
+            Default is "cosine". Supports "l2" as well.
         which_to_keep (str): Method to determine which duplicates to keep. Default is "hard".
             - hard retains edge-case or outlier items farthest from the centroid.
             - easy retains representative items closest to the centroid.
@@ -212,8 +212,8 @@ class SemDedupConfig(BaseConfig):
     n_clusters: int = 1000
     clustering_save_loc: str = "clustering_results"
     random_state: int = 1234
-    sim_metric: str = "cosine"
-    which_to_keep: str = "hard"
+    sim_metric: Literal["cosine", "l2"] = "cosine"
+    which_to_keep: Literal["hard", "easy", "random"] = "hard"
     batched_cosine_similarity: Union[bool, int] = 1024
     clustering_input_partition_size: str = "2gb"
 
