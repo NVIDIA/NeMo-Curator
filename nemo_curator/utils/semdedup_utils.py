@@ -49,6 +49,27 @@ def get_array_from_df(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
+def add_l2_cosine_dist_to_centroid(
+    df: cudf.DataFrame, embedding_col: str, centroids: cp.ndarray
+) -> cudf.DataFrame:
+    """
+    Computes the L2 distance to nearest centroid to each embedding in the dataframe.
+    Embeddings are normalized. For cosine we'll need to normalize the centroids as well.
+    """
+    normalized_embeddings = get_array_from_df(df, embedding_col)
+    centroids_ar = centroids[df["nearest_cent"].values]
+    dist_to_cents = cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
+    df[L2_DIST_TO_CENT_COL] = dist_to_cents
+    del centroids_ar
+
+    centroids_norm = centroids / cp.linalg.norm(centroids, axis=1, keepdims=True)
+    centroids_ar = centroids_norm[df["nearest_cent"].values]
+    # We normalize the centroids as well
+    cosine_similarities = cp.sum(normalized_embeddings * centroids_ar, axis=1)
+    df[COSINE_DIST_TO_CENT_COL] = 1 - cosine_similarities
+    return df
+
+
 def pairwise_cosine_similarity(
     cluster_reps: torch.Tensor,
     device: Literal["cuda", "cpu"],
@@ -113,17 +134,20 @@ def get_semantic_matches_per_cluster(
     which_to_keep: str,
     batched_cosine_similarity: int = 1024,
 ) -> None:
+    """
+    Get the semantic matches for a single cluster.
+    Reads the cluster embeddings and then computes pairwise cosine similarity between them.
+    """
     cluster_df = cudf.read_parquet(
         os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}"),
         columns=[embedding_col, id_col, COSINE_DIST_TO_CENT_COL],
     )
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
     if len(cluster_df) == 1:
-        cluster_df["indices"] = [0]
         cluster_df["id"] = cluster_df[id_col]
         cluster_df["max_id"] = cluster_df[id_col]
         cluster_df["cosine_sim_score"] = [0]
-        cluster_df = cluster_df[["indices", "id", "max_id", "cosine_sim_score"]]
+        cluster_df = cluster_df[["id", "max_id", "cosine_sim_score"]]
         cluster_df.to_parquet(output_df_file_path)
         return
 
@@ -156,7 +180,6 @@ def get_semantic_matches_per_cluster(
     max_indices_id = cluster_df[id_col].iloc[max_indices].values
     points_to_remove_df = cudf.DataFrame(
         {
-            "indices": list(range(len(ids))),
             "id": ids,
             "max_id": max_indices_id,
             "cosine_sim_score": max_similarity,
@@ -165,32 +188,9 @@ def get_semantic_matches_per_cluster(
     points_to_remove_df.to_parquet(output_df_file_path)
 
 
-def get_num_records_from_npy(file_path: str) -> int:
-    if not os.path.exists(file_path):
-        return 0
-    with open(file_path, "rb") as f:
-        # Read the header of the npy file
-        version = np.lib.format.read_magic(f)
-        shape, _, _ = np.lib.format._read_array_header(f, version)
-    return shape[0]
-
-
-def _get_empty_results_df(id_col, id_col_type):
-    meta_df = pd.DataFrame(
-        {
-            id_col: np.empty(0, dtype="int64"),
-            "dist": np.empty(0, dtype="float32"),
-            "cluster": np.empty(0, dtype="int32"),
-        }
-    )
-    meta_df[id_col] = meta_df[id_col].astype(id_col_type)
-    return meta_df
-
-
 def prune_single_cluster(
     cluster_id: int,
     id_col: str,
-    id_col_type: str,
     emb_by_clust_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,
@@ -201,7 +201,6 @@ def prune_single_cluster(
     Args:
         cluster_id (int): The specific cluster ID to process.
         id_col (str): The name of the ID column.
-        id_col_type (str): The data type of the ID column.
         emb_by_clust_dir (str): Path to where clustered embeddings are stored.
         semdedup_pruning_tables_dir (str): Path to the pruning tables directory.
         eps (float): Epsilon value for pruning.
@@ -210,12 +209,9 @@ def prune_single_cluster(
         cudf.DataFrame: A DataFrame of the pruned cluster data
     """
     cluster_dir = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
-    try:
-        df_cluster = cudf.read_parquet(
-            cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]
-        ).assign(cluster=cluster_id)
-    except FileNotFoundError:
-        return _get_empty_results_df(id_col, id_col_type)
+    df_cluster = cudf.read_parquet(
+        cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]
+    ).assign(cluster=cluster_id)
 
     pruning_table_fname = os.path.join(
         semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet"
@@ -226,7 +222,7 @@ def prune_single_cluster(
     )
     if pruning_table.shape[0] == 1:
         return df_cluster
-    pruning_table = pruning_table[pruning_table["cosine_sim_score"] > 1 - eps][["id"]]
+    pruning_table = pruning_table[pruning_table["cosine_sim_score"] < 1 - eps][["id"]]
     # TODO we can avoid this merge if we add more columns to the pruning table
     # However that might increase memory consumption at that stage, keeping it as is for now
     return df_cluster.merge(
@@ -234,89 +230,17 @@ def prune_single_cluster(
     )
 
 
-def extract_pruned_data(
-    id_col: str,
-    id_col_type: str,
-    emb_by_clust_dir: str,
-    semdedup_pruning_tables_dir: str,
+def write_pruned_summary_file(
     eps: float,
-    n_clusters: int,
-    output_parquet_path: str,
-    logger: Optional[logging.Logger] = None,
-    profile_dir: Optional[str] = None,
-) -> Tuple[int, int, int]:
-    """
-    Extracts pruned data from sorted clusters and saves it to a CSV file.
-
-    Args:
-        id_col (str): The name of the ID column.
-        id_col_type (str): The data type of the ID column.
-        emb_by_clust_dir (str): Path to where clustered embeddings are stored.
-        semdedup_pruning_tables_dir (str): Path to the pruning tables directory.
-        eps (float): Epsilon value for pruning.
-        n_clusters (int): Number of clusters.
-        output_csv_path (str): Path to save the output CSV file.
-        logger (Optional[logging.Logger]): Logger object or path to store logs, defaults to None.
-        profile_dir (str): If specified directory to write dask profile. Default is None.
-
-    Returns:
-        Tuple[int, int, int]: Number of kept records, removed records, and total records.
-    """
-
-    t0 = time.time()
-
-    with performance_report_if_with_ts_suffix(
-        profile_dir,
-        "extracting-pruned-from-clusters",
-    ):
-        results_df = dd.from_map(
-            prune_single_cluster,
-            range(n_clusters),
-            id_col=id_col,
-            id_col_type=id_col_type,
-            emb_by_clust_dir=emb_by_clust_dir,
-            semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
-            eps=eps,
-        )
-        results_df.to_parquet(output_parquet_path, index=False, ignore_index=True)
-    if logger:
-        logger.info(
-            f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"
-        )
-
-
-def extract_dedup_data(
-    eps,
-    n_clusters,
-    id_col,
-    id_col_type,
     emb_by_clust_dir: str,
-    semdedup_pruning_tables_dir: str,
-    output_summary_file,
-    output_parquet_path,
+    filtered_unique_ids_path: str,
+    output_summary_file: str,
     logger: logging.Logger,
-    profile_dir: Optional[str] = None,
-) -> dd.DataFrame:
+):
     """
-    Extracts deduplicated data based on provided parameters and logs the process.
-
-    Args:
-
+    Writes a summary file for the pruned data.
     """
-
-    extract_pruned_data(
-        id_col=id_col,
-        id_col_type=id_col_type,
-        emb_by_clust_dir=emb_by_clust_dir,
-        semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
-        eps=eps,
-        n_clusters=n_clusters,
-        output_parquet_path=output_parquet_path,
-        logger=logger,
-        profile_dir=profile_dir,
-    )
-
-    kept = len(dd.read_parquet(output_parquet_path))
+    kept = len(dd.read_parquet(filtered_unique_ids_path))
     total = len(dd.read_parquet(emb_by_clust_dir))
     removed = total - kept
 
@@ -331,10 +255,3 @@ def extract_dedup_data(
     }
     df = pd.DataFrame(result_dict)
     df.to_csv(output_summary_file, index=False)
-
-    fps = [
-        os.path.join(output_parquet_path, file_name)
-        for file_name in os.listdir(output_parquet_path)
-    ]
-    ids_to_keep_df = dd.from_map(cudf.read_parquet, fps)
-    return ids_to_keep_df
