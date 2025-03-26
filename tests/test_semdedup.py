@@ -64,6 +64,8 @@ get_semantic_matches_per_cluster = gpu_only_import_from(
 )
 
 if TYPE_CHECKING:
+    import cupy as cp
+
     from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
     from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
         SemanticClusterLevelDedup,
@@ -76,8 +78,6 @@ if TYPE_CHECKING:
         pairwise_cosine_similarity,
         pairwise_cosine_similarity_batched,
     )
-    import cupy as cp
-
 
 
 @pytest.fixture
