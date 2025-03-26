@@ -10,7 +10,7 @@ Background
 --------------------------------------
 
 The purpose of a personal identifiable information (PII) de-identification tool is to help scrub sensitive data out of datasets.
-Some examples of sensitive data types that are currently supported by the tool include:
+Some examples of sensitive data types that are currently supported by the tools include:
 
 - Name
 - Email Address
@@ -127,7 +127,7 @@ Let's again consider the "books" dataset stored in the following structure:
         books_01.jsonl
         books_02.jsonl
 
-In order to use the ``AsyncLLMPiiModifier`` class, you will need to set up a NIM endpoint with a ``base_url`` and ``api_key``.
+In order to use the ``AsyncLLMPiiModifier`` class, you will need to set up a NIM endpoint with a ``base_url`` and (optionally) an ``api_key``.
 For instructions on how to set up a NIM endpoint, please refer to the `NIM Getting Started page <https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html>`_.
 
 After setting up a NIM endpoint, you can read, de-identify the dataset, and write it to an output directory with:
@@ -219,7 +219,7 @@ The ``AsyncLLMPiiModifier`` module can be invoked via the ``nemo_curator/scripts
 ``async_llm_pii_redaction --help``
 
 Above, we recommend using the ``AsyncLLMPiiModifier`` because it utilizes ``AsyncOpenAI`` to submit multiple concurrent requests to the NIM endpoint.
-The higher the ``max_concurrent_requests`` is, the more faster the ``AsyncLLMPiiModifier`` will be, but the user should be mindful to avoid overwhelming the NIM endpoint.
+The higher the ``max_concurrent_requests`` is, the faster the ``AsyncLLMPiiModifier`` will be, but the user should be mindful to avoid overwhelming the NIM endpoint.
 Alternatively, the user can use the ``LLMPiiModifier`` class which does not utilize ``AsyncOpenAI`` and hence submits requests serially.
 Use of the ``LLMPiiModifier`` class is the same as the ``AsyncLLMPiiModifier`` class except that the ``max_concurrent_requests`` parameter is not used.
 
