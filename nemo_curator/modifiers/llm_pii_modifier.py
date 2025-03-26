@@ -23,7 +23,7 @@ from nemo_curator.utils.distributed_utils import load_object_on_worker
 from nemo_curator.utils.llm_pii_utils import (
     JSON_SCHEMA,
     PII_LABELS,
-    SYSTEM_PROMPT,
+    get_system_prompt,
     redact,
     validate_entity,
 )
@@ -37,15 +37,13 @@ class LLMInference:
     def __init__(
         self,
         base_url: str,
-        api_key: Optional[str] = None,
-        model: str = "meta/llama-3.1-70b-instruct",
-        system_prompt: str = SYSTEM_PROMPT,
-        pii_labels: List[str] = PII_LABELS,
+        api_key: Optional[str],
+        model: str,
+        system_prompt: str,
     ):
         self.client = OpenAI(base_url=base_url, api_key=api_key)
         self.model = model
-        self.system_prompt = system_prompt[model]
-        self.pii_labels = pii_labels
+        self.system_prompt = system_prompt
 
     def infer(self, text: str) -> List[Dict[str, str]]:
         """Invoke LLM to get PII entities"""
@@ -96,7 +94,7 @@ class LLMPiiModifier(DocumentModifier):
         api_key="API KEY (if needed)",
         model="meta/llama-3.1-70b-instruct",
         # The user may engineer a custom prompt if desired
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=None,
         pii_labels=PII_LABELS,
         language="en",
     )
@@ -112,8 +110,8 @@ class LLMPiiModifier(DocumentModifier):
         base_url: str,
         api_key: Optional[str] = None,
         model: str = "meta/llama-3.1-70b-instruct",
-        system_prompt: str = SYSTEM_PROMPT,
-        pii_labels: List[str] = PII_LABELS,
+        system_prompt: Optional[str] = None,
+        pii_labels: Optional[List[str]] = None,
         language: str = "en",
     ):
         """
@@ -125,10 +123,12 @@ class LLMPiiModifier(DocumentModifier):
                 Default is None.
             model (str): The model to use for the LLM.
                 Default is "meta/llama-3.1-70b-instruct".
-            system_prompt (str): The system prompt to feed into the LLM.
+            system_prompt (Optional[str]): The system prompt to feed into the LLM.
+                If None, a default system prompt is used.
                 Default prompt has been fine-tuned for "meta/llama-3.1-70b-instruct".
-            pii_labels (List[str]): The PII labels to identify and remove from the text.
+            pii_labels (Optional[List[str]]): The PII labels to identify and remove from the text.
                 See documentation for full list of PII labels.
+                Default is None, which means all PII labels will be used.
             language (str): The language to use for the LLM.
                 Default is "en" for English. If non-English, it is recommended
                 to provide a custom system prompt.
@@ -139,23 +139,43 @@ class LLMPiiModifier(DocumentModifier):
         self.base_url = base_url
         self.api_key = api_key
         self.model = model
-        self.system_prompt = system_prompt
-        self.pii_labels = pii_labels
-        self.language = language
 
-        if self.language != "en" and self.system_prompt is SYSTEM_PROMPT:
+        if system_prompt is not None and pii_labels is not None:
             warnings.warn(
-                "The default system prompt is only available for English. "
-                "For other languages, please provide a custom system prompt."
+                "Custom system_prompt and custom pii_labels were both provided, "
+                "but the PII labels should already be included in the system prompt. "
+                "The pii_labels will be ignored."
             )
-        if self.model not in SYSTEM_PROMPT:
+
+        if pii_labels is None:
+            pii_labels = PII_LABELS
+        if system_prompt is None:
+            self.system_prompt = get_system_prompt(pii_labels)
+        else:
+            self.system_prompt = system_prompt
+
+        if language != "en" and system_prompt is None:
             warnings.warn(
-                f"No system prompt has been defined for model {model}. "
-                "Default system prompt will be used."
+                "The default system prompt is only available for English text. "
+                "For other languages, please provide a custom system prompt. "
+                "Please refer to the default system prompt as a guide: "
+                "\n"
+                f"{get_system_prompt(pii_labels)}"
+                "\n"
+                "In particular, please ensure that the JSON schema is included in the system prompt exactly as shown: "
+                "\n"
+                f"{str(JSON_SCHEMA)}"
             )
-            self.system_prompt[self.model] = SYSTEM_PROMPT[
-                "meta/llama-3.1-70b-instruct"
-            ]
+        if language == "en" and system_prompt is not None:
+            warnings.warn(
+                "Using the default system prompt is strongly recommended for English text. "
+                "If you are customizing the system prompt, please refer to the default system prompt as a guide: "
+                f"{get_system_prompt(pii_labels)}"
+                "\n"
+                "In particular, please ensure that the JSON schema is included in the system prompt exactly as shown: "
+                "\n"
+                f"{str(JSON_SCHEMA)}"
+            )
 
     def modify_document(self, text: str):
         inferer = load_object_on_worker("inferer", self.load_inferer, {})
@@ -170,7 +190,6 @@ class LLMPiiModifier(DocumentModifier):
             api_key=self.api_key,
             model=self.model,
             system_prompt=self.system_prompt,
-            pii_labels=self.pii_labels,
         )
 
         return inferer

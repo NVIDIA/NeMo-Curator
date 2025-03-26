@@ -73,8 +73,9 @@ PII_LABELS = [
     "pin",
 ]
 
-SYSTEM_PROMPT = {
-    "meta/llama-3.1-70b-instruct": (
+
+def get_system_prompt(pii_labels: List[str] = PII_LABELS) -> str:
+    return (
         "You are an expert redactor. The user is going to provide you with "
         "some text. Please find all personally identifying information from "
         "this text. Return results according to this JSON schema: "
@@ -82,9 +83,8 @@ SYSTEM_PROMPT = {
         "appear in the text. It is very important that you return the  "
         "entity_text by copying it exactly from the input. Do not perform any "
         "modification or normalization of the text. The entity_type should be "
-        f"one of these: {', '.join(PII_LABELS)}\n"
-    ),
-}
+        f"one of these: {', '.join(pii_labels)}\n"
+    )
 
 
 def validate_entity(
