@@ -87,7 +87,9 @@ def pairwise_cosine_similarity_batched(
     instead of O(N^2) for the full matrix.
     """
     cluster_reps = cluster_reps.to(device)
-    max_similarity = torch.zeros(cluster_reps.shape[0], dtype=torch.float32, device=device)
+    max_similarity = torch.zeros(
+        cluster_reps.shape[0], dtype=torch.float32, device=device
+    )
     max_indices = torch.zeros(cluster_reps.shape[0], dtype=torch.int64, device=device)
     for start_idx in range(0, cluster_reps.shape[0], batch_size):
         end_idx = min(start_idx + batch_size, cluster_reps.shape[0])
@@ -220,14 +222,16 @@ def prune_single_cluster(
     )
     # TODO should we add max_id to for the user
     pruning_table = cudf.read_parquet(
-        pruning_table_fname, columns=["id","cosine_sim_score"]
+        pruning_table_fname, columns=["id", "cosine_sim_score"]
     )
     if pruning_table.shape[0] == 1:
         return df_cluster
     pruning_table = pruning_table[pruning_table["cosine_sim_score"] > 1 - eps][["id"]]
     # TODO we can avoid this merge if we add more columns to the pruning table
     # However that might increase memory consumption at that stage, keeping it as is for now
-    return df_cluster.merge(pruning_table.rename(columns={"id" : id_col}), on=id_col, how="inner")
+    return df_cluster.merge(
+        pruning_table.rename(columns={"id": id_col}), on=id_col, how="inner"
+    )
 
 
 def extract_pruned_data(

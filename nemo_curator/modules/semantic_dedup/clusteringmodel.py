@@ -30,8 +30,8 @@ from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
-    L2_DIST_TO_CENT_COL,
     COSINE_DIST_TO_CENT_COL,
+    L2_DIST_TO_CENT_COL,
     get_array_from_df,
     normalize_embeddings_col_in_df,
 )
@@ -53,9 +53,7 @@ def add_l2_cosine_dist_to_centroid(
     centroids_norm = centroids / cp.linalg.norm(centroids, axis=1, keepdims=True)
     centroids_ar = centroids_norm[df["nearest_cent"].values]
     # We normalize the centroids as well
-    cosine_similarities = (
-        cp.sum(normalized_embeddings * centroids_ar, axis=1)
-    )
+    cosine_similarities = cp.sum(normalized_embeddings * centroids_ar, axis=1)
     df[COSINE_DIST_TO_CENT_COL] = 1 - cosine_similarities
     return df
 

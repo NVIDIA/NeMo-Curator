@@ -46,7 +46,8 @@ SemanticClusterLevelDedup = gpu_only_import_from(
     "SemanticClusterLevelDedup",
 )
 add_l2_cosine_dist_to_centroid = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.clusteringmodel", "add_l2_cosine_dist_to_centroid"
+    "nemo_curator.modules.semantic_dedup.clusteringmodel",
+    "add_l2_cosine_dist_to_centroid",
 )
 normalize_embeddings_col_in_df = gpu_only_import_from(
     "nemo_curator.utils.semdedup_utils", "normalize_embeddings_col_in_df"
@@ -141,7 +142,7 @@ class TestSemDuplicates:
             id_column="id",
             id_column_type="int",
         )
-        
+
         dedup_data_len = dedup_data.df.shape[0].compute()
         if n_clusters > dedup_data_len:
             # Number of records in the dataset should never be less than n_clusters
@@ -307,26 +308,23 @@ class TestSemDedupUtils:
             self.input_embeddings, "cuda"
         )
         np.testing.assert_allclose(
-            max_similarity.tolist(), 
-            self.expected_pairwise_similarity, 
-            rtol=1e-6, 
-            atol=1e-6
+            max_similarity.tolist(),
+            self.expected_pairwise_similarity,
+            rtol=1e-6,
+            atol=1e-6,
         )
-        np.testing.assert_array_equal(
-            max_indices.tolist(), 
-            self.expected_indices
-        )
+        np.testing.assert_array_equal(max_indices.tolist(), self.expected_indices)
 
     @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5, 6])
     def test_pairwise_cosine_similarity_batched(self, batch_size: int):
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
             self.input_embeddings, "cuda", batch_size
         )
-        np.testing  .assert_allclose(
-            max_similarity.tolist(), 
-            self.expected_pairwise_similarity, 
-            rtol=1e-6, 
-            atol=1e-6
+        np.testing.assert_allclose(
+            max_similarity.tolist(),
+            self.expected_pairwise_similarity,
+            rtol=1e-6,
+            atol=1e-6,
         )
         np.testing.assert_array_equal(max_indices.tolist(), self.expected_indices)
 
@@ -340,12 +338,14 @@ class TestSemDedupUtils:
             pairwise_cosine_similarity_batched(rand_arr, "cuda", batch_size=batch_size)
         )
         np.testing.assert_allclose(
-            max_similarity.tolist(), 
-            max_similarity_batched.tolist(), 
-            rtol=1e-5, 
-            atol=1e-5
+            max_similarity.tolist(),
+            max_similarity_batched.tolist(),
+            rtol=1e-5,
+            atol=1e-5,
         )
-        np.testing.assert_array_equal(max_indices.tolist(), max_indices_batched.tolist())
+        np.testing.assert_array_equal(
+            max_indices.tolist(), max_indices_batched.tolist()
+        )
 
     # @pytest.mark.parametrize("keep_hard", [True, False])
     # def test_rank_within_cluster(self, keep_hard: bool):
@@ -511,7 +511,11 @@ class TestSemDedupUtils:
         df = cudf.DataFrame(
             {
                 "nearest_cent": [0, 1, 0],
-                "embedding": [[1, 0], [0, 1], [0.6, 0.8],],
+                "embedding": [
+                    [1, 0],
+                    [0, 1],
+                    [0.6, 0.8],
+                ],
             }
         )
         centroids = cp.array([[1, 0], [0, 1]])
@@ -521,7 +525,7 @@ class TestSemDedupUtils:
         # Assert the distances match the expected values
         np.testing.assert_almost_equal(
             df_with_distances["l2_dist_to_cent"].to_arrow().to_pylist(),
-            [0.0, 0.0, (0.16+0.64)**0.5],
+            [0.0, 0.0, (0.16 + 0.64) ** 0.5],
             decimal=4,
         )
         np.testing.assert_almost_equal(
@@ -580,7 +584,9 @@ class TestSemDedupUtils:
             embedding_col="embedding",
             centroids=cp.asarray(self.centroid),
         )
-        embeddings_df.to_parquet(os.path.join(tmpdir, f"nearest_cent={cluster_c}/file.parquet"))
+        embeddings_df.to_parquet(
+            os.path.join(tmpdir, f"nearest_cent={cluster_c}/file.parquet")
+        )
         # Step 2) Call get_semantic_matches_per_cluster
         # this internally calls read_cluster_embeddings_and_sort_by_id and pairwise_cosine_similarity
         get_semantic_matches_per_cluster(
@@ -602,25 +608,31 @@ class TestSemDedupUtils:
         if which_to_keep == "hard":
             expected_ids = [3, 2, 1, 5, 4, 0]
             expected_max_ids = [3, 3, 2, 1, 5, 5]
-            expected_cosine_sim_scores = np.array([
-                0.0000,
-                0.99961,
-                0.99819,
-                0.974631,
-                1.0000,
-                1.0000,
-            ], dtype=np.float32)
+            expected_cosine_sim_scores = np.array(
+                [
+                    0.0000,
+                    0.99961,
+                    0.99819,
+                    0.974631,
+                    1.0000,
+                    1.0000,
+                ],
+                dtype=np.float32,
+            )
         else:
             expected_ids = [0, 4, 5, 1, 2, 3]
             expected_max_ids = [0, 0, 0, 0, 1, 2]
-            expected_cosine_sim_scores = np.array([
-                0.0000,
-                1.0000,
-                1.0000,
-                0.97464,
-                0.99819,
-                0.999618,
-            ], dtype=np.float32)
+            expected_cosine_sim_scores = np.array(
+                [
+                    0.0000,
+                    1.0000,
+                    1.0000,
+                    0.97464,
+                    0.99819,
+                    0.999618,
+                ],
+                dtype=np.float32,
+            )
         pd.testing.assert_frame_equal(
             output_df,
             pd.DataFrame(
@@ -803,7 +815,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
                 "cosine_sim_score",
             ]
             semdedup_pruning_tables_df.append(df)
-        
+
         semdedup_pruning_tables_df = pd.concat(semdedup_pruning_tables_df)
         np.testing.assert_allclose(
             sorted(output_samples_per_cluster),
@@ -819,12 +831,20 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         )
         assert os.path.exists(unique_ids_path)
         unique_ids_df = pd.read_parquet(unique_ids_path)
-        assert unique_ids_df.columns.tolist() == ["id", "cosine_dist_to_cent", "cluster"]
+        assert unique_ids_df.columns.tolist() == [
+            "id",
+            "cosine_dist_to_cent",
+            "cluster",
+        ]
 
         # Check content of semdedup_pruning_table with the filter matches the unique_ids
-        semdedup_pruning_tables_df_filtered = semdedup_pruning_tables_df[semdedup_pruning_tables_df["cosine_sim_score"] > 1 - 0.01]
+        semdedup_pruning_tables_df_filtered = semdedup_pruning_tables_df[
+            semdedup_pruning_tables_df["cosine_sim_score"] > 1 - 0.01
+        ]
         assert len(semdedup_pruning_tables_df_filtered) == len(unique_ids_df)
-        assert set(semdedup_pruning_tables_df_filtered["id"].to_list()) == set(unique_ids_df["id"].to_list())
+        assert set(semdedup_pruning_tables_df_filtered["id"].to_list()) == set(
+            unique_ids_df["id"].to_list()
+        )
 
         # Check content of summary file
         summary_path = os.path.join(
@@ -835,7 +855,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         if which_to_keep == "hard":
             _kept, _removed = 1471, 29
         elif which_to_keep == "easy":
-            _kept, _removed = 1495, 5 
+            _kept, _removed = 1495, 5
         else:
             # random is not deterministic, so we skip this test
             return
@@ -843,10 +863,14 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         pd.testing.assert_frame_equal(
             df,
             pd.DataFrame(
-                {"eps": [0.01], "kept": [_kept], "removed": [_removed], "total": [len(self.X)]}
+                {
+                    "eps": [0.01],
+                    "kept": [_kept],
+                    "removed": [_removed],
+                    "total": [len(self.X)],
+                }
             ),
         )
         # Ensure that the unique_ids are also correct (this implicitly checks for semdedup_pruning_tables output)
         assert len(unique_ids_df) == _kept
         assert len(set(unique_ids_df["id"].to_list())) == _kept
-        
