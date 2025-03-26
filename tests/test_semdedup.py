@@ -15,7 +15,6 @@ import os
 import random
 from typing import TYPE_CHECKING, Literal
 
-import cupy as cp
 import dask
 import dask.dataframe as dd
 import numpy as np
@@ -33,6 +32,7 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
+cp = gpu_only_import("cupy")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
 )
@@ -76,6 +76,8 @@ if TYPE_CHECKING:
         pairwise_cosine_similarity,
         pairwise_cosine_similarity_batched,
     )
+    import cupy as cp
+
 
 
 @pytest.fixture
