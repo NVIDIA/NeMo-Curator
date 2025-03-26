@@ -106,7 +106,6 @@ def get_semantic_matches_per_cluster(
     cluster_id: int,
     emb_by_clust_dir: str,
     id_col: str,
-    eps_list: List[float],
     output_dir: str,
     embedding_col: str,
     which_to_keep: str,
@@ -122,8 +121,7 @@ def get_semantic_matches_per_cluster(
         cluster_df["id"] = cluster_df[id_col]
         cluster_df["max_id"] = cluster_df[id_col]
         cluster_df["cosine_sim_score"] = [0]
-        for eps in eps_list:
-            cluster_df[f"eps={eps}"] = [False]
+        cluster_df = cluster_df[["indices", "id", "max_id", "cosine_sim_score"]]
         cluster_df.to_parquet(output_df_file_path)
         return
 
@@ -162,12 +160,6 @@ def get_semantic_matches_per_cluster(
             "cosine_sim_score": max_similarity,
         }
     )
-
-    # TODO : what's the benefit of having this as a column?
-    for eps in eps_list:
-        eps_points_to_remove = max_similarity > 1 - eps
-        points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
-
     points_to_remove_df.to_parquet(output_df_file_path)
 
 
@@ -230,11 +222,12 @@ def prune_single_cluster(
     pruning_table = cudf.read_parquet(
         pruning_table_fname, columns=["id","cosine_sim_score"]
     )
-    pruning_table = pruning_table[pruning_table["cosine_sim_score"] > 1 - eps][["id"]]
     if pruning_table.shape[0] == 1:
         return df_cluster
-
-    return df_cluster.merge(pruning_table.rename(columns={"id" : id_col}), on=id_col, how="left")
+    pruning_table = pruning_table[pruning_table["cosine_sim_score"] > 1 - eps][["id"]]
+    # TODO we can avoid this merge if we add more columns to the pruning table
+    # However that might increase memory consumption at that stage, keeping it as is for now
+    return df_cluster.merge(pruning_table.rename(columns={"id" : id_col}), on=id_col, how="inner")
 
 
 def extract_pruned_data(
@@ -281,7 +274,7 @@ def extract_pruned_data(
             semdedup_pruning_tables_dir=semdedup_pruning_tables_dir,
             eps=eps,
         )
-        results_df.to_parquet(output_parquet_path)
+        results_df.to_parquet(output_parquet_path, index=False, ignore_index=True)
     if logger:
         logger.info(
             f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"

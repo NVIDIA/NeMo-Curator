@@ -110,20 +110,7 @@ class SemanticClusterLevelDedup:
         else:
             return logger
 
-    def compute_semantic_match_dfs(
-        self, eps_list: Optional[List[float]] = None
-    ) -> None:
-        """
-        Compute semantic match dataframes for clusters.
-
-        Args:
-            eps_list (Optional[List[float]]): List of epsilon values for clustering.
-        """
-        if eps_list is None:
-            eps_list1 = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6]
-            eps_list2 = [0.1 + x * 0.005 for x in range(34)]
-            eps_list = eps_list1 + eps_list2
-
+    def compute_semantic_match_dfs(self) -> None:
         if os.path.exists(self.semdedup_pruning_tables_dir):
             self.logger.info(
                 f"Removing existing directory {self.semdedup_pruning_tables_dir}"
@@ -142,7 +129,6 @@ class SemanticClusterLevelDedup:
                     cluster_id=cluster_id,
                     emb_by_clust_dir=self.emb_by_clust_dir,
                     id_col=self.id_col,
-                    eps_list=eps_list,
                     output_dir=self.semdedup_pruning_tables_dir,
                     embedding_col=self.embedding_column,
                     which_to_keep=self.which_to_keep,
