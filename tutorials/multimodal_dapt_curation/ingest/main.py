@@ -18,8 +18,6 @@ HTTP_HOST = os.environ.get("HTTP_HOST", "localhost")
 HTTP_PORT = os.environ.get("HTTP_PORT", "7670")
 TASK_QUEUE = os.environ.get("TASK_QUEUE", "morpheus_task_queue")
 
-MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
 
 DEFAULT_JOB_TIMEOUT = 10000  # Timeout for job completion (in ms)
 
