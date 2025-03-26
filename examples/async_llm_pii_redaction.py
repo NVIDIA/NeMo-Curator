@@ -33,8 +33,7 @@ def console_script():
             ]
         }
     )
-    dd = dask.dataframe.from_pandas(dataframe, npartitions=1)
-    dataset = DocumentDataset(dd)
+    dataset = DocumentDataset.from_pandas(dataframe, npartitions=1)
 
     modifier = AsyncLLMPiiModifier(
         # Endpoint for the user's NIM
@@ -46,7 +45,7 @@ def console_script():
 
     modify = Modify(modifier)
     modified_dataset = modify(dataset)
-    modified_dataset.df.to_json("output.jsonl", lines=True, orient="records")
+    modified_dataset.to_json("output.jsonl")
 
 
 if __name__ == "__main__":

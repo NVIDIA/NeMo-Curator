@@ -31,6 +31,8 @@ Although Dask can be deployed on various distributed compute environments, such 
 The ``LLMPiiModifier`` and ``AsyncLLMPiiModifier`` classes utilize LLM models to identify PII in text.
 Using `NVIDIA NIM <https://developer.nvidia.com/nim>`_, the ``LLMPiiModifier`` and ``AsyncLLMPiiModifier`` classes can submit prompts to LLMs, such as Meta's `Llama 3.1 <https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct>`_, for PII identification.
 The LLM's reponse is then parsed and used to redact the PII in the text.
+We found that LLM-based PII redaction (using Llama-3.1-70B) outperformed Presidio by 26% on core PII categories.
+Evaluations were run on the `Gretel PII masking <https://huggingface.co/datasets/gretelai/gretel-pii-masking-en-v1>`_ dataset and the `Text Anonymization Benchmark <https://arxiv.org/abs/2202.00443>`_ dataset.
 
 -----------------------------------------
 Usage
@@ -73,20 +75,12 @@ You could read, de-identify the dataset, and write it to an output directory usi
         "jsonl",
         32
     ):
-        source_data = read_data(
-            file_names, file_type="jsonl", backend="pandas", add_filename=True
-        )
-        dataset = DocumentDataset(source_data)
-        print(f"Dataset has {source_data.npartitions} partitions")
+        dataset = DocumentDataset.read_json(file_names, backend="pandas", add_filename=True)
 
         modify = Modify(modifier)
         modified_dataset = modify(dataset)
-        write_to_disk(
-            modified_dataset.df,
-            "output_directory",
-            write_to_filename=True,
-            output_type="jsonl",
-        )
+
+        modified_dataset.to_json("output_directory", write_to_filename=True)
 
 Let's walk through this code line by line:
 
@@ -110,11 +104,10 @@ Let's walk through this code line by line:
     ]
 
 * ``for file_names in get_batched_files`` retrieves a batch of 32 documents from the ``book_dataset`` directory.
-* ``source_data = read_data(...)`` reads the data from all the files using Dask using Pandas as the backend. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
-* ``dataset = DocumentDataset(source_data)``  creates an instance of ``DocumentDataset`` using the batch files. ``DocumentDataset`` is the standard format for text datasets in NeMo Curator.
+* ``dataset = DocumentDataset.read_json(...)`` reads the data from the batch of files using Dask using Pandas as the backend. ``DocumentDataset`` is the standard format for text datasets in NeMo Curator. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
 * ``modify = Modify(modifier)`` creates an instance of the ``Modify`` class. This class can take any modifier as an argument.
 * ``modified_dataset = modify(dataset)`` modifies the data in the dataset by performing the PII de-identification based upon the passed parameters.
-* ``write_to_disk(...)`` writes the de-identified documents to disk.
+* ``modified_dataset.to_json(...)`` writes the de-identified documents to disk.
 
 The ``PiiModifier`` module can be invoked via the ``nemo_curator/scripts/find_pii_and_deidentify.py`` script which provides a CLI-based interface. To see a complete list of options supported by the script, execute:
 
@@ -166,20 +159,12 @@ After setting up a NIM endpoint, you can read, de-identify the dataset, and writ
         "jsonl",
         32
     ):
-        source_data = read_data(
-            file_names, file_type="jsonl", backend="pandas", add_filename=True
-        )
-        dataset = DocumentDataset(source_data)
-        print(f"Dataset has {source_data.npartitions} partitions")
+        dataset = DocumentDataset.read_json(file_names, backend="pandas", add_filename=True)
 
         modify = Modify(modifier)
         modified_dataset = modify(dataset)
-        write_to_disk(
-            modified_dataset.df,
-            "output_directory",
-            write_to_filename=True,
-            output_type="jsonl",
-        )
+
+        modified_dataset.to_json("output_directory", write_to_filename=True)
 
 Let's walk through this code line by line:
 
@@ -224,11 +209,10 @@ Let's walk through this code line by line:
 
 * We recommend setting ``max_concurrent_requests=10`` to avoid overwhelming the NIM endpoint. However, the user can set this to a higher or lower value depending on their use case.
 * ``for file_names in get_batched_files`` retrieves a batch of 32 documents from the ``book_dataset`` directory.
-* ``source_data = read_data(...)`` reads the data from all the files using Dask using Pandas as the backend. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
-* ``dataset = DocumentDataset(source_data)``  creates an instance of ``DocumentDataset`` using the batch files. ``DocumentDataset`` is the standard format for text datasets in NeMo Curator.
+* ``dataset = DocumentDataset.read_json(...)`` reads the data from the batch of files using Dask using Pandas as the backend. ``DocumentDataset`` is the standard format for text datasets in NeMo Curator. The ``add_filename`` argument ensures that the output files have the same filename as the input files.
 * ``modify = Modify(modifier)`` creates an instance of the ``Modify`` class. This class can take any modifier as an argument.
 * ``modified_dataset = modify(dataset)`` modifies the data in the dataset by performing the PII de-identification based upon the passed parameters.
-* ``write_to_disk(...)`` writes the de-identified documents to disk.
+* ``modified_dataset.to_json(...)`` writes the de-identified documents to disk.
 
 The ``AsyncLLMPiiModifier`` module can be invoked via the ``nemo_curator/scripts/async_llm_pii_redaction.py`` script which provides a CLI-based interface. To see a complete list of options supported by the script, execute:
 
