@@ -59,7 +59,9 @@ def main(args):
     )
 
     semantic_dedup.compute_semantic_match_dfs()
-    dedup_id_dataset = semantic_dedup.extract_dedup_data(eps_to_extract=semdedup_config.eps_to_extract)
+    dedup_id_dataset = semantic_dedup.extract_dedup_data(
+        eps_to_extract=semdedup_config.eps_to_extract
+    )
     print(dedup_id_dataset.df.head(10))
 
     dt2 = datetime.now()

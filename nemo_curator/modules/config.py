@@ -18,6 +18,7 @@ from typing import Optional, Union
 
 import yaml
 
+
 @dataclass
 class BaseConfig:
     @classmethod
@@ -168,7 +169,7 @@ class SemDedupConfig(BaseConfig):
         write_to_filename (bool): If True, saves the embeddings to the same filename as input files.
             Default False.
 
-        max_iter (int): Maximum iterations for clustering. The more iterations, the better the clustering. 
+        max_iter (int): Maximum iterations for clustering. The more iterations, the better the clustering.
             Default is 100.
         n_clusters (int): Number of clusters. Default is 1000.
         clustering_save_loc (str): Location to save clustering results.
@@ -224,8 +225,10 @@ class SemDedupConfig(BaseConfig):
             raise ValueError(
                 "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
             )
-        assert 0 <= self.eps_to_extract <= 1, "Epsilon to extract must be between [0, 1]"
-        
+        assert (
+            0 <= self.eps_to_extract <= 1
+        ), "Epsilon to extract must be between [0, 1]"
+
         # Convert bool to int
         if isinstance(self.batched_cosine_similarity, bool):
             if self.batched_cosine_similarity:

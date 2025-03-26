@@ -32,12 +32,10 @@ from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
     COSINE_DIST_TO_CENT_COL,
     L2_DIST_TO_CENT_COL,
+    add_l2_cosine_dist_to_centroid,
     get_array_from_df,
     normalize_embeddings_col_in_df,
-    add_l2_cosine_dist_to_centroid
 )
-
-
 
 
 # Clustering module
@@ -63,7 +61,7 @@ class ClusteringModel:
         Args:
             id_column (str): Column name used as the identifier in the dataset.
                 Default is "id".
-            max_iter (int): Maximum iterations for clustering. The more iterations, the better the clustering. 
+            max_iter (int): Maximum iterations for clustering. The more iterations, the better the clustering.
                 Default is 100.
             n_clusters (int): Number of clusters. Default is 1000.
             clustering_output_dir (str): Location to save clustering results.
@@ -161,7 +159,7 @@ class ClusteringModel:
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
             cupy_normalized_darr.compute_chunk_sizes()
-            
+
             # Perform KMeans clustering (KMeans.fit)
             t0 = time.time()
             kmeans = KMeans(

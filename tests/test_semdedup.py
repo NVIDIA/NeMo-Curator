@@ -65,14 +65,16 @@ get_semantic_matches_per_cluster = gpu_only_import_from(
 
 if TYPE_CHECKING:
     from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
-    from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import SemanticClusterLevelDedup
+    from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
+        SemanticClusterLevelDedup,
+    )
     from nemo_curator.utils.semdedup_utils import (
+        add_l2_cosine_dist_to_centroid,
         get_array_from_df,
         get_semantic_matches_per_cluster,
         normalize_embeddings_col_in_df,
         pairwise_cosine_similarity,
         pairwise_cosine_similarity_batched,
-        add_l2_cosine_dist_to_centroid
     )
 
 
@@ -553,7 +555,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             sorted(np.stack(embss_by_nearest_center["embeddings"]).tolist()),
             sorted((self.X / np.linalg.norm(self.X, axis=1, keepdims=True)).tolist()),
         )
-        # Check embeddings are 
+        # Check embeddings are
         num_samples_per_cluster = (
             embss_by_nearest_center["nearest_cent"].value_counts().to_dict()
         )
@@ -570,7 +572,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             "cosine_dist_to_cent",
             "nearest_cent",
         ]
-        
+
         # Check the results of kmeans_centroids.npy
         centroids = np.load(os.path.join(clustering_output_dir, "kmeans_centroids.npy"))
         assert centroids.shape == (self.n_clusters, self.n_features)
@@ -668,7 +670,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         assert os.path.exists(summary_path)
         df = pd.read_csv(summary_path)
         if which_to_keep == "hard":
-            _kept, _removed = 29, 1471 
+            _kept, _removed = 29, 1471
         elif which_to_keep == "easy":
             _kept, _removed = 5, 1495
         else:
