@@ -12,13 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import random
+import tempfile
 from typing import TYPE_CHECKING, Literal
+from unittest import mock
 
+import cupy as cp
+import dask
+import dask.dataframe as dd
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 import torch.nn.functional as F
 from dask.dataframe.utils import assert_eq
+from sklearn.datasets import make_blobs
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator import SemDedup, SemDedupConfig
@@ -30,16 +38,59 @@ dask_cudf = gpu_only_import("dask_cudf")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
 )
+ClusteringModel = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel"
+)
+SemanticClusterLevelDedup = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup.semanticclusterleveldedup",
+    "SemanticClusterLevelDedup",
+)
+add_l2_dist_to_cents = gpu_only_import_from(
+    "nemo_curator.modules.semantic_dedup.clusteringmodel", "add_l2_dist_to_cents"
+)
+rank_within_cluster = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "rank_within_cluster"
+)
+normalize_embeddings_col_in_df = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "normalize_embeddings_col_in_df"
+)
+get_array_from_df = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "get_array_from_df"
+)
 pairwise_cosine_similarity = gpu_only_import_from(
     "nemo_curator.utils.semdedup_utils", "pairwise_cosine_similarity"
 )
 pairwise_cosine_similarity_batched = gpu_only_import_from(
     "nemo_curator.utils.semdedup_utils", "pairwise_cosine_similarity_batched"
 )
+get_ids_within_cluster = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "get_ids_within_cluster"
+)
+
+read_cluster_embeddings_and_sort_by_id = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "read_cluster_embeddings_and_sort_by_id"
+)
+get_semantic_matches_per_cluster = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "get_semantic_matches_per_cluster"
+)
+
 if TYPE_CHECKING:
+    from nemo_curator.modules.semantic_dedup.clusteringmodel import (
+        ClusteringModel,
+        add_l2_dist_to_cents,
+    )
+    from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
+        SemanticClusterLevelDedup,
+    )
     from nemo_curator.utils.semdedup_utils import (
+        get_array_from_df,
+        get_ids_within_cluster,
+        get_semantic_matches_per_cluster,
+        normalize_embeddings_col_in_df,
         pairwise_cosine_similarity,
         pairwise_cosine_similarity_batched,
+        rank_within_cluster,
+        read_cluster_embeddings_and_sort_by_id,
     )
 
 
@@ -247,57 +298,557 @@ def get_reference_embeddings(
     return np.array(embs)
 
 
-class TestPairwiseCosineSimilarity:
+@pytest.mark.gpu
+class TestSemDedupUtils:
     def setup_method(self):
-        # We create a 5x3 array where each row is a unit vector
+        # We create a 6x3 array where each row is a unit vector
         # The second and last two rows are the same
-        input_arr = torch.tensor(
+        input_embeddings = torch.tensor(
             np.asarray(
                 [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3], [1, 2, 3]],
             ),
             dtype=torch.float32,
         )
         # Normalize the input array
-        self.input_arr = input_arr / torch.norm(input_arr, dim=1, keepdim=True)
-        self.expected_similarity = torch.tensor(
+        self.input_embeddings = input_embeddings / torch.norm(
+            input_embeddings, dim=1, keepdim=True
+        )
+        self.expected_pairwise_similarity = torch.tensor(
             [0.0000, 0.974631, 0.998190, 0.999618, 1.0000, 1.0000]
         )
         self.expected_indices = [0, 0, 1, 2, 0, 0]
 
-    @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
-    def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
+    def test_pairwise_cosine_similarity(self):
         max_similarity, max_indices = pairwise_cosine_similarity(
-            self.input_arr.to(device), device
+            self.input_embeddings, "cuda"
         )
         torch.testing.assert_close(
-            max_similarity, self.expected_similarity, rtol=1e-6, atol=1e-6
+            max_similarity, self.expected_pairwise_similarity, rtol=1e-6, atol=1e-6
         )
         assert max_indices == self.expected_indices
 
-    @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
     @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5, 6])
-    def test_pairwise_cosine_similarity_batched(
-        self, device: Literal["cpu", "cuda"], batch_size: int
-    ):
+    def test_pairwise_cosine_similarity_batched(self, batch_size: int):
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
-            self.input_arr.to(device), device, batch_size
+            self.input_embeddings, "cuda", batch_size
         )
-        torch.testing.assert_close(max_similarity, self.expected_similarity)
+        torch.testing.assert_close(max_similarity, self.expected_pairwise_similarity)
         assert max_indices == self.expected_indices
 
-    @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
     @pytest.mark.parametrize("batch_size", [100, 512, 1024, 2048])
-    def test_pairwise_cosine_similarity_batched_rand_array(
-        self, device: Literal["cpu", "cuda"], batch_size: int
-    ):
+    def test_pairwise_cosine_similarity_batched_rand_array(self, batch_size: int):
         N = 1024
         D = 512
-        rand_arr = torch.randn(N, D, device=device)
-        max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, device)
+        rand_arr = torch.randn(N, D, device="cuda")
+        max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, "cuda")
         max_similarity_batched, max_indices_batched = (
-            pairwise_cosine_similarity_batched(rand_arr, device, batch_size=batch_size)
+            pairwise_cosine_similarity_batched(rand_arr, "cuda", batch_size=batch_size)
         )
         torch.testing.assert_close(
             max_similarity, max_similarity_batched, rtol=1e-5, atol=1e-5
         )
         assert max_indices == max_indices_batched
+
+    @pytest.mark.parametrize("keep_hard", [True, False])
+    def test_rank_within_cluster(self, keep_hard: bool):
+        # Create a temporary directory for output
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Mock data setup
+            cluster_id = 0
+            id_col = "id"
+            embedding_col = "embedding"
+            nearest_cent_dir = temp_dir
+            output_sorted_clusters_dir = temp_dir
+
+            # Create mock centroid with the first embedding i.e normalized([1, 2, 3])
+            centroids = self.input_embeddings[:1]
+            # Use all the embeddings
+            cluster_data = cudf.DataFrame(
+                {
+                    id_col: list(range(self.input_embeddings.shape[0])),
+                    embedding_col: self.input_embeddings.tolist(),
+                }
+            )
+
+            # Save mock cluster data to a file
+            cluster_data_path = os.path.join(
+                nearest_cent_dir, f"nearest_cent={cluster_id}"
+            )
+            cluster_data.to_parquet(cluster_data_path)
+
+            # Call the function
+            rank_within_cluster(
+                id_col=id_col,
+                nearest_cent_dir=nearest_cent_dir,
+                output_sorted_clusters_dir=output_sorted_clusters_dir,
+                centroids=centroids,
+                embedding_col=embedding_col,
+                sim_metric="cosine",
+                keep_hard=keep_hard,
+                cluster_ids=[cluster_id],
+            )
+
+            # Load the sorted cluster
+            sorted_cluster_file_path = os.path.join(
+                output_sorted_clusters_dir, f"cluster_{cluster_id}.npy"
+            )
+            sorted_cluster = np.load(sorted_cluster_file_path)
+
+            # Expected order based on cosine distance
+            if keep_hard:
+                # When hard we write dissimilar items first
+                # and in case of ties we write the items with the highest id first
+                expected_cosine_distance = [
+                    # id, dist_to_cent, cluster_id
+                    [3, 1 - 0.9513, 0],
+                    [2, 1 - 0.9594, 0],
+                    [1, 1 - 0.9746, 0],
+                    [5, 1 - 1.0000, 0],
+                    [4, 1 - 1.0000, 0],
+                    [0, 1 - 1.0, 0],
+                ]
+            else:
+                # When easy/random we write similar items first
+                # and in case of ties we write the items with the lowest id first
+                expected_cosine_distance = [
+                    [0, 1 - 1.0, 0],
+                    [4, 1 - 1.0000, 0],
+                    [5, 1 - 1.0000, 0],
+                    [1, 1 - 0.9746, 0],
+                    [2, 1 - 0.9594, 0],
+                    [3, 1 - 0.9513, 0],
+                ]
+            expected_cosine_distance = np.array(expected_cosine_distance)
+            pd.testing.assert_frame_equal(
+                pd.DataFrame(sorted_cluster),
+                pd.DataFrame(expected_cosine_distance),
+                check_exact=False,
+                rtol=1e-3,
+                atol=1e-3,
+            )
+
+    @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
+    def test_get_ids_within_cluster(
+        self, tmpdir, which_to_keep: Literal["hard", "random", "easy"]
+    ):
+        # write a tempfile to cluster_0.npy
+        cluster_0_file_path = os.path.join(tmpdir, "cluster_0.npy")
+        # Save id, cosine_dist, cluster_id
+        # The order is 2 >= 1 > 3 > 5 >= 4
+        if which_to_keep == "hard":
+            # When hard then we write dissimilar items first, and in case of ties we write the items with the highest id first
+            cluster_0 = np.array(
+                [[2, 1.0, 0], [1, 1.0, 0], [3, 0.8, 0], [5, 0.0, 0], [4, 0.0, 0]]
+            )
+        else:
+            # When easy then we write similar items first, and in case of ties we write the items with the lowest id first
+            cluster_0 = np.array(
+                [[4, 0.0, 0], [5, 0.0, 0], [3, 0.8, 0], [1, 1.0, 0], [2, 1.0, 0]]
+            )
+
+        np.save(cluster_0_file_path, cluster_0)
+        # mock random.shuffle so that we can test the order
+        with mock.patch("random.shuffle", return_value=None) as mock_shuffle:
+            ids = get_ids_within_cluster(
+                cluster_id=0,
+                sorted_clusters_dir=tmpdir,
+                id_col_type="int",
+                which_to_keep=which_to_keep,
+            )
+            if which_to_keep == "random":
+                mock_shuffle.assert_called_once()
+            else:
+                mock_shuffle.assert_not_called()
+        if which_to_keep == "hard":
+            np.testing.assert_array_equal(ids, np.array([2, 1, 3, 5, 4]))
+        elif which_to_keep in {"easy", "random"}:
+            # because of the mock, both random and easy should behave the same
+            np.testing.assert_array_equal(ids, np.array([4, 5, 3, 1, 2]))
+
+    def test_get_array_from_df(self):
+        df = cudf.DataFrame(
+            {
+                "embedding": [[3, 4, 5], [1, 2, 2], [1, 0, 0]],
+            }
+        )
+        expected_array = cp.array(
+            [
+                [3, 4, 5],
+                [1, 2, 2],
+                [1, 0, 0],
+            ]
+        )
+        cp.testing.assert_allclose(
+            get_array_from_df(df, "embedding"), expected_array, rtol=1e-5, atol=1e-5
+        )
+
+    def test_normalize_embeddings_col_in_df(self):
+        # Mock data setup
+        df = cudf.DataFrame(
+            {
+                "embedding": [[3, 4, 5], [1, 2, 2], [1, 0, 0]],
+            }
+        )
+        expected_normalized = cp.array(
+            [
+                [0.42426407, 0.565685, 0.707107],
+                [0.33333334, 0.6666667, 0.6666667],
+                [1.0, 0.0, 0.0],
+            ]
+        )
+
+        # Call the function
+        normalized_embeddings = normalize_embeddings_col_in_df(df, "embedding")
+
+        # Assert the normalized embeddings match the expected values
+        cp.testing.assert_allclose(
+            get_array_from_df(normalized_embeddings, "embedding"),
+            expected_normalized,
+            rtol=1e-5,
+            atol=1e-5,
+        )
+
+    def test_add_l2_dist_to_cents(self):
+        # Mock data setup
+        df = cudf.DataFrame(
+            {
+                "nearest_cent": [0, 1, 0],
+                "embedding": [[1, 0], [0, 1], [1, 1]],
+            }
+        )
+        centroids = cp.array([[1, 0], [0, 1]])
+        expected_distances = cp.array([0.0, 0.0, 1.0])
+        # Call the function
+        df_with_distances = add_l2_dist_to_cents(df, "embedding", centroids)
+
+        # Assert the distances match the expected values
+        np.testing.assert_almost_equal(
+            df_with_distances["l2_dist_to_cent"].to_arrow().to_pylist(),
+            expected_distances.tolist(),
+            decimal=4,
+        )
+
+    def test_read_cluster_embeddings_and_sort_by_id(self, tmpdir):
+        # Mock data setup
+        cluster_id = 0
+        num_samples = self.input_embeddings.shape[0]
+        df = cudf.DataFrame(
+            {
+                "id": list(range(num_samples)),
+                "embedding": self.input_embeddings.tolist(),
+            }
+        )
+        os.makedirs(os.path.join(tmpdir, f"nearest_cent={cluster_id}"), exist_ok=True)
+        df.to_parquet(
+            os.path.join(tmpdir, f"nearest_cent={cluster_id}", "file.parquet")
+        )
+        sorted_ids = random.sample(list(range(num_samples)), num_samples)
+        # Call the function
+        cluster_reps = read_cluster_embeddings_and_sort_by_id(
+            cluster_id=cluster_id,
+            emb_by_clust_dir=tmpdir,
+            id_col="id",
+            embedding_col="embedding",
+            sorted_ids=sorted_ids,
+        )
+        # Assert the cluster reps match the expected values
+        np.testing.assert_almost_equal(
+            np.asarray(cluster_reps.tolist()),
+            np.asarray(self.input_embeddings.tolist())[sorted_ids],
+        )
+
+    @pytest.mark.parametrize("which_to_keep", ["hard", "easy"])
+    def test_get_semantic_matches_per_cluster(
+        self, which_to_keep: Literal["hard", "easy"], tmpdir
+    ):
+        cluster_c = 0
+        self.centroid = self.input_embeddings[:1]
+        os.makedirs(os.path.join(tmpdir, f"nearest_cent={cluster_c}"), exist_ok=True)
+        # Step 1) Simulate rank_within_cluster
+        cudf.DataFrame(
+            {
+                "embedding": self.input_embeddings.tolist(),
+                "id": list(range(self.input_embeddings.shape[0])),
+            }
+        ).to_parquet(os.path.join(tmpdir, f"nearest_cent={cluster_c}/file.parquet"))
+
+        # Step 1) Call rank_within_cluster
+        rank_within_cluster(
+            id_col="id",
+            nearest_cent_dir=tmpdir,
+            output_sorted_clusters_dir=tmpdir,
+            centroids=self.centroid,
+            embedding_col="embedding",
+            sim_metric="cosine",
+            keep_hard=which_to_keep == "hard",
+            cluster_ids=[cluster_c],
+        )
+        # Step 2) Call get_semantic_matches_per_cluster
+        # this internally calls read_cluster_embeddings_and_sort_by_id and pairwise_cosine_similarity
+        get_semantic_matches_per_cluster(
+            cluster_id=cluster_c,
+            emb_by_clust_dir=tmpdir,
+            sorted_clusters_dir=tmpdir,
+            id_col="id",
+            id_col_type="int",
+            eps_list=[0.001],
+            output_dir=tmpdir,
+            embedding_col="embedding",
+            which_to_keep=which_to_keep,
+            batched_cosine_similarity=1024,
+        )
+
+        # Read the output
+        output_df = pd.read_parquet(
+            os.path.join(tmpdir, f"cluster_{cluster_c}.parquet")
+        )
+        # https://docs.google.com/spreadsheets/d/1s3unF6RRCDNpAam7GpU3pidbluoQXOzi0yKlokuV0ag/edit?gid=0#gid=0
+        # The spreadsheet has the expected output and the walkthrough for the hard and easy cases
+        if which_to_keep == "hard":
+            expected_ids = [3, 2, 1, 5, 4, 0]
+            expected_max_ids = [3, 3, 2, 1, 5, 5]
+            expected_cosine_sim_scores = [
+                0.0000,
+                0.99961,
+                0.99819,
+                0.974631,
+                1.0000,
+                1.0000,
+            ]
+            eps_list = [False, True, False, False, True, True]
+        else:
+            expected_ids = [0, 4, 5, 1, 2, 3]
+            expected_max_ids = [0, 0, 0, 0, 1, 2]
+            expected_cosine_sim_scores = [
+                0.0000,
+                1.0000,
+                1.0000,
+                0.97464,
+                0.99819,
+                0.999618,
+            ]
+            eps_list = [False, True, True, False, False, True]
+        pd.testing.assert_frame_equal(
+            output_df,
+            pd.DataFrame(
+                {
+                    "indices": list(range(len(expected_ids))),
+                    "id": expected_ids,
+                    "max_id": expected_max_ids,
+                    "cosine_sim_score": expected_cosine_sim_scores,
+                    "eps=0.001": eps_list,
+                }
+            ),
+            check_exact=False,
+            rtol=1e-5,
+            atol=1e-5,
+        )
+
+
+@pytest.mark.gpu
+class TestSemanticDedupWithoutEmbeddingCreation:
+    def setup_method(self):
+        self.n_clusters = 5
+        self.n_samples_per_cluster = [100 * (i + 1) for i in range(self.n_clusters)]
+        self.n_features = 3
+        # reset all random state here to undeterministic results
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
+        torch.cuda.manual_seed_all(42)
+
+        self.X, _ = make_blobs(
+            n_samples=self.n_samples_per_cluster,
+            centers=None,
+            n_features=self.n_features,
+            random_state=42,
+        )
+        # Convert to Dask DataFrame and then to cuDF
+        df = pd.DataFrame({"id": np.arange(len(self.X)), "embeddings": self.X.tolist()})
+        ddf = dd.from_pandas(df, npartitions=2)
+        self.ddf = ddf.to_backend("cudf")
+
+    @pytest.mark.parametrize("sort_clusters", [True, False])
+    @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
+    def test_clustering_model(self, tmpdir, sort_clusters, which_to_keep):
+        clustering_output_dir = os.path.join(tmpdir, "clustering_output")
+        # Initialize ClusteringModel
+        clustering_model = ClusteringModel(
+            id_column="id",
+            n_clusters=self.n_clusters,
+            clustering_output_dir=clustering_output_dir,
+            embedding_column="embeddings",
+            random_state=42,
+            sort_clusters=sort_clusters,
+            which_to_keep=which_to_keep,
+            sim_metric="cosine",
+        )
+        # TODO : remove this once we figure out why fusing is causing issues
+        with dask.config.set({"optimization.fuse.active": False}):
+            _ = clustering_model(DocumentDataset(self.ddf))
+
+        # Check Directory Structure
+        files = os.listdir(clustering_output_dir)
+        expected_files = ["embs_by_nearest_center", "kmeans_centroids.npy"]
+
+        if sort_clusters:
+            expected_files.append("sorted")
+
+        for expected_file in expected_files:
+            assert expected_file in files, f"The {expected_file} file should exist."
+
+        # Check the results of embs_by_nearest_center
+        for i in range(self.n_clusters):
+            assert os.path.exists(
+                os.path.join(
+                    clustering_output_dir, "embs_by_nearest_center", f"nearest_cent={i}"
+                )
+            ), f"The nearest centroid file for cluster {i} should exist."
+        embss_by_nearest_center = pd.read_parquet(
+            os.path.join(clustering_output_dir, "embs_by_nearest_center")
+        )
+        np.testing.assert_almost_equal(
+            sorted(np.stack(embss_by_nearest_center["embeddings"]).tolist()),
+            sorted((self.X / np.linalg.norm(self.X, axis=1, keepdims=True)).tolist()),
+        )
+        embeddings_per_cluster = (
+            embss_by_nearest_center.groupby("nearest_cent")["embeddings"]
+            .apply(list)
+            .to_dict()
+        )
+        num_samples_per_cluster = (
+            embss_by_nearest_center["nearest_cent"].value_counts().to_dict()
+        )
+        np.testing.assert_allclose(
+            sorted(num_samples_per_cluster.values()),
+            sorted(self.n_samples_per_cluster),
+            rtol=0.02,  # be within 2%
+        )
+        assert embss_by_nearest_center.shape[0] == len(self.X)
+        assert embss_by_nearest_center.columns.tolist() == [
+            "id",
+            "embeddings",
+            "l2_dist_to_cent",
+            "nearest_cent",
+        ]
+        # Check the results of kmeans_centroids.npy
+        centroids = np.load(os.path.join(clustering_output_dir, "kmeans_centroids.npy"))
+        assert centroids.shape == (self.n_clusters, self.n_features)
+
+        # Check the results of sorted directory
+        if sort_clusters:
+            sorted_dir = os.path.join(clustering_output_dir, "sorted")
+            assert os.path.exists(sorted_dir)
+            for i in range(self.n_clusters):
+                assert os.path.exists(os.path.join(sorted_dir, f"cluster_{i}.npy"))
+                # id, dist_to_cent, cluster_id
+                sorted_cluster = np.load(os.path.join(sorted_dir, f"cluster_{i}.npy"))
+                assert sorted_cluster.shape[0] == num_samples_per_cluster[i]
+                assert (
+                    sorted_cluster.shape[1] == 3
+                )  # We expect 3 columns in the sorted cluster
+                assert set(sorted_cluster[:, 2]) == {i}
+                centroid = centroids[i] / np.linalg.norm(centroids[i])
+                cosine_similarities = embeddings_per_cluster[i] @ centroid
+                cosine_distances = 1 - cosine_similarities
+                if which_to_keep == "hard":
+                    # In case of hard, we expect the distances to be sorted in descending order
+                    np.testing.assert_almost_equal(
+                        sorted_cluster[:, 1], np.sort(cosine_distances)[::-1]
+                    )
+                else:
+                    # In case of easy/random, we expect the distances to be sorted in ascending order
+                    np.testing.assert_almost_equal(
+                        sorted_cluster[:, 1], np.sort(cosine_distances)
+                    )
+
+    @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
+    def test_sematnic_cluster_level_dedup(self, tmpdir, which_to_keep):
+        clustering_output_dir = os.path.join(tmpdir, "clustering_output")
+        semantic_extraction_output_dir = os.path.join(tmpdir, "extraction")
+        # Initialize ClusteringModel
+        clustering_model = ClusteringModel(
+            id_column="id",
+            n_clusters=self.n_clusters,
+            clustering_output_dir=clustering_output_dir,
+            embedding_column="embeddings",
+            random_state=42,
+            sort_clusters=True,
+            which_to_keep=which_to_keep,
+            sim_metric="cosine",
+        )
+        with dask.config.set({"optimization.fuse.active": False}):
+            _ = clustering_model(DocumentDataset(self.ddf))
+
+        semantic_cluster_level_dedup = SemanticClusterLevelDedup(
+            n_clusters=self.n_clusters,
+            emb_by_clust_dir=os.path.join(
+                clustering_output_dir, "embs_by_nearest_center"
+            ),
+            sorted_clusters_dir=os.path.join(clustering_output_dir, "sorted"),
+            id_column="id",
+            id_column_type="int",
+            which_to_keep=which_to_keep,
+            output_dir=semantic_extraction_output_dir,
+            embedding_column="embeddings",
+            batched_cosine_similarity=20,
+        )
+
+        # Call compute_semantic_match_dfs
+        semantic_cluster_level_dedup.compute_semantic_match_dfs(eps_list=[0.01, 0.02])
+
+        output_samples_per_cluster = []
+        # Check content of semdedup_pruning_tables
+        for i in range(self.n_clusters):
+            cluster_i_path = os.path.join(
+                semantic_extraction_output_dir,
+                "semdedup_pruning_tables",
+                f"cluster_{i}.parquet",
+            )
+            assert os.path.exists(cluster_i_path)
+            df = pd.read_parquet(cluster_i_path)
+            output_samples_per_cluster.append(df.shape[0])
+            assert df.columns.tolist() == [
+                "indices",
+                "id",
+                "max_id",
+                "cosine_sim_score",
+                "eps=0.01",
+                "eps=0.02",
+            ]
+        np.testing.assert_allclose(
+            sorted(output_samples_per_cluster),
+            self.n_samples_per_cluster,
+            rtol=0.02,  # be within 2%
+        )
+
+        # Call extract_dedup_data
+        semantic_cluster_level_dedup.extract_dedup_data(eps_to_extract=0.01)
+        # Check content of unique_ids
+        unique_ids_path = os.path.join(
+            semantic_extraction_output_dir, "unique_ids_0.01.parquet"
+        )
+        assert os.path.exists(unique_ids_path)
+        df = pd.read_parquet(unique_ids_path)
+        assert df.columns.tolist() == ["id", "dist", "cluster"]
+
+        # Check content of summary file
+        summary_path = os.path.join(
+            semantic_extraction_output_dir, "dedup_summary_0.01.csv"
+        )
+        assert os.path.exists(summary_path)
+        df = pd.read_csv(summary_path)
+        if which_to_keep == "hard":
+            _kept, _removed = 29, 1471
+        elif which_to_keep == "easy":
+            _kept, _removed = 5, 1495
+        else:
+            # random is not deterministic, so we skip this test
+            return
+
+        pd.testing.assert_frame_equal(
+            df,
+            pd.DataFrame(
+                {"eps": [0.01], "kept": [_kept], "removed": [_removed], "total": [1500]}
+            ),
+        )
