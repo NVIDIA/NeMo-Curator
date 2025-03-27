@@ -145,6 +145,11 @@ class FuzzyDuplicates(BaseModule):
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run fuzzy deduplication. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
 
         # Minhash + LSH
         stage_num = 1
@@ -179,14 +184,14 @@ class FuzzyDuplicates(BaseModule):
                     mapped_buckets_w_anchors_path, write_index=False, overwrite=True
                 )
             self._logger.info(
-                f"Time taken for Map_buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
+                f"Time taken for Map_Buckets : {time.time() - t0}s and output written at {mapped_buckets_w_anchors_path}"
             )
 
-            print(f"Stage {stage_num} (False Postive Check): Map_Buckets Complete!")
+            print(f"Stage {stage_num} (False Positive Check): Map_Buckets complete!")
             stage_num += 1
 
             # Shuffle documents based on mapped buckets
-            print(f"Stage {stage_num} (False Postive Check): Shuffle docs")
+            print(f"Stage {stage_num} (False Positive Check): Shuffle Documents")
             shuffled_docs_path = os.path.join(
                 self.config.cache_dir, "shuffled_docs.parquet"
             )
@@ -198,12 +203,14 @@ class FuzzyDuplicates(BaseModule):
                 parts_per_worker=self.config.parts_per_worker,
                 bucket_parts_per_worker=self.config.bucket_parts_per_worker,
             )
-            print(f"Stage {stage_num} (False Postive Check): Shuffle docs complete!")
+            print(
+                f"Stage {stage_num} (False Positive Check): Shuffle Documents complete!"
+            )
             stage_num += 1
 
             # jaccard comparision within buckets
             print(
-                f"Stage {stage_num} (False Postive Check): Jaccard Similarity in Buckets"
+                f"Stage {stage_num} (False Positive Check): Jaccard Similarity in Buckets"
             )
             jaccard_pairs_path = os.path.join(
                 self.config.cache_dir, "jaccard_similarity_results.parquet"
@@ -223,11 +230,11 @@ class FuzzyDuplicates(BaseModule):
                     overwrite=True,
                 )
                 self._logger.info(
-                    f"Time taken for Jaccard Similarity = {time.time()-t0}s and output written at {jaccard_pairs_path}"
+                    f"Time taken for Jaccard Similarity: {time.time()-t0}s and output written at {jaccard_pairs_path}"
                 )
 
             print(
-                f"Stage {stage_num} (False Postive Check): Jaccard Similarity in Buckets Complete!"
+                f"Stage {stage_num} (False Positive Check): Jaccard Similarity in Buckets complete!"
             )
             stage_num += 1
 
@@ -236,15 +243,15 @@ class FuzzyDuplicates(BaseModule):
             print(f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist")
             self.buckets_to_edges(buckets_df)
             print(
-                f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist Complete!"
+                f"Stage {stage_num}: Starting LSH Buckets to Graph Edgelist complete!"
             )
             stage_num += 1
 
         # Connected components across buckets
-        print(f"Stage {stage_num}: Connected Components across buckets")
+        print(f"Stage {stage_num}: Connected Components Across Buckets")
         cc_path = os.path.join(self.config.cache_dir, "connected_components.parquet")
-        self.connected_components.cc_workflow(cc_path)
-        print(f"Stage {stage_num}: Connected Components across buckets complete!")
+        self.connected_components(cc_path)
+        print(f"Stage {stage_num}: Connected Components Across Buckets complete!")
         stage_num += 1
 
         return DocumentDataset.read_parquet(

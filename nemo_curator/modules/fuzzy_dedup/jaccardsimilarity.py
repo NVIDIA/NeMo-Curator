@@ -37,9 +37,6 @@ class JaccardSimilarity:
         self.right_id = f"{self.id_field}_y"
         self.ngram_width = ngram_width
 
-    def __call__(DocumentDataset):
-        raise NotImplementedError
-
     def jaccard_compute(self, shuffled_docs_path):
         paths = [
             entry.path
