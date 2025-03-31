@@ -52,7 +52,7 @@ class BaseModule(ABC):
         self.input_backend = input_backend
 
     @abstractmethod
-    def call(self, dataset: DocumentDataset):
+    def call(self, dataset: DocumentDataset, **kwargs):
         """
         Performs an arbitrary operation on a dataset
 
@@ -72,7 +72,7 @@ class BaseModule(ABC):
                 "Try using nemo_curator.ToBackend to swap dataframe backends before running this module."
             )
 
-    def __call__(self, dataset: DocumentDataset):
+    def __call__(self, dataset: DocumentDataset, **kwargs):
         """
         Validates the dataset is on the right backend, and performs an arbitrary operation on it
 
@@ -81,4 +81,4 @@ class BaseModule(ABC):
         """
         self._validate_correct_backend(dataset.df)
 
-        return self.call(dataset)
+        return self.call(dataset, **kwargs)

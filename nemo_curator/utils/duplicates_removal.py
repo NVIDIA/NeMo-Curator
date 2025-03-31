@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union
+from typing import List, Optional, Union
 
 import dask.dataframe as dd
 
 
 def deduplicate_groups(
-    duplicates: dd.DataFrame, group_field: str, perform_shuffle: bool
+    duplicates: dd.DataFrame, group_field: Optional[str], perform_shuffle: bool
 ) -> dd.DataFrame:
+    if group_field is None:
+        return duplicates
+
     if perform_shuffle:
         # Redistribute data across partitions so that all duplicates are in same partition
         duplicates_shuffled = duplicates.shuffle(on=[group_field], ignore_index=True)
@@ -61,7 +64,7 @@ def remove_duplicates(
     left: dd.DataFrame,
     duplicates: dd.DataFrame,
     id_field: str,
-    group_field: str,
+    group_field: Optional[str] = None,
     perform_shuffle: bool = False,
 ) -> dd.DataFrame:
     if left.npartitions < duplicates.npartitions:

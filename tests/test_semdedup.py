@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
         SemanticClusterLevelDedup,
     )
+    from nemo_curator.modules.semantic_dedup.semdedup import SemDedup
     from nemo_curator.utils.semdedup_utils import (
         add_l2_cosine_dist_to_centroid,
         get_array_from_df,
@@ -118,11 +119,13 @@ def non_dedup_data():
 @pytest.mark.gpu
 class TestSemDuplicates:
     @pytest.mark.parametrize("n_clusters", [3, 10])
+    @pytest.mark.parametrize("perform_removal", [True, False])
     def test_sem_dedup(
         self,
         dedup_data,
         tmpdir,
         n_clusters,
+        perform_removal,
         gpu_client,
     ):
         cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
@@ -145,18 +148,27 @@ class TestSemDuplicates:
                 result = sem_duplicates(dedup_data)
         else:
             # Correctly returns the original dataset with no duplicates removed
-            result = sem_duplicates(dedup_data)
+            result = sem_duplicates(dedup_data, perform_removal=perform_removal)
             result_df = result.df.compute()
-            duplicate_docs = [2, 3, 4, 200, 300]
-            expected_df = cudf.Series(duplicate_docs, name="id")
-            assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+            docs_to_remove = [1, 100]
+            if not perform_removal:
+                expected_df = cudf.Series(docs_to_remove, name="id")
+                assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+            else:
+                assert_eq(
+                    result_df,
+                    dedup_data.df.query(f"id not in {docs_to_remove}"),
+                    check_index=False,
+                )
 
     @pytest.mark.parametrize("n_clusters", [2, 3])
+    @pytest.mark.parametrize("perform_removal", [True, False])
     def test_no_sem_dedup(
         self,
         non_dedup_data,
         tmpdir,
         n_clusters,
+        perform_removal,
         gpu_client,
     ):
         cache_dir = os.path.join(tmpdir, "test_no_sem_dedup")
@@ -179,11 +191,12 @@ class TestSemDuplicates:
                 result = sem_duplicates(non_dedup_data)
         else:
             # Correctly returns the original dataset with no duplicates removed
-            result = sem_duplicates(non_dedup_data)
+            result = sem_duplicates(non_dedup_data, perform_removal=perform_removal)
             result_df = result.df.compute()
-            duplicate_docs = ["doc_1", "doc_2"]
-            expected_df = cudf.Series(duplicate_docs, name="doc_id")
-            assert_eq(result_df["doc_id"].sort_values(), expected_df, check_index=False)
+            if not perform_removal:
+                assert len(result_df) == 0
+            else:
+                assert_eq(result_df, non_dedup_data.df, check_index=False)
 
     @pytest.mark.parametrize("pooling_strategy", ["last_token", "mean_pooling"])
     def test_embedding_creator_pooling_strategies(self, tmpdir, pooling_strategy):
@@ -658,7 +671,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
 
         # Check content of semdedup_pruning_table with the filter matches the unique_ids
         semdedup_pruning_tables_df_filtered = semdedup_pruning_tables_df[
-            semdedup_pruning_tables_df["cosine_sim_score"] < 1 - 0.01
+            semdedup_pruning_tables_df["cosine_sim_score"] >= 1 - 0.01
         ]
         assert len(semdedup_pruning_tables_df_filtered) == len(unique_ids_df)
         assert set(semdedup_pruning_tables_df_filtered["id"].to_list()) == set(
@@ -676,8 +689,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         elif which_to_keep == "easy":
             _kept, _removed = 5, 1495
         else:
-            # random is not deterministic, so we skip this test
-            return
+            _kept, _removed = 17, 1483
 
         pd.testing.assert_frame_equal(
             df,
@@ -691,5 +703,5 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             ),
         )
         # Ensure that the unique_ids are also correct (this implicitly checks for semdedup_pruning_tables output)
-        assert len(unique_ids_df) == _kept
-        assert len(set(unique_ids_df["id"].to_list())) == _kept
+        assert len(unique_ids_df) == _removed
+        assert len(set(unique_ids_df["id"].to_list())) == _removed

@@ -25,6 +25,7 @@ from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
 from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
     SemanticClusterLevelDedup,
 )
+from nemo_curator.utils.duplicates_removal import remove_duplicates
 
 
 class SemDedup(BaseModule):
@@ -50,6 +51,7 @@ class SemDedup(BaseModule):
         super().__init__(input_backend="cudf")
         self.config = config
         self.logger = logger
+        self.id_column = id_column
         cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
@@ -90,15 +92,9 @@ class SemDedup(BaseModule):
         )
         self.eps_to_extract = config.eps_to_extract
 
-    def call(self, dataset: DocumentDataset) -> DocumentDataset:
+    def identify_duplicates(self, dataset: DocumentDataset) -> DocumentDataset:
         """
-        Execute the SemDedup process.
-
-        Args:
-            dataset (DocumentDataset): Input dataset for deduplication.
-
-        Returns:
-            DocumentDataset: Deduplicated dataset.
+        Identify duplicates in the dataset. Returns a list of ids that are duplicates to each other.
         """
         embeddings_dataset = self.embedding_creator(dataset)
         self.clustering_model(embeddings_dataset)
@@ -106,3 +102,37 @@ class SemDedup(BaseModule):
         return self.semantic_cluster_dedup.extract_dedup_data(
             eps_to_extract=self.eps_to_extract
         )
+
+    def remove(
+        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
+    ) -> DocumentDataset:
+        """
+        Remove duplicates from the dataset.
+        """
+        result = remove_duplicates(
+            dataset.df,
+            duplicates_to_remove.df,
+            self.id_column,
+            group_field=None,
+            perform_shuffle=False,
+        )
+        return DocumentDataset(result)
+
+    def call(
+        self, dataset: DocumentDataset, perform_removal: bool = False
+    ) -> DocumentDataset:
+        """
+        Execute the SemDedup process.
+
+        Args:
+            dataset (DocumentDataset): Input dataset for deduplication.
+            perform_removal (bool): Whether to remove duplicates from the dataset.
+        Returns:
+            DocumentDataset: Deduplicated dataset if perform_removal is False, otherwise the dataset with duplicates removed.
+        """
+        duplicates = self.identify_duplicates(dataset)
+
+        if perform_removal:
+            return self.remove(dataset, duplicates)
+
+        return duplicates
