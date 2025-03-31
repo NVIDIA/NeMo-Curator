@@ -100,7 +100,6 @@ class SemDedup(BaseModule):
         embeddings_dataset = self.embedding_creator(dataset)
         self.clustering_model(embeddings_dataset)
         self.semantic_cluster_dedup.compute_semantic_match_dfs()
-        self.semantic_cluster_dedup.compute_semantic_match_dfs()
         return self.semantic_cluster_dedup.extract_dedup_data(
             eps_to_extract=self.eps_to_extract
         )
