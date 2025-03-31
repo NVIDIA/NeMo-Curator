@@ -16,10 +16,8 @@
 import logging
 import os
 from typing import Literal, Tuple
-from typing import Literal, Tuple
 
 import cudf
-import cupy as cp
 import cupy as cp
 import dask.dataframe as dd
 import pandas as pd
@@ -43,6 +41,7 @@ def normalize_embeddings_col_in_df(
 
 def get_array_from_df(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
+
 
 def add_l2_cosine_dist_to_centroid(
     df: cudf.DataFrame, embedding_col: str, centroids: cp.ndarray
@@ -103,9 +102,6 @@ def pairwise_cosine_similarity_batched(
     instead of O(N^2) for the full matrix.
     """
     cluster_reps = cluster_reps.to(device)
-    max_similarity = torch.zeros(
-        cluster_reps.shape[0], dtype=torch.float32, device=device
-    )
     max_similarity = torch.zeros(
         cluster_reps.shape[0], dtype=torch.float32, device=device
     )
@@ -197,7 +193,6 @@ def get_semantic_matches_per_cluster(
 def prune_single_cluster(
     cluster_id: int,
     id_col: str,
-    emb_by_clust_dir: str,
     emb_by_clust_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,

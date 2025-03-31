@@ -13,21 +13,16 @@
 # limitations under the License.
 import os
 import random
-import random
 from typing import TYPE_CHECKING, Literal
 
 import dask
 import dask.dataframe as dd
-import dask
-import dask.dataframe as dd
 import numpy as np
-import pandas as pd
 import pandas as pd
 import pytest
 import torch
 import torch.nn.functional as F
 from dask.dataframe.utils import assert_eq
-from sklearn.datasets import make_blobs
 from sklearn.datasets import make_blobs
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
@@ -38,26 +33,8 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
 cp = gpu_only_import("cupy")
-cp = gpu_only_import("cupy")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
-)
-ClusteringModel = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel"
-)
-SemanticClusterLevelDedup = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.semanticclusterleveldedup",
-    "SemanticClusterLevelDedup",
-)
-add_l2_cosine_dist_to_centroid = gpu_only_import_from(
-    "nemo_curator.utils.semdedup_utils",
-    "add_l2_cosine_dist_to_centroid",
-)
-normalize_embeddings_col_in_df = gpu_only_import_from(
-    "nemo_curator.utils.semdedup_utils", "normalize_embeddings_col_in_df"
-)
-get_array_from_df = gpu_only_import_from(
-    "nemo_curator.utils.semdedup_utils", "get_array_from_df"
 )
 ClusteringModel = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel"
@@ -86,10 +63,6 @@ get_semantic_matches_per_cluster = gpu_only_import_from(
     "nemo_curator.utils.semdedup_utils", "get_semantic_matches_per_cluster"
 )
 
-get_semantic_matches_per_cluster = gpu_only_import_from(
-    "nemo_curator.utils.semdedup_utils", "get_semantic_matches_per_cluster"
-)
-
 if TYPE_CHECKING:
     import cupy as cp
 
@@ -99,10 +72,6 @@ if TYPE_CHECKING:
     )
     from nemo_curator.modules.semantic_dedup.semdedup import SemDedup
     from nemo_curator.utils.semdedup_utils import (
-        add_l2_cosine_dist_to_centroid,
-        get_array_from_df,
-        get_semantic_matches_per_cluster,
-        normalize_embeddings_col_in_df,
         add_l2_cosine_dist_to_centroid,
         get_array_from_df,
         get_semantic_matches_per_cluster,
@@ -322,13 +291,10 @@ def get_reference_embeddings(
 
 @pytest.mark.gpu
 class TestSemDedupUtils:
-@pytest.mark.gpu
-class TestSemDedupUtils:
     def setup_method(self):
         # We create a 6x3 array where each row is a unit vector
         # We create a 6x3 array where each row is a unit vector
         # The second and last two rows are the same
-        input_embeddings = torch.tensor(
         input_embeddings = torch.tensor(
             np.asarray(
                 [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3], [1, 2, 3]],
@@ -340,41 +306,25 @@ class TestSemDedupUtils:
             input_embeddings, dim=1, keepdim=True
         )
         self.expected_pairwise_similarity = np.array(
-        self.input_embeddings = input_embeddings / torch.norm(
-            input_embeddings, dim=1, keepdim=True
-        )
-        self.expected_pairwise_similarity = np.array(
             [0.0000, 0.974631, 0.998190, 0.999618, 1.0000, 1.0000]
         )
         self.expected_indices = np.array([0, 0, 1, 2, 0, 0])
-        self.expected_indices = np.array([0, 0, 1, 2, 0, 0])
 
-    def test_pairwise_cosine_similarity(self):
     def test_pairwise_cosine_similarity(self):
         max_similarity, max_indices = pairwise_cosine_similarity(
             self.input_embeddings, "cuda"
-            self.input_embeddings, "cuda"
         )
         np.testing.assert_allclose(
             max_similarity.tolist(),
             self.expected_pairwise_similarity,
             rtol=1e-6,
             atol=1e-6,
-        np.testing.assert_allclose(
-            max_similarity.tolist(),
-            self.expected_pairwise_similarity,
-            rtol=1e-6,
-            atol=1e-6,
         )
-        np.testing.assert_array_equal(max_indices.tolist(), self.expected_indices)
-
         np.testing.assert_array_equal(max_indices.tolist(), self.expected_indices)
 
     @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5, 6])
     def test_pairwise_cosine_similarity_batched(self, batch_size: int):
-    def test_pairwise_cosine_similarity_batched(self, batch_size: int):
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
-            self.input_embeddings, "cuda", batch_size
             self.input_embeddings, "cuda", batch_size
         )
         np.testing.assert_allclose(
@@ -395,11 +345,8 @@ class TestSemDedupUtils:
 
     @pytest.mark.parametrize("batch_size", [100, 512, 1024, 2048])
     def test_pairwise_cosine_similarity_batched_rand_array(self, batch_size: int):
-    def test_pairwise_cosine_similarity_batched_rand_array(self, batch_size: int):
         N = 1024
         D = 512
-        rand_arr = torch.randn(N, D, device="cuda")
-        max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, "cuda")
         rand_arr = torch.randn(N, D, device="cuda")
         max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, "cuda")
         max_similarity_batched, max_indices_batched = (
