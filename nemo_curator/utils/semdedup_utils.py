@@ -35,8 +35,7 @@ def normalize_embeddings_col_in_df(
     tensor = torch.Tensor(get_array_from_df(df, embedding_col))
     normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
     df[embedding_col] = create_list_series_from_1d_or_2d_ar(
-        cp.asarray(normalized_tensor), 
-        index=df.index
+        cp.asarray(normalized_tensor), index=df.index
     )
     return df
 

@@ -558,7 +558,6 @@ class TestSemanticDedupWithoutEmbeddingCreation:
             sorted(np.stack(embss_by_nearest_center["embeddings"]).tolist()),
             sorted((self.X / np.linalg.norm(self.X, axis=1, keepdims=True)).tolist()),
         )
-        # Check embeddings are
         num_samples_per_cluster = (
             embss_by_nearest_center["nearest_cent"].value_counts().to_dict()
         )
