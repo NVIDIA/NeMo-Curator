@@ -84,7 +84,6 @@ class SemDedup(BaseModule):
             id_column=id_column,
             which_to_keep=config.which_to_keep,
             sim_metric=config.sim_metric,
-            sim_metric=config.sim_metric,
             batched_cosine_similarity=config.batched_cosine_similarity,
             output_dir=os.path.join(cache_dir, config.clustering_save_loc),
             embedding_column=config.embedding_column,
