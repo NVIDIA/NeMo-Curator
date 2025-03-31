@@ -20,7 +20,6 @@ from typing import Literal, Tuple
 import cudf
 import cupy as cp
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import torch
 from crossfit.backend.cudf.series import create_list_series_from_1d_or_2d_ar
