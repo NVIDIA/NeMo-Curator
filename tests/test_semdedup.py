@@ -293,7 +293,6 @@ def get_reference_embeddings(
 class TestSemDedupUtils:
     def setup_method(self):
         # We create a 6x3 array where each row is a unit vector
-        # We create a 6x3 array where each row is a unit vector
         # The second and last two rows are the same
         input_embeddings = torch.tensor(
             np.asarray(
@@ -327,14 +326,6 @@ class TestSemDedupUtils:
         max_similarity, max_indices = pairwise_cosine_similarity_batched(
             self.input_embeddings, "cuda", batch_size
         )
-        np.testing.assert_allclose(
-            max_similarity.tolist(),
-            self.expected_pairwise_similarity,
-            rtol=1e-6,
-            atol=1e-6,
-        )
-        np.testing.assert_array_equal(max_indices.tolist(), self.expected_indices)
-
         np.testing.assert_allclose(
             max_similarity.tolist(),
             self.expected_pairwise_similarity,
