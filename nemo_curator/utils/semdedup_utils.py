@@ -15,22 +15,15 @@
 
 import logging
 import os
-import random
-import shutil
-import time
-from typing import List, Literal, Optional, Tuple
+from typing import Literal, Tuple
 
 import cudf
 import cupy as cp
-import dask.bag as db
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import torch
-from dask.distributed import progress
-
-from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
-from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+from crossfit.backend.cudf.series import create_list_series_from_1d_or_2d_ar
 
 L2_DIST_TO_CENT_COL = "l2_dist_to_cent"
 COSINE_DIST_TO_CENT_COL = "cosine_dist_to_cent"
@@ -41,7 +34,10 @@ def normalize_embeddings_col_in_df(
 ) -> cudf.DataFrame:
     tensor = torch.Tensor(get_array_from_df(df, embedding_col))
     normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
-    df[embedding_col] = normalized_tensor.tolist()
+    df[embedding_col] = create_list_series_from_1d_or_2d_ar(
+        cp.asarray(normalized_tensor), 
+        index=df.index
+    )
     return df
 
 
@@ -58,7 +54,7 @@ def add_l2_cosine_dist_to_centroid(
     """
     normalized_embeddings = get_array_from_df(df, embedding_col)
     centroids_ar = centroids[df["nearest_cent"].values]
-    dist_to_cents = cp.sqrt(np.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
+    dist_to_cents = cp.sqrt(cp.sum((normalized_embeddings - centroids_ar) ** 2, axis=1))
     df[L2_DIST_TO_CENT_COL] = dist_to_cents
     del centroids_ar
 
@@ -226,14 +222,14 @@ def prune_single_cluster(
     pruning_table_fname = os.path.join(
         semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet"
     )
-    # TODO should we add max_id to for the user
+    # In future we can add more columns to the pruning table like max_id etc.
     pruning_table = cudf.read_parquet(
         pruning_table_fname, columns=["id", "cosine_sim_score"]
     )
     if pruning_table.shape[0] == 1:
         return df_cluster
     pruning_table = pruning_table[pruning_table["cosine_sim_score"] < 1 - eps][["id"]]
-    # TODO we can avoid this merge if we add more columns to the pruning table
+    # In future we can avoid this merge if we add more columns to the pruning table
     # However that might increase memory consumption at that stage, keeping it as is for now
     return df_cluster.merge(
         pruning_table.rename(columns={"id": id_col}), on=id_col, how="inner"
