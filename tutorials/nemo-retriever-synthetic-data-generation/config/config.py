@@ -116,7 +116,5 @@ class RetrieverHardNegativeMiningConfig(BaseConfig):
     passage_prefix: str = "passage:"
     percpos: float = 0.95
     min_number_clusters: int = 10
-    # min_cluster_size: int = 100
-    # max_number_clusters: int = 200
-    cluster_output_dir: str = "/workspace/output/clusters"
-    logger_output_dir: str = "/workspace/output/logs"
+    cluster_output_dir: str = field()
+    logger_output_dir: str = field()
