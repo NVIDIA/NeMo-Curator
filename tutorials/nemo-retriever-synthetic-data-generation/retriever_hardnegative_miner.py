@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 
 import importlib
 import itertools
-import pdb
 
 import dask.dataframe as dd
 import numpy as np
@@ -44,6 +43,13 @@ def create_hf_model(model_name_or_path):
 
 
 class HardNegativeMiner:
+    """
+    Main class that generates annotated training datasets for retriever customization
+    This the main class that performs hard negative mining, it takes in
+    (questions, documents) tuples as inputs and generates
+    (questions, positive documents, negative documents) triplets as outputs
+
+    """
 
     def __init__(
         self,
@@ -100,7 +106,7 @@ class HardNegativeMiner:
         self, dataset: DocumentDataset
     ) -> DocumentDataset:
         df = dataset.df
-        n_data = df.compute().shape[0]  # number of row items
+        n_data = df.shape[0].compute()  # number of row items
         print(f"number of documents in the datasets = {n_data}")
         if self.min_number_clusters >= n_data:
             print("Using too many clusters not recommended!")

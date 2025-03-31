@@ -13,5 +13,5 @@ percpos: 0.95
 
 # SEMANTIC CLUSTERING parameters
 min_number_clusters: 10
-cluster_output_dir: "/workspace/output/clusters"
-logger_output_dir: "/workspace/output/logs"
+cluster_output_dir: "/workspace/output/clusters" # Update with your desired cluster output directory
+logger_output_dir: "/workspace/output/logs" #  Update with your desired log output directory
