@@ -1,5 +1,9 @@
 # Changelog
 
+## NVIDIA NeMo Curator 0.7.1
+
+- Fix Transformers + Cuda Context bug
+
 ## NVIDIA NeMo Curator 0.7.0
 
 - Python 3.12 Support
