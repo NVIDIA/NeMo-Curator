@@ -103,6 +103,8 @@ class RetrieverHardNegativeMiningConfig(BaseConfig):
 
     """
 
+    cluster_output_dir: str = field()
+    logger_output_dir: str = field()
     model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
     model_type: str = "hf"
     base_url: str = "https://integrate.api.nvidia.com/v1"
@@ -116,5 +118,3 @@ class RetrieverHardNegativeMiningConfig(BaseConfig):
     passage_prefix: str = "passage:"
     percpos: float = 0.95
     min_number_clusters: int = 10
-    cluster_output_dir: str = field()
-    logger_output_dir: str = field()
