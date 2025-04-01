@@ -140,7 +140,7 @@ class ClusteringModel:
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
 
             if not self.keep_all_columns:
-                embeddings_df = embeddings_df[[self.id_col, self.embedding_col]]
+                embeddings_df = embeddings_df[[self.id_col, self. embedding_column]]
 
             embeddings_df = embeddings_df.repartition(
                 partition_size=self.clustering_input_partition_size
