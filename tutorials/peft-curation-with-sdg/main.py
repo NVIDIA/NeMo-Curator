@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,17 @@ from modifiers import CleanHTML
 from openai import AsyncOpenAI
 from synthetic_gen import SyntheticGenerator
 
-from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential
+from nemo_curator import (
+    AsyncOpenAIClient,
+    Modify,
+    ScoreFilter,
+    SemDedup,
+    SemDedupConfig,
+    Sequential,
+)
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import WordCountFilter
 from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
-from nemo_curator.modules.config import SemDedupConfig
-from nemo_curator.modules.modify import Modify
-from nemo_curator.modules.semantic_dedup import SemDedup
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -157,9 +161,7 @@ def run_curation_pipeline(
     Returns:
         The resulting dataset.
     """
-    orig_dataset = DocumentDataset.read_json(
-        input_dir, add_filename=True, backend="pandas"
-    )
+    orig_dataset = DocumentDataset.read_json(input_dir, backend="pandas")
     dataset = orig_dataset
 
     cpu_curation_steps = Sequential(
@@ -229,11 +231,7 @@ def run_curation_pipeline(
         dataset.df = dataset.df.to_backend("pandas")
 
     dataset = dataset.persist()
-    df = dataset.to_pandas()
-    orig_len = len(orig_dataset.df)
-    new_len = len(df)
-
-    return df, orig_len, new_len
+    return dataset
 
 
 def run_pipeline(args, jsonl_fp):
@@ -318,10 +316,7 @@ def run_pipeline(args, jsonl_fp):
             dask_client.run(pre_imports)
 
         print(f"Running the initial curation pipeline on '{jsonl_fp}'...")
-        dataset_df, n_rows_before, n_rows_after = run_curation_pipeline(args, jsonl_fp)
-        print(
-            f"After the initial curation, the dataset has {n_rows_after} records (originally {n_rows_before})."
-        )
+        dataset_df = run_curation_pipeline(args, jsonl_fp)
 
         for i in range(1, synth_gen_rounds + 1):
             print(
@@ -345,20 +340,11 @@ def run_pipeline(args, jsonl_fp):
             #
             # Curation of the combined real and synthetic data
             #
-            dataset_df, n_rows_before, n_rows_after = run_curation_pipeline(
-                args, out_dir
-            )
-
-            print(
-                f"After round {i}, the dataset has {n_rows_after} records (originally {n_rows_before})."
-            )
-
-        dask_client.cancel(dask_client.futures, force=True)
-        dask_client.close()
+            dataset_df = run_curation_pipeline(args, out_dir)
 
     final_out_path = f"{out_dir_base}/final/{jsonl_filename}"
     os.makedirs(os.path.dirname(final_out_path), exist_ok=True)
-    dataset_df.to_json(final_out_path, orient="records", lines=True)
+    dataset_df.df.to_json(final_out_path, orient="records", lines=True)
     return final_out_path
 
 
