@@ -84,16 +84,12 @@ class DataSizeTracker:
         stages = ['Original'] + [stage for stage, _ in self.data_list]
         sizes = [self.original_size] + [size for _, size in self.data_list]
 
-        # Calculate filtered amounts and percentages using calculate_incremental_change
-        filtered_info = []
-        filtered_info.append((0, 0.0))  # For original stage
-        for stage, _ in self.data_list:
-            filtered_amount, percent = self.calculate_incremental_change(stage)
-            filtered_info.append((filtered_amount, percent))
+        # Calculate percentages of original size
+        percentages = [(size / self.original_size) * 100 for size in sizes]
 
         fig = plt.figure(figsize=(12, 6))
         ax = fig.add_subplot(111)
-        ax.plot(range(len(stages)), sizes, marker='o')
+        ax.plot(range(len(stages)), percentages, marker='o')
 
         # Rotate x-axis labels for better readability
         ax.set_xticks(range(len(stages)))
@@ -101,12 +97,12 @@ class DataSizeTracker:
 
         ax.set_title('Dataset Size Reduction by Filtering Stage')
         ax.set_xlabel('Filtering Stage')
-        ax.set_ylabel('Dataset Size')
+        ax.set_ylabel('Percentage of Original Size')
 
-        # Add both size and filtered percentage labels on top of each point
-        for i, (size, (filtered_amt, pct)) in enumerate(zip(sizes, filtered_info)):
-            label = f'{size:,}\n(-{filtered_amt:,}, {pct:.1f}%)' if i > 0 else f'{size:,}'
-            ax.text(i, size, label, ha='center', va='bottom')
+        # Add percentage labels on top of each point
+        for i, pct in enumerate(percentages):
+            label = f'{pct:.1f}%'
+            ax.text(i, pct, label, ha='center', va='bottom')
 
         ax.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()  # Adjust layout to prevent label cutoff

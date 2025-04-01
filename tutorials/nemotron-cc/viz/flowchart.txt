@@ -39,10 +39,10 @@ flowchart TD
     H & L --> M["Nemotron-CC Core Dataset"]
     M --> N["6.3T Tokens Final Dataset"]
     
-    %% NVIDIA color scheme with text centering and increased node spacing
-    classDef nvidiaGreen fill:#76b900,stroke:#333,color:white,font-size:14px,width:200px,padding:15px,text-align:center
-    classDef nvidiaBlack fill:#000000,stroke:#333,color:white,font-size:14px,width:200px,padding:15px,text-align:center
-    classDef nvidiaGray fill:#666666,stroke:#333,color:white,font-size:14px,width:200px,padding:15px,text-align:center
+    %% NVIDIA color scheme with text centering and reduced node spacing
+    classDef nvidiaGreen fill:#76b900,stroke:#333,color:white,font-size:14px,width:168px,padding:11px,text-align:center
+    classDef nvidiaBlack fill:#000000,stroke:#333,color:white,font-size:14px,width:168px,padding:11px,text-align:center
+    classDef nvidiaGray fill:#666666,stroke:#333,color:white,font-size:14px,width:168px,padding:11px,text-align:center
     
     %% Apply NVIDIA colors to nodes
     class A nvidiaBlack
@@ -53,7 +53,7 @@ flowchart TD
     class M nvidiaGreen
     class N nvidiaBlack
     
-    %% Add bounding boxes with labels for phases - with extra padding
+    %% Add bounding boxes with labels for phases - with reduced padding
     subgraph Phase1["PHASE 1: DATA EXTRACTION & PREPROCESSING"]
       padding1
       A
@@ -92,6 +92,7 @@ flowchart TD
       N
     end
     
-    %% Style the phase subgraphs with white background and more padding
-    classDef phaseBox fill:#ffffff,stroke:#76b900,stroke-width:2px,color:#000000,font-weight:bold,padding:30px,text-align:center
+    %% Style the phase subgraphs with white background and reduced padding
+    classDef phaseBox fill:#ffffff,stroke:#76b900,stroke-width:2px,color:#000000,font-weight:bold,padding:17px,text-align:center
     class Phase1,Phase2,Phase3,Phase4 phaseBox
+    
