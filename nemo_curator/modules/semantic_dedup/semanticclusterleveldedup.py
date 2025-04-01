@@ -57,11 +57,11 @@ class SemanticClusterLevelDedup:
             id_column (str): Column name used as the identifier in the dataset.
                 Default is "id".
             which_to_keep (str): Method to determine which duplicates to keep. Default is "hard".
-                - hard retains edge-case or outlier items farthest from the centroid.
-                - easy retains representative items closest to the centroid.
+                - hard retains edge-case or outlier items farthest from the centroid by sorting points by decreasing distance from the centroid.
+                - easy retains representative items closest to the centroid by sorting points by increasing distance from the centroid.
                 - random retains items randomly.
-            sim_metric ("cosine" or "l2"): Similarity metric to use to rank within cluster. The order is determined by which_to_keep.
-                Default is "cosine". Supports "l2" as well.
+            sim_metric ("cosine" or "l2"): Similarity metric to use to rank within cluster. Default is "cosine".
+                `which_to_keep` determines how points within each cluster are ranked, based on the similarity to the centroid defined by `sim_metric`
             output_dir (str): Directory to save output files.
                 Default is "./clustering_results".
             embedding_column (str): The column name that stores the embeddings.

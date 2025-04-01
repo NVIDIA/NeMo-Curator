@@ -175,11 +175,11 @@ class SemDedupConfig(BaseConfig):
         clustering_save_loc (str): Location to save clustering results.
             Default is "clustering_results".
         random_state (int): KMeans random state used for reproducibility. Default is 1234.
-        sim_metric ("cosine" or "l2"): Similarity metric to use to rank within cluster. The order is determined by which_to_keep.
-            Default is "cosine". Supports "l2" as well.
+        sim_metric ("cosine" or "l2"): Similarity metric to use to rank within cluster. Default is "cosine".
+            `which_to_keep` determines how points within each cluster are ranked, based on the similarity to the centroid defined by `sim_metric`
         which_to_keep (str): Method to determine which duplicates to keep. Default is "hard".
-            - hard retains edge-case or outlier items farthest from the centroid.
-            - easy retains representative items closest to the centroid.
+            - hard retains edge-case or outlier items farthest from the centroid by sorting points by decreasing distance from the centroid.
+            - easy retains representative items closest to the centroid by sorting points by increasing distance from the centroid.
             - random retains items randomly.
         batched_cosine_similarity (Union[bool, int]): Whether to use batched cosine similarity (has less memory usage).
             Default is 1024. When False or 0, no batching is used and memory requirements are O(N^2) where N is the number of items in the cluster.
