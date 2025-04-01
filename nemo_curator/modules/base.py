@@ -131,6 +131,9 @@ class BaseDeduplicationModule(BaseModule):
         Args:
             dataset (DocumentDataset): The dataset to identify duplicates in
         """
+        raise NotImplementedError(
+            "identify_duplicates method must be implemented by subclasses"
+        )
 
     @abstractmethod
     def remove(
@@ -142,14 +145,14 @@ class BaseDeduplicationModule(BaseModule):
         Args:
             dataset (DocumentDataset): The dataset to remove duplicates from
         """
+        raise NotImplementedError("remove method must be implemented by subclasses")
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         """
-        Execute the SemDedup process.
+        Execute the deduplication process.
 
         Args:
             dataset (DocumentDataset): Input dataset for deduplication.
-            perform_removal (bool): Whether to remove duplicates from the dataset.
         Returns:
             DocumentDataset: Deduplicated dataset if perform_removal is False, otherwise the dataset with duplicates removed.
         """
