@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import warnings
 from abc import ABC, abstractmethod
 from typing import Literal, Optional, Union
