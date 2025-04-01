@@ -15,17 +15,15 @@
 import importlib
 import itertools
 
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from dask.base import normalize_token, tokenize
-from dask.diagnostics import ProgressBar
+from dask.base import normalize_token
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 from nemo_curator import ClusteringModel
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_worker
+from nemo_curator.utils.distributed_utils import load_object_on_worker
 
 config = importlib.import_module(
     "tutorials.nemo-retriever-synthetic-data-generation.config.config"

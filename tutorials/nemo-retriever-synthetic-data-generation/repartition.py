@@ -13,15 +13,9 @@
 # limitations under the License.
 
 import argparse
-import glob
-import importlib
-import os
-import shutil
 import time
-from typing import Any, List
 
 from retriever_hardnegative_miner import HardNegativeMiner
-from tqdm.dask import TqdmCallback
 
 from config.config import RetrieverHardNegativeMiningConfig
 from nemo_curator.datasets import DocumentDataset
