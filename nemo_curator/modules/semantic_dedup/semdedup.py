@@ -18,7 +18,7 @@ import os
 from typing import Union
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.modules.base import BaseModule
+from nemo_curator.modules.base import BaseDeduplicationModule
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.modules.semantic_dedup.clusteringmodel import ClusteringModel
 from nemo_curator.modules.semantic_dedup.embeddings import EmbeddingCreator
@@ -28,12 +28,13 @@ from nemo_curator.modules.semantic_dedup.semanticclusterleveldedup import (
 from nemo_curator.utils.duplicates_removal import remove_duplicates
 
 
-class SemDedup(BaseModule):
+class SemDedup(BaseDeduplicationModule):
     def __init__(
         self,
         config: SemDedupConfig,
         input_column: str = "text",
         id_column: str = "id",
+        perform_removal: bool = False,
         logger: Union[logging.Logger, str] = "./",
     ) -> None:
         """
@@ -45,13 +46,21 @@ class SemDedup(BaseModule):
                 Default is "text".
             id_column (str): Column name used as the identifier in the dataset.
                 Default is "id".
+            perform_removal (bool): Whether to remove duplicates from the dataset.
+                Default is False.
             logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
                 Default is "./".
         """
-        super().__init__(input_backend="cudf")
+        super().__init__(
+            id_field=id_column,
+            text_field=input_column,
+            input_backend="cudf",
+            logger=logger,
+            perform_removal=perform_removal,
+            profile_dir=config.profile_dir,
+            cache_dir=config.cache_dir,
+        )
         self.config = config
-        self.logger = logger
-        self.id_column = id_column
         cache_dir = config.cache_dir
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
@@ -117,22 +126,3 @@ class SemDedup(BaseModule):
             perform_shuffle=False,
         )
         return DocumentDataset(result)
-
-    def call(
-        self, dataset: DocumentDataset, perform_removal: bool = False
-    ) -> DocumentDataset:
-        """
-        Execute the SemDedup process.
-
-        Args:
-            dataset (DocumentDataset): Input dataset for deduplication.
-            perform_removal (bool): Whether to remove duplicates from the dataset.
-        Returns:
-            DocumentDataset: Deduplicated dataset if perform_removal is False, otherwise the dataset with duplicates removed.
-        """
-        duplicates = self.identify_duplicates(dataset)
-
-        if perform_removal:
-            return self.remove(dataset, duplicates)
-
-        return duplicates

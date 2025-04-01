@@ -139,6 +139,7 @@ class TestSemDuplicates:
             config=config,
             input_column="text",
             id_column="id",
+            perform_removal=perform_removal,
         )
 
         dedup_data_len = dedup_data.df.shape[0].compute()
@@ -148,7 +149,7 @@ class TestSemDuplicates:
                 result = sem_duplicates(dedup_data)
         else:
             # Correctly returns the original dataset with no duplicates removed
-            result = sem_duplicates(dedup_data, perform_removal=perform_removal)
+            result = sem_duplicates(dedup_data)
             result_df = result.df.compute()
             docs_to_remove = [1, 100]
             if not perform_removal:
@@ -182,6 +183,7 @@ class TestSemDuplicates:
             config=config,
             input_column="text",
             id_column="doc_id",
+            perform_removal=perform_removal,
         )
 
         non_dedup_data_len = non_dedup_data.df.shape[0].compute()
@@ -191,7 +193,7 @@ class TestSemDuplicates:
                 result = sem_duplicates(non_dedup_data)
         else:
             # Correctly returns the original dataset with no duplicates removed
-            result = sem_duplicates(non_dedup_data, perform_removal=perform_removal)
+            result = sem_duplicates(non_dedup_data)
             result_df = result.df.compute()
             if not perform_removal:
                 assert len(result_df) == 0
