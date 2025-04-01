@@ -241,8 +241,11 @@ Key parameters in the configuration file include:
 - ``embedding_batch_size``: Number of samples to process in each embedding batch.
 - ``n_clusters``: Number of clusters for k-means clustering.
 - ``eps_to_extract``: Deduplication threshold. Higher values result in more aggressive deduplication.
-- ``which_to_keep``: Strategy for choosing which duplicate to keep ("hard" or "soft").
-- ``sim_metric``: Similarity metric to use to rank within cluster. The order is determined by which_to_keep.
+- ``which_to_keep``: Strategy for choosing which duplicate to keep ("hard" / "easy" / "random").
+    - ``hard``: Retains edge-case or outlier items farthest from the centroid by sorting points by decreasing distance from the centroid.
+    - ``easy``: Retains representative items closest to the centroid by sorting points by increasing distance from the centroid.
+    - ``random``: Retains items randomly.
+- ``sim_metric``: Similarity metric to use to rank within cluster. ``which_to_keep`` determines how points within each cluster are ranked, based on the similarity to the centroid defined by ``sim_metric``
 - ``batched_cosine_similarity``: Whether to use batched cosine similarity (has less memory usage, O(N*B) where B is the batch size) or vanilla cosine similarity (O(N^2) memory usage).
 -----------------------------------------
 Output
