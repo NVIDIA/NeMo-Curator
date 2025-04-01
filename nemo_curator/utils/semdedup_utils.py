@@ -163,7 +163,7 @@ def get_semantic_matches_per_cluster(
             by=[distance_col, id_col], ascending=True, ignore_index=True
         )
     elif which_to_keep == "random":
-        cluster_df = cluster_df.sample(frac=1).reset_index(drop=True)
+        cluster_df = cluster_df.sample(frac=1, random_state=42, ignore_index=True)
 
     cluster_embeddings = torch.as_tensor(
         get_array_from_df(cluster_df, embedding_col), device="cuda"

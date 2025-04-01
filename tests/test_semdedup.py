@@ -676,9 +676,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         elif which_to_keep == "easy":
             _kept, _removed = 5, 1495
         else:
-            # random is not deterministic, so we skip this test
-            return
-
+            _kept, _removed = 17, 1483
         pd.testing.assert_frame_equal(
             df,
             pd.DataFrame(
