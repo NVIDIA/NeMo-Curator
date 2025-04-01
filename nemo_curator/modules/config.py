@@ -14,7 +14,7 @@
 
 import warnings
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import yaml
 
@@ -173,10 +173,14 @@ class SemDedupConfig(BaseConfig):
         n_clusters (int): Number of clusters. Default is 1000.
         clustering_save_loc (str): Location to save clustering results.
             Default is "clustering_results".
+        random_state (int): KMeans random state used for reproducibility. Default is 1234.
         sim_metric (str): Similarity metric for deduplication.
             Default is "cosine".
         which_to_keep (str): Method to determine which duplicates to keep.
             Default is "hard".
+        batched_cosine_similarity (Union[bool, int]): Whether to use batched cosine similarity (has less memory usage).
+            Default is 1024. When False or 0, no batching is used and memory requirements are O(N^2) where N is the number of items in the cluster.
+            When True, batch size is set to 1024 and memory requirements are O(N*B) where N is the number of items in the cluster and B is the batch size.
         sort_clusters (bool): Whether to sort clusters. Default is True.
         kmeans_with_cos_dist (bool): Whether or not to use KMeans with cosine distance.
             Default is False.
@@ -198,6 +202,7 @@ class SemDedupConfig(BaseConfig):
     embedding_batch_size: int = 128
     embeddings_save_loc: str = "embeddings"
     embedding_max_mem_gb: Optional[int] = None
+
     # Options: "mean_pooling", "last_token"
     embedding_pooling_strategy: str = "mean_pooling"
     embedding_column: str = "embeddings"
@@ -208,8 +213,10 @@ class SemDedupConfig(BaseConfig):
     max_iter: int = 100
     n_clusters: int = 1000
     clustering_save_loc: str = "clustering_results"
+    random_state: int = 1234
     sim_metric: str = "cosine"
     which_to_keep: str = "hard"
+    batched_cosine_similarity: Union[bool, int] = 1024
     sort_clusters: bool = True
     kmeans_with_cos_dist: bool = False
     clustering_input_partition_size: str = "2gb"
@@ -228,3 +235,12 @@ class SemDedupConfig(BaseConfig):
             raise ValueError(
                 f"Epsilon to extract {self.eps_to_extract} must be in eps_thresholds {self.eps_thresholds}"
             )
+
+        # Convert bool to int
+        if isinstance(self.batched_cosine_similarity, bool):
+            if self.batched_cosine_similarity:
+                self.batched_cosine_similarity = 1024
+            else:
+                self.batched_cosine_similarity = 0
+        if not isinstance(self.batched_cosine_similarity, int):
+            raise ValueError("batched_cosine_similarity must be an integer")

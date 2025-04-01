@@ -18,9 +18,9 @@ from datetime import datetime
 
 import dask_cudf
 
-from nemo_curator import ClusteringModel
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules import ClusteringModel
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
@@ -66,6 +66,13 @@ def main(args):
         max_iter=semdedup_config.max_iter,
         n_clusters=semdedup_config.n_clusters,
         clustering_output_dir=clustering_output_dir,
+        embedding_column=semdedup_config.embedding_column,
+        random_state=semdedup_config.random_state,
+        sim_metric=semdedup_config.sim_metric,
+        which_to_keep=semdedup_config.which_to_keep,
+        sort_clusters=semdedup_config.sort_clusters,
+        kmeans_with_cos_dist=semdedup_config.kmeans_with_cos_dist,
+        clustering_input_partition_size=semdedup_config.clustering_input_partition_size,
         logger=logger,
     )
 

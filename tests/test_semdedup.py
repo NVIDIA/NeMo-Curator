@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pytest
@@ -29,6 +30,17 @@ dask_cudf = gpu_only_import("dask_cudf")
 EmbeddingCreator = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
 )
+pairwise_cosine_similarity = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "pairwise_cosine_similarity"
+)
+pairwise_cosine_similarity_batched = gpu_only_import_from(
+    "nemo_curator.utils.semdedup_utils", "pairwise_cosine_similarity_batched"
+)
+if TYPE_CHECKING:
+    from nemo_curator.utils.semdedup_utils import (
+        pairwise_cosine_similarity,
+        pairwise_cosine_similarity_batched,
+    )
 
 
 @pytest.fixture
@@ -151,6 +163,7 @@ class TestSemDuplicates:
         test_texts = [test_text_1, test_text_2] * 32
         df = cudf.DataFrame({"text": test_texts})
         ddf = dask_cudf.from_cudf(df, 1)
+
         cache_dir = os.path.join(tmpdir, "test_embeddings_cache")
 
         embedding_creator = EmbeddingCreator(
@@ -160,12 +173,15 @@ class TestSemDuplicates:
             input_column="text",
             embedding_output_dir=os.path.join(cache_dir, "mean_embeddings"),
         )
+
         embeddings = embedding_creator.create_embeddings(ddf).compute()
         embeddings = embeddings["embeddings"].to_arrow().to_pylist()
         embeddings = np.array(embeddings)
+
         reference_embeddings = get_reference_embeddings(
             test_texts, pooling_strategy=pooling_strategy
         )
+
         assert np.allclose(
             embeddings, reference_embeddings, atol=1e-3
         ), "Embeddings should match reference embeddings"
@@ -229,3 +245,59 @@ def get_reference_embeddings(
         embs.append(normed_emb)
 
     return np.array(embs)
+
+
+class TestPairwiseCosineSimilarity:
+    def setup_method(self):
+        # We create a 5x3 array where each row is a unit vector
+        # The second and last two rows are the same
+        input_arr = torch.tensor(
+            np.asarray(
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [1, 2, 3], [1, 2, 3]],
+            ),
+            dtype=torch.float32,
+        )
+        # Normalize the input array
+        self.input_arr = input_arr / torch.norm(input_arr, dim=1, keepdim=True)
+        self.expected_similarity = torch.tensor(
+            [0.0000, 0.974631, 0.998190, 0.999618, 1.0000, 1.0000]
+        )
+        self.expected_indices = [0, 0, 1, 2, 0, 0]
+
+    @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
+    def test_pairwise_cosine_similarity(self, device: Literal["cpu", "cuda"]):
+        max_similarity, max_indices = pairwise_cosine_similarity(
+            self.input_arr.to(device), device
+        )
+        torch.testing.assert_close(
+            max_similarity, self.expected_similarity, rtol=1e-6, atol=1e-6
+        )
+        assert max_indices == self.expected_indices
+
+    @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
+    @pytest.mark.parametrize("batch_size", [1, 2, 3, 4, 5, 6])
+    def test_pairwise_cosine_similarity_batched(
+        self, device: Literal["cpu", "cuda"], batch_size: int
+    ):
+        max_similarity, max_indices = pairwise_cosine_similarity_batched(
+            self.input_arr.to(device), device, batch_size
+        )
+        torch.testing.assert_close(max_similarity, self.expected_similarity)
+        assert max_indices == self.expected_indices
+
+    @pytest.mark.parametrize("device", [pytest.param("cuda", marks=pytest.mark.gpu)])
+    @pytest.mark.parametrize("batch_size", [100, 512, 1024, 2048])
+    def test_pairwise_cosine_similarity_batched_rand_array(
+        self, device: Literal["cpu", "cuda"], batch_size: int
+    ):
+        N = 1024
+        D = 512
+        rand_arr = torch.randn(N, D, device=device)
+        max_similarity, max_indices = pairwise_cosine_similarity(rand_arr, device)
+        max_similarity_batched, max_indices_batched = (
+            pairwise_cosine_similarity_batched(rand_arr, device, batch_size=batch_size)
+        )
+        torch.testing.assert_close(
+            max_similarity, max_similarity_batched, rtol=1e-5, atol=1e-5
+        )
+        assert max_indices == max_indices_batched

@@ -23,7 +23,6 @@ import dask.bag as db
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
-from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
 from nemo_curator.utils.semdedup_utils import (
@@ -35,14 +34,15 @@ from nemo_curator.utils.semdedup_utils import (
 class SemanticClusterLevelDedup:
     def __init__(
         self,
-        n_clusters: int,
-        emb_by_clust_dir: str,
-        sorted_clusters_dir: str,
-        id_column: str,
-        id_column_type: str,
-        which_to_keep: str,
-        output_dir: str,
+        n_clusters: int = 1000,
+        emb_by_clust_dir: str = "./clustering_results/embs_by_nearest_center",
+        sorted_clusters_dir: str = "./clustering_results/sorted",
+        id_column: str = "id",
+        id_column_type: str = "int",
+        which_to_keep: str = "hard",
+        output_dir: str = "./clustering_results",
         embedding_column: str = "embeddings",
+        batched_cosine_similarity: int = 1024,
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
     ) -> None:
@@ -50,16 +50,28 @@ class SemanticClusterLevelDedup:
         Initialize the SemanticClusterLevelDedup class.
 
         Args:
-            n_clusters (int): Number of clusters.
+            n_clusters (int): Number of clusters. Default is 1000.
             emb_by_clust_dir (str): Directory containing embeddings by cluster.
+                Default is "./clustering_results/embs_by_nearest_center".
             sorted_clusters_dir (str): Directory containing sorted clusters.
-            id_column (str): Column name for IDs.
-            id_column_type (str): Data type of the ID column.
-            which_to_keep (str): Strategy for which duplicate to keep.
+                Default is "./clustering_results/sorted".
+            id_column (str): Column name used as the identifier in the dataset.
+                Default is "id".
+            id_column_type (str): Data type of id_column. Default is "int".
+            which_to_keep (str): Method to determine which duplicates to keep.
+                Default is "hard".
             output_dir (str): Directory to save output files.
-            embedding_column (str): Column where the embeddings are stored.
-            logger (Union[logging.Logger, str]): Logger instance or path to the log file directory.
-            profile_dir (str): If specified directory to write dask profile. Default is None.
+                Default is "./clustering_results".
+            embedding_column (str): The column name that stores the embeddings.
+                Default is "embeddings".
+            batched_cosine_similarity (int): Whether to use batched cosine similarity (has less memory usage).
+                Default is 1024. When greater than 0, batching is used and memory requirements are O(N*B) where N is the number of items in the cluster and B is the batch size.
+                When less than or equal to 0, no batching is used and memory requirements are O(N^2) where N is the number of items in the cluster.
+            logger (Union[logging.Logger, str]): Existing logger to log to, or a path to a log directory.
+                Default is "./".
+            profile_dir (Optional[str]): If specified, directory to write Dask profile.
+                Default is None.
+
         """
         self.n_clusters = n_clusters
         self.emb_by_clust_dir = emb_by_clust_dir
@@ -73,6 +85,7 @@ class SemanticClusterLevelDedup:
         )
         self.computed_semantic_match_dfs = False
         self.embedding_column = embedding_column
+        self.batched_cosine_similarity = batched_cosine_similarity
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
 
@@ -118,6 +131,7 @@ class SemanticClusterLevelDedup:
             shutil.rmtree(self.semdedup_pruning_tables_dir)
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
         t0 = time.time()
+
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "semantic-match-compute"
         ):
@@ -134,6 +148,7 @@ class SemanticClusterLevelDedup:
                     output_dir=self.semdedup_pruning_tables_dir,
                     embedding_col=self.embedding_column,
                     which_to_keep=self.which_to_keep,
+                    batched_cosine_similarity=self.batched_cosine_similarity,
                 )
             )
             tasks.compute()
