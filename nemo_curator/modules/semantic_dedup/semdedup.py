@@ -61,11 +61,17 @@ class SemDedup(BaseDeduplicationModule):
             cache_dir=config.cache_dir,
         )
         self.config = config
-        cache_dir = config.cache_dir
+        embedding_output_dir = os.path.join(
+            self.config.cache_dir, config.embeddings_save_loc
+        )
+        clustering_output_dir = os.path.join(
+            self.config.cache_dir, config.clustering_save_loc
+        )
+
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
             embedding_batch_size=config.embedding_batch_size,
-            embedding_output_dir=os.path.join(cache_dir, config.embeddings_save_loc),
+            embedding_output_dir=embedding_output_dir,
             embedding_max_mem_gb=config.embedding_max_mem_gb,
             embedding_pooling_strategy=config.embedding_pooling_strategy,
             input_column=input_column,
@@ -79,7 +85,7 @@ class SemDedup(BaseDeduplicationModule):
             id_column=id_column,
             max_iter=config.max_iter,
             n_clusters=config.n_clusters,
-            clustering_output_dir=os.path.join(cache_dir, config.clustering_save_loc),
+            clustering_output_dir=clustering_output_dir,
             embedding_column=config.embedding_column,
             clustering_input_partition_size=config.clustering_input_partition_size,
             logger=logger,
@@ -88,13 +94,13 @@ class SemDedup(BaseDeduplicationModule):
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
             emb_by_clust_dir=os.path.join(
-                cache_dir, config.clustering_save_loc, "embs_by_nearest_center"
+                clustering_output_dir, "embs_by_nearest_center"
             ),
             id_column=id_column,
             which_to_keep=config.which_to_keep,
             sim_metric=config.sim_metric,
             batched_cosine_similarity=config.batched_cosine_similarity,
-            output_dir=os.path.join(cache_dir, config.clustering_save_loc),
+            output_dir=clustering_output_dir,
             embedding_column=config.embedding_column,
             logger=logger,
             profile_dir=self.config.profile_dir,
@@ -121,7 +127,7 @@ class SemDedup(BaseDeduplicationModule):
         result = remove_duplicates(
             dataset.df,
             duplicates_to_remove.df,
-            self.id_column,
+            self.id_field,
             group_field=None,
             perform_shuffle=False,
         )

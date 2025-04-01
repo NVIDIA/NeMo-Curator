@@ -152,7 +152,7 @@ def get_semantic_matches_per_cluster(
         cluster_df["cosine_sim_score"] = [0]
         cluster_df = cluster_df[["id", "max_id", "cosine_sim_score"]]
         cluster_df.to_parquet(output_df_file_path)
-
+        return
     if which_to_keep == "hard":
         cluster_df = cluster_df.sort_values(
             by=[distance_col, id_col], ascending=False, ignore_index=True
