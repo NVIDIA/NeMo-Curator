@@ -117,7 +117,6 @@ class ClusteringModel:
 
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
 
-
             if not self.keep_all_columns:
                 embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
 
