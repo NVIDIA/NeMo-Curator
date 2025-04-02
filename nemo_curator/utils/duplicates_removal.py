@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
 from typing import List, Optional, Union
 
 import dask.dataframe as dd
@@ -67,12 +68,17 @@ def remove_duplicates(
     group_field: Optional[str] = None,
     perform_shuffle: bool = False,
 ) -> dd.DataFrame:
-    if left.npartitions < duplicates.npartitions:
+    left_npartitions = left.optimize().npartitions
+    right_npartitions = duplicates.optimize().npartitions
+    if left_npartitions < right_npartitions:
         msg = (
-            "The number of partitions in `left` is less than the number of partitions in the duplicates dataset. "
-            "This may lead to a shuffle join. Please re-read left and right with different partition sizes, or repartition left / right."
+            f"The number of partitions in `dataset` ({left_npartitions}) is less than "
+            f"the number of partitions in the duplicates ({right_npartitions}). "
+            "This may lead to a shuffle join. Repartitioning right dataset to match left partitions."
+            "To control this behavior, call identify_duplicates and removal as two separate steps"
         )
-        raise ValueError(msg)
+        warnings.warn(msg)
+        duplicates = duplicates.repartition(npartitions=left_npartitions)
 
     # Create a new column name for temporary ID storage during merge
     new_id_field = f"{id_field}_new"

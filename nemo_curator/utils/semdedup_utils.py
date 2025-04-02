@@ -230,7 +230,6 @@ def prune_single_cluster(
         return empty_df
     # We keep only records that are very similar i.e cosine_sim_score >= 1 - eps
     pruning_table = pruning_table[pruning_table["cosine_sim_score"] >= 1 - eps][["id"]]
-
     # In future we can avoid this merge if we add more columns to the pruning table
     # However that might increase memory consumption at that stage, keeping it as is for now
     return df_cluster.merge(
