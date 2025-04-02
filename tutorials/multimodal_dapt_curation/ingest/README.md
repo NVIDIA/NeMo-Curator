@@ -56,7 +56,7 @@ python main.py --analyze --display
         - `content` - The raw extracted content, text in this case - this section will always be populated with a successful job.
         - `content_metadata` - Describes the type of extraction and its position in the broader document. This section will always be populated with a successful job.
         - `source_metadata` - Describes the source document that is the basis of the ingest job.
-        - `text_metadata` - Contain information about the text extraction, including detected language, among others - this section will only exist when `metadata['content_metadata']['type'] == 'text'`
+        - `text_metadata` - Contain information about the text extraction, including detected language, among others. This section will only exist when `metadata['content_metadata']['type'] == 'text'`
     - Charts and Tables
         - `content` - The raw extracted content, a base64 encoded image of the extracted table in this case. This section will always be populated with a successful job.
         - `content_metadata` - Describes the type of extraction and its position in the broader document. This section will always be populated with a successful job.
