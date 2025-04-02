@@ -135,7 +135,6 @@ def semantic_dedupe(dataset):
         config=semdedup_config,
         input_column="text",
         id_column="id",
-        # Decides whether output of the module is a deduplicated dataset or the IDs of the duplicates
         perform_removal=True,
     )
     result = semdup(dataset)
