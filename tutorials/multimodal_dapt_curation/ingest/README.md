@@ -61,7 +61,7 @@ python main.py --analyze --display
         - `content` - The raw extracted content, a base64 encoded image of the extracted table in this case - this section will always be populated with a successful job.
         - `content_metadata` - Describes the type of extraction and its position in the broader document - this section will always be populated with a successful job.
         - `source_metadata` - Describes the source and storage path of an extracted table in an S3 compliant object store.
-        - `table_metadata` - Contains the text representation of the table, positional data, and other useful elements - this section will only exist when `metadata['content_metadata']['type'] == 'structured'`.
+        - `table_metadata` - Contains the text representation of the table, positional data, and other useful elements. This section will only exist when `metadata['content_metadata']['type'] == 'structured'`.
         - Note, `table_metadata` will store chart and table extractions. The are distringuished by `metadata['content_metadata']['subtype']`
     - Images
         - `content` - The raw extracted content, a base64 encoded image extracted from the document in this case. This section will always be populated with a successful job.
