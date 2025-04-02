@@ -333,10 +333,6 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     client.close()
 
 
-# def run_image_curation_pipeline(args: Any, image_ddf) -> None:
-#     import pdb;pdb.set_trace()
-
-
 def main():
     parser = argparse.ArgumentParser()
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
