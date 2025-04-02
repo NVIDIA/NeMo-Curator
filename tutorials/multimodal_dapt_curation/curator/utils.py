@@ -137,7 +137,7 @@ def filter_text(dataset: DocumentDataset) -> DocumentDataset:
     return filtered_dataset
 
 
-def redact_PII(dataset: DocumentDataset) -> DocumentDataset:
+def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
 
     modifier = PiiModifier(
         log_dir="./logs",
