@@ -178,7 +178,8 @@ class LLMPiiModifier(DocumentModifier):
             )
 
     def modify_document(self, text: str):
-        inferer = load_object_on_worker("inferer", self.load_inferer, {})
+        self._inferer_key = f"inferer_{id(self)}"
+        inferer = load_object_on_worker(self._inferer_key, self.load_inferer, {})
         pii_entities = inferer.infer(text)
         text_redacted = redact(text, pii_entities)
         return text_redacted

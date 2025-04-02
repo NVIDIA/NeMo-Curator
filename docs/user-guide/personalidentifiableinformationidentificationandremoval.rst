@@ -25,8 +25,6 @@ NeMo Curator provides several tools for PII identification and removal.
 
 The ``PiiModifier`` class utilizes the `Presidio <https://microsoft.github.io/presidio/>`_ library to identify and redact PII in text.
 `Dask <https://dask.org>`_ is used to parallelize tasks and hence it can be used to scale up to terabytes of data easily.
-Although Dask can be deployed on various distributed compute environments, such as HPC clusters, Kubernetes, and other cloud offerings
-(such as Amazon EKS, Google Cloud, etc.), the current implementation only supports Dask on HPC clusters that use Slurm as the resource manager.
 
 The ``LLMPiiModifier`` and ``AsyncLLMPiiModifier`` classes utilize LLM models to identify PII in text.
 Using `NVIDIA NIM <https://developer.nvidia.com/nim>`_, the ``LLMPiiModifier`` and ``AsyncLLMPiiModifier`` classes can submit prompts to LLMs, such as Meta's `Llama 3.1 <https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct>`_, for PII identification.

@@ -188,7 +188,8 @@ class AsyncLLMPiiModifier(DocumentModifier):
 
     @batched
     def modify_document(self, text: pd.Series):
-        inferer = load_object_on_worker("inferer", self.load_inferer, {})
+        self._inferer_key = f"inferer_{id(self)}"
+        inferer = load_object_on_worker(self._inferer_key, self.load_inferer, {})
         pii_entities_lists = asyncio.run(self.call_inferer(text, inferer))
         text_redacted = self.batch_redact(text, pii_entities_lists)
         return text_redacted
