@@ -13,7 +13,7 @@ If GPUs are available, the PII redaction and exact deduplication processes will 
 The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/multimodal_dapt_curation/ingest/sources/separated_extracted_data/data_type_map.json` file.
 
 The tutorial follows these steps:
-1. Install Requirements and Import Libraries
+1. Install requirements and import libraries
 2. Convert Extracted Data: Transform data from `nv-ingest` into Dask DataFrames and convert them to `DocumentDataset`.
 3. Examine File Types and Sizes (Optional)
 4. Run the Data Curation Pipeline with NeMo Curator:
