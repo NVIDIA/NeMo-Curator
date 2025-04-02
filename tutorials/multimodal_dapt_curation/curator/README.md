@@ -14,16 +14,16 @@ The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/mu
 
 The tutorial follows these steps:
 1. Install requirements and import libraries
-2. Convert Extracted Data: Transform data from `nv-ingest` into Dask DataFrames and convert them to `DocumentDataset`.
-3. Examine File Types and Sizes (Optional)
-4. Run the Data Curation Pipeline with NeMo Curator:
+2. Convert extracted data: Transform data from `nv-ingest` into Dask DataFrames and convert them to `DocumentDataset`.
+3. Examine file types and sizes (optional)
+4. Run the data curation pipeline with NeMo Curator:
    - Identify and separate file types
    - Perform document-level exact deduplication
    - Apply heuristic-based quality filtering (e.g., number of lines, word count, top N-grams)
    - Fix Unicode errors using `ftfy`
    - Redact PII
    - Execute GPU-accelerated fuzzy and semantic deduplication
-5. Save the Filtered and Curated Data
+5. Save the filtered and curated data
 
 ## Usage
 After installing the NeMo Curator package, install the required dependencies and run the pipeline using the following command:
