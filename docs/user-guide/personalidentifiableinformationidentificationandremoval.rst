@@ -31,6 +31,7 @@ Using `NVIDIA NIM <https://developer.nvidia.com/nim>`_, the ``LLMPiiModifier`` a
 The LLM's reponse is then parsed and used to redact the PII in the text.
 We found that LLM-based PII redaction (using Llama-3.1-70B) outperformed Presidio by 26% on core PII categories.
 Evaluations were run on the `Gretel PII masking <https://huggingface.co/datasets/gretelai/gretel-pii-masking-en-v1>`_ dataset and the `Text Anonymization Benchmark <https://arxiv.org/abs/2202.00443>`_ dataset.
+Please note that the LLM prompts were written in English, and the datasets used for evaluation were in English as well.
 
 -----------------------------------------
 Usage
