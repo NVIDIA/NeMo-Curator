@@ -68,7 +68,7 @@ def main(args):
         semdedup_config,
         # Decides whether output of the module is a deduplicated dataset or the IDs of the duplicates
         perform_removal=False,
-        logger=logger
+        logger=logger,
     )
     # When perform_removal=False, it will only call .identify_duplicates() and return the list of duplicate IDs.
     # When perform_removal=True, then exact_dup outputs the dataset with the duplicates removed.
