@@ -1,4 +1,4 @@
-# Configuration file for semdantic dedup
+# Configuration file for struct semantic deduplication
 cache_dir: "workspace/semdedup_cache/struct"
 num_files: 16
 
