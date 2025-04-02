@@ -34,7 +34,7 @@ After installing the dependencies, execute the following command to run the tuto
 ```sh
 python main.py
 ```
-This will generate a directory named `separated_extracted_data` under `sources` directory. This contains the extracted data mapped to modality from all the data sources. The `data_type_map.json` file will be used by NeMo-Curator to curate data for DAPT task.
+This will generate a directory named `separated_extracted_data` under `sources` directory. This contains the extracted data mapped to modality from all the data sources. The `data_type_map.json` file will be used by NeMo-Curator to curate data for DAPT tasks.
 
 ## Optional Flags
 The tutorial provides two optional flags:
