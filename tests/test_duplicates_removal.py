@@ -188,7 +188,7 @@ def test_not_remove_duplicates_unique(
         pytest.param("cudf", marks=pytest.mark.gpu),
     ],
 )
-@pytest.mark.parametrize("left_npartitions", [2])
+@pytest.mark.parametrize("left_npartitions", [2, 3])
 @pytest.mark.parametrize("right_npartitions", [2, 3])
 def test_remove_duplicates_repartition(
     backend: Literal["cudf", "pandas"],
@@ -222,6 +222,6 @@ def test_remove_duplicates_repartition(
     )
     assert "broadcastjoin" in output_dask_graph_keys
     if left_npartitions < right_npartitions:
-        assert f"repartitiontofewer" in output_dask_graph_keys
+        assert "repartitiontofewer" in output_dask_graph_keys
     else:
-        assert f"repartitiontofewer" not in output_dask_graph_keys
+        assert "repartitiontofewer" not in output_dask_graph_keys
