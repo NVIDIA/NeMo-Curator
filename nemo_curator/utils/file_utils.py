@@ -18,13 +18,15 @@ import os
 import pathlib
 import warnings
 from functools import partial, reduce
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import dask.bag as db
 import dask.dataframe as dd
+import fsspec
 import numpy as np
 import pandas as pd
 from dask import delayed
+from fsspec.core import get_filesystem_class, split_protocol
 
 from nemo_curator.utils.distributed_utils import (
     read_data,
@@ -36,13 +38,36 @@ NEMO_CURATOR_HOME = os.environ.get(
 )
 
 
-def mkdir(d):
-    pathlib.Path(d).mkdir(parents=True, exist_ok=True)
+def get_fs(
+    path: str, storage_options: Optional[Dict[str, str]] = None
+) -> fsspec.AbstractFileSystem:
+    if not storage_options:
+        storage_options = dict()
+    protocol, path = split_protocol(path)
+    fs = get_filesystem_class(protocol)(**storage_options)
+    return fs
 
 
-def expand_outdir_and_mkdir(outdir):
-    outdir = os.path.abspath(os.path.expanduser(outdir))
-    mkdir(outdir)
+def expand_outdir_and_mkdir(
+    outdir: str,
+    storage_options: Optional[Dict[str, str]] = None,
+    fs: Optional[fsspec.AbstractFileSystem] = None,
+):
+    if fs is None:
+        fs = get_fs(outdir, storage_options)
+
+    if isinstance(fs, fsspec.implementations.local.LocalFileSystem):
+        outdir = os.path.abspath(os.path.expanduser(outdir))
+
+    try:
+        from s3fs import S3FileSystem
+
+        if isinstance(fs, S3FileSystem):
+            fs.touch(os.path.join(outdir, ".empty"))
+    except (ImportError, ModuleNotFoundError):
+        pass
+    finally:
+        fs.makedirs(outdir, exist_ok=True)
     return outdir
 
 
@@ -71,7 +96,7 @@ def filter_files_by_extension(
             filtered_files.append(file)
 
     if len(files_list) != len(filtered_files):
-        warnings.warn(f"Skipped at least one file due to unmatched file extension(s).")
+        warnings.warn("Skipped at least one file due to unmatched file extension(s).")
 
     return filtered_files
 
@@ -81,6 +106,8 @@ def get_all_files_paths_under(
     recurse_subdirectories: bool = True,
     followlinks: bool = False,
     keep_extensions: Optional[Union[str, List[str]]] = None,
+    storage_options: Optional[Dict[str, str]] = None,
+    fs: Optional[fsspec.AbstractFileSystem] = None,
 ) -> List[str]:
     """
     This function returns a list of all the files under a specified directory.
@@ -94,17 +121,17 @@ def get_all_files_paths_under(
                    or multiple file types to include in the output, e.g.,
                    "jsonl" or ["jsonl", "parquet"].
     """
-    if recurse_subdirectories:
-        file_ls = [
-            os.path.join(r, f)
-            for r, subdirs, files in os.walk(root, followlinks=followlinks)
-            for f in files
-        ]
-    else:
-        # Only include files, not directories
-        file_ls = [entry.path for entry in os.scandir(root) if entry.is_file()]
+    if followlinks:
+        warnings.warn("followlinks is an untested codepath for now")
+    if not fs:
+        fs = get_fs(root, storage_options)
 
+    file_ls = fs.find(root, maxdepth=None if recurse_subdirectories else 1)
     file_ls.sort()
+    # Add protocol back if it exists in original path
+    if "://" in root:
+        protocol = root.split("://")[0]
+        file_ls = [f"{protocol}://{f}" for f in file_ls]
 
     if keep_extensions is not None:
         file_ls = filter_files_by_extension(file_ls, keep_extensions)

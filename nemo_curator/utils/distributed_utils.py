@@ -15,12 +15,12 @@ from __future__ import annotations
 
 import ast
 import os
-import shutil
 import subprocess
 
 import dask
 
 from nemo_curator._compat import DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA
+from nemo_curator.utils.file_utils import get_fs
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
@@ -309,6 +309,7 @@ def read_single_partition(
     add_filename: Union[bool, str] = False,
     input_meta: Union[str, dict] = None,
     io_columns: Optional[List[str]] = None,
+    storage_options: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> Union["cudf.DataFrame", pd.DataFrame]:
     """
@@ -385,7 +386,7 @@ def read_single_partition(
             concat_f = pd.concat
         df_ls = []
         for file in files:
-            df = read_f(file, **read_kwargs, **kwargs)
+            df = read_f(file, storage_options=storage_options, **read_kwargs, **kwargs)
             if add_filename:
                 df[_resolve_filename_col(add_filename)] = os.path.basename(file)
             df = select_columns(df, io_columns, file_type, add_filename)
@@ -393,7 +394,7 @@ def read_single_partition(
 
         df = concat_f(df_ls, ignore_index=True)
     else:
-        df = read_f(files, **read_kwargs, **kwargs)
+        df = read_f(files, storage_options=storage_options, **read_kwargs, **kwargs)
         df = select_columns(df, io_columns, file_type, add_filename)
     return df
 
@@ -406,6 +407,7 @@ def read_data_blocksize(
     add_filename: Union[bool, str] = False,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
+    storage_options: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> dd.DataFrame:
     read_kwargs = dict()
@@ -440,9 +442,10 @@ def read_data_blocksize(
                 # only returns those columns, we explicitly set `columns` here
                 columns = list(read_kwargs["dtype"].keys())
         if add_filename:
+            fs = get_fs(input_files[0], storage_options)
 
             def extract_filename(path: str) -> str:
-                return os.path.basename(path)
+                return fs.basename(path)
 
             read_kwargs["include_path_column"] = _resolve_filename_col(add_filename)
             read_kwargs["path_converter"] = extract_filename
@@ -472,7 +475,13 @@ def read_data_blocksize(
         raise ValueError(msg)
 
     with dask.config.set({"dataframe.backend": backend}):
-        df = read_func(input_files, blocksize=blocksize, **read_kwargs, **kwargs)
+        df = read_func(
+            input_files,
+            blocksize=blocksize,
+            storage_options=storage_options,
+            **read_kwargs,
+            **kwargs,
+        )
 
         output = select_columns(df, columns, file_type, add_filename)
         return output[sorted(output.columns)]
@@ -492,6 +501,7 @@ def read_data_files_per_partition(
             Union[dd.DataFrame, pd.DataFrame],  # Return type
         ]
     ] = None,
+    storage_options: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> dd.DataFrame:
     if read_func_single_partition is None:
@@ -519,6 +529,7 @@ def read_data_files_per_partition(
         backend=backend,
         add_filename=add_filename,
         input_meta=input_meta,
+        storage_options=storage_options,
         **read_func_single_partition_kwargs,
     )
     output = output[sorted(output.columns)]
@@ -529,6 +540,7 @@ def read_pandas_pickle(
     file: str,
     add_filename: Union[bool, str] = False,
     columns: Optional[List[str]] = None,
+    storage_options: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -546,9 +558,9 @@ def read_pandas_pickle(
         warnings.warn("add_filename is not supported for pickle files")
 
     if columns is not None:
-        return pd.read_pickle(file, **kwargs)[columns]
+        return pd.read_pickle(file, storage_options=storage_options, **kwargs)[columns]
     else:
-        return pd.read_pickle(file, **kwargs)
+        return pd.read_pickle(file, storage_options=storage_options, **kwargs)
 
 
 def read_data(
@@ -566,6 +578,7 @@ def read_data(
             Union[dd.DataFrame, pd.DataFrame],  # Return type
         ]
     ] = None,
+    storage_options: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> dd.DataFrame:
     """
@@ -591,6 +604,8 @@ def read_data(
                 - add_filename: Read below
                 - columns: Read below
                 - input_meta: Read below
+        storage_options (Optional[Dict[str, str]]): Storage options for the file system.
+            Default is None.
 
     Returns:
         A Dask-cuDF or a Dask-pandas DataFrame.
@@ -611,11 +626,16 @@ def read_data(
             input_meta=input_meta,
             columns=columns,
             read_func_single_partition=read_func_single_partition,
+            storage_options=storage_options,
             **kwargs,
         )
     elif file_type == "pickle":
         df = read_pandas_pickle(
-            input_files[0], add_filename=add_filename, columns=columns, **kwargs
+            input_files[0],
+            add_filename=add_filename,
+            columns=columns,
+            storage_options=storage_options,
+            **kwargs,
         )
         df = dd.from_pandas(df, npartitions=16)
         if backend == "cudf":
@@ -653,6 +673,7 @@ def read_data(
                 add_filename=add_filename,
                 input_meta=input_meta,
                 columns=columns,
+                storage_options=storage_options,
                 **kwargs,
             )
         else:
@@ -671,6 +692,7 @@ def read_data(
                 input_meta=input_meta,
                 columns=columns,
                 read_func_single_partition=read_func_single_partition,
+                storage_options=storage_options,
                 **kwargs,
             )
     else:
@@ -822,12 +844,15 @@ def single_partition_write_with_filename(
 
 
 def _single_partition_write_to_simple_bitext(
-    out_df, output_file_path, partition_info=None
+    out_df,
+    output_file_path,
+    partition_info=None,
+    storage_options: Optional[Dict[str, str]] = None,
 ):
     if len(out_df) > 0:
         empty_partition = False
     else:
-        warnings.warn(f"Empty partition found")
+        warnings.warn("Empty partition found")
         empty_partition = True
 
     if is_cudf_type(out_df):
@@ -841,12 +866,14 @@ def _single_partition_write_to_simple_bitext(
     if empty_partition:
         return success_ser
 
+    fs = get_fs(output_file_path, storage_options)
+
     src_output_file_path = output_file_path + f".{out_df['src_lang'].iloc[0]}"
     tgt_output_file_path = output_file_path + f".{out_df['tgt_lang'].iloc[0]}"
     partition_id = partition_info["number"] if partition_info else 0
     with (
-        open(f"{src_output_file_path}.{partition_id}", "w") as src_out,
-        open(f"{tgt_output_file_path}.{partition_id}", "w") as tgt_out,
+        fs.open(f"{src_output_file_path}.{partition_id}", "w") as src_out,
+        fs.open(f"{tgt_output_file_path}.{partition_id}", "w") as tgt_out,
     ):
         # Handle cuDF Series which are not directly iterable
         if is_cudf_type(out_df):
@@ -863,7 +890,11 @@ def _single_partition_write_to_simple_bitext(
     return success_ser
 
 
-def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
+def _merge_tmp_simple_bitext_partitions(
+    tmp_output_dir: str,
+    output_dir: str,
+    storage_options: Optional[Dict[str, str]] = None,
+):
     """Merge partitions of simple bitext files in `tmp_output_dir` into files at `output_dir`.
 
     Args:
@@ -871,9 +902,9 @@ def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
                 with suffixes that looks like "file.1", "file.2" that shows the merging order
         output_file_path (str): dir to write output files
     """
-
+    fs = get_fs(tmp_output_dir, storage_options)
     sorted_tmp_files = sorted(
-        os.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1])
+        fs.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1])
     )
     unique_file_handles = {}
     # Loop through the sorted files and concatenate their contents
@@ -886,9 +917,9 @@ def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
 
         # create the output file if we haven't yet
         if output_file_path not in unique_file_handles:
-            unique_file_handles[output_file_path] = open(output_file_path, "w")
+            unique_file_handles[output_file_path] = fs.open(output_file_path, "w")
 
-        with open(input_file_path, "r") as infile:
+        with fs.open(input_file_path, "r") as infile:
             unique_file_handles[output_file_path].write(infile.read())
 
     # close all dangling file handles
@@ -903,6 +934,7 @@ def write_to_disk(
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
     partition_on: Optional[str] = None,
+    storage_options: Optional[Dict[str, str]] = None,
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -921,13 +953,18 @@ def write_to_disk(
                       If specified, the data will be partitioned based on the unique values in this column,
                       and each partition will be written to a separate directory
     """
+    if storage_options is not None:
+        warnings.warn("storage_options is not tested for write_to_disk")
 
     filename_col = _resolve_filename_col(write_to_filename)
     # output_path is a file name
     if isinstance(output_path, str) and output_path.endswith(".jsonl"):
         if df.npartitions == 1:
             df.map_partitions(
-                _write_to_jsonl_or_parquet, output_path, output_type
+                _write_to_jsonl_or_parquet,
+                output_path,
+                output_type,
+                storage_options=storage_options,
             ).compute()
             return
         else:
@@ -956,7 +993,8 @@ def write_to_disk(
 
     # output_path is a directory
     if write_to_filename and output_type != "bitext":
-        os.makedirs(output_path, exist_ok=True)
+        fs = get_fs(output_path, storage_options)
+        fs.makedirs(output_path, exist_ok=True)
         output = df.map_partitions(
             single_partition_write_with_filename,
             output_path,
@@ -976,30 +1014,35 @@ def write_to_disk(
                 output_path=output_path,
                 output_type=output_type,
                 partition_on=partition_on,
+                storage_options=storage_options,
             )
         elif output_type == "bitext":
+            fs = get_fs(output_path, storage_options)
+
             if write_to_filename:
-                os.makedirs(output_path, exist_ok=True)
+                fs.makedirs(output_path, exist_ok=True)
                 tmp_output_file_dir = os.path.join(output_path, ".tmp")
-                os.makedirs(tmp_output_file_dir, exist_ok=True)
-                file_name = os.path.basename(list(df[filename_col].unique())[0])
+                fs.makedirs(tmp_output_file_dir, exist_ok=True)
+                file_name = fs.basename(list(df[filename_col].unique())[0])
             else:
                 tmp_output_file_dir = os.path.join(output_path, ".tmp")
-                os.makedirs(tmp_output_file_dir, exist_ok=True)
-                file_name = os.path.basename(output_path)
+                fs.makedirs(tmp_output_file_dir, exist_ok=True)
+                file_name = fs.basename(output_path)
 
             output = df.map_partitions(
                 _single_partition_write_to_simple_bitext,
                 os.path.join(tmp_output_file_dir, file_name),
                 meta=output_meta,
                 enforce_metadata=False,
+                storage_options=storage_options,
             )
             output = output.compute()
             _merge_tmp_simple_bitext_partitions(
                 tmp_output_file_dir,
                 (output_path if write_to_filename else os.path.dirname(output_path)),
+                storage_options=storage_options,
             )
-            shutil.rmtree(tmp_output_file_dir)
+            fs.rm(tmp_output_file_dir, recursive=True)
         else:
             raise ValueError(f"Unknown output type: {output_type}")
 
@@ -1011,7 +1054,9 @@ def _write_to_jsonl_or_parquet(
     output_path: str,
     output_type: Literal["jsonl", "parquet"] = "jsonl",
     partition_on: Optional[str] = None,
+    storage_options: Optional[Dict[str, str]] = None,
 ):
+    fs = get_fs(output_path, storage_options)
     if output_type == "jsonl":
         if partition_on is not None:
             unique_values = (
@@ -1022,7 +1067,7 @@ def _write_to_jsonl_or_parquet(
                 .to_list()
             )
             for value in unique_values:
-                os.makedirs(output_path, exist_ok=True)
+                fs.makedirs(output_path, exist_ok=True)
                 partition_output_path = os.path.join(
                     output_path, f"{partition_on}={value}"
                 )
@@ -1032,6 +1077,7 @@ def _write_to_jsonl_or_parquet(
                     lines=True,
                     force_ascii=False,
                     index=False,  # Only index=False is supported for orient="records"
+                    storage_options=storage_options,
                 )
         else:
             if is_cudf_type(df):
@@ -1043,6 +1089,7 @@ def _write_to_jsonl_or_parquet(
                     lines=True,
                     force_ascii=False,
                     index=False,
+                    storage_options=storage_options,
                 )  # Only index=False is supported for orient="records"
             else:
                 df.to_json(
@@ -1051,9 +1098,15 @@ def _write_to_jsonl_or_parquet(
                     lines=True,
                     force_ascii=False,
                     index=False,
+                    storage_options=storage_options,
                 )  # Only index=False is supported for orient="records"
     elif output_type == "parquet":
-        df.to_parquet(output_path, write_index=False, partition_on=partition_on)
+        df.to_parquet(
+            output_path,
+            write_index=False,
+            partition_on=partition_on,
+            storage_options=storage_options,
+        )
     else:
         raise ValueError(f"Unknown output type: {output_type}")
 

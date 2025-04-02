@@ -15,7 +15,7 @@
 
 import logging
 import os
-from typing import Literal, Tuple
+from typing import Dict, Literal, Optional, Tuple
 
 import cudf
 import cupy as cp
@@ -128,6 +128,7 @@ def get_semantic_matches_per_cluster(
     which_to_keep: Literal["hard", "easy", "random"],
     sim_metric: Literal["cosine", "l2"],
     batched_cosine_similarity: int = 1024,
+    storage_options: Optional[Dict[str, str]] = None,
 ) -> None:
     """
     Get the semantic matches for a single cluster.
@@ -144,6 +145,7 @@ def get_semantic_matches_per_cluster(
     cluster_df = cudf.read_parquet(
         os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}"),
         columns=[embedding_col, id_col, distance_col],
+        storage_options=storage_options,
     )
     output_df_file_path = os.path.join(output_dir, f"cluster_{cluster_id}.parquet")
     if len(cluster_df) == 1:
@@ -151,7 +153,7 @@ def get_semantic_matches_per_cluster(
         cluster_df["max_id"] = cluster_df[id_col]
         cluster_df["cosine_sim_score"] = [0]
         cluster_df = cluster_df[["id", "max_id", "cosine_sim_score"]]
-        cluster_df.to_parquet(output_df_file_path)
+        cluster_df.to_parquet(output_df_file_path, storage_options=storage_options)
         return
 
     if which_to_keep == "hard":
@@ -187,7 +189,7 @@ def get_semantic_matches_per_cluster(
             "cosine_sim_score": max_similarity,
         }
     )
-    points_to_remove_df.to_parquet(output_df_file_path)
+    points_to_remove_df.to_parquet(output_df_file_path, storage_options=storage_options)
 
 
 def prune_single_cluster(
@@ -196,6 +198,7 @@ def prune_single_cluster(
     emb_by_clust_dir: str,
     semdedup_pruning_tables_dir: str,
     eps: float,
+    storage_options: Optional[Dict[str, str]] = None,
 ) -> cudf.DataFrame:
     """
     Processes data for a single cluster, applying pruning based on specified epsilon.
@@ -213,7 +216,9 @@ def prune_single_cluster(
     cluster_dir = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
     # For the output we only return id, cosine_dist_to_cent, and cluster
     df_cluster = cudf.read_parquet(
-        cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]
+        cluster_dir,
+        columns=[id_col, COSINE_DIST_TO_CENT_COL],
+        storage_options=storage_options,
     ).assign(cluster=cluster_id)
 
     pruning_table_fname = os.path.join(
@@ -221,7 +226,9 @@ def prune_single_cluster(
     )
     # In future we can add more columns to the pruning table like max_id etc.
     pruning_table = cudf.read_parquet(
-        pruning_table_fname, columns=["id", "cosine_sim_score"]
+        pruning_table_fname,
+        columns=["id", "cosine_sim_score"],
+        storage_options=storage_options,
     )
     # If the pruning table only has one row, we don't need to remove any records
     if len(pruning_table) == 1:
@@ -243,12 +250,15 @@ def write_pruned_summary_file(
     filtered_unique_ids_path: str,
     output_summary_file: str,
     logger: logging.Logger,
+    storage_options: Optional[Dict[str, str]] = None,
 ):
     """
     Writes a summary file for the pruned data.
     """
-    removed = len(dd.read_parquet(filtered_unique_ids_path))
-    total = len(dd.read_parquet(emb_by_clust_dir))
+    removed = len(
+        dd.read_parquet(filtered_unique_ids_path, storage_options=storage_options)
+    )
+    total = len(dd.read_parquet(emb_by_clust_dir, storage_options=storage_options))
     kept = total - removed
 
     logger.info(
@@ -261,4 +271,4 @@ def write_pruned_summary_file(
         "total": [total],
     }
     df = pd.DataFrame(result_dict)
-    df.to_csv(output_summary_file, index=False)
+    df.to_csv(output_summary_file, index=False, storage_options=storage_options)
