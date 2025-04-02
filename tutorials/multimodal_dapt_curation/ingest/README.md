@@ -7,7 +7,7 @@ The dataset used in this tutorial is small, making it ideal for developing and v
 ## Walkthrough
 The datasets used in this tutorial are located in the `NeMo-Curator/tutorials/multimodal_dapt_curation/ingest/sources/arxiv_urls.jsonl` file.
 The tutorial follows these steps:
-1. Install Requirements and Import Libraries
+1. Install requirements and import libraries
 2. Download the data from online sources (arxiv URLs)
 3. Using Ingestor interface to chain together an extraction task and a deduplication task to ingest PDF
     - `extract` : Performs multimodal extractions from a document, including text, images, and tables.
