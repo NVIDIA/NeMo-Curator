@@ -230,8 +230,8 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     print(f"Original dataset length for text: {len(text_ddf.df)}")
     print(f"Original dataset length for tables and charts: {len(struct_ddf.df)}")
 
-    print(f"After dataprep for text: {len(dataset_text.df)}")
-    print(f"After dataprep for tables and charts: {len(dataset_struct.df)}")
+    print(f"After preprocessing text data: {len(dataset_text.df)}")
+    print(f"After preprocessing tables and charts: {len(dataset_struct.df)}")
 
     print(
         f"Redacted names and email address for text, tables and charts: {person_count, email_count}"
