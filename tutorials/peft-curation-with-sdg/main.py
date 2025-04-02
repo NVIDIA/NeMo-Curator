@@ -135,11 +135,11 @@ def semantic_dedupe(dataset):
         config=semdedup_config,
         input_column="text",
         id_column="id",
+        # Decides whether output of the module is a deduplicated dataset or the IDs of the duplicates
+        perform_removal=True,
     )
-    dedup_ids = semdup(dataset)
-    # When there are few duplicates we can compute the results to a list and use `isin`.
-    result = dataset.df[dataset.df["id"].isin(dedup_ids.df["id"].compute())]
-    return DocumentDataset(result)
+    result = semdup(dataset)
+    return result
 
 
 def run_curation_pipeline(
