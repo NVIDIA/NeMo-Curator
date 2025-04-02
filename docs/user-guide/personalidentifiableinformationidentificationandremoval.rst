@@ -168,6 +168,7 @@ After setting up a NIM endpoint, you can read, de-identify the dataset, and writ
 Let's walk through this code line by line:
 
 * ``modifier = AsyncLLMPiiModifier(...)`` creates an instance of ``AsyncLLMPiiModifier`` class that is responsible for PII de-identification.
+* ``model="meta/llama-3.1-70b-instruct"`` specifies the LLM model to use. ``AsyncLLMPiiModifier`` requires LLMs that support the OpenAI chat message format (i.e., system, user, and assistant roles). Examples include instruct-tuned versions of Meta's LLaMA ("meta/llama-3.1-70b-instruct" is the default model used by ``AsyncLLMPiiModifier``) and OpenAI's GPT models (such as "gpt-4o").
 * ``pii_labels=["name", "email"]`` specifies the PII entities that the ``AsyncLLMPiiModifier`` will identify and redact. By default, the ``AsyncLLMPiiModifier`` will identify and redact the following entities:
 ::
 
