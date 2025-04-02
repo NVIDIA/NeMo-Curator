@@ -302,6 +302,7 @@ class TestLSH:
 @pytest.mark.gpu
 class TestFuzzyDuplicates:
     @pytest.mark.parametrize("use_64_bit_hash", [False, True])
+    @pytest.mark.parametrize("perform_removal", [True, False])
     @pytest.mark.parametrize(
         "num_buckets,jaccard_threshold,duplicate_docs",
         # Duplcated docs estimated from true_jaccard values
@@ -315,6 +316,7 @@ class TestFuzzyDuplicates:
         self,
         fuzzy_dedup_data,
         use_64_bit_hash,
+        perform_removal,
         num_buckets,
         jaccard_threshold,
         duplicate_docs,
@@ -338,20 +340,24 @@ class TestFuzzyDuplicates:
             num_anchors=2,
             jaccard_threshold=jaccard_threshold,
         )
-        fuzzy_duplicates = FuzzyDuplicates(config=config, perform_removal=False)
-        result = fuzzy_duplicates.identify_duplicates(fuzzy_dedup_data)
+        fuzzy_duplicates = FuzzyDuplicates(
+            config=config, perform_removal=perform_removal
+        )
+        result = fuzzy_duplicates(fuzzy_dedup_data)
         result_df = result.df.compute()
-        # Drop non duplicated docs
-        result_df = result_df[result_df.group.duplicated(keep=False)]
-        result_df = result_df.groupby("group").id.agg(list)
-        # Sort to maintain uniform ordering
-
-        result_df = result_df.list.sort_values()
-        result_df = result_df.sort_values()
-        expected_df = cudf.Series(duplicate_docs, name="id")
-        expected_df = expected_df.list.sort_values()
-        expected_df = expected_df.sort_values()
-        assert_eq(expected_df, result_df, check_index=False)
+        if perform_removal:
+            for duplicates in duplicate_docs:
+                assert len(result_df[result_df["id"].isin(duplicates)]) == 1
+        else:
+            result_df = result_df[result_df.group.duplicated(keep=False)]
+            result_df = result_df.groupby("group").id.agg(list)
+            # Sort to maintain uniform ordering
+            result_df = result_df.list.sort_values()
+            result_df = result_df.sort_values()
+            expected_df = cudf.Series(duplicate_docs, name="id")
+            expected_df = expected_df.list.sort_values()
+            expected_df = expected_df.sort_values()
+            assert_eq(expected_df, result_df, check_index=False)
 
     def test_different_fields(self, fuzzy_dedup_data, tmpdir):
         fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True).rename(

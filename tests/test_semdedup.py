@@ -613,7 +613,7 @@ class TestSemanticDedupWithoutEmbeddingCreation:
 
     @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
     @pytest.mark.parametrize("sim_metric", ["cosine", "l2"])
-    def test_sematnic_cluster_level_dedup(self, tmpdir, which_to_keep, sim_metric):
+    def test_semantic_cluster_level_dedup(self, tmpdir, which_to_keep, sim_metric):
         clustering_output_dir = os.path.join(tmpdir, "clustering_output")
         semantic_extraction_output_dir = os.path.join(tmpdir, "extraction")
         # Initialize ClusteringModel
