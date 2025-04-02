@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import os
 import time
 
 from retriever_hardnegative_miner import HardNegativeMiner
