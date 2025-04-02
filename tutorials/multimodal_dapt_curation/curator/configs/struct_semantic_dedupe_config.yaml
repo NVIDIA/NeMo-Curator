@@ -1,5 +1,5 @@
 # Configuration file for semdantic dedup
-cache_dir: "/home/ruchaa/projects/nvingest_curator_tutorial/NeMo-Curator/tutorials/multimodal_dapt_curation/code/workspace/semdedup_cache/struct" #"workspace/semdedup_cache/struct"
+cache_dir: "workspace/semdedup_cache/struct"
 num_files: 16
 
 # Embeddings configuration
