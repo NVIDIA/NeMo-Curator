@@ -347,7 +347,6 @@ def main():
 
     text_ddf, image_ddf, struct_ddf = process_data(data_type_map)
     run_text_curation_pipeline(args, text_ddf, struct_ddf)
-    # run_image_curation_pipeline(args, image_ddf)
 
 
 if __name__ == "__main__":
