@@ -207,7 +207,9 @@ class ClusteringModel:
                 )
                 self.fs.rm(embeddings_by_nearest_center_dir, recursive=True)
 
-            # TODO see if we have to create the directory
+            expand_outdir_and_mkdir(
+                embeddings_by_nearest_center_dir, self.storage_options, self.fs
+            )
             embeddings_df.map_partitions(
                 lambda df: df.to_parquet(
                     embeddings_by_nearest_center_dir,
@@ -228,7 +230,7 @@ class ClusteringModel:
         # We read this way to ensure each cluster is read in a single partition
         # This allows us to perform pairwise similarity within the cluster
         fps = [
-            os.path.join(self.clustering_output_dir, f"nearest_cent={i}")
+            os.path.join(embeddings_by_nearest_center_dir, f"nearest_cent={i}")
             for i in range(self.n_clusters)
         ]
         embeddings_df = dd.from_map(

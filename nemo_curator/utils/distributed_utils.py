@@ -20,7 +20,6 @@ import subprocess
 import dask
 
 from nemo_curator._compat import DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA
-from nemo_curator.utils.file_utils import get_fs
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import random
@@ -442,6 +441,7 @@ def read_data_blocksize(
                 # only returns those columns, we explicitly set `columns` here
                 columns = list(read_kwargs["dtype"].keys())
         if add_filename:
+            from nemo_curator.utils.file_utils import get_fs
             fs = get_fs(input_files[0], storage_options)
 
             def extract_filename(path: str) -> str:
@@ -865,6 +865,7 @@ def _single_partition_write_to_simple_bitext(
     # Skip file creation for empty partitions
     if empty_partition:
         return success_ser
+    from nemo_curator.utils.file_utils import get_fs
 
     fs = get_fs(output_file_path, storage_options)
 
@@ -902,6 +903,8 @@ def _merge_tmp_simple_bitext_partitions(
                 with suffixes that looks like "file.1", "file.2" that shows the merging order
         output_file_path (str): dir to write output files
     """
+    from nemo_curator.utils.file_utils import get_fs
+
     fs = get_fs(tmp_output_dir, storage_options)
     sorted_tmp_files = sorted(
         fs.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1])
@@ -992,6 +995,8 @@ def write_to_disk(
         output_meta = pd.Series([True], dtype="bool")
 
     # output_path is a directory
+    from nemo_curator.utils.file_utils import get_fs
+
     if write_to_filename and output_type != "bitext":
         fs = get_fs(output_path, storage_options)
         fs.makedirs(output_path, exist_ok=True)
@@ -1056,6 +1061,7 @@ def _write_to_jsonl_or_parquet(
     partition_on: Optional[str] = None,
     storage_options: Optional[Dict[str, str]] = None,
 ):
+    from nemo_curator.utils.file_utils import get_fs
     fs = get_fs(output_path, storage_options)
     if output_type == "jsonl":
         if partition_on is not None:
