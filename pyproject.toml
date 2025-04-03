@@ -96,7 +96,7 @@ cuda12x_nightly = [
 ]
 s3 = [
     "s3fs",
-    "aiobotocore>=2.4.2", 
+    "aiobotocore>=2.4.2",
 ]
 azure = [
     "adlfs",
