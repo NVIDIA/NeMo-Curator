@@ -1,17 +1,25 @@
+import asyncio
+import logging
+
+import pandas as pd
+from openai import OpenAI
+from tqdm import tqdm
+from transformers import AutoTokenizer
+
 from nemo_curator import (
-    DocumentSplitter,
     DocumentJoiner,
-    Sequential,
-    ScoreFilter,
-    Modify,
+    DocumentSplitter,
     Filter,
+    Modify,
+    ScoreFilter,
+    Sequential,
 )
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import TokenCountFilter, SubstringFilter
+from nemo_curator.filters import SubstringFilter, TokenCountFilter
 from nemo_curator.modifiers import (
-    QuotationRemover,
     LineRemover,
     MarkdownRemover,
+    QuotationRemover,
     Slicer,
 )
 from nemo_curator.services import AsyncOpenAIClient
@@ -20,22 +28,15 @@ from nemo_curator.synthetic import (
     NemotronCCKnowledgeListPostprocessor,
 )
 from nemo_curator.synthetic.async_nemotron_cc import AsyncNemotronCCGenerator
-
-from transformers import AutoTokenizer
-from openai import OpenAI
-import pandas as pd
 from nemo_curator.synthetic.prompts import (
-    NEMOTRON_CC_SYSTEM_PROMPT,
-    WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
-    DIVERSE_QA_PROMPT_TEMPLATE,
     DISTILL_PROMPT_TEMPLATE,
+    DIVERSE_QA_PROMPT_TEMPLATE,
     EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
     KNOWLEDGE_LIST_PROMPT_TEMPLATE,
     NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
+    NEMOTRON_CC_SYSTEM_PROMPT,
+    WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
 )
-from tqdm import tqdm
-import asyncio
-import logging
 
 
 def get_prefix_token_count(
@@ -188,7 +189,7 @@ async def wikipedia_rephraser(
     text_field: str,
     openai_client: OpenAI,
     tokenizer: AutoTokenizer,
-    api_model_name: str
+    api_model_name: str,
 ) -> DocumentDataset:
     client = AsyncOpenAIClient(openai_client)
     generator = AsyncNemotronCCGenerator(client)
@@ -244,21 +245,21 @@ async def wikipedia_rephraser(
     # Create tasks for all texts with progress tracking
     print("Creating Async tasks for all texts")
     tasks = [process_text(text) for text in pandas_df[text_field]]
-    
+
     # Run all tasks concurrently with asyncio
     print("Starting concurrent processing of texts")
     try:
         # Remove return_exceptions from tqdm_asyncio.gather() since it's not supported
         from tqdm.asyncio import tqdm_asyncio
+
         rewritten_texts = await tqdm_asyncio.gather(*tasks, desc="Processing texts")
     except Exception as e:
         print(f"Error during async gathering: {str(e)}")
         rewritten_texts = [None] * len(tasks)
-        
+
     # Handle any exceptions that occurred during gathering
     rewritten_texts = [
-        result if result is not None else None 
-        for result in rewritten_texts
+        result if result is not None else None for result in rewritten_texts
     ]
     print(f"Completed processing {len(rewritten_texts)} texts")
 
@@ -456,7 +457,7 @@ async def generate_content(
     tokenizer: AutoTokenizer,
     api_model_name: str,
     task_type: str,
-)->DocumentDataset:
+) -> DocumentDataset:
     """
     Generates content based on the specified task type.
 
@@ -476,7 +477,7 @@ async def generate_content(
     client = AsyncOpenAIClient(openai_client)
     nemotron_cc = AsyncNemotronCCGenerator(client)
     llm_response_field = task_type
-    
+
     # Define configurations for different task types
     task_configs = {
         "distill": {
@@ -529,7 +530,7 @@ async def generate_content(
         "TOP_K": 0,
         "TOP_P": 0.9,
         "END_STRINGS": "['</s>']",
-        "TEMPERATURE": 0.5
+        "TEMPERATURE": 0.5,
     }
 
     task_config = task_configs.get(task_type)
@@ -550,9 +551,10 @@ async def generate_content(
     dataset = preprocessing_pipeline(dataset)
 
     pandas_df = dataset.df.compute()
-    
+
     # Process with pandas
     rewritten_texts = []
+
     async def process_text(text):
         try:
             llm_response = await task_config["generation_function"](
@@ -573,26 +575,25 @@ async def generate_content(
 
     # Create tasks for all texts
     tasks = [process_text(text) for text in pandas_df[text_field]]
-    
+
     # Run all tasks concurrently with asyncio
     try:
         rewritten_texts = await asyncio.gather(*tasks, return_exceptions=True)
         # Handle any exceptions that occurred during gathering
         rewritten_texts = [
-            result if not isinstance(result, Exception) else None 
+            result if not isinstance(result, Exception) else None
             for result in rewritten_texts
         ]
     except Exception as e:
         print(f"Error during async gathering: {str(e)}")
         rewritten_texts = [None] * len(tasks)
-    
+
     # Assign new column in pandas
     pandas_df[llm_response_field] = rewritten_texts
-    
+
     # Convert back to Dask
     rephrased_dataset = DocumentDataset.from_pandas(pandas_df)
 
-    
     if task_type == "diverse_qa":
         postprocessed_pipeline = task_config["postprocessing_pipeline_builder"](
             tokenizer, text_field, llm_response_field
