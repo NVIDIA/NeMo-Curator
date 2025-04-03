@@ -286,7 +286,6 @@ class TestFilterModule:
         assert all_equal(
             expected_data, filtered_data
         ), f"Expected {expected_data} but got {filtered_data}"
-    
 
     def test_invert(self, letter_count_data):
         letter_filter = LetterCountFilter()

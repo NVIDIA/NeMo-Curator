@@ -114,7 +114,7 @@ class Filter(BaseModule):
         Constructs a Filter module
 
         Args:
-          filter_fn (Callable | DocumentFilter): A function that returns True if the document is to be kept or a DocumentFilter object, 
+          filter_fn (Callable | DocumentFilter): A function that returns True if the document is to be kept or a DocumentFilter object,
           in which case the filter_fn will be the keep_document method of the DocumentFilter.
           filter_field (str): The field(s) to be passed into the filter function.
           invert (bool): Whether to invert the filter condition.
