@@ -12,24 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
-import pathlib
 import shutil
 import tempfile
 import warnings
-from functools import reduce
 from unittest.mock import MagicMock, mock_open, patch
 
-import dask.bag as db
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import pytest
-from dask import delayed
 
 from nemo_curator.utils.file_utils import (
-    NEMO_CURATOR_HOME,
     _save_jsonl,
     _update_filetype,
     expand_outdir_and_mkdir,
@@ -38,7 +31,6 @@ from nemo_curator.utils.file_utils import (
     get_batched_files,
     get_remaining_files,
     merge_counts,
-    mkdir,
     parse_str_of_num_bytes,
     remove_path_extension,
     reshard_jsonl,
@@ -58,19 +50,6 @@ def temp_dir():
 
 class TestBasicFileUtils:
     """Tests for basic file utility functions."""
-
-    def test_mkdir(self, temp_dir):
-        """Test that mkdir creates directories."""
-        test_dir = os.path.join(temp_dir, "test_directory")
-        mkdir(test_dir)
-        assert os.path.exists(test_dir)
-        assert os.path.isdir(test_dir)
-
-        # Test with nested directory
-        nested_dir = os.path.join(test_dir, "nested", "directory")
-        mkdir(nested_dir)
-        assert os.path.exists(nested_dir)
-        assert os.path.isdir(nested_dir)
 
     def test_expand_outdir_and_mkdir(self, temp_dir):
         """Test that expand_outdir_and_mkdir expands paths and creates directories."""

@@ -270,5 +270,5 @@ def write_pruned_summary_file(
         "removed": [removed],
         "total": [total],
     }
-    df = pd.DataFrame(result_dict)
+    df = cudf.DataFrame(result_dict)
     df.to_csv(output_summary_file, index=False, storage_options=storage_options)
