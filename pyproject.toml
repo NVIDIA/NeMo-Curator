@@ -94,6 +94,13 @@ cuda12x_nightly = [
     "dask-cudf-cu12>=25.04.0a0,<=25.04",
     "spacy[cuda12x]>=3.6.0, <3.8.0",
 ]
+s3 = [
+    "s3fs",
+    "aiobotocore>=2.4.2", 
+]
+azure = [
+    "adlfs",
+]
 # Installs CPU + GPU text and image curation modules
 image = [
     "nvidia-dali-cuda120",
