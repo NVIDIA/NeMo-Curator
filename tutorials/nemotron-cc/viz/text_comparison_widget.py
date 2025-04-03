@@ -3,7 +3,7 @@ from IPython.display import display, HTML
 import uuid
 
 def text_comparison_widget(df, id_column='id', col1='original_text', col2='processed_text', 
-                          title1=None, title2=None, max_height='400px', width='100%', theme='nvidia'):
+                          title1=None, title2=None, max_height='400px', width='100%'):
     """
     Create a beautiful, scrollable side-by-side comparison of two text columns from a DataFrame.
     
@@ -25,8 +25,6 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
         The maximum height of each text cell
     width : str, default='100%'
         The width of the comparison table
-    theme : str, default='dark'
-        UI theme: 'light', 'dark', 'blue', or 'custom'
         
     Returns:
     --------
@@ -42,25 +40,25 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
     
     # Define theme colors
     themes = {
-        'dark': {
-            'bg': '#2d3748',
-            'header_bg': '#1a202c',
-            'border': '#4a5568',
-            'id_bg': '#2d3748',
-            'text_bg': '#2d3748',
-            'text_color': '#e2e8f0',
-            'header_text': '#a0aec0',
-            'hover': '#384860',
-            'button_bg': '#4a5568',
-            'button_hover': '#718096',
-            'button_text': '#e2e8f0',
-            'scrollbar_track': '#2d3748',
-            'scrollbar_thumb': '#4a5568'
+        'nvidia': {
+            'bg': '#202020',
+            'header_bg': '#151515',
+            'border': '#538300',
+            'id_bg': '#202020',
+            'text_bg': '#282828',
+            'text_color': '#E0E0E0',
+            'header_text': '#76B900',
+            'hover': '#303030',
+            'button_bg': '#538300',
+            'button_hover': '#76B900',
+            'button_text': '#FFFFFF',
+            'scrollbar_track': '#252525',
+            'scrollbar_thumb': '#538300'
         }
     }
     
     # Use the selected theme (default to dark if invalid)
-    colors = themes.get(theme.lower(), themes['dark'])
+    colors = themes['nvidia']
     
     # Create HTML for the comparison
     html_code = f"""
@@ -340,7 +338,7 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
 
 
 def compare_row_by_id(df, row_id, id_column='id', col1='original_text', col2='processed_text', 
-                     title1=None, title2=None, max_height='400px', width='100%', theme='nvidia'):
+                     title1=None, title2=None, max_height='400px', width='100%'):
     """
     Create a scrollable side-by-side comparison of two text columns for a specific row ID.
     
@@ -364,8 +362,6 @@ def compare_row_by_id(df, row_id, id_column='id', col1='original_text', col2='pr
         The maximum height of each text cell
     width : str, default='100%'
         The width of the comparison table
-    theme : str, default='nvidia'
-        
     Returns:
     --------
     IPython.display.HTML
@@ -377,4 +373,5 @@ def compare_row_by_id(df, row_id, id_column='id', col1='original_text', col2='pr
     if len(filtered_df) == 0:
         return HTML(f'<div style="padding: 16px; background-color: #fee2e2; color: #b91c1c; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif;">No row found with {id_column} = {row_id}</div>')
     
-    return text_comparison_widget(filtered_df, id_column, col1, col2, title1, title2, max_height, width, theme)
+    return text_comparison_widget(filtered_df, id_column, col1, col2, title1, title2, max_height, width)
+
