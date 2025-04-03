@@ -201,15 +201,12 @@ class ClusteringModel:
             embeddings_by_nearest_center_dir = os.path.join(
                 self.clustering_output_dir, "embs_by_nearest_center"
             )
-            if os.path.exists(embeddings_by_nearest_center_dir):
+            if self.fs.exists(embeddings_by_nearest_center_dir):
                 self.logger.warning(
                     f"Output directory {embeddings_by_nearest_center_dir} already exists and will be overwritten"
                 )
                 self.fs.rm(embeddings_by_nearest_center_dir, recursive=True)
 
-            expand_outdir_and_mkdir(
-                embeddings_by_nearest_center_dir, self.storage_options, self.fs
-            )
             embeddings_df.map_partitions(
                 lambda df: df.to_parquet(
                     embeddings_by_nearest_center_dir,
