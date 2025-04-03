@@ -442,6 +442,7 @@ def read_data_blocksize(
                 columns = list(read_kwargs["dtype"].keys())
         if add_filename:
             from nemo_curator.utils.file_utils import get_fs
+
             fs = get_fs(input_files[0], storage_options)
 
             def extract_filename(path: str) -> str:
@@ -1062,6 +1063,7 @@ def _write_to_jsonl_or_parquet(
     storage_options: Optional[Dict[str, str]] = None,
 ):
     from nemo_curator.utils.file_utils import get_fs
+
     fs = get_fs(output_path, storage_options)
     if output_type == "jsonl":
         if partition_on is not None:
