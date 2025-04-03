@@ -14,12 +14,12 @@
 
 import os
 from functools import wraps
-from typing import Any, Callable, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import dask.dataframe as dd
 
 from nemo_curator.utils.distributed_utils import read_data, write_to_disk
-from nemo_curator.utils.file_utils import get_all_files_paths_under
+from nemo_curator.utils.file_utils import get_all_files_paths_under, get_fs
 
 
 class DocumentDataset:
@@ -55,6 +55,7 @@ class DocumentDataset:
         add_filename: Union[bool, str] = False,
         input_meta: Optional[Union[str, dict]] = None,
         columns: Optional[List[str]] = None,
+        storage_options: Optional[Dict[str, str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
         """
@@ -82,6 +83,7 @@ class DocumentDataset:
                 blocksize=blocksize,
                 input_meta=input_meta,
                 columns=columns,
+                storage_options=storage_options,
                 **kwargs,
             )
         )
@@ -95,6 +97,7 @@ class DocumentDataset:
         blocksize: Optional[str] = "1gb",
         add_filename: Union[bool, str] = False,
         columns: Optional[List[str]] = None,
+        storage_options: Optional[Dict[str, str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
         """
@@ -120,6 +123,7 @@ class DocumentDataset:
                 files_per_partition=files_per_partition,
                 blocksize=blocksize,
                 columns=columns,
+                storage_options=storage_options,
                 **kwargs,
             )
         )
@@ -130,6 +134,7 @@ class DocumentDataset:
         input_files: Union[str, List[str]],
         backend: Literal["pandas", "cudf"] = "pandas",
         columns: Optional[List[str]] = None,
+        storage_options: Optional[Dict[str, str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
         """
@@ -151,6 +156,7 @@ class DocumentDataset:
                 file_type="pickle",
                 backend=backend,
                 columns=columns,
+                storage_options=storage_options,
                 **kwargs,
             )
         )
@@ -169,6 +175,7 @@ class DocumentDataset:
         add_filename: Union[bool, str] = False,
         columns: Optional[List[str]] = None,
         input_meta: Union[str, dict] = None,
+        storage_options: Optional[Dict[str, str]] = None,
         **kwargs,
     ) -> "DocumentDataset":
         """
@@ -207,6 +214,7 @@ class DocumentDataset:
                     root=input_files,
                     recurse_subdirectories=False,
                     keep_extensions=[file_type],
+                    storage_options=storage_options,
                 )
         elif isinstance(input_files, list):
             files = input_files
@@ -222,6 +230,7 @@ class DocumentDataset:
                 columns=columns,
                 input_meta=input_meta,
                 read_func_single_partition=read_func_single_partition,
+                storage_options=storage_options,
                 **kwargs,
             )
         )
@@ -232,6 +241,7 @@ class DocumentDataset:
         write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
         partition_on: Optional[str] = None,
+        storage_options: Optional[Dict[str, str]] = None,
     ):
         """
         Writes the dataset to the specified path in JSONL format.
@@ -262,6 +272,7 @@ class DocumentDataset:
             keep_filename_column=keep_filename_column,
             partition_on=partition_on,
             output_type="jsonl",
+            storage_options=storage_options,
         )
 
     def to_parquet(
@@ -270,6 +281,7 @@ class DocumentDataset:
         write_to_filename: Union[bool, str] = False,
         keep_filename_column: bool = False,
         partition_on: Optional[str] = None,
+        storage_options: Optional[Dict[str, str]] = None,
     ):
         """
         Writes the dataset to the specified path in Parquet format.
@@ -300,6 +312,7 @@ class DocumentDataset:
             keep_filename_column=keep_filename_column,
             partition_on=partition_on,
             output_type="parquet",
+            storage_options=storage_options,
         )
 
     def to_pickle(
@@ -337,7 +350,7 @@ class DocumentDataset:
             )
         )
 
-    def to_pandas(self):
+    def to_pandas(self) -> "pd.DataFrame":
         """
         Creates a pandas dataframe from a DocumentDataset
 
@@ -356,6 +369,7 @@ def _read_json_or_parquet(
     blocksize: Optional[str] = None,
     input_meta: Union[str, dict] = None,
     columns: Optional[List[str]] = None,
+    storage_options: Optional[Dict[str, str]] = None,
     **kwargs,
 ):
     """
@@ -376,10 +390,10 @@ def _read_json_or_parquet(
 
     """
     file_ext = "." + file_type
-
     if isinstance(input_files, list):
+        fs = get_fs(input_files[0], storage_options)
         # List of files
-        if all(os.path.isfile(f) for f in input_files):
+        if all(fs.isfile(f) for f in input_files):
             raw_data = read_data(
                 input_files,
                 file_type=file_type,
@@ -389,6 +403,7 @@ def _read_json_or_parquet(
                 add_filename=add_filename,
                 input_meta=input_meta,
                 columns=columns,
+                storage_options=storage_options,
                 **kwargs,
             )
 
@@ -398,7 +413,7 @@ def _read_json_or_parquet(
 
             for data_path in input_files:
                 files = get_all_files_paths_under(
-                    root=data_path, recurse_subdirectories=False
+                    root=data_path, recurse_subdirectories=False, fs=fs
                 )
                 df = read_data(
                     files,
@@ -409,6 +424,7 @@ def _read_json_or_parquet(
                     add_filename=add_filename,
                     input_meta=input_meta,
                     columns=columns,
+                    storage_options=storage_options,
                     **kwargs,
                 )
                 dfs.append(df)
@@ -423,7 +439,9 @@ def _read_json_or_parquet(
         # Directory of jsonl or parquet files
         else:
             files = get_all_files_paths_under(
-                root=input_files, recurse_subdirectories=False
+                root=input_files,
+                recurse_subdirectories=False,
+                storage_options=storage_options,
             )
 
         raw_data = read_data(
@@ -435,6 +453,7 @@ def _read_json_or_parquet(
             add_filename=add_filename,
             input_meta=input_meta,
             columns=columns,
+            storage_options=storage_options,
             **kwargs,
         )
 

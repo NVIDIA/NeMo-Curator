@@ -17,7 +17,7 @@ import logging
 import os
 import shutil
 import time
-from typing import Literal, Optional, Union
+from typing import Dict, Literal, Optional, Union
 
 import dask.bag as db
 import dask.dataframe as dd
@@ -25,7 +25,7 @@ import dask.dataframe as dd
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
-from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir, get_fs
 from nemo_curator.utils.semdedup_utils import (
     get_semantic_matches_per_cluster,
     prune_single_cluster,
@@ -46,6 +46,7 @@ class SemanticClusterLevelDedup:
         batched_cosine_similarity: int = 1024,
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
+        storage_options: Optional[Dict[str, str]] = None,
     ) -> None:
         """
         Initialize the SemanticClusterLevelDedup class.
@@ -73,6 +74,8 @@ class SemanticClusterLevelDedup:
                 Default is "./".
             profile_dir (Optional[str]): If specified, directory to write Dask profile.
                 Default is None.
+            storage_options (Optional[Dict[str, str]]): Storage options for the file system.
+                Default is None.
 
         """
         self.n_clusters = n_clusters
@@ -89,6 +92,8 @@ class SemanticClusterLevelDedup:
         self.batched_cosine_similarity = batched_cosine_similarity
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
+        self.storage_options = storage_options
+        self.fs = get_fs(self.output_dir, self.storage_options)
 
     def _setup_logger(self, logger: Union[logging.Logger, str]) -> logging.Logger:
         """
@@ -112,12 +117,14 @@ class SemanticClusterLevelDedup:
             return logger
 
     def compute_semantic_match_dfs(self) -> None:
-        if os.path.exists(self.semdedup_pruning_tables_dir):
+        if self.fs.exists(self.semdedup_pruning_tables_dir):
             self.logger.info(
                 f"Removing existing directory {self.semdedup_pruning_tables_dir}"
             )
-            shutil.rmtree(self.semdedup_pruning_tables_dir)
-        expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
+            self.fs.rm(self.semdedup_pruning_tables_dir, recursive=True)
+        expand_outdir_and_mkdir(
+            self.semdedup_pruning_tables_dir, self.storage_options, self.fs
+        )
         t0 = time.time()
 
         with performance_report_if_with_ts_suffix(
@@ -135,6 +142,7 @@ class SemanticClusterLevelDedup:
                     which_to_keep=self.which_to_keep,
                     sim_metric=self.sim_metric,
                     batched_cosine_similarity=self.batched_cosine_similarity,
+                    storage_options=self.storage_options,
                 )
             )
             tasks.compute()
@@ -172,6 +180,7 @@ class SemanticClusterLevelDedup:
                 emb_by_clust_dir=self.emb_by_clust_dir,
                 semdedup_pruning_tables_dir=self.semdedup_pruning_tables_dir,
                 eps=eps_to_extract,
+                storage_options=self.storage_options,
             )
             results_df.to_parquet(output_parquet_path, index=False, ignore_index=True)
             self.logger.info(
@@ -188,7 +197,11 @@ class SemanticClusterLevelDedup:
             filtered_unique_ids_path=output_parquet_path,
             output_summary_file=output_summary_file,
             logger=self.logger,
+            storage_options=self.storage_options,
         )
         return DocumentDataset.read_parquet(
-            output_parquet_path, blocksize="1gb", backend="cudf"
+            output_parquet_path,
+            blocksize="1gb",
+            backend="cudf",
+            storage_options=self.storage_options,
         )

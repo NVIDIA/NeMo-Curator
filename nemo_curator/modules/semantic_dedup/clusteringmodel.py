@@ -15,9 +15,8 @@
 
 import logging
 import os
-import shutil
 import time
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import cudf
 import cupy as cp
@@ -28,7 +27,7 @@ from cuml.dask.cluster import KMeans
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
-from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+from nemo_curator.utils.file_utils import expand_outdir_and_mkdir, get_fs
 from nemo_curator.utils.semdedup_utils import (
     COSINE_DIST_TO_CENT_COL,
     L2_DIST_TO_CENT_COL,
@@ -51,6 +50,7 @@ class ClusteringModel:
         clustering_input_partition_size: Optional[str] = "2gb",
         logger: Union[logging.Logger, str] = "./",
         profile_dir: Optional[str] = None,
+        storage_options: Optional[Dict[str, str]] = None,
     ):
         """
         Initializes the ClusteringModel with the provided settings for semantic clustering to help semantic deduplication.
@@ -73,7 +73,8 @@ class ClusteringModel:
                 Default is "./".
             profile_dir (Optional[str]): If specified, directory to write Dask profile.
                 Default is None.
-
+            storage_options (Optional[Dict[str, str]]): Storage options for the file system.
+                Default is None.
         """
         self.id_col = id_column
         self.max_iter = max_iter
@@ -84,9 +85,13 @@ class ClusteringModel:
         self.clustering_input_partition_size = clustering_input_partition_size
         self.logger = self._setup_logger(logger)
         self.profile_dir = profile_dir
+        self.storage_options = storage_options
+        self.fs = get_fs(self.clustering_output_dir, self.storage_options)
 
-        if not os.path.exists(self.clustering_output_dir):
-            expand_outdir_and_mkdir(self.clustering_output_dir)
+        if not self.fs.exists(self.clustering_output_dir):
+            expand_outdir_and_mkdir(
+                self.clustering_output_dir, self.storage_options, self.fs
+            )
         else:
             self.logger.warning(
                 f"Clustering output directory {self.clustering_output_dir} already exists and will be overwritten"
@@ -187,37 +192,45 @@ class ClusteringModel:
             kmeans_centroids_file = os.path.join(
                 self.clustering_output_dir, "kmeans_centroids.npy"
             )
-            np.save(kmeans_centroids_file, centroids)
+            with self.fs.open(kmeans_centroids_file, "wb") as f:
+                np.save(f, centroids)
             self.logger.info("Saving centroids complete")
             del kmeans, cupy_normalized_darr, centroids
 
             # Save embeddings by nearest center to a file
-            clustering_output_dir = os.path.join(
+            embeddings_by_nearest_center_dir = os.path.join(
                 self.clustering_output_dir, "embs_by_nearest_center"
             )
-            if os.path.exists(clustering_output_dir):
+            if self.fs.exists(embeddings_by_nearest_center_dir):
                 self.logger.warning(
-                    f"Output directory {clustering_output_dir} already exists and will be overwritten"
+                    f"Output directory {embeddings_by_nearest_center_dir} already exists and will be overwritten"
                 )
-                shutil.rmtree(clustering_output_dir)
+                self.fs.rm(embeddings_by_nearest_center_dir, recursive=True)
 
-            embeddings_df.to_parquet(
-                clustering_output_dir,
-                index=False,
-                partition_on="nearest_cent",
-                write_index=False,
-            )
+            embeddings_df.map_partitions(
+                lambda df: df.to_parquet(
+                    embeddings_by_nearest_center_dir,
+                    index=False,
+                    partition_cols=["nearest_cent"],
+                    storage_options=self.storage_options,
+                ),
+                # we specify meta to allow skipping _meta_nonempty
+                meta=dict(),
+            ).compute()
+
             self.logger.info(
                 f"Time taken for assigning distance to each embedding: {time.time() - t0}s"
-                f" and output written at {clustering_output_dir}"
+                f" and output written at {embeddings_by_nearest_center_dir}"
             )
 
             del embeddings_df
         # We read this way to ensure each cluster is read in a single partition
         # This allows us to perform pairwise similarity within the cluster
         fps = [
-            os.path.join(clustering_output_dir, f"nearest_cent={i}")
+            os.path.join(embeddings_by_nearest_center_dir, f"nearest_cent={i}")
             for i in range(self.n_clusters)
         ]
-        embeddings_df = dd.from_map(cudf.read_parquet, fps)
+        embeddings_df = dd.from_map(
+            cudf.read_parquet, fps, storage_options=self.storage_options
+        )
         return DocumentDataset(embeddings_df)
