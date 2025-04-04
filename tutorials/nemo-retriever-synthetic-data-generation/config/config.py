@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import warnings
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Optional
 
-import yaml
 
 from nemo_curator.modules.config import BaseConfig
 

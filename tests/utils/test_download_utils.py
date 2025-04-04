@@ -13,15 +13,11 @@
 # limitations under the License.
 
 import json
-import os
-import subprocess
 import zlib
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
-from bs4 import BeautifulSoup
 
 from nemo_curator.utils.download_utils import (
     get_arxiv_urls,

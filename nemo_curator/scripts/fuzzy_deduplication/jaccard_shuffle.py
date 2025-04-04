@@ -25,9 +25,8 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def func():
-    import cudf
 
-    from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle
+    pass
 
 
 def main(args):

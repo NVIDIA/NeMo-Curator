@@ -37,7 +37,6 @@ def main(args):
     # Params
     multilingual_data_path = "/path/to/multilingual"
     language_separated_output_path = "/path/to/lang_separated"
-    cleaned_data_output_path = "/path/to/cleaned"
 
     # Download a fastText language identification model
     # and see a list of supported languages here:
@@ -46,7 +45,7 @@ def main(args):
     language_field = "language"
 
     # Prepare samples for the classifier
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     # Filter data
     multilingual_dataset = load_dataset(multilingual_data_path)
@@ -61,7 +60,7 @@ def main(args):
     )
 
     # Split the dataset by language
-    language_stats = separate_by_metadata(
+    separate_by_metadata(
         filtered_dataset.df,
         language_separated_output_path,
         metadata_field=language_field,

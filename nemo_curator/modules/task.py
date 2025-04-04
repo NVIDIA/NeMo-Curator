@@ -427,10 +427,9 @@ class TaskDecontamination(BaseModule):
                 text_buf_ngram_free.append(text)
 
         # check if the text has only been trimmed
-        trimmed = 0
         if len(text_buf_ngram_free) == 1:
             if len(text_buf_ngram_free[0]) < len(text):
-                trimmed = 1
+                pass
 
         return text_buf_ngram_free
 
@@ -482,7 +481,7 @@ class TaskDecontamination(BaseModule):
         punctuations = ".!?"
         pos = start_pos - remove_char_each_side
         text_first = ""
-        while pos > 0 and not text[pos] in punctuations:
+        while pos > 0 and text[pos] not in punctuations:
             pos -= 1
         if pos > 0:
             text_first = text[0 : pos + 1]
@@ -492,7 +491,7 @@ class TaskDecontamination(BaseModule):
 
         # last part of the text
         text_second = ""
-        while pos < len(text) and not text[pos] in punctuations:
+        while pos < len(text) and text[pos] not in punctuations:
             pos += 1
         if pos + 1 < len(text):
             text_second = text[pos + 1 : len(text)]

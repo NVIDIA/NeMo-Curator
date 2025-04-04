@@ -230,10 +230,10 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
 
     # Split the dataset by file category and save curated files (optional - to create blended datasets)
     print("Split dataset by metadata")
-    separated_data_text = separate_by_metadata(
+    separated_data_text = separate_by_metadata( # noqa: F841
         final_dataset_text.df, out_path, "category"
     ).compute()
-    separated_data_code = separate_by_metadata(
+    separated_data_code = separate_by_metadata( # noqa: F841
         final_dataset_code.df, out_path, "category"
     ).compute()
 

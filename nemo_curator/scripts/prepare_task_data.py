@@ -24,7 +24,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
     # Read in config file
     with open(args.task_config_file, "r") as config_file:
         task_params = yaml.load(config_file, Loader=yaml.FullLoader)

@@ -336,7 +336,7 @@ class TestFileExtensions:
         csv_file.to_csv(tmp_path / "csv_file.csv")
 
         with pytest.raises(RuntimeError):
-            doc = DocumentDataset.read_json(str(tmp_path))
+            DocumentDataset.read_json(str(tmp_path))
 
         input_files = get_all_files_paths_under(str(tmp_path), keep_extensions="jsonl")
         input_dataset = DocumentDataset.read_json(input_files)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Any, List, Union
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

@@ -143,7 +143,7 @@ def test_load_embedding_model(gpu_client):
         mock_create_model.return_value = mock_model
 
         # Call the method
-        model = embedder.load_embedding_model(device="cuda")
+        embedder.load_embedding_model(device="cuda")
 
         # Check that timm.create_model was called with correct args
         mock_create_model.assert_called_once_with("resnet18", pretrained=False)
@@ -198,12 +198,6 @@ def test_embedder_workflow(gpu_client):
     data_dir = str(sample_tar_path.parent)
 
     # Mock metadata for our dataset (would normally be read from parquet files)
-    metadata_dict = {
-        "id": ["0"],
-        "caption": [
-            "A wine bottle outfitted with two forks in its cork and a duck head on top."
-        ],
-    }
 
     # Create mock metadata DataFrame
     with (
@@ -241,7 +235,7 @@ def test_embedder_workflow(gpu_client):
             ) as mock_dataset_class,
         ):
             # Call the embedder
-            result = embedder(test_dataset)
+            embedder(test_dataset)
 
             # Check that map_partitions was called
             mock_metadata.map_partitions.assert_called_once()
@@ -305,7 +299,7 @@ def test_with_disabled_autocast(gpu_client):
 
         # Call the configured forward method
         test_input = torch.ones((2, 3, 224, 224), device="cuda")
-        output = configured_model.forward(test_input)
+        configured_model.forward(test_input)
 
         # Verify that autocast wasn't called
         mock_autocast.assert_not_called()

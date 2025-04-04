@@ -15,23 +15,17 @@
 import argparse
 import importlib
 import os
-import shutil
 import time
-from typing import Any, List
+from typing import Any
 
-import numpy as np
-from dask.diagnostics import ProgressBar
-from dask.distributed import progress
 from retriever_evalset_generator import RetrieverEvalSetGenerator
 
-from nemo_curator import AsyncOpenAIClient, ScoreFilter, Sequential, get_client
+from nemo_curator import ScoreFilter, Sequential, get_client
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import (
     AnswerabilityFilter,
     EasinessFilter,
-    NonAlphaNumericFilter,
 )
-from nemo_curator.modules.filter import Score, ScoreFilter
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 config = importlib.import_module(

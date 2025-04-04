@@ -33,7 +33,7 @@ def main(args):
     st = time.time()
     output_path = os.path.join(args.output_dir, "connected_components.parquet")
     args.enable_spilling = True
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     components_stage = ConnectedComponents(
         cache_dir=args.cache_dir,

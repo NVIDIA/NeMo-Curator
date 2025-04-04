@@ -12,24 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
-import pathlib
 import shutil
 import tempfile
 import warnings
-from functools import reduce
 from unittest.mock import MagicMock, mock_open, patch
 
-import dask.bag as db
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import pytest
-from dask import delayed
 
 from nemo_curator.utils.file_utils import (
-    NEMO_CURATOR_HOME,
     _save_jsonl,
     _update_filetype,
     expand_outdir_and_mkdir,
@@ -160,7 +153,7 @@ class TestFileFiltering:
             "file5.jsonl",
         ]
         with warnings.catch_warnings(record=True) as w:
-            result = filter_files_by_extension(files, "txt")
+            filter_files_by_extension(files, "txt")
             assert len(w) == 1
             assert "Skipped at least one file" in str(w[0].message)
 
@@ -710,7 +703,6 @@ class TestDataFrameUtils:
                     mock_delayed.assert_called_with(mock_reduce)
 
                     # Verify that delayed_reduce_mock was called with the expected arguments
-                    frequencies = {"A": 1, "B": 1}  # After None is removed
                     delayed_reduce_mock.assert_called_once()
 
                     # Verify the result
@@ -738,7 +730,7 @@ class TestDataFrameUtils:
                 with patch("nemo_curator.utils.file_utils.delayed") as mock_delayed:
                     with patch(
                         "nemo_curator.utils.file_utils.expand_outdir_and_mkdir"
-                    ) as mock_expand:
+                    ):
                         # Set up the mocks
                         mock_get_files.return_value = ["file1.parquet", "file2.parquet"]
                         mock_df = MagicMock()

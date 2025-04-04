@@ -22,7 +22,6 @@ from pathlib import Path
 from unittest import mock
 
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import pytest
 import torch
@@ -890,7 +889,7 @@ class TestImageTextPairDatasetConversion:
             mock.patch.object(
                 ImageTextPairDataset, "_get_eligible_samples"
             ) as mock_get_eligible_samples,
-            mock.patch("fsspec.open", wraps=fsspec_open_wrapper) as mock_fsspec_open,
+            mock.patch("fsspec.open", wraps=fsspec_open_wrapper),
         ):
             # Extract real tar content
             with tarfile.open(temp_tar_path, "r") as tar:

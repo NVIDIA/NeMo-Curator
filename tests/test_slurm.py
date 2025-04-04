@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -143,7 +142,7 @@ class TestSlurmJobConfig:
             mock_run.Script.return_value = mock_script
 
             # Don't add scheduler file or device arguments
-            script = basic_config.to_script(add_scheduler_file=False, add_device=False)
+            basic_config.to_script(add_scheduler_file=False, add_device=False)
 
             # Verify Script was created with correct parameters
             mock_run.Script.assert_called_once()
@@ -165,7 +164,7 @@ class TestSlurmJobConfig:
             mock_script = MagicMock()
             mock_run.Script.return_value = mock_script
 
-            script = custom_config.to_script()
+            custom_config.to_script()
 
             # Verify Script was created with correct parameters
             call_args = mock_run.Script.call_args[1]

@@ -1,6 +1,4 @@
-import json
 import os
-import time
 
 import requests
 from openai import OpenAI
@@ -50,8 +48,8 @@ class LLaMa_405B:
 
         while response.status_code == 202:
             request_id = response.headers.get("NVCF-REQID")
-            fetch_url = fetch_url_format + request_id
-            response = session.get(fetch_url, headers=headers)
+            fetch_url = fetch_url_format + request_id # noqa: F821
+            response = session.get(fetch_url, headers=headers) # noqa: F821
 
         response_body = response.json()
 

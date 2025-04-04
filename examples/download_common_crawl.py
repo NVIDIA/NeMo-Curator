@@ -29,7 +29,7 @@ def main(args):
     url_limit = 10
 
     # Set up Dask client
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     # Download and sample data
     common_crawl = download_common_crawl(

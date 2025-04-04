@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
 from itertools import cycle
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import yaml
-from tqdm.asyncio import tqdm
 
 from nemo_curator.synthetic.async_nemotron import AsyncNemotronGenerator
 from nemo_curator.synthetic.error import YamlConversionError

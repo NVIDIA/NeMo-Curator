@@ -18,7 +18,7 @@ if __name__ == "__main__":
     client = Client(cluster)
     logging.info(client)
 
-    logging.info(f"Processing Dolma-CC")
+    logging.info("Processing Dolma-CC")
     process_data(input_folder=INPUT_BASE, output_folder=OUTPUT_BASE, prefix="dolma-cc")
     logging.info("Done!")
 

@@ -776,7 +776,7 @@ def single_partition_write_with_filename(
     if len(df) > 0:
         empty_partition = False
     else:
-        warnings.warn(f"Empty partition found")
+        warnings.warn("Empty partition found")
         empty_partition = True
 
     if is_cudf_type(df):
@@ -854,7 +854,7 @@ def _single_partition_write_to_simple_bitext(
     if len(out_df) > 0:
         empty_partition = False
     else:
-        warnings.warn(f"Empty partition found")
+        warnings.warn("Empty partition found")
         empty_partition = True
 
     if is_cudf_type(out_df):

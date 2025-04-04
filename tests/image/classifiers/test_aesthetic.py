@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from pathlib import Path
 from unittest import mock
 
@@ -49,7 +48,7 @@ def test_init_defaults():
     assert classifier.model_name == "aesthetic_classifier"
     assert classifier.embedding_column == "image_embedding"
     assert classifier.pred_column == "aesthetic_score"
-    assert classifier.pred_type == float
+    assert isinstance(classifier.pred_type, type(float))
     assert classifier.batch_size == -1
     assert classifier.embedding_size == 768
 
@@ -66,7 +65,7 @@ def test_init_custom_params():
     assert classifier.model_name == "aesthetic_classifier"
     assert classifier.embedding_column == "custom_embedding"
     assert classifier.pred_column == "custom_score"
-    assert classifier.pred_type == float
+    assert isinstance(classifier.pred_type, type(float))
     assert classifier.batch_size == 64
     assert classifier.embedding_size == 768
     assert classifier.model_path == "/custom/path/model.pth"
@@ -271,7 +270,7 @@ def test_classifier_with_embedder_workflow(gpu_client):
 
         # Call the embedder, which should process the classifier
         with mock.patch("nemo_curator.image.embedders.base.ImageTextPairDataset"):
-            result = embedder(mock_dataset)
+            embedder(mock_dataset)
 
             # Check that map_partitions was called
             mock_metadata.map_partitions.assert_called_once()
@@ -279,7 +278,7 @@ def test_classifier_with_embedder_workflow(gpu_client):
             # Verify the classifier's column was added to the metadata
             meta_arg = mock_metadata.map_partitions.call_args[1]["meta"]
             assert "aesthetic_score" in meta_arg
-            assert meta_arg["aesthetic_score"] == float
+            assert isinstance(meta_arg["aesthetic_score"], type(float))
 
 
 # Test with mock cuDF Series for postprocessing

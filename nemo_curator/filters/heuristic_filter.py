@@ -21,7 +21,7 @@ from platformdirs import user_cache_dir
 from transformers import AutoTokenizer
 
 from nemo_curator.filters.bitext_filter import BitextFilter
-from nemo_curator.filters.doc_filter import DocumentFilter, import_filter
+from nemo_curator.filters.doc_filter import DocumentFilter
 from nemo_curator.utils.constants import (
     bullet_list,
     common_english_words,

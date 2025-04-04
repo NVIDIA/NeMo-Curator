@@ -110,7 +110,7 @@ class TestPIIAccuracy:
             print(output2)
             print("match value: ", match)
             print("Matches:", "No" if not match else "Yes")
-            assert match == True
+            assert match is True
 
     def test_batch_accuracy(self):
         deidentifier = PiiDeidentifier("en", anonymize_action="mask")
@@ -124,7 +124,7 @@ class TestPIIAccuracy:
 
         match = all(compare_outputs(x, y) for x, y in zip(outputs, targets))
         print("Matches:", "No" if not match else "Yes")
-        assert match == True
+        assert match is True
 
 
 class BatchedLengthFilter(DocumentFilter):

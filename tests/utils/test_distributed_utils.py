@@ -16,18 +16,13 @@ import os
 import shutil
 import sys
 import tempfile
-import warnings
 from contextlib import nullcontext
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import dask
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import pytest
-import torch
-from dask.distributed import Client, Worker
 
 from nemo_curator.utils.distributed_utils import (
     NoWorkerError,
@@ -134,13 +129,13 @@ class TestClientFunctions:
             "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
         ):
             # Test with scheduler_address
-            client = get_client(scheduler_address="tcp://localhost:8786")
+            get_client(scheduler_address="tcp://localhost:8786")
             mock_client.assert_called_with(
                 address="tcp://localhost:8786", timeout="30s"
             )
 
             # Test with scheduler_file
-            client = get_client(scheduler_file="/path/to/scheduler.json")
+            get_client(scheduler_file="/path/to/scheduler.json")
             mock_client.assert_called_with(
                 scheduler_file="/path/to/scheduler.json", timeout="30s"
             )
@@ -156,7 +151,7 @@ class TestClientFunctions:
                 )
 
             # Test with CPU cluster
-            client = get_client(cluster_type="cpu")
+            get_client(cluster_type="cpu")
             mock_cpu_cluster.assert_called_once()
 
             # Test with invalid cluster type
@@ -300,7 +295,7 @@ class TestDataReadingFunctions:
             )
 
             # Call the function
-            result = read_data_files_per_partition(
+            read_data_files_per_partition(
                 input_files=files,
                 file_type="jsonl",
                 backend="pandas",
@@ -341,7 +336,7 @@ class TestDataReadingFunctions:
             return_value=mock_read_json.return_value,
         ):
             with dask.config.set({"dataframe.backend": "pandas"}):
-                result = read_data_blocksize(
+                read_data_blocksize(
                     input_files=["file.jsonl"],
                     backend="pandas",
                     file_type="jsonl",
@@ -355,7 +350,7 @@ class TestDataReadingFunctions:
             return_value=mock_read_parquet.return_value,
         ):
             with dask.config.set({"dataframe.backend": "pandas"}):
-                result = read_data_blocksize(
+                read_data_blocksize(
                     input_files=["file.parquet"],
                     backend="pandas",
                     file_type="parquet",
@@ -419,7 +414,7 @@ class TestDataReadingFunctions:
             "nemo_curator.utils.distributed_utils.dd.from_pandas",
             return_value=dd.from_pandas(mock_read_pickle.return_value, npartitions=16),
         ):
-            result = read_data(["file.pkl"], file_type="pickle")
+            read_data(["file.pkl"], file_type="pickle")
             mock_read_pickle.assert_called_once()
 
         # Test reading pickle with string input instead of list
@@ -428,11 +423,11 @@ class TestDataReadingFunctions:
             "nemo_curator.utils.distributed_utils.dd.from_pandas",
             return_value=dd.from_pandas(mock_read_pickle.return_value, npartitions=16),
         ):
-            result = read_data("file.pkl", file_type="pickle")
+            read_data("file.pkl", file_type="pickle")
             mock_read_pickle.assert_called_once()
 
         # Test reading jsonl with blocksize
-        result = read_data(
+        read_data(
             ["file1.jsonl", "file2.jsonl"],
             file_type="jsonl",
             blocksize="1MB",
@@ -441,7 +436,7 @@ class TestDataReadingFunctions:
         mock_read_blocksize.assert_called_once()
 
         # Test reading jsonl with files_per_partition
-        result = read_data(
+        read_data(
             ["file1.jsonl", "file2.jsonl"],
             file_type="jsonl",
             files_per_partition=1,

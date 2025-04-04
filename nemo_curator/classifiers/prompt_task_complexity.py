@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 import numpy as np
@@ -90,8 +90,6 @@ class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
 
     def compute_results(self, preds, target, decimal=4):
         if target == "task_type":
-            task_type = {}
-
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
             top2_probs = softmax_probs.gather(1, top2_indices)
