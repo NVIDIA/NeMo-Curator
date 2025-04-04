@@ -105,8 +105,8 @@ class PiiModifier(DocumentModifier):
             anonymize_action=self.anonymize_action,
             **self.kwargs,
         )
-        deidentifier.analyzer.nlp_engine.nlp[deidentifier.language].max_length = (
-            DEFAULT_MAX_DOC_SIZE
-        )
+        deidentifier.analyzer.nlp_engine.nlp[
+            deidentifier.language
+        ].max_length = DEFAULT_MAX_DOC_SIZE
 
         return deidentifier

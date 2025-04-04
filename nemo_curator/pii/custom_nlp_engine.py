@@ -27,7 +27,6 @@ logger = logging.getLogger("presidio-analyzer")
 
 
 class CustomNlpEngine(SpacyNlpEngine):
-
     def __init__(
         self,
         models: Optional[List[Dict[str, str]]] = None,

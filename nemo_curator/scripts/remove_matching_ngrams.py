@@ -93,7 +93,7 @@ def attach_args(
  --max-splits times, it is removed from the corpus.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

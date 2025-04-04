@@ -62,9 +62,9 @@ class TestUnicodeReformatter:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
 
 class TestNewlineNormalizer:
@@ -92,9 +92,9 @@ class TestNewlineNormalizer:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
     def test_newlines_and_carriage_returns(self):
         dataset = list_to_dataset(
@@ -120,9 +120,9 @@ class TestNewlineNormalizer:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
 
 class TestUrlRemover:
@@ -154,9 +154,9 @@ class TestUrlRemover:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
 
 class TestLineRemover:

@@ -289,9 +289,9 @@ class TestDiverseQAPostprocessor:
 
         assert not result_df.empty, "Expected non-empty dataset"
         actual_response = result_df.iloc[0]["response"]
-        assert (
-            actual_response == expected_response
-        ), f"Expected: {expected_response}, got: {actual_response}"
+        assert actual_response == expected_response, (
+            f"Expected: {expected_response}, got: {actual_response}"
+        )
 
     def test_valid_response_with_tokenizer(self, monkeypatch):
         # Using a dummy tokenizer.
@@ -323,9 +323,9 @@ class TestDiverseQAPostprocessor:
 
         assert not result_df.empty, "Expected non-empty dataset"
         actual_response = result_df.iloc[0]["response"]
-        assert (
-            actual_response == expected_response
-        ), f"Expected: {expected_response}, got: {actual_response}"
+        assert actual_response == expected_response, (
+            f"Expected: {expected_response}, got: {actual_response}"
+        )
 
     def test_invalid_response_format(self, monkeypatch):
         # Test a response with an invalid QA format (missing a "Question:" line).
@@ -346,9 +346,9 @@ class TestDiverseQAPostprocessor:
         # Since the response format is invalid (no "Question:" to start a QA pair),
         # the postprocessing should return an empty string; the __call__ method then
         # drops that row.
-        assert (
-            result_df.empty
-        ), "Expected dataset to be empty due to invalid response format"
+        assert result_df.empty, (
+            "Expected dataset to be empty due to invalid response format"
+        )
 
     def test_empty_response(self):
         # Test when the LLM response is empty.
@@ -386,14 +386,14 @@ class TestDiverseQAPostprocessor:
 
         # With max_num_pairs set to 2 and patched randint returning the upper bound,
         # only the first two QA pairs should be selected.
-        expected_qa = "Question: Q1?\nAnswer: A1.\n\n" "Question: Q2?\nAnswer: A2."
+        expected_qa = "Question: Q1?\nAnswer: A1.\n\nQuestion: Q2?\nAnswer: A2."
         expected_response = f"{text}\n\n{expected_qa}"
 
         assert not result_df.empty, "Expected non-empty dataset"
         actual_response = result_df.iloc[0]["response"]
-        assert (
-            actual_response == expected_response
-        ), f"Expected: {expected_response}, got: {actual_response}"
+        assert actual_response == expected_response, (
+            f"Expected: {expected_response}, got: {actual_response}"
+        )
 
     def test_no_qa_pairs(self):
         """Test case where len(qa_pairs) == 0, which happens when there are no lines
@@ -412,9 +412,9 @@ class TestDiverseQAPostprocessor:
 
         # Since there are no valid QA pairs, we expect the dataset to be empty
         # because _postprocess_llm_response returns an empty string
-        assert (
-            result_df.empty
-        ), "Expected dataset to be empty when no QA pairs are found"
+        assert result_df.empty, (
+            "Expected dataset to be empty when no QA pairs are found"
+        )
 
 
 class TestKnowledgeListPostprocessor:
@@ -441,13 +441,13 @@ class TestKnowledgeListPostprocessor:
             "Fact two: This is the second fact."
         )
         actual_output = result_df.iloc[0]["text"]
-        assert (
-            actual_output == expected_output
-        ), f"Expected: {expected_output}, got: {actual_output}"
+        assert actual_output == expected_output, (
+            f"Expected: {expected_output}, got: {actual_output}"
+        )
 
     def test_all_bullet_lines(self):
         # Test when every line starts with a bullet prefix.
-        input_response = "- Item one\n" "- Item two\n" "- Item three"
+        input_response = "- Item one\n- Item two\n- Item three"
         ds = create_dataset({"text": [input_response]})
         processor = NemotronCCKnowledgeListPostprocessor(text_field="text")
         result_ds = processor(ds)
@@ -456,9 +456,9 @@ class TestKnowledgeListPostprocessor:
         # Each line should be cleaned by removing the leading bullet.
         expected_output = "Item one\nItem two\nItem three"
         actual_output = result_df.iloc[0]["text"]
-        assert (
-            actual_output == expected_output
-        ), f"Expected: {expected_output}, got: {actual_output}"
+        assert actual_output == expected_output, (
+            f"Expected: {expected_output}, got: {actual_output}"
+        )
 
     def test_no_bullet_lines(self):
         # If the response contains no bullet lines, then the first line is
@@ -471,9 +471,9 @@ class TestKnowledgeListPostprocessor:
 
         expected_output = ""
         actual_output = result_df.iloc[0]["text"]
-        assert (
-            actual_output == expected_output
-        ), f"Expected an empty string, got: {actual_output}"
+        assert actual_output == expected_output, (
+            f"Expected an empty string, got: {actual_output}"
+        )
 
     def test_mixed_indentation(self):
         # Test mixed bullet prefixes and additional non-bullet lines.
@@ -502,9 +502,9 @@ class TestKnowledgeListPostprocessor:
             "Another standalone line"
         )
         actual_output = result_df.iloc[0]["text"]
-        assert (
-            actual_output == expected_output
-        ), f"Expected: {expected_output}, got: {actual_output}"
+        assert actual_output == expected_output, (
+            f"Expected: {expected_output}, got: {actual_output}"
+        )
 
     def test_empty_input(self):
         # Test that an empty input returns an empty string.
@@ -516,6 +516,6 @@ class TestKnowledgeListPostprocessor:
 
         expected_output = ""
         actual_output = result_df.iloc[0]["text"]
-        assert (
-            actual_output == expected_output
-        ), f"Expected empty string, got: {actual_output}"
+        assert actual_output == expected_output, (
+            f"Expected empty string, got: {actual_output}"
+        )

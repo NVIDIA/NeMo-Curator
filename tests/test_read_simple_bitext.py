@@ -33,7 +33,6 @@ def tgt_file(pytestconfig):
 
 
 class TestReadSimpleBitext:
-
     def test_pandas_read_simple_bitext(self, src_file, tgt_file):
         ds = ParallelDataset.read_simple_bitext(
             src_input_files=[src_file],

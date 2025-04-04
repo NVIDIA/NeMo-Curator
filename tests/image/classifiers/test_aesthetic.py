@@ -81,7 +81,6 @@ def test_get_default_model():
         mock.patch("builtins.open", mock.mock_open()),
         mock.patch("os.makedirs"),
     ):
-
         # Mock the response
         mock_response = mock.MagicMock()
         mock_response.content = b"mock_content"
@@ -129,7 +128,6 @@ def test_load_model(gpu_client):
         mock.patch("torch.load", return_value={}),
         mock.patch("nemo_curator.image.classifiers.aesthetic.MLP") as mock_mlp_class,
     ):
-
         # Configure the mock to return our custom module
         mock_mlp_instance = MockModule(classifier.embedding_size)
         mock_mlp_class.return_value = mock_mlp_instance

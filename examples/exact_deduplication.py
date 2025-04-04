@@ -26,7 +26,6 @@ def pre_imports():
 
 
 def main(args):
-
     dataset_dir = "/path/to/data"
     log_dir = "./"
     output_dir = "./"

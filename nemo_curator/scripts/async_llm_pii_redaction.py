@@ -73,7 +73,7 @@ def attach_args(
         This script will then perform PII detection and de-identification on each document within the corpus.
         """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

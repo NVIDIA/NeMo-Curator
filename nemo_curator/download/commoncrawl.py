@@ -391,7 +391,6 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
 
 
 def get_stop_list_dict(languages=[]):
-
     # Name mapping for language names from CLD2 (values)
     # and jusText (keys)
     lang_map = {
@@ -518,7 +517,6 @@ class CommonCrawlWARCDownloaderExtractOnly(DocumentDownloader):
 
 
 class CommonCrawlWARCIterator(DocumentIterator):
-
     def __init__(self, log_frequency=1000):
         super().__init__()
         self._counter = 0
@@ -548,7 +546,6 @@ class CommonCrawlWARCIterator(DocumentIterator):
 
 
 class CommonCrawlWARCExtractor(DocumentExtractor):
-
     def __init__(self, algorithm=JusTextExtractor(), stop_lists=None):
         if stop_lists is not None:
             self._stop_lists = stop_lists

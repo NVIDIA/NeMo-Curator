@@ -268,15 +268,15 @@ def run_pipeline(args, jsonl_fp):
     synth_gen_rounds = args.synth_gen_rounds
     synth_n_variants = args.synth_n_variants
 
-    assert (
-        synth_gen_ratio >= 0 and synth_gen_ratio <= 1
-    ), "The synthetic generation ratio must be between 0 and 1."
-    assert (
-        synth_gen_rounds >= 0
-    ), "The number of synthetic generation rounds must be a non-negative integer."
-    assert (
-        synth_n_variants >= 1
-    ), "The number of synthetic variants must be a positive integer."
+    assert synth_gen_ratio >= 0 and synth_gen_ratio <= 1, (
+        "The synthetic generation ratio must be between 0 and 1."
+    )
+    assert synth_gen_rounds >= 0, (
+        "The number of synthetic generation rounds must be a non-negative integer."
+    )
+    assert synth_n_variants >= 1, (
+        "The number of synthetic variants must be a positive integer."
+    )
 
     if args.device == "gpu":
         backend = "cudf"

@@ -120,9 +120,9 @@ class TestIO:
 
         expected_meta = "{'id': 'float64'}"
 
-        assert (
-            output_meta == expected_meta
-        ), f"Expected: {expected_meta}, got: {output_meta}"
+        assert output_meta == expected_meta, (
+            f"Expected: {expected_meta}, got: {output_meta}"
+        )
 
     def test_meta_str(self, jsonl_dataset):
         with tempfile.NamedTemporaryFile(suffix=".jsonl") as temp_file:
@@ -144,9 +144,9 @@ class TestIO:
 
         expected_meta = "{'id': 'float64'}"
 
-        assert (
-            output_meta == expected_meta
-        ), f"Expected: {expected_meta}, got: {output_meta}"
+        assert output_meta == expected_meta, (
+            f"Expected: {expected_meta}, got: {output_meta}"
+        )
 
     @pytest.mark.parametrize(
         "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
@@ -438,9 +438,9 @@ class TestPartitionOn:
             # The partition value is taken from the directory name.
             partition_value = part_dir.name.split("=")[-1]
             jsonl_files = list(part_dir.glob("*.part"))
-            assert (
-                jsonl_files
-            ), f"No JSONL files found in partition directory {part_dir}"
+            assert jsonl_files, (
+                f"No JSONL files found in partition directory {part_dir}"
+            )
             for file in jsonl_files:
                 with (
                     gzip.open(file, "rt") if compression == "gzip" else open(file, "r")
@@ -449,9 +449,9 @@ class TestPartitionOn:
                         record = json.loads(line)
                         if "category" in record:
                             # Compare as strings, to work with both integer and string partition values.
-                            assert (
-                                str(record["category"]) == partition_value
-                            ), f"Record partition value {record['category']} does not match directory {partition_value}"
+                            assert str(record["category"]) == partition_value, (
+                                f"Record partition value {record['category']} does not match directory {partition_value}"
+                            )
 
     @pytest.mark.parametrize(
         "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]

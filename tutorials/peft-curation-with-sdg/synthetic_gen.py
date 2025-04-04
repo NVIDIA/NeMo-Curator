@@ -46,7 +46,6 @@ Make sure to generate exactly {n_openlines} variants.
 
 
 class SyntheticGenerator:
-
     def __init__(
         self,
         async_llm_client: AsyncLLMClient,
@@ -135,9 +134,7 @@ class SyntheticGenerator:
         synth_tags = []
 
         for gen_idx, (row_slice, gen_entry) in enumerate(gen_entries):
-
             for idx, (titles, questions, answers, scores) in enumerate(gen_entry):
-
                 if (
                     len(questions) != self.n_variants
                     or len(answers) != self.n_variants

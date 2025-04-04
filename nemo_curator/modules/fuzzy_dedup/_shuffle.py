@@ -76,7 +76,6 @@ class _Shuffle:
         bucket_parts_per_worker: int = 8,
         partition_on: str = "_output_partition_id",
     ):
-
         ddf_anchor_docs_with_bk, bk_mapping = aggregated_anchor_docs_with_bk_read(
             path=bucket_w_anchors_path,
             blocksize=bucket_mapping_df_blocksize,
@@ -112,7 +111,7 @@ class _Shuffle:
                 num_workers=num_workers,
             )
         self._logger.info(
-            f"Time taken for Shuffle = {time.time()-st}s and output written at {output_shuffled_docs_path}"
+            f"Time taken for Shuffle = {time.time() - st}s and output written at {output_shuffled_docs_path}"
         )
 
     def _batched_merge_and_write(
@@ -179,7 +178,6 @@ class _Shuffle:
                 bucket_part_start_offset, bucket_part_end_offset, parts_per_bucket_batch
             )
         ):
-
             # Outer loop over batches of "bucket-map" partitions
             end_bucket_offset = min(
                 bucket_part_offset + parts_per_bucket_batch, bucket_part_end_offset
@@ -207,7 +205,6 @@ class _Shuffle:
 
             text_part_offset = text_part_start_offset
             while text_part_offset < text_part_end_offset:
-
                 # Check if we are "retrying" with a smaller "parts_per_text_batch"
                 if parts_per_text_batch_retry:
                     parts_per_text_batch_use = parts_per_text_batch_retry
@@ -250,7 +247,7 @@ class _Shuffle:
                 print(
                     "Text-df partition ",
                     f"{end_text_offset}/{text_part_end_offset} "
-                    f"completed in {time.time()-st_text}",
+                    f"completed in {time.time() - st_text}",
                     flush=True,
                 )
 
@@ -274,7 +271,7 @@ class _Shuffle:
             print(
                 "Bucket partition ",
                 f"{end_bucket_offset}/{bucket_part_end_offset} "
-                f"completed in {time.time()-st_bucket}",
+                f"completed in {time.time() - st_bucket}",
                 flush=True,
             )
 

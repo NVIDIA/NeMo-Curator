@@ -74,7 +74,7 @@ with fixed unicode. Also performs language filtering using
 the \"language\" field within each JSON object.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

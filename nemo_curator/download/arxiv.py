@@ -39,7 +39,6 @@ from nemo_curator.utils.file_utils import (
 
 
 class ArxivDownloader(DocumentDownloader):
-
     def __init__(self, download_dir, verbose=False):
         super().__init__()
         self._download_dir = download_dir
@@ -69,7 +68,6 @@ class ArxivDownloader(DocumentDownloader):
 
 
 class ArxivIterator(DocumentIterator):
-
     def __init__(self, log_frequency=1000):
         super().__init__()
         self._log_frequency = log_frequency
@@ -122,7 +120,6 @@ class ArxivIterator(DocumentIterator):
             with tarfile.open(file_or_dir_path) as sub_tf:
                 for member in sub_tf.getmembers():
                     if member.name.endswith(".tex"):
-
                         file_content = sub_tf.extractfile(member).read()
 
                         try:
@@ -188,7 +185,6 @@ class ArxivIterator(DocumentIterator):
 
 
 class ArxivExtractor(DocumentExtractor):
-
     def __init__(self):
         super().__init__()
 

@@ -60,4 +60,4 @@ if __name__ == "__main__":
         cache_dir=minhash_output_dir,
     )
     res = minhasher(DocumentDataset(text_ddf)).df
-    logging.info(f"Time taken for MinHash: {time.time()-t0:.2f}sec.")
+    logging.info(f"Time taken for MinHash: {time.time() - t0:.2f}sec.")

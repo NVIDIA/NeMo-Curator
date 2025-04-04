@@ -25,7 +25,6 @@ from nemo_curator.utils.text_utils import get_comments_and_docstring
 
 
 class PythonCommentToCodeFilter(DocumentFilter):
-
     def __init__(
         self,
         min_comment_to_code_ratio=0.01,
@@ -49,7 +48,6 @@ class PythonCommentToCodeFilter(DocumentFilter):
 
 
 class GeneralCommentToCodeFilter(DocumentFilter):
-
     def __init__(
         self,
         language,
@@ -86,7 +84,6 @@ class GeneralCommentToCodeFilter(DocumentFilter):
 
 
 class NumberOfLinesOfCodeFilter(DocumentFilter):
-
     def __init__(self, min_lines=10, max_lines=20000):
         self._min_lines = min_lines
         self._max_lines = max_lines
@@ -101,12 +98,9 @@ class NumberOfLinesOfCodeFilter(DocumentFilter):
 
 
 class TokenizerFertilityFilter(DocumentFilter):
-
     def __init__(self, path_to_tokenizer=None, min_char_to_token_ratio=2.5):
         if path_to_tokenizer is None:
-            raise ValueError(
-                "Must provide a valid path to a SentencePiece " "tokenizer"
-            )
+            raise ValueError("Must provide a valid path to a SentencePiece tokenizer")
         self._tokenizer = sentencepiece.SentencePieceProcessor()
         self._tokenizer.Load(path_to_tokenizer)
         self._threshold = min_char_to_token_ratio
@@ -226,9 +220,9 @@ class PerExtensionFilter(DocumentFilter):
                     ext_to_filter[(row["language"], row["extension"])] = (
                         self._get_filter_params(row)
                     )
-        assert (
-            len(ext_to_filter) > 0
-        ), f"Did not find filtering params corresponding to language: `{language}` in: {path}"
+        assert len(ext_to_filter) > 0, (
+            f"Did not find filtering params corresponding to language: `{language}` in: {path}"
+        )
 
         return ext_to_filter
 

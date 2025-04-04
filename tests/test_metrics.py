@@ -175,7 +175,6 @@ def mock_query_dataset():
 
 
 class TestMetricsTasks:
-
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
     def test_race_init_and_generate_ngrams(self, mock_load_dataset, mock_dataset):
         # Setup mock

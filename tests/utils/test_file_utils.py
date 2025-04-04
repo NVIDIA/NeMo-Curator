@@ -728,9 +728,7 @@ class TestDataFrameUtils:
                 "nemo_curator.utils.file_utils.get_all_files_paths_under"
             ) as mock_get_files:
                 with patch("nemo_curator.utils.file_utils.delayed") as mock_delayed:
-                    with patch(
-                        "nemo_curator.utils.file_utils.expand_outdir_and_mkdir"
-                    ):
+                    with patch("nemo_curator.utils.file_utils.expand_outdir_and_mkdir"):
                         # Set up the mocks
                         mock_get_files.return_value = ["file1.parquet", "file2.parquet"]
                         mock_df = MagicMock()

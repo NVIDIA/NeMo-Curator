@@ -122,7 +122,6 @@ def _run_classifier_helper(
     text_field: str = "text",
     prob_col: str = None,
 ) -> "dask_cudf.DataFrame":
-
     if prob_col is None:
         prob_col = "_prob"
         labeler = op.Labeler(labels, cols=[prob_col], suffix=label_col)

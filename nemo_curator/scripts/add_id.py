@@ -26,7 +26,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args)) #noqa: F841
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     backend = "cudf" if args.device == "gpu" else "pandas"
     output_dir = expand_outdir_and_mkdir(args.output_data_dir)
@@ -68,15 +68,14 @@ If a document identifier does not already exist for each document, then
 these IDs must be added prior to performing fuzzy and/or exact deduplication.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_output_data_dir(
-        help="The output directory to where the JSONL files with IDs will "
-        "be written."
+        help="The output directory to where the JSONL files with IDs will be written."
     )
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_arg_seed()

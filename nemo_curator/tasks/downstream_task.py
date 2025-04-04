@@ -19,7 +19,6 @@ from nemo_curator.utils.text_utils import get_words
 
 
 class DownstreamTask(ABC):
-
     def __init__(self):
         super().__init__()
         self._task_name = None

@@ -103,7 +103,6 @@ class BucketsToEdges:
         self,
         buckets_df: cudf.DataFrame,
     ) -> cudf.DataFrame:
-
         grouped_buckets = (
             buckets_df.groupby(self.bucket_field)[self.str_id_name]
             .agg(list)

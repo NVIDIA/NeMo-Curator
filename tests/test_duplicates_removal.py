@@ -99,7 +99,6 @@ def test_remove_duplicates_all_duplicates(
     ids: list[str],
     sample_data: dd.DataFrame,
 ):
-
     duplicates = dd.from_pandas(
         pd.DataFrame({"id": ids, "group": [1] * len(ids)}), npartitions=2
     )

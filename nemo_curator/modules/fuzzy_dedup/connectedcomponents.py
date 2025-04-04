@@ -81,7 +81,6 @@ class ConnectedComponents:
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-run"
         ):
-
             Comms.initialize(p2p=False)
             df = dask_cudf.read_parquet(
                 deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
@@ -155,7 +154,6 @@ class ConnectedComponents:
         with performance_report_if_with_ts_suffix(
             self.profile_dir, "connected-components-dedup-encoded-jaccard-pair"
         ):
-
             ddf = dask_cudf.read_parquet(
                 encoded_jaccard_pair_path, blocksize="512MB", aggregate_files=True
             )

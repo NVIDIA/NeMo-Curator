@@ -87,7 +87,7 @@ def main(args):
     )
     _ = buckets_to_edges(buckets_df)
     et = time.time()
-    logger.info(f"Bucket to Edges conversion took = {et-st} s")
+    logger.info(f"Bucket to Edges conversion took = {et - st} s")
 
 
 def console_script():

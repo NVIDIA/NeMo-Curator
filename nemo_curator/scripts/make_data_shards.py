@@ -44,7 +44,7 @@ The size of the input files must be larger than the specified
 --block-size.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

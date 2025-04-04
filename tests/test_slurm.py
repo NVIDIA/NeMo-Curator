@@ -20,7 +20,6 @@ from nemo_curator.nemo_run.slurm import SlurmJobConfig
 
 
 class TestSlurmJobConfig:
-
     @pytest.fixture
     def basic_config(self):
         """Returns a basic SlurmJobConfig with required parameters"""

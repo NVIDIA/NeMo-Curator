@@ -86,7 +86,6 @@ def get_config():
 
 class TestSDGFilterModule:
     def test_easiness_filter(self, get_generated_data, get_config):
-
         ef = EasinessFilter(
             get_config.base_url,
             get_config.api_key,
@@ -106,7 +105,6 @@ class TestSDGFilterModule:
         assert org_df.shape[0] >= filtered_df.shape[0]
 
     def test_answerability_filter(self, get_generated_data, get_config):
-
         af = AnswerabilityFilter(
             get_config.base_url,
             get_config.api_key,

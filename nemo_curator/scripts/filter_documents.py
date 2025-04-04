@@ -178,7 +178,7 @@ def attach_args(
     the examples directory of this repository.
   """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

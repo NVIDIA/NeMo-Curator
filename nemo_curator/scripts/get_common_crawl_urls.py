@@ -41,7 +41,7 @@ and writes them to file so that they can be used to subsequently
 download the WARC files.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     ArgumentHelper(parser)
 

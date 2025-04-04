@@ -23,7 +23,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args)) #noqa: F841
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Each rank read in the task data
     with open(args.input_task_ngrams, "rb") as fp:
@@ -58,7 +58,7 @@ def attach_args(
     and writes out a list of n-grams that were found.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

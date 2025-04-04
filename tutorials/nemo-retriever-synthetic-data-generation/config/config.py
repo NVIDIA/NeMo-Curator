@@ -39,9 +39,7 @@ class RetrieverEvalSDGConfig(BaseConfig):
     max_tokens: Optional[int] = 2048
     squad_format: Optional[bool] = False
 
-    generator_system_prompt: Optional[
-        str
-    ] = """You are data annotator, your task is
+    generator_system_prompt: Optional[str] = """You are data annotator, your task is
     to generate a question for the given document. Also generate answer to the generated
     question."""
 

@@ -225,9 +225,9 @@ class SemDedupConfig(BaseConfig):
             raise ValueError(
                 "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
             )
-        assert (
-            0 <= self.eps_to_extract <= 1
-        ), "Epsilon to extract must be between [0, 1]"
+        assert 0 <= self.eps_to_extract <= 1, (
+            "Epsilon to extract must be between [0, 1]"
+        )
 
         # Convert bool to int
         if isinstance(self.batched_cosine_similarity, bool):

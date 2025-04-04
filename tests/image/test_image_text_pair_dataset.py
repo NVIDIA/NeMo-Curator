@@ -1125,9 +1125,9 @@ class TestImageTextPairDatasetConversion:
                 "3",
                 "4",
             ], "First dataframe should have IDs 0-4"
-            assert (
-                len(first_samples) == 15
-            ), "First batch should have 15 tar samples (5 samples * 3 files per sample)"
+            assert len(first_samples) == 15, (
+                "First batch should have 15 tar samples (5 samples * 3 files per sample)"
+            )
 
             # Second batch: 4 samples
             second_df, second_samples = results[1]
@@ -1138,9 +1138,9 @@ class TestImageTextPairDatasetConversion:
                 "7",
                 "8",
             ], "Second dataframe should have IDs 5-8"
-            assert (
-                len(second_samples) == 12
-            ), "Second batch should have 12 tar samples (4 samples * 3 files per sample)"
+            assert len(second_samples) == 12, (
+                "Second batch should have 12 tar samples (4 samples * 3 files per sample)"
+            )
 
             # Verify all temp files were deleted
             for i in range(3):

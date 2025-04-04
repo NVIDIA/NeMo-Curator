@@ -70,9 +70,9 @@ class TestAddId:
         if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
-        assert all(
-            expected_ids == actual_ids
-        ), f"Expected: {expected_ids}, got: {actual_ids}"
+        assert all(expected_ids == actual_ids), (
+            f"Expected: {expected_ids}, got: {actual_ids}"
+        )
 
     def test_two_partitions(self, two_partition_dataset):
         id_field = "id"
@@ -91,9 +91,9 @@ class TestAddId:
         if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
-        assert all(
-            expected_ids == actual_ids
-        ), f"Expected: {expected_ids}, got: {actual_ids}"
+        assert all(expected_ids == actual_ids), (
+            f"Expected: {expected_ids}, got: {actual_ids}"
+        )
 
     def test_id_prefix(self, two_partition_dataset):
         id_field = "id"
@@ -113,9 +113,9 @@ class TestAddId:
         if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
-        assert all(
-            expected_ids == actual_ids
-        ), f"Expected: {expected_ids}, got: {actual_ids}"
+        assert all(expected_ids == actual_ids), (
+            f"Expected: {expected_ids}, got: {actual_ids}"
+        )
 
     def test_start_index(self, two_partition_dataset):
         id_field = "id"
@@ -135,9 +135,9 @@ class TestAddId:
         if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
-        assert all(
-            expected_ids == actual_ids
-        ), f"Expected: {expected_ids}, got: {actual_ids}"
+        assert all(expected_ids == actual_ids), (
+            f"Expected: {expected_ids}, got: {actual_ids}"
+        )
 
     def test_fast_id_single_partition(self, single_partition_dataset):
         id_field = "id"
@@ -156,9 +156,9 @@ class TestAddId:
         if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
-        assert all(
-            expected_ids == actual_ids
-        ), f"Expected: {expected_ids}, got: {actual_ids}"
+        assert all(expected_ids == actual_ids), (
+            f"Expected: {expected_ids}, got: {actual_ids}"
+        )
 
     def test_fast_id_two_partitions(self, two_partition_dataset):
         id_field = "id"
@@ -177,6 +177,6 @@ class TestAddId:
         if is_cudf_available and isinstance(actual_ids, cudf.Series):
             actual_ids = actual_ids.to_pandas()
 
-        assert all(
-            expected_ids == actual_ids
-        ), f"Expected: {expected_ids}, got: {actual_ids}"
+        assert all(expected_ids == actual_ids), (
+            f"Expected: {expected_ids}, got: {actual_ids}"
+        )

@@ -32,7 +32,7 @@ def read_urls(file_path):
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args)) #noqa: F841
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     if args.input_url_file:
         urls = read_urls(args.input_url_file)
@@ -107,7 +107,7 @@ MPI rank). Additionally, the downloader class should be implemented
 such that it simply returns the pre-downloaded file.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

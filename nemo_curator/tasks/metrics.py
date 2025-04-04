@@ -21,7 +21,6 @@ from nemo_curator.utils.file_utils import get_all_files_paths_under
 
 
 class Race(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "race"
@@ -38,7 +37,6 @@ class Race(DownstreamTask):
 
 
 class Squad(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "squad"
@@ -55,7 +53,6 @@ class Squad(DownstreamTask):
 
 
 class ArcEasy(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "arceasy"
@@ -72,7 +69,6 @@ class ArcEasy(DownstreamTask):
 
 
 class ArcChallenge(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "arcchallenge"
@@ -89,7 +85,6 @@ class ArcChallenge(DownstreamTask):
 
 
 class OpenBookQA(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "openbookqa"
@@ -106,7 +101,6 @@ class OpenBookQA(DownstreamTask):
 
 
 class BoolQ(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "boolq"
@@ -123,7 +117,6 @@ class BoolQ(DownstreamTask):
 
 
 class Copa(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "copa"
@@ -140,7 +133,6 @@ class Copa(DownstreamTask):
 
 
 class RTE(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "rte"
@@ -157,7 +149,6 @@ class RTE(DownstreamTask):
 
 
 class MultiRC(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "multirc"
@@ -174,7 +165,6 @@ class MultiRC(DownstreamTask):
 
 
 class WSC(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "wsc"
@@ -191,7 +181,6 @@ class WSC(DownstreamTask):
 
 
 class CB(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "cb"
@@ -208,7 +197,6 @@ class CB(DownstreamTask):
 
 
 class ANLI(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "anli"
@@ -237,7 +225,6 @@ class ANLI(DownstreamTask):
 
 
 class Record(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "record"
@@ -254,7 +241,6 @@ class Record(DownstreamTask):
 
 
 class COQA(DownstreamTask):
-
     def __init__(self, file_path, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "coqa"
@@ -280,7 +266,6 @@ class COQA(DownstreamTask):
 
 
 class TriviaQA(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "trivia_qa"
@@ -297,7 +282,6 @@ class TriviaQA(DownstreamTask):
 
 
 class Quac(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "quac"
@@ -319,7 +303,6 @@ class Quac(DownstreamTask):
 
 
 class WebQA(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "webqa"
@@ -336,7 +319,6 @@ class WebQA(DownstreamTask):
 
 
 class Drop(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "drop"
@@ -353,7 +335,6 @@ class Drop(DownstreamTask):
 
 
 class WiC(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "wic"
@@ -374,7 +355,6 @@ class WiC(DownstreamTask):
 
 
 class MMLU(DownstreamTask):
-
     def __init__(self, path=None, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "mmlu"
@@ -383,7 +363,7 @@ class MMLU(DownstreamTask):
         self._path = path
         if self._path is None:
             raise Exception(
-                "Must provide path that contain " "MMLU task data in JSONL format"
+                "Must provide path that contain MMLU task data in JSONL format"
             )
 
     def generate_ngrams(self):
@@ -397,7 +377,6 @@ class MMLU(DownstreamTask):
 
 
 class BigBenchHard(DownstreamTask):
-
     def __init__(self, path=None, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "bigbench_hard"
@@ -406,8 +385,7 @@ class BigBenchHard(DownstreamTask):
         self._path = path
         if self._path is None:
             raise Exception(
-                "Must provide path that contain "
-                "BigBenchHard task data in JSONL format"
+                "Must provide path that contain BigBenchHard task data in JSONL format"
             )
 
     def generate_ngrams(self):
@@ -421,7 +399,6 @@ class BigBenchHard(DownstreamTask):
 
 
 class BigBenchLight(DownstreamTask):
-
     def __init__(self, path=None, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "bigbench_light"
@@ -430,8 +407,7 @@ class BigBenchLight(DownstreamTask):
         self._path = path
         if self._path is None:
             raise Exception(
-                "Must provide path that contain "
-                "BigBenchLight task data in JSONL format"
+                "Must provide path that contain BigBenchLight task data in JSONL format"
             )
 
     def generate_ngrams(self):
@@ -445,7 +421,6 @@ class BigBenchLight(DownstreamTask):
 
 
 class Multilingual(DownstreamTask):
-
     def __init__(self, path=None, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "multilingual"
@@ -454,7 +429,7 @@ class Multilingual(DownstreamTask):
         self._path = path
         if self._path is None:
             raise Exception(
-                "Must provide path to " "multilingual task data in JSONL format"
+                "Must provide path to multilingual task data in JSONL format"
             )
 
     def generate_ngrams(self):
@@ -468,7 +443,6 @@ class Multilingual(DownstreamTask):
 
 
 class PIQA(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "piqa"
@@ -485,7 +459,6 @@ class PIQA(DownstreamTask):
 
 
 class Winogrande(DownstreamTask):
-
     def __init__(self, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "winogrande"
@@ -506,7 +479,6 @@ class Winogrande(DownstreamTask):
 
 
 class Lambada(DownstreamTask):
-
     def __init__(self, file_path, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "lambada"
@@ -530,7 +502,6 @@ class Lambada(DownstreamTask):
 
 
 class NumDasc(DownstreamTask):
-
     def __init__(self, n, file_path, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._n = n
@@ -555,7 +526,6 @@ class NumDasc(DownstreamTask):
 
 
 class StoryCloze(DownstreamTask):
-
     def __init__(self, file_path, min_ngram_size=8, max_ngram_size=13):
         super().__init__()
         self._task_name = "story_cloze"

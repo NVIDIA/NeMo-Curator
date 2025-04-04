@@ -45,7 +45,6 @@ class OpenAIClient(LLMClient):
         top_k: Optional[int] = None,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
-
         if conversation_formatter is not None:
             warnings.warn("conversation_formatter is not used in an OpenAIClient")
         if top_k is not None:
@@ -114,7 +113,6 @@ class AsyncOpenAIClient(AsyncLLMClient):
         top_k: Optional[int] = None,
         top_p: Union[Optional[float], NotGiven] = NOT_GIVEN,
     ) -> List[str]:
-
         if conversation_formatter is not None:
             warnings.warn("conversation_formatter is not used in an AsyncOpenAIClient")
         if top_k is not None:
