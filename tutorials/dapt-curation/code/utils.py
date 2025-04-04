@@ -217,7 +217,6 @@ def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
     Returns:
         DocumentDataset: The redacted dataset with PII replaced by a generic value.
     """
-    DEFAULT_MAX_DOC_SIZE = 3000000
     redactor = Modify(
         PiiModifier(
             supported_entities=[

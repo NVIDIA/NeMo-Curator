@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask.dataframe as dd
 import pandas as pd
 from dask.dataframe.utils import assert_eq
 
@@ -270,7 +269,6 @@ class TestQuotationRemover:
         assert result == text
 
     def test_dataset_modification(self):
-        import pandas as pd
         from dask.dataframe.utils import assert_eq
 
         docs = ['"Document one"', 'Start "Document two" End', '"Document\nthree"', '""']
@@ -370,7 +368,6 @@ class TestSlicer:
         assert result == expected
 
     def test_dataset_modification(self):
-        import pandas as pd
         from dask.dataframe.utils import assert_eq
 
         docs = ["abcdef", "0123456789", "Hello", "Slicer"]
@@ -459,7 +456,6 @@ class TestMarkdownRemover:
         assert result == expected
 
     def test_dataset_modification(self):
-        import pandas as pd
         from dask.dataframe.utils import assert_eq
 
         docs = [

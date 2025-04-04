@@ -80,7 +80,7 @@ def main(args):
     ]
 
     # Prepare samples for the classifier
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     # Filter data
     target_dataset = load_dataset(contaminated_dataset_path)

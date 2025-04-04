@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     meta = ddf.dtypes.to_dict()
     ddf_deduped = ddf.map_partitions(drop_dupes, meta=meta)
-    logging.info(f"Removing dupes...")
+    logging.info("Removing dupes...")
     ddf_deduped.to_parquet(args.output, write_index=False, overwrite=True)
     logging.info(f"Done in {time.time() - t0:.2f}sec")
 

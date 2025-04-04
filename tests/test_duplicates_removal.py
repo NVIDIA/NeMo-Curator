@@ -24,8 +24,8 @@ from nemo_curator.utils.duplicates_removal import remove_duplicates
 @pytest.fixture()
 def ids():
     # Dataset has id a0...a9, b0...b9, c0...c9, d0...d9
-    l = [f"{group}{i}" for group in ["a", "b", "c", "d"] for i in range(10)]
-    return l
+    list_of_ids = [f"{group}{i}" for group in ["a", "b", "c", "d"] for i in range(10)]
+    return list_of_ids
 
 
 @pytest.fixture

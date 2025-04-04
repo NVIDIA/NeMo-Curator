@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import random
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from transformers import AutoTokenizer
 

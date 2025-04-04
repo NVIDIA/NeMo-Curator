@@ -27,7 +27,7 @@ def main(args):
     url_limit = 10
 
     # Set up Dask client
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     # Download and sample data
     arxiv = download_arxiv(output_directory, url_limit=url_limit)

@@ -12,16 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
-import yaml
 
-import nemo_curator
 from nemo_curator.utils.config_utils import (
     build_downloader,
     build_filter,
@@ -245,7 +239,6 @@ class TestBuildFilterPipeline:
         }
 
         # Mock the open function and yaml.load
-        mock_yaml_load = yaml.load
         with patch("builtins.open", mock_open(read_data="dummy")) as mock_file:
             with patch("yaml.load", return_value=filter_params) as mock_load:
                 # Mock the build_filter function
@@ -409,8 +402,8 @@ class TestBuildDownloader:
         }
 
         # Mock the open function and yaml.load
-        with patch("builtins.open", mock_open(read_data="dummy")) as mock_file:
-            with patch("yaml.load", return_value=downloader_params) as mock_load:
+        with patch("builtins.open", mock_open(read_data="dummy")):
+            with patch("yaml.load", return_value=downloader_params):
                 # Mock the import functions and classes
                 mock_downloader_class = MagicMock()
                 mock_downloader_instance = MagicMock()
@@ -435,19 +428,19 @@ class TestBuildDownloader:
                 with patch(
                     "nemo_curator.utils.config_utils.import_downloader",
                     return_value=mock_downloader_class,
-                ) as mock_import_downloader:
+                ):
                     with patch(
                         "nemo_curator.utils.config_utils.import_iterator",
                         return_value=mock_iterator_class,
-                    ) as mock_import_iterator:
+                    ):
                         with patch(
                             "nemo_curator.utils.config_utils.import_extractor",
                             return_value=mock_extractor_class,
-                        ) as mock_import_extractor:
+                        ):
                             with patch(
                                 "nemo_curator.utils.config_utils.locate",
                                 side_effect=mock_locate,
-                            ) as mock_locate_func:
+                            ):
                                 with patch(
                                     "nemo_curator.utils.config_utils.expand_outdir_and_mkdir"
                                 ) as mock_expand:
@@ -480,8 +473,8 @@ class TestBuildDownloader:
         }
 
         # Mock the open function and yaml.load
-        with patch("builtins.open", mock_open(read_data="dummy")) as mock_file:
-            with patch("yaml.load", return_value=downloader_params) as mock_load:
+        with patch("builtins.open", mock_open(read_data="dummy")):
+            with patch("yaml.load", return_value=downloader_params):
                 # Mock the import functions and classes
                 mock_downloader_class = MagicMock()
                 mock_downloader_instance = MagicMock()
@@ -506,22 +499,22 @@ class TestBuildDownloader:
                 with patch(
                     "nemo_curator.utils.config_utils.import_downloader",
                     return_value=mock_downloader_class,
-                ) as mock_import_downloader:
+                ):
                     with patch(
                         "nemo_curator.utils.config_utils.import_iterator",
                         return_value=mock_iterator_class,
-                    ) as mock_import_iterator:
+                    ):
                         with patch(
                             "nemo_curator.utils.config_utils.import_extractor",
                             return_value=mock_extractor_class,
-                        ) as mock_import_extractor:
+                        ):
                             with patch(
                                 "nemo_curator.utils.config_utils.locate",
                                 side_effect=mock_locate,
-                            ) as mock_locate_func:
+                            ):
                                 with patch(
                                     "nemo_curator.utils.config_utils.expand_outdir_and_mkdir"
-                                ) as mock_expand:
+                                ):
                                     # Call the function with default download dir
                                     # This should throw a TypeError because download_params is None,
                                     # and we try to check if "download_dir" is in None

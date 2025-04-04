@@ -26,7 +26,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     backend = "cudf" if args.device == "gpu" else "pandas"
     output_dir = expand_outdir_and_mkdir(args.output_data_dir)

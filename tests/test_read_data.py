@@ -9,13 +9,13 @@ from nemo_curator.utils.distributed_utils import (
     read_data_blocksize,
     read_data_files_per_partition,
 )
+import os
+from typing import List, Literal
+
+import numpy as np
 
 NUM_FILES = 5
 NUM_RECORDS = 100
-import os
-from typing import Dict, List, Literal, Optional
-
-import numpy as np
 
 
 # Fixture to create multiple small JSONL files

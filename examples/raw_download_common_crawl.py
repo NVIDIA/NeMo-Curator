@@ -31,7 +31,7 @@ def main(args):
     url_limit = 10
 
     # Set up Dask client
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     # Download the raw compressed WARC files
     # Unlike the download_common_crawl function, this does not extract the files

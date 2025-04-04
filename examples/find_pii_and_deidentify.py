@@ -14,7 +14,6 @@
 
 import argparse
 
-import dask.dataframe
 import pandas as pd
 
 from nemo_curator.datasets import DocumentDataset

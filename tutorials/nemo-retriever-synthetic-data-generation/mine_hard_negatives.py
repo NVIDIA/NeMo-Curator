@@ -13,13 +13,8 @@
 # limitations under the License.
 
 import argparse
-import glob
-import importlib
 import os
-import shutil
 import time
-from pathlib import Path
-from typing import Any, List
 
 from retriever_hardnegative_miner import HardNegativeMiner
 from tqdm.dask import TqdmCallback
@@ -94,7 +89,7 @@ def main():
     print("Mining hard negatives ...")
     st_time = time.time()
 
-    with TqdmCallback(desc="mining hard negatives") as progress:
+    with TqdmCallback(desc="mining hard negatives"):
         mined_dataset = mine_hard_negatives(input_dataset)
         mined_dataset.persist()
 

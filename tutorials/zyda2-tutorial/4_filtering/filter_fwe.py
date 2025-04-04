@@ -3,7 +3,6 @@ import os
 import time
 
 import dask.dataframe as dd
-import pyarrow as pa
 from dask.distributed import Client, LocalCluster
 
 logging.basicConfig(format="%(asctime)s: %(message)s", level=logging.INFO)
@@ -17,7 +16,7 @@ if __name__ == "__main__":
     cluster = LocalCluster(n_workers=CPU_WORKERS, threads_per_worker=2, processes=True)
     client = Client(cluster)
 
-    logging.info(f"Filtering...")
+    logging.info("Filtering...")
     INPUT_BASE = os.path.join(DATA_BASE, "processed/fineweb-edu-score-2")
     OUTPUT_BASE = os.path.join(DATA_BASE, "zyda2/fwe3")
     folders = sorted(os.listdir(INPUT_BASE))

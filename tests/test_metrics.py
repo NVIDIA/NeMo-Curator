@@ -13,14 +13,11 @@
 # limitations under the License.
 
 import json
-import os
-import tempfile
 from unittest import mock
 
 import pytest
 from datasets import Dataset
 
-import nemo_curator
 from nemo_curator.tasks.metrics import (
     ANLI,
     CB,
@@ -667,7 +664,7 @@ class TestMetricsTasks:
         # Mock stdout to capture printed error messages
         with mock.patch("builtins.print") as mock_print:
             # This should not raise an exception
-            ngrams = lambada_task.generate_ngrams()
+            lambada_task.generate_ngrams()
 
             # Verify error was printed
             mock_print.assert_called()
@@ -690,7 +687,7 @@ class TestMetricsTasks:
         # Mock stdout to capture printed error messages
         with mock.patch("builtins.print") as mock_print:
             # This should not raise an exception
-            ngrams = numdasc_task.generate_ngrams()
+            numdasc_task.generate_ngrams()
 
             # Verify error was printed
             mock_print.assert_called()
@@ -715,7 +712,7 @@ class TestMetricsTasks:
         # Mock stdout to capture printed error messages
         with mock.patch("builtins.print") as mock_print:
             # This should not raise an exception
-            ngrams = storycloze_task.generate_ngrams()
+            storycloze_task.generate_ngrams()
 
             # Verify error was printed
             mock_print.assert_called()

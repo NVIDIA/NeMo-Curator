@@ -43,7 +43,7 @@ download the WARC files.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 ):
-    argumentHelper = ArgumentHelper(parser)
+    ArgumentHelper(parser)
 
     parser.add_argument(
         "--cc-data-domain-prefix",

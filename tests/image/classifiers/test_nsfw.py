@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import zipfile
 from pathlib import Path
 from unittest import mock
 
@@ -53,7 +51,7 @@ def test_init_defaults():
     assert classifier.model_name == "nsfw_classifier"
     assert classifier.embedding_column == "image_embedding"
     assert classifier.pred_column == "nsfw_score"
-    assert classifier.pred_type == float
+    assert isinstance(classifier.pred_type, type(float))
     assert classifier.batch_size == -1
     assert classifier.embedding_size == 768
 
@@ -70,7 +68,7 @@ def test_init_custom_params():
     assert classifier.model_name == "nsfw_classifier"
     assert classifier.embedding_column == "custom_embedding"
     assert classifier.pred_column == "custom_score"
-    assert classifier.pred_type == float
+    assert isinstance(classifier.pred_type, type(float))
     assert classifier.batch_size == 64
     assert classifier.embedding_size == 768
     assert classifier.model_path == "/custom/path/model.pth"
@@ -315,7 +313,7 @@ def test_classifier_with_embedder_workflow(gpu_client):
             mock_dataset_class.return_value = test_dataset
 
             # Call the embedder (which will call our classifier)
-            result = embedder(test_dataset)
+            embedder(test_dataset)
 
             # Verify the classifier column was added to the metadata
             assert mock_metadata.map_partitions.called

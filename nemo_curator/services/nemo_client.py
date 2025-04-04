@@ -18,7 +18,7 @@ from typing import Iterable, List, Optional, Union
 
 from nemo_curator.services.conversation_formatter import ConversationFormatter
 
-from .model_client import AsyncLLMClient, LLMClient
+from .model_client import LLMClient
 
 
 class NemoDeployClient(LLMClient):

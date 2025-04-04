@@ -13,13 +13,10 @@
 # limitations under the License.
 
 import json
-from typing import List, Union
+from typing import List
 
-import dask
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from dask.base import normalize_token, tokenize
 from openai import OpenAI
 
 from nemo_curator.filters.doc_filter import DocumentFilter
@@ -195,7 +192,7 @@ class AnswerabilityFilter(DocumentFilter):
                         # filter out data if any of the criteria fails
                         is_keep = False  # filter out
                         break
-            except Exception as e:
+            except Exception:
                 pass  # TODO log the errors
                 # print(f"Parse error {e}")
                 # if there is a parse error, keep the document

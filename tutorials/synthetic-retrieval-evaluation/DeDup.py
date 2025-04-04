@@ -1,9 +1,7 @@
 import concurrent.futures
-import os
 
 import numpy as np
-from Endpoints import *
-from openai import OpenAI
+from Endpoints import Embed
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_distances
 

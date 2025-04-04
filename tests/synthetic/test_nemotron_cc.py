@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import random
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
-import dask.dataframe as dd
 import pandas as pd
 import pytest
 
@@ -31,7 +30,6 @@ from nemo_curator.synthetic.prompts import (
     KNOWLEDGE_LIST_PROMPT_TEMPLATE,
     NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
     NEMOTRON_CC_SYSTEM_PROMPT,
-    WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
 )
 
 

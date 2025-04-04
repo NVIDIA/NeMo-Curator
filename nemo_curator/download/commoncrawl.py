@@ -60,7 +60,7 @@ def try_decode_with_detected_encoding(html_bytes):
         return None
     try:
         return html_bytes.decode(detected_encoding)
-    except:
+    except Exception:
         return None
 
 

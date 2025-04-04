@@ -594,7 +594,7 @@ class TestNemotronGenerator:
         assert len(result) == 4
         assert result[0][0] == 0  # First document index
         assert result[2][0] == 1  # Second document index
-        assert type(result[0][1]) == str  # Verify it's a string
+        assert isinstance(result[0][1], str)  # Verify it's a string
 
     @patch.object(NemotronGenerator, "convert_response_to_yaml_list")
     @patch.object(NemotronGenerator, "generate_writing_tasks")
@@ -793,7 +793,7 @@ class TestNemotronGenerator:
         # Call the pipeline with ignore_conversion_failure=True
         # In a real call this would return an empty list because all conversions fail,
         # but we've mocked to have some successes to verify partial processing
-        result = generator.run_open_qa_pipeline(
+        generator.run_open_qa_pipeline(
             n_macro_topics=2,
             n_subtopics=2,
             n_openlines=1,  # Lowered to match our mock

@@ -53,7 +53,6 @@ from nemo_curator.filters import (
     SubstringFilter,
     SymbolsToWordsFilter,
     TokenCountFilter,
-    TokenizerFertilityFilter,
     UrlsFilter,
     WhiteSpaceFilter,
     WordCountFilter,
