@@ -671,7 +671,6 @@ class TestFuzzyDuplicatesConfig:
     ],
 )
 def test_extract_partitioning_index(backend):
-
     def add_partition_info(df, partition_info=None):
         if partition_info is None:
             df["file_id"] = -1
@@ -680,7 +679,6 @@ def test_extract_partitioning_index(backend):
         return df
 
     with config.set({"dataframe.backend": backend}):
-
         # Create a random `unshuffled` DataFrame with a
         # "part_id" column to be used as the shuffle index
         npartitions_left = 7

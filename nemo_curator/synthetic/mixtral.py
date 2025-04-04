@@ -4,7 +4,6 @@ from nemo_curator.services.conversation_formatter import ConversationFormatter
 
 
 class Mixtral8x7BFormatter(ConversationFormatter):
-
     PROMPT_PREFIX = "<s> [INST] \n"
 
     @staticmethod

@@ -67,7 +67,7 @@ def attach_args(
     parser=argparse.ArgumentParser(
         "Splits a dataset into subdirectories based on metadata values.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

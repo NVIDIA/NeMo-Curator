@@ -1,7 +1,16 @@
 import json
 
 from Endpoints import LLaMa_405B
-from prompts import extract_user_interest_prompt, extract_compatible_question_type_prompt, extract_questions_prompt, conversational_re_write_prompt, extract_writing_style, persona_rewrite_prompt, filter_relevance_prompt, intelligent_question_filter_prompt
+from prompts import (
+    extract_user_interest_prompt,
+    extract_compatible_question_type_prompt,
+    extract_questions_prompt,
+    conversational_re_write_prompt,
+    extract_writing_style,
+    persona_rewrite_prompt,
+    filter_relevance_prompt,
+    intelligent_question_filter_prompt,
+)
 
 
 class Generator:

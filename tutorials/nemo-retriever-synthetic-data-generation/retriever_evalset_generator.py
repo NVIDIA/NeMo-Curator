@@ -61,7 +61,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         return True  # TODO complete this
 
     def _init_pipeline_params(self):
-
         if self._validate_config():
             self.sys_prompt = self.cfg.generator_system_prompt
             self.user_prompt_template = self.cfg.generator_user_prompt_template
@@ -91,7 +90,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         return df
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-
         ddf = dataset.df
         ddf["partition-id"] = ""
         ddf = ddf.map_partitions(self._get_partition_id, meta=ddf)
@@ -109,7 +107,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         return DocumentDataset(ddf)
 
     def _process_on_partition(self, df: pd.DataFrame) -> pd.DataFrame:
-
         self.generator = load_object_on_worker(
             attr="generator",
             load_object_function=self._create_generator,
@@ -146,7 +143,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
                     q = qas[0].split(":")[1].strip()
                     if re.search("Explanation", qas[1]):
                         a = qas[1].split("Explanation")[0].split(":")[1].strip()
-                        explanation = qas[1].split("Explanation")[1].strip() # noqa: F841
+                        explanation = qas[1].split("Explanation")[1].strip()  # noqa: F841
                     else:
                         a = qas[1].split(":")[1].strip()
                     qa_pairs.append({"question": q, "answer": a})

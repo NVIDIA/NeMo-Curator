@@ -53,7 +53,6 @@ class HardNegativeMiner:
         self,
         cfg: RetrieverHardNegativeMiningConfig,
     ):
-
         self.model_name = cfg.model_name
         self.model_type = cfg.model_type
         self.base_url = cfg.base_url
@@ -136,7 +135,6 @@ class HardNegativeMiner:
         return DocumentDataset(df_c)
 
     def _get_doc_embeddings(self, p_df: pd.DataFrame):
-
         if self.model_type == "nvidia":
             self.client = load_object_on_worker(
                 attr="nim_embedding_model",
@@ -165,7 +163,6 @@ class HardNegativeMiner:
         return pdf2
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
-
         df = dataset.df
         df = df.to_backend("pandas")
         df = df[["question", "documents"]]
@@ -186,7 +183,6 @@ class HardNegativeMiner:
         return DocumentDataset(df)
 
     def _process_partition(self, df_p: pd.DataFrame):
-
         if self.model_type == "nvidia":
             self.client = load_object_on_worker(
                 attr="nim_embedding_model",

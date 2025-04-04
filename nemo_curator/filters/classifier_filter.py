@@ -26,7 +26,6 @@ from nemo_curator.utils.distributed_utils import NoWorkerError, load_object_on_w
 
 
 class FastTextQualityFilter(DocumentFilter):
-
     def __init__(self, model_path=None, label="__label__hq", alpha=3, seed=42):
         if model_path is None:
             raise ValueError(
@@ -67,7 +66,6 @@ class FastTextQualityFilter(DocumentFilter):
 
 
 class FastTextLangId(DocumentFilter):
-
     def __init__(self, model_path=None, min_langid_score=0.3):
         if model_path is None:
             raise ValueError(

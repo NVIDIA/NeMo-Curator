@@ -170,23 +170,23 @@ def test_cudf_read_data_blocksize_partitioning(
     num_partitions = df.optimize().npartitions
     # Assert that we have two partitions (since we have ~15KB total data and a blocksize of 10KB)
     if blocksize == "1kb":
-        assert (
-            num_partitions > NUM_FILES
-        ), f"Expected > {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions > NUM_FILES, (
+            f"Expected > {NUM_FILES} partitions but got {num_partitions}"
+        )
     elif blocksize == "5kb":
-        assert (
-            num_partitions == NUM_FILES
-        ), f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions == NUM_FILES, (
+            f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        )
     elif blocksize == "10kb":
-        assert (
-            num_partitions < NUM_FILES
-        ), f"Expected < {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions < NUM_FILES, (
+            f"Expected < {NUM_FILES} partitions but got {num_partitions}"
+        )
     else:
         raise ValueError(f"Invalid blocksize: {blocksize}")
     total_rows = len(df)
-    assert (
-        total_rows == NUM_FILES * NUM_RECORDS
-    ), f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
+    assert total_rows == NUM_FILES * NUM_RECORDS, (
+        f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
+    )
 
     assert isinstance(df["id"].compute(), cudf.Series)
 
@@ -216,30 +216,30 @@ def test_pandas_read_data_blocksize_partitioning(
     num_partitions = df.npartitions
     # Our total data is ~25kb where each file is 5kb
     if blocksize == "1kb":
-        assert (
-            num_partitions > NUM_FILES
-        ), f"Expected > {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions > NUM_FILES, (
+            f"Expected > {NUM_FILES} partitions but got {num_partitions}"
+        )
     elif blocksize == "5kb":
-        assert (
-            num_partitions == NUM_FILES
-        ), f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions == NUM_FILES, (
+            f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        )
     elif blocksize == "10kb":
         # Because pandas doesn't suppport reading json files together, a partition will only be as big as a single file
         if file_type == "jsonl":
-            assert (
-                num_partitions == NUM_FILES
-            ), f"Expected {NUM_FILES} partitions but got {num_partitions}"
+            assert num_partitions == NUM_FILES, (
+                f"Expected {NUM_FILES} partitions but got {num_partitions}"
+            )
         # Parquet files can be read together
         elif file_type == "parquet":
-            assert (
-                num_partitions < NUM_FILES
-            ), f"Expected > {NUM_FILES} partitions but got {num_partitions}"
+            assert num_partitions < NUM_FILES, (
+                f"Expected > {NUM_FILES} partitions but got {num_partitions}"
+            )
     else:
         raise ValueError(f"Invalid blocksize: {blocksize}")
     total_rows = len(df)
-    assert (
-        total_rows == NUM_FILES * NUM_RECORDS
-    ), f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
+    assert total_rows == NUM_FILES * NUM_RECORDS, (
+        f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
+    )
 
     assert isinstance(df["id"].compute(), pd.Series)
 
@@ -273,21 +273,21 @@ def test_read_data_fpp_partitioning(
     num_partitions = df.npartitions
     # Assert that we have two partitions (since we have ~15KB total data and a blocksize of 10KB)
     if fpp == 1:
-        assert (
-            num_partitions == NUM_FILES
-        ), f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions == NUM_FILES, (
+            f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        )
     elif fpp == NUM_FILES // 2:
-        assert (
-            num_partitions < NUM_FILES
-        ), f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        assert num_partitions < NUM_FILES, (
+            f"Expected {NUM_FILES} partitions but got {num_partitions}"
+        )
     elif fpp >= NUM_FILES:
         assert num_partitions == 1, f"Expected 1 partition but got {num_partitions}"
     else:
         raise ValueError(f"Invalid fpp: {fpp}")
     total_rows = len(df)
-    assert (
-        total_rows == NUM_FILES * NUM_RECORDS
-    ), f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
+    assert total_rows == NUM_FILES * NUM_RECORDS, (
+        f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
+    )
     if backend == "cudf":
         import cudf
 

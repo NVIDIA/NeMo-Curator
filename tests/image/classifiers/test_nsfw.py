@@ -85,7 +85,6 @@ def test_get_default_model():
         mock.patch("zipfile.ZipFile") as mock_zipfile,
         mock.patch("os.makedirs"),
     ):
-
         # Mock the response
         mock_response = mock.MagicMock()
         mock_response.content = b"mock_content"
@@ -135,7 +134,6 @@ def test_load_model(gpu_client):
         mock.patch("torch.load", return_value={}),
         mock.patch("nemo_curator.image.classifiers.nsfw.NSFWModel") as mock_model_class,
     ):
-
         # Configure the mock to return our custom module
         mock_model_instance = MockNSFWModel()
         mock_model_class.return_value = mock_model_instance
@@ -255,7 +253,6 @@ def test_classifier_with_embedder_workflow(gpu_client):
             side_effect=mock_load_object,
         ),
     ):
-
         # Create a mock embedding model
         def mock_embedding_fn(x):
             # Return embeddings with the correct shape for the classifier

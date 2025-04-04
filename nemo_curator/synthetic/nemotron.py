@@ -1456,7 +1456,6 @@ class NemotronGenerator:
 
 
 class NemotronFormatter(ConversationFormatter):
-
     PROMPT_PREFIX = "<extra_id_0>System\n\n<extra_id_1>User\n"
 
     @staticmethod

@@ -233,9 +233,9 @@ class TestSemDuplicates:
             test_texts, pooling_strategy=pooling_strategy
         )
 
-        assert np.allclose(
-            embeddings, reference_embeddings, atol=1e-3
-        ), "Embeddings should match reference embeddings"
+        assert np.allclose(embeddings, reference_embeddings, atol=1e-3), (
+            "Embeddings should match reference embeddings"
+        )
 
 
 def get_reference_embeddings(
@@ -644,12 +644,12 @@ class TestSemanticDedupWithoutEmbeddingCreation:
         )
 
         # Verify that the extra column is present and its values are as expected.
-        assert (
-            "extra" in embss_by_nearest_center.columns
-        ), "The extra column should be present when keep_all_columns is True."
-        assert (
-            embss_by_nearest_center["extra"].eq("foo").all()
-        ), "The extra column should contain 'foo' for all rows."
+        assert "extra" in embss_by_nearest_center.columns, (
+            "The extra column should be present when keep_all_columns is True."
+        )
+        assert embss_by_nearest_center["extra"].eq("foo").all(), (
+            "The extra column should contain 'foo' for all rows."
+        )
 
     @pytest.mark.parametrize("which_to_keep", ["hard", "random", "easy"])
     @pytest.mark.parametrize("sim_metric", ["cosine", "l2"])

@@ -43,7 +43,6 @@ def tmp_path_w_data(tmp_path):
     "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
 )
 class TestMetadataSep:
-
     @pytest.mark.parametrize("files_per_partition", [1, 3])
     @pytest.mark.parametrize(
         "file_ext, read_f",

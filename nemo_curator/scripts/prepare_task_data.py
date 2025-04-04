@@ -55,7 +55,7 @@ def attach_args(
     matching n-grams in the input training dataset.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     ArgumentHelper(parser).add_distributed_args()
     parser.add_argument(

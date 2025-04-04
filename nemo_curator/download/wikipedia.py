@@ -579,7 +579,6 @@ CAT_ALIASES = {
 
 
 class WikipediaDownloader(DocumentDownloader):
-
     def __init__(self, download_dir, verbose=False):
         super().__init__()
         self._download_dir = download_dir
@@ -613,7 +612,6 @@ class WikipediaDownloader(DocumentDownloader):
 
 
 class WikipediaIterator(DocumentIterator):
-
     def __init__(self, language="en", log_frequency=1000):
         super().__init__()
         self._language = language
@@ -654,17 +652,19 @@ class WikipediaIterator(DocumentIterator):
             if raw_content is None or red_ is not None:
                 continue
 
-            yield {
-                "title": title,
-                "id": id_,
-                "url": url,
-                "language": self._language,
-                "source_id": f"{bname}",
-            }, raw_content
+            yield (
+                {
+                    "title": title,
+                    "id": id_,
+                    "url": url,
+                    "language": self._language,
+                    "source_id": f"{bname}",
+                },
+                raw_content,
+            )
 
 
 class WikipediaExtractor(DocumentExtractor):
-
     def __init__(self, language="en", parser=mwparserfromhell):
         super().__init__()
         self._language = language

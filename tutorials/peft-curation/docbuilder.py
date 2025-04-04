@@ -53,7 +53,6 @@ class EmailsDownloader(DocumentDownloader):
 
 
 class EmailsIterator(DocumentIterator):
-
     def __init__(self):
         super().__init__()
         self._counter = -1

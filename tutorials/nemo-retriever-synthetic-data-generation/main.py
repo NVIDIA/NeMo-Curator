@@ -35,7 +35,6 @@ RetrieverEvalSDGConfig = config.RetrieverEvalSDGConfig
 
 
 def get_pipeline(args: Any) -> Any:
-
     cfg = RetrieverEvalSDGConfig.from_yaml(args.pipeline_config)
     # update api_key from input args
     cfg.api_key = args.api_key
@@ -91,7 +90,6 @@ def get_pipeline(args: Any) -> Any:
 
 
 def write_to_beir(args: Any, dataset: DocumentDataset, input_dataset: DocumentDataset):
-
     df = dataset.df
     df = df.compute()
 

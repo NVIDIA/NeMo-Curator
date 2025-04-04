@@ -61,7 +61,6 @@ class TaskDecontamination(BaseModule):
         self.removed_dir = removed_dir
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
-
         # Convert the dataframe to delayed objects for complex operations
         original_meta = dataset.df.dtypes.to_dict()
         delayed_dataset = dataset.df.to_delayed()
@@ -168,7 +167,6 @@ class TaskDecontamination(BaseModule):
 
         local_ngram = defaultdict(int)
         while len(text_buf) > 0:
-
             # get the first one from the buffer
             text = text_buf.pop(0)
             words, positions = get_words(text)
@@ -225,7 +223,6 @@ class TaskDecontamination(BaseModule):
 
                 # check all n-grams lower than max ngram-len
                 for pos, (ngram_len, _) in enumerate(ngrams_freq_sorted):
-
                     # ignore the max ngram as has been considered already
                     if ngram_len == self.max_ngram_size:
                         continue
@@ -396,7 +393,6 @@ class TaskDecontamination(BaseModule):
 
                 # check all n-grams lower than max ngram-len
                 for pos, (ngram_len, _) in enumerate(ngrams_freq_sorted):
-
                     # ignore the max ngram as has been considered already
                     if ngram_len == self.max_ngram_size:
                         continue
@@ -430,7 +426,7 @@ class TaskDecontamination(BaseModule):
         trimmed = 0
         if len(text_buf_ngram_free) == 1:
             if len(text_buf_ngram_free[0]) < len(text):
-                trimmed = 1 # noqa: F841
+                trimmed = 1  # noqa: F841
 
         return text_buf_ngram_free
 

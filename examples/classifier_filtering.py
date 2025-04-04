@@ -55,7 +55,7 @@ def main(args):
     filtered_output = "/path/to/output"
 
     # Prepare samples for the classifier
-    client = get_client(**ArgumentHelper.parse_client_args(args)) #noqa: F841
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
     low_quality_samples = create_samples(
         low_quality_data_path, "__label__lq", num_low_quality_samples
     )
