@@ -56,6 +56,7 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
                 tgt_lang=TGT_LANG,
                 score_field="length_ratio",
                 score_type=float,
+                add_skip_label_only=True,
             ),
             ParallelScoreFilter(
                 HistogramFilter(lang=SRC_LANG),
@@ -63,6 +64,7 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
                 src_score="src_hist",
                 tgt_score="tgt_hist",
                 score_type=int,
+                add_skip_label_only=True,
             ),
         ]
     )
@@ -75,6 +77,7 @@ def filter_dataset(dataset: ParallelDataset, gpu: bool = False) -> ParallelDatas
                 gpu=gpu,
                 metadata_fields=["src_lang", "tgt_lang"],
                 score_type=float,
+                add_skip_label_only=True,
             )
         )
     else:
@@ -115,7 +118,8 @@ def run_curation_pipeline(args: Any, src_file: str, tgt_file: str) -> None:
         shutil.rmtree(out_path)
 
     os.makedirs(out_path)
-    dataset.to_bitext(out_path, write_to_filename=True)
+    # dataset.to_bitext(out_path, write_to_filename=True)
+    dataset.to_json(out_path)
     client.close()
 
 

@@ -23,7 +23,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.datasets.parallel_dataset import ParallelDataset
 from nemo_curator.filters import DocumentFilter
 from nemo_curator.modules.base import BaseModule
-from nemo_curator.utils.module_utils import is_batched
+from nemo_curator.utils.module_utils import REASON_LABEL_KEY, SKIP_LABEL_KEY, is_batched
 
 # Override so that pd.NA is not passed during the metadata inference
 make_array_nonempty.register(
@@ -168,6 +168,7 @@ class ScoreFilter(BaseModule):
         score_field: Optional[str] = None,
         score_type: Union[type, str] = None,
         invert: bool = False,
+        add_skip_label_only: bool = False,
     ):
         """
         Constructs a ScoreFilter module.
@@ -185,6 +186,7 @@ class ScoreFilter(BaseModule):
         self.score_field = score_field
         self.score_type = score_type
         self.invert = invert
+        self.add_skip_label_only = add_skip_label_only
 
     def compute_filter_mask(self, dataset: DocumentDataset):
         """Compute the bool mask to filter the dataset.
@@ -200,16 +202,39 @@ class ScoreFilter(BaseModule):
         else:
             meta = no_default
 
+        if self.add_skip_label_only:
+            if SKIP_LABEL_KEY not in dataset.df.columns:
+                dataset.df[SKIP_LABEL_KEY] = 0
+            if REASON_LABEL_KEY not in dataset.df.columns:
+                dataset.df[REASON_LABEL_KEY] = None
+
+            # although the full dataset is passed, we don't need to compute score on full data
+            # only data that's still remaining needs to be processed
+            kept_mask = dataset.df._skipme == 0
+            df = dataset.df[kept_mask].copy()
+        else:
+            df = dataset.df
+
         if is_batched(self.filter_obj.score_document):
-            scores = dataset.df[self.text_field].map_partitions(
+            scores = df[self.text_field].map_partitions(
                 self.filter_obj.score_document, meta=meta
             )
         else:
-            scores = dataset.df[self.text_field].apply(
+            scores = df[self.text_field].apply(
                 self.filter_obj.score_document, meta=meta
             )
 
-        if self.score_field is not None:
+        if self.score_field is not None and self.add_skip_label_only:
+            dataset.df[self.score_field] = None
+
+            def update_score(partition, mask_partition, score_partition):
+                partition.loc[mask_partition, self.score_field] = score_partition
+                return partition
+
+            dataset.df = dataset.df.map_partitions(
+                update_score, kept_mask, scores, meta=dataset.df
+            )
+        elif self.score_field is not None:
             dataset.df[self.score_field] = scores
 
         if is_batched(self.filter_obj.keep_document):
@@ -234,7 +259,41 @@ class ScoreFilter(BaseModule):
             DocumentDataset: A dataset with the score and filter applied
         """
         bool_mask = self.compute_filter_mask(dataset)
-        return DocumentDataset(dataset.df[bool_mask])
+
+        def update_skipme(partition, kept_mask_partition, score_bool_mask_partition):
+            partition.loc[kept_mask_partition, SKIP_LABEL_KEY] = [
+                1 if skip else 0 for skip in ~score_bool_mask_partition
+            ]
+            return partition
+
+        def update_reason(partition, kept_mask_partition, reason):
+            # filtering reason needs to be updated for the following entries
+            # 1. the entry was kept before
+            # 2. the entry was thrown out by this filter
+            new_skip = [
+                True if skip == 1 else False for skip in partition[SKIP_LABEL_KEY]
+            ]
+            new_mask = logical_and(kept_mask_partition.values, new_skip)
+            partition.loc[new_mask, REASON_LABEL_KEY] = reason
+            return partition
+
+        if self.add_skip_label_only:
+            kept_mask = dataset.df._skipme == 0
+            dataset.df = dataset.df.map_partitions(
+                update_skipme,
+                kept_mask,
+                ~bool_mask if self.invert else bool_mask,
+                meta=dataset.df,
+            )
+            dataset.df = dataset.df.map_partitions(
+                update_reason,
+                kept_mask,
+                self.filter_obj.__class__.__name__,
+                meta=dataset.df,
+            )
+            return DocumentDataset(dataset.df)
+        else:
+            return DocumentDataset(dataset.df[bool_mask])
 
 
 class ParallelScoreFilter(BaseModule):
@@ -248,6 +307,7 @@ class ParallelScoreFilter(BaseModule):
         tgt_score=None,
         score_type=None,
         invert=False,
+        add_skip_label_only: bool = False,
     ):
         """A filter object wrapper class for applying *monolingual* filter objects on bitext.
         If either side of the bitext is discarded, the whole bitext pair is discarded.
@@ -269,17 +329,25 @@ class ParallelScoreFilter(BaseModule):
         """
         super().__init__(input_backend=src_filter_obj.backend)
         self.source_score_filter = ScoreFilter(
-            src_filter_obj, src_field, src_score, score_type, invert
+            src_filter_obj,
+            src_field,
+            src_score,
+            score_type,
+            invert,
+            add_skip_label_only,
         )
         self.target_score_filter = ScoreFilter(
-            tgt_filter_obj, tgt_field, tgt_score, score_type, invert
+            tgt_filter_obj,
+            tgt_field,
+            tgt_score,
+            score_type,
+            invert,
+            add_skip_label_only,
         )
+        self.add_skip_label_only = add_skip_label_only
 
-    def call(self, dataset: ParallelDataset):
-        src_bool_mask = self.source_score_filter.compute_filter_mask(dataset)
-        tgt_bool_mask = self.target_score_filter.compute_filter_mask(dataset)
-
+    def call(self, dataset: ParallelDataset) -> ParallelDataset:
         # remove lines together if one of them is filtered
-        bool_mask = logical_and(src_bool_mask, tgt_bool_mask)
-
-        return ParallelDataset(dataset.df[bool_mask])
+        ds1 = self.source_score_filter(dataset)
+        ds2 = self.target_score_filter(ds1)
+        return ParallelDataset(ds2.df)
