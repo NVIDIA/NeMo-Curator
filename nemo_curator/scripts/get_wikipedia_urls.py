@@ -34,7 +34,7 @@ def attach_args(
 Pulls URLs pointing to the latest Wikipedia dumps.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     ArgumentHelper(parser).add_arg_language(
         help="Desired language of the Wikipedia dump."

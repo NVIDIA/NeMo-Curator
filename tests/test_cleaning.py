@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask.dataframe as dd
 import pandas as pd
 from dask.dataframe.utils import assert_eq
 
@@ -63,9 +62,9 @@ class TestUnicodeReformatter:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
 
 class TestNewlineNormalizer:
@@ -93,9 +92,9 @@ class TestNewlineNormalizer:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
     def test_newlines_and_carriage_returns(self):
         dataset = list_to_dataset(
@@ -121,9 +120,9 @@ class TestNewlineNormalizer:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
 
 class TestUrlRemover:
@@ -155,9 +154,9 @@ class TestUrlRemover:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert (
-            expected_results == actual_results
-        ), f"Expected: {expected_results}, but got: {actual_results}"
+        assert expected_results == actual_results, (
+            f"Expected: {expected_results}, but got: {actual_results}"
+        )
 
 
 class TestLineRemover:
@@ -270,7 +269,6 @@ class TestQuotationRemover:
         assert result == text
 
     def test_dataset_modification(self):
-        import pandas as pd
         from dask.dataframe.utils import assert_eq
 
         docs = ['"Document one"', 'Start "Document two" End', '"Document\nthree"', '""']
@@ -370,7 +368,6 @@ class TestSlicer:
         assert result == expected
 
     def test_dataset_modification(self):
-        import pandas as pd
         from dask.dataframe.utils import assert_eq
 
         docs = ["abcdef", "0123456789", "Hello", "Slicer"]
@@ -459,7 +456,6 @@ class TestMarkdownRemover:
         assert result == expected
 
     def test_dataset_modification(self):
-        import pandas as pd
         from dask.dataframe.utils import assert_eq
 
         docs = [

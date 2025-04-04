@@ -20,7 +20,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     reshard_jsonl(
         args.input_data_dir,
@@ -44,7 +44,7 @@ The size of the input files must be larger than the specified
 --block-size.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

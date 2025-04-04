@@ -27,7 +27,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     output_tdd_dir = expand_outdir_and_mkdir(args.output_task_deduped_dir)
     output_rm_doc_dir = None
@@ -93,7 +93,7 @@ def attach_args(
  --max-splits times, it is removed from the corpus.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

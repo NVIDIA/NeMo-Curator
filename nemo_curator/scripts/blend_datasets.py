@@ -69,7 +69,7 @@ A blend is created from these datasets and saved to the specified output directo
 Optionally, the user can choose to shuffle this dataset as well.
   """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

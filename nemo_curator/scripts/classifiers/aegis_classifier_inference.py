@@ -92,13 +92,13 @@ def main():
         )
         batch_et = time.time()
         print(
-            f"File Batch ID {file_batch_id}: completed in {batch_et-batch_st} seconds",
+            f"File Batch ID {file_batch_id}: completed in {batch_et - batch_st} seconds",
             flush=True,
         )
 
     global_et = time.time()
     print(
-        f"Total time taken for AEGIS classifier inference: {global_et-global_st} s",
+        f"Total time taken for AEGIS classifier inference: {global_et - global_st} s",
         flush=True,
     )
     client.close()

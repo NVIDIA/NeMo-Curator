@@ -42,7 +42,7 @@ def main(args):
 
     global_et = time.time()
     print(
-        f"Total time taken for FineWeb Nemotron-4 Edu Classifier inference: {global_et-global_st} s",
+        f"Total time taken for FineWeb Nemotron-4 Edu Classifier inference: {global_et - global_st} s",
         flush=True,
     )
 

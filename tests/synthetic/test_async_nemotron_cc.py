@@ -12,20 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest.mock import AsyncMock, call, patch
+from unittest.mock import AsyncMock
 
 import pytest
-import yaml
 
 from nemo_curator.synthetic.async_nemotron_cc import AsyncNemotronCCGenerator
 from nemo_curator.synthetic.prompts import (
-    DISTILL_PROMPT_TEMPLATE,
-    DIVERSE_QA_PROMPT_TEMPLATE,
-    EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
-    KNOWLEDGE_LIST_PROMPT_TEMPLATE,
     NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
     NEMOTRON_CC_SYSTEM_PROMPT,
-    WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
 )
 
 

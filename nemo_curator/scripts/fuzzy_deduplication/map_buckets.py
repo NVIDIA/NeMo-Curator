@@ -180,7 +180,7 @@ def main(args):
         args.input_meta,
     )
     et = time.time()
-    print(f"Bucket Mapping time taken = {et-st} s")
+    print(f"Bucket Mapping time taken = {et - st} s")
 
 
 def console_script():

@@ -73,7 +73,6 @@ class LawQADownloader(DocumentDownloader):
 
 
 class LawQAIterator(DocumentIterator):
-
     def __init__(self):
         super().__init__()
         self._counter = -1
@@ -117,7 +116,6 @@ class LawQAIterator(DocumentIterator):
 
 
 class LawQAExtractor(DocumentExtractor):
-
     def extract(self, content: str) -> Dict[str, str]:
         """
         Extracts relevant information from a law-related question and its best answer.

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import zipfile
 from pathlib import Path
 from unittest import mock
 
@@ -53,7 +51,7 @@ def test_init_defaults():
     assert classifier.model_name == "nsfw_classifier"
     assert classifier.embedding_column == "image_embedding"
     assert classifier.pred_column == "nsfw_score"
-    assert classifier.pred_type == float
+    assert isinstance(classifier.pred_type, type(float))
     assert classifier.batch_size == -1
     assert classifier.embedding_size == 768
 
@@ -70,7 +68,7 @@ def test_init_custom_params():
     assert classifier.model_name == "nsfw_classifier"
     assert classifier.embedding_column == "custom_embedding"
     assert classifier.pred_column == "custom_score"
-    assert classifier.pred_type == float
+    assert isinstance(classifier.pred_type, type(float))
     assert classifier.batch_size == 64
     assert classifier.embedding_size == 768
     assert classifier.model_path == "/custom/path/model.pth"
@@ -87,7 +85,6 @@ def test_get_default_model():
         mock.patch("zipfile.ZipFile") as mock_zipfile,
         mock.patch("os.makedirs"),
     ):
-
         # Mock the response
         mock_response = mock.MagicMock()
         mock_response.content = b"mock_content"
@@ -137,7 +134,6 @@ def test_load_model(gpu_client):
         mock.patch("torch.load", return_value={}),
         mock.patch("nemo_curator.image.classifiers.nsfw.NSFWModel") as mock_model_class,
     ):
-
         # Configure the mock to return our custom module
         mock_model_instance = MockNSFWModel()
         mock_model_class.return_value = mock_model_instance
@@ -257,7 +253,6 @@ def test_classifier_with_embedder_workflow(gpu_client):
             side_effect=mock_load_object,
         ),
     ):
-
         # Create a mock embedding model
         def mock_embedding_fn(x):
             # Return embeddings with the correct shape for the classifier
@@ -315,7 +310,7 @@ def test_classifier_with_embedder_workflow(gpu_client):
             mock_dataset_class.return_value = test_dataset
 
             # Call the embedder (which will call our classifier)
-            result = embedder(test_dataset)
+            embedder(test_dataset)
 
             # Verify the classifier column was added to the metadata
             assert mock_metadata.map_partitions.called

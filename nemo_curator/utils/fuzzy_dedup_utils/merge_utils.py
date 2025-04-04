@@ -34,7 +34,6 @@ def _split_part(part, nsplits):
 
 
 def text_bytes_aware_merge(text_df, right_df, broadcast=True, *, on):
-
     if query_planning_enabled():
         raise NotImplementedError(
             "The text_bytes_aware_merge function is not supported when "

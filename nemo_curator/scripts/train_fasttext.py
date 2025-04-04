@@ -26,7 +26,6 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-
     # Set the random seed for shuffling
     random.seed(args.seed)
 
@@ -118,7 +117,7 @@ classifier on the input samples and writes the trained classifier
 out to disk as a FastText model.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 
@@ -140,8 +139,7 @@ out to disk as a FastText model.
         "--high-quality-label",
         type=str,
         default="__label__hq",
-        help="The label assigned to the high quality samples "
-        "when preparing the data.",
+        help="The label assigned to the high quality samples when preparing the data.",
     )
     parser.add_argument(
         "--learning-rate",

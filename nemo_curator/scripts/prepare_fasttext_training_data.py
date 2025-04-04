@@ -67,7 +67,7 @@ file of samples prepared in order to train a skip-gram classifier
 with FastText.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

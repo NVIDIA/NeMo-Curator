@@ -150,7 +150,7 @@ def verify_results(
             the field names and their respective data types within the JSONL input file.
 
     """
-    if type(input_meta) == str:
+    if isinstance(input_meta, str):
         input_meta = ast.literal_eval(input_meta)
 
     expected_df = pd.read_json(expected_results_file_path, lines=True, dtype=input_meta)

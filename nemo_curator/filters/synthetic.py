@@ -13,13 +13,10 @@
 # limitations under the License.
 
 import json
-from typing import List, Union
+from typing import List
 
-import dask
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from dask.base import normalize_token, tokenize
 from openai import OpenAI
 
 from nemo_curator.filters.doc_filter import DocumentFilter
@@ -53,7 +50,6 @@ class EasinessFilter(DocumentFilter):
         batch_size: int = 1,
         text_fields: List[str] = ["text", "question"],
     ):
-
         self._name = "easiness_filter"
         self.base_url = base_url
         self.api_key = api_key
@@ -66,7 +62,6 @@ class EasinessFilter(DocumentFilter):
 
     @batched
     def score_document(self, df: pd.DataFrame):
-
         try:
             self.client = load_object_on_worker(
                 attr="openai_client_easiness",
@@ -152,7 +147,6 @@ class AnswerabilityFilter(DocumentFilter):
         num_criteria: int,
         text_fields: List[str] = ["text", "question"],
     ):
-
         self._name = "answerability_filter"
         self.base_url = base_url
         self.api_key = api_key
@@ -164,7 +158,6 @@ class AnswerabilityFilter(DocumentFilter):
 
     @batched
     def score_document(self, df: pd.DataFrame):
-
         try:
             self.client = load_object_on_worker(
                 attr="openai_client_answerability",
@@ -185,17 +178,16 @@ class AnswerabilityFilter(DocumentFilter):
     # ----------------------------------------------------------------------------80
     @batched
     def keep_document(self, scores: pd.Series):
-
         def _keep_document(score: str):
             is_keep = True  # default is to keep
             try:
                 json_ans = json.loads(score)
                 for i in range(self.num_criteria):
-                    if json_ans[f"criterion_{i+1}"] != "Y":
+                    if json_ans[f"criterion_{i + 1}"] != "Y":
                         # filter out data if any of the criteria fails
                         is_keep = False  # filter out
                         break
-            except Exception as e:
+            except Exception:
                 pass  # TODO log the errors
                 # print(f"Parse error {e}")
                 # if there is a parse error, keep the document
@@ -205,7 +197,6 @@ class AnswerabilityFilter(DocumentFilter):
         return scores.apply(_keep_document)
 
     def _llm_as_judge(self, context: str, question: str):
-
         user_query = self.system_prompt + "\n\n"
         user_query += self.user_prompt_template.format(
             context=context, question=question

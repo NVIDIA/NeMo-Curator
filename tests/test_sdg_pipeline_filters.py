@@ -15,15 +15,12 @@
 import importlib
 import os
 
-import dask
-import numpy as np
 import pandas as pd
 import pytest
-from dask import dataframe as dd
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import AnswerabilityFilter, DocumentFilter, EasinessFilter
-from nemo_curator.modules import Filter, Score, ScoreFilter, Sequential
+from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
+from nemo_curator.modules import ScoreFilter
 
 config_module = importlib.import_module(
     "tutorials.nemo-retriever-synthetic-data-generation.config.config"
@@ -89,7 +86,6 @@ def get_config():
 
 class TestSDGFilterModule:
     def test_easiness_filter(self, get_generated_data, get_config):
-
         ef = EasinessFilter(
             get_config.base_url,
             get_config.api_key,
@@ -109,7 +105,6 @@ class TestSDGFilterModule:
         assert org_df.shape[0] >= filtered_df.shape[0]
 
     def test_answerability_filter(self, get_generated_data, get_config):
-
         af = AnswerabilityFilter(
             get_config.base_url,
             get_config.api_key,

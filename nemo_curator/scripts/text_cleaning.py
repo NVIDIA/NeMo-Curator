@@ -23,7 +23,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    get_client(**ArgumentHelper.parse_client_args(args))
 
     # Make the output directories
     output_clean_dir = expand_outdir_and_mkdir(args.output_clean_dir)
@@ -74,7 +74,7 @@ with fixed unicode. Also performs language filtering using
 the \"language\" field within each JSON object.
 """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    ),
 ):
     argumentHelper = ArgumentHelper(parser)
 

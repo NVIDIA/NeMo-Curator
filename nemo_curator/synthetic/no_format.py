@@ -17,7 +17,6 @@ from nemo_curator.services.conversation_formatter import ConversationFormatter
 
 
 class NoFormat(ConversationFormatter):
-
     def format_conversation(self, conv: List[dict]) -> str:
         if len(conv) != 1:
             raise ValueError(

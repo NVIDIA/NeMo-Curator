@@ -1,8 +1,16 @@
-import ast
 import json
 
-from Endpoints import *
-from prompts import *
+from Endpoints import LLaMa_405B
+from prompts import (
+    extract_user_interest_prompt,
+    extract_compatible_question_type_prompt,
+    extract_questions_prompt,
+    conversational_re_write_prompt,
+    extract_writing_style,
+    persona_rewrite_prompt,
+    filter_relevance_prompt,
+    intelligent_question_filter_prompt,
+)
 
 
 class Generator:
@@ -77,7 +85,7 @@ class Generator:
         try:
             answer = json.loads(self.llm.invoke(prompt, schema))["generated_questions"]
             return answer
-        except:
+        except Exception:
             return []
 
     def conversational_re_write(self, question, file_name, passage):
@@ -133,7 +141,7 @@ class Generator:
         try:
             answer = self.llm.invoke(prompt, schema)
             return answer
-        except:
+        except Exception:
             return {"reasoning": "error", "new_question": question}
 
 

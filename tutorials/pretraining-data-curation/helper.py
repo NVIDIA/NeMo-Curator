@@ -2,7 +2,6 @@ import gzip
 import json
 import os
 
-import cudf
 import dask.bag as db
 
 

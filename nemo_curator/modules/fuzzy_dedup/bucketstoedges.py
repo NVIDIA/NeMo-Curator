@@ -103,7 +103,6 @@ class BucketsToEdges:
         self,
         buckets_df: cudf.DataFrame,
     ) -> cudf.DataFrame:
-
         grouped_buckets = (
             buckets_df.groupby(self.bucket_field)[self.str_id_name]
             .agg(list)
@@ -125,7 +124,7 @@ class BucketsToEdges:
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         buckets_df = dataset.df
-        self._logger.info(f"Starting conversion of LSH Buckets to Graph Edgelist")
+        self._logger.info("Starting conversion of LSH Buckets to Graph Edgelist")
         if len(self.id_fields) > 1:
             buckets_df = buckets_df.map_partitions(
                 BucketsToEdges._combine_multiple_ids,

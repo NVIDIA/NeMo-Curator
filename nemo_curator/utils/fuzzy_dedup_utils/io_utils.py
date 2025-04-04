@@ -35,7 +35,7 @@ def _read_json_func(
     dataframe with an additional `path` column denoting the path
     of the input file.
     """
-    if type(input_meta) == str:
+    if isinstance(input_meta, str):
         input_meta = ast.literal_eval(input_meta)
 
     if not include_path_column:

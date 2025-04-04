@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask.dataframe
 import pandas as pd
 
 from nemo_curator.datasets import DocumentDataset

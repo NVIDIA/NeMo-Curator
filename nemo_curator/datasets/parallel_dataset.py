@@ -140,7 +140,9 @@ class ParallelDataset(DocumentDataset):
         src_input_file, tgt_input_file = input_file_pair
         assert remove_path_extension(src_input_file) == remove_path_extension(
             tgt_input_file
-        ), f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
+        ), (
+            f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
+        )
 
         if not doc_id:
             doc_id = "▁".join([src_input_file, tgt_input_file])
@@ -156,9 +158,9 @@ class ParallelDataset(DocumentDataset):
         df_tgt = df.read_csv(
             tgt_input_file, names=["tgt"], sep="\t", quoting=csv.QUOTE_NONE
         )
-        assert len(df_src) == len(
-            df_tgt
-        ), f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
+        assert len(df_src) == len(df_tgt), (
+            f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
+        )
         df_combined = df.concat([df_src, df_tgt], axis=1)
         df_combined["doc_id"] = doc_id
         df_combined["src_lang"] = src_lang

@@ -119,9 +119,9 @@ class TestIO:
 
         expected_meta = "{'id': 'float64'}"
 
-        assert (
-            output_meta == expected_meta
-        ), f"Expected: {expected_meta}, got: {output_meta}"
+        assert output_meta == expected_meta, (
+            f"Expected: {expected_meta}, got: {output_meta}"
+        )
 
     def test_meta_str(self, jsonl_dataset):
         with tempfile.NamedTemporaryFile(suffix=".jsonl") as temp_file:
@@ -143,9 +143,9 @@ class TestIO:
 
         expected_meta = "{'id': 'float64'}"
 
-        assert (
-            output_meta == expected_meta
-        ), f"Expected: {expected_meta}, got: {output_meta}"
+        assert output_meta == expected_meta, (
+            f"Expected: {expected_meta}, got: {output_meta}"
+        )
 
     @pytest.mark.parametrize(
         "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
@@ -304,7 +304,7 @@ class TestFileExtensions:
         csv_file.to_csv(tmp_path / "csv_file.csv")
 
         with pytest.raises(RuntimeError):
-            doc = DocumentDataset.read_json(str(tmp_path))
+            DocumentDataset.read_json(str(tmp_path))
 
         input_files = get_all_files_paths_under(str(tmp_path), keep_extensions="jsonl")
         input_dataset = DocumentDataset.read_json(input_files)
@@ -401,18 +401,18 @@ class TestPartitionOn:
             # The partition value is taken from the directory name.
             partition_value = part_dir.name.split("=")[-1]
             jsonl_files = list(part_dir.glob("*.part"))
-            assert (
-                jsonl_files
-            ), f"No JSONL files found in partition directory {part_dir}"
+            assert jsonl_files, (
+                f"No JSONL files found in partition directory {part_dir}"
+            )
             for file in jsonl_files:
                 with open(file, "r") as f:
                     for line in f:
                         record = json.loads(line)
                         if "category" in record:
                             # Compare as strings, to work with both integer and string partition values.
-                            assert (
-                                str(record["category"]) == partition_value
-                            ), f"Record partition value {record['category']} does not match directory {partition_value}"
+                            assert str(record["category"]) == partition_value, (
+                                f"Record partition value {record['category']} does not match directory {partition_value}"
+                            )
 
     @pytest.mark.parametrize(
         "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]

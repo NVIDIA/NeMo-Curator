@@ -28,7 +28,6 @@ def pre_imports():
 
 
 def main(args):
-
     dataset_dir = "/path/to/dataset"
     log_dir = "./"
     cache_dir = "./fuzzy_cache"  # must be cleared between runs

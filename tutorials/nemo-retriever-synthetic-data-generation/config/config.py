@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import warnings
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Optional
 
-import yaml
 
 from nemo_curator.modules.config import BaseConfig
 
@@ -42,9 +39,7 @@ class RetrieverEvalSDGConfig(BaseConfig):
     max_tokens: Optional[int] = 2048
     squad_format: Optional[bool] = False
 
-    generator_system_prompt: Optional[
-        str
-    ] = """You are data annotator, your task is
+    generator_system_prompt: Optional[str] = """You are data annotator, your task is
     to generate a question for the given document. Also generate answer to the generated
     question."""
 

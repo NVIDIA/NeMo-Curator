@@ -73,10 +73,10 @@ class DistributedDataClassifier(BaseModule):
         df = dataset.df
 
         filter_by = self.filter_by
-        if type(filter_by) == str:
+        if isinstance(filter_by, str):
             filtered_df = df[df[self.pred_column].astype(str) == filter_by]
             return DocumentDataset(filtered_df)
-        elif type(filter_by) == list:
+        elif isinstance(filter_by, list):
             filtered_df = df[df[self.pred_column].isin(filter_by)]
             return DocumentDataset(filtered_df)
 
@@ -122,7 +122,6 @@ def _run_classifier_helper(
     text_field: str = "text",
     prob_col: str = None,
 ) -> "dask_cudf.DataFrame":
-
     if prob_col is None:
         prob_col = "_prob"
         labeler = op.Labeler(labels, cols=[prob_col], suffix=label_col)

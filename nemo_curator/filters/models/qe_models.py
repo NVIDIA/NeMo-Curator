@@ -111,7 +111,6 @@ class COMETQEModel(QEModel):
 
 
 class PyMarianQEModel(QEModel):
-
     MODEL_NAME_TO_HF_PATH = {
         "cometoid-wmt23": "marian-nmt/cometoid22-wmt23",
         "cometoid-wmt23-mqm": "marian-nmt/cometoid22-wmt23",

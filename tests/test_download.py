@@ -30,7 +30,6 @@ from nemo_curator.download.commoncrawl import (
     CommonCrawlWARCExtractor,
     CommonCrawlWARCIterator,
     JusTextExtractor,
-    ResiliparseExtractor,
     get_common_crawl_urls,
     get_stop_list_dict,
 )
@@ -110,7 +109,7 @@ def html_string():
 
 class TestDownload:
     def test_imports(self):
-        from nemo_curator.download import (
+        from nemo_curator.download import (  # noqa: F401
             JusTextExtractor,
             ResiliparseExtractor,
             TrafilaturaExtractor,
@@ -128,7 +127,7 @@ class TestDownload:
         with pytest.raises(ValueError):
             end_snapshot = "2021-04"
             start_snapshot = "2021-10"
-            urls = get_common_crawl_urls(start_snapshot, end_snapshot)
+            get_common_crawl_urls(start_snapshot, end_snapshot)
 
     @pytest.mark.skip(
         reason="This test is flaky due to calling out to an external service and should be fixed."
@@ -137,7 +136,7 @@ class TestDownload:
         with pytest.raises(ValueError):
             end_snapshot = "2021-04"
             start_snapshot = "2021-10"
-            urls = get_common_crawl_urls(start_snapshot, end_snapshot, news=True)
+            get_common_crawl_urls(start_snapshot, end_snapshot, news=True)
 
     def test_no_urls(self):
         with pytest.raises(ValueError):

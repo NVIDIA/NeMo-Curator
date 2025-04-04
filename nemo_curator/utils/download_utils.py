@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-import os
 import subprocess
 import zlib
 from collections import OrderedDict
@@ -82,8 +81,7 @@ def get_news_warc_paths(
 
     if beg.year < 2016 or end.year > today.year:
         print(
-            "Warning: WARC paths exist only from 2016-8 to "
-            f"{today.year}-{today.month}"
+            f"Warning: WARC paths exist only from 2016-8 to {today.year}-{today.month}"
         )
     total_prefix = urljoin(prefix, "crawl-data/CC-NEWS")
 

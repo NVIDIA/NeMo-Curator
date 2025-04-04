@@ -233,7 +233,7 @@ class FuzzyDuplicates(BaseDeduplicationModule):
                     overwrite=True,
                 )
                 self._logger.info(
-                    f"Time taken for Jaccard Similarity = {time.time()-t0}s and output written at {jaccard_pairs_path}"
+                    f"Time taken for Jaccard Similarity = {time.time() - t0}s and output written at {jaccard_pairs_path}"
                 )
 
             print(

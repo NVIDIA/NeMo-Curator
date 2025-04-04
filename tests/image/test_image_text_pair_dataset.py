@@ -22,7 +22,6 @@ from pathlib import Path
 from unittest import mock
 
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import pytest
 import torch
@@ -890,7 +889,7 @@ class TestImageTextPairDatasetConversion:
             mock.patch.object(
                 ImageTextPairDataset, "_get_eligible_samples"
             ) as mock_get_eligible_samples,
-            mock.patch("fsspec.open", wraps=fsspec_open_wrapper) as mock_fsspec_open,
+            mock.patch("fsspec.open", wraps=fsspec_open_wrapper),
         ):
             # Extract real tar content
             with tarfile.open(temp_tar_path, "r") as tar:
@@ -1126,9 +1125,9 @@ class TestImageTextPairDatasetConversion:
                 "3",
                 "4",
             ], "First dataframe should have IDs 0-4"
-            assert (
-                len(first_samples) == 15
-            ), "First batch should have 15 tar samples (5 samples * 3 files per sample)"
+            assert len(first_samples) == 15, (
+                "First batch should have 15 tar samples (5 samples * 3 files per sample)"
+            )
 
             # Second batch: 4 samples
             second_df, second_samples = results[1]
@@ -1139,9 +1138,9 @@ class TestImageTextPairDatasetConversion:
                 "7",
                 "8",
             ], "Second dataframe should have IDs 5-8"
-            assert (
-                len(second_samples) == 12
-            ), "Second batch should have 12 tar samples (4 samples * 3 files per sample)"
+            assert len(second_samples) == 12, (
+                "Second batch should have 12 tar samples (4 samples * 3 files per sample)"
+            )
 
             # Verify all temp files were deleted
             for i in range(3):

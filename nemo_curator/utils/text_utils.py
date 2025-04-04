@@ -90,7 +90,6 @@ def is_paragraph_indices_in_top_or_bottom_only(
     boilerplate_paragraph_indices,
     num_paragraphs,
 ):
-
     def _is_contiguous(indices):
         # Indices are sorted in ascending order.
         num_indices = len(indices) - 1

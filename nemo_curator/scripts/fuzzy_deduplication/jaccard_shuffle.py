@@ -25,9 +25,9 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def func():
-    import cudf
+    import cudf  # noqa: F401
 
-    from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle
+    from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle  # noqa: F401
 
 
 def main(args):
@@ -72,7 +72,7 @@ def main(args):
         partition_on="_output_partition_id",
     )
     et = time.time()
-    print(f"Jaccard Shuffle E2E time taken = {et-st} s")
+    print(f"Jaccard Shuffle E2E time taken = {et - st} s")
 
 
 def attach_args():
