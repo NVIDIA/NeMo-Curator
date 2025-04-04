@@ -35,13 +35,14 @@ repos:
         exclude: docs/
       - id: requirements-txt-fixer
       - id: trailing-whitespace
-        exclude: nemo_curator/utils/aegis_utils.py
-
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.4
     hooks:
+      # Run the linter
       - id: ruff
-        args: [--fix]
+        args: [--fix]  # Enables auto-fixing lint errors
+      # Run the formatter
+      - id: ruff-format
 
   - repo: local
     hooks:
