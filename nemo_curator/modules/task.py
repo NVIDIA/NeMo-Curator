@@ -427,9 +427,10 @@ class TaskDecontamination(BaseModule):
                 text_buf_ngram_free.append(text)
 
         # check if the text has only been trimmed
+        trimmed = 0
         if len(text_buf_ngram_free) == 1:
             if len(text_buf_ngram_free[0]) < len(text):
-                pass
+                trimmed = 1 # noqa: F841
 
         return text_buf_ngram_free
 
