@@ -182,7 +182,12 @@ class SemanticClusterLevelDedup:
                 eps=eps_to_extract,
                 storage_options=self.storage_options,
             )
-            results_df.to_parquet(output_parquet_path, index=False, ignore_index=True)
+            results_df.to_parquet(
+                output_parquet_path,
+                index=False,
+                ignore_index=True,
+                storage_options=self.storage_options,
+            )
             self.logger.info(
                 f"Time taken for Extracting Pruned Data : {time.time() - t0} and output written at {output_parquet_path}"
             )
