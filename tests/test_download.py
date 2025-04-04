@@ -109,7 +109,14 @@ def html_string():
 
 class TestDownload:
     def test_imports(self):
-
+        from nemo_curator.download import ( # noqa: F401
+            JusTextExtractor,
+            ResiliparseExtractor,
+            TrafilaturaExtractor,
+            download_arxiv,
+            download_common_crawl,
+            download_wikipedia,
+        )
         assert True
 
     @pytest.mark.skip(

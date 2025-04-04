@@ -25,9 +25,9 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def func():
+    import cudf # noqa: F401
 
-    pass
-
+    from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle # noqa: F401
 
 def main(args):
     input_data_paths = args.input_data_dirs

@@ -32,7 +32,7 @@ def read_urls(file_path):
 
 
 def main(args):
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args)) #noqa: F841
 
     if args.input_url_file:
         urls = read_urls(args.input_url_file)
