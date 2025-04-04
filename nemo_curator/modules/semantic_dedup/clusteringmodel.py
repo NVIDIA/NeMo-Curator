@@ -189,7 +189,8 @@ class ClusteringModel:
             )
             np.save(kmeans_centroids_file, centroids)
             self.logger.info("Saving centroids complete")
-            del kmeans, cupy_normalized_darr, centroids
+            # del kmeans
+            del centroids, cupy_normalized_darr
 
             # Save embeddings by nearest center to a file
             clustering_output_dir = os.path.join(
