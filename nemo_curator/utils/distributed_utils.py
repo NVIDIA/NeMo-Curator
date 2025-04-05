@@ -62,6 +62,14 @@ def _enable_spilling():
     cudf.set_option("spill", True)
 
 
+def get_filepath_without_extension(path: str) -> str:
+    p = Path(path)
+    filename = p.name
+    for s in reversed(p.suffixes):
+        filename = filename.removesuffix(s)
+    return filename
+
+
 def start_dask_gpu_local_cluster(
     nvlink_only: bool = False,
     protocol: str = "tcp",
@@ -739,6 +747,7 @@ def single_partition_write_with_filename(
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
     filename_col: str = "file_name",
+    compression: Optional[str] = None,
 ):
     """
     This function processes a DataFrame and writes it to disk
@@ -780,12 +789,22 @@ def single_partition_write_with_filename(
                 out_df = out_df.drop(filename_col, axis=1)
 
             filename = (
-                Path(filename).stem if output_type != "bitext" else Path(filename).name
+                get_filepath_without_extension(filename)
+                if output_type != "bitext"
+                else Path(filename).name
             )
             output_file_path = os.path.join(output_file_dir, filename)
 
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
+                SUPPORTED_COMPRESSIONS = {"gzip", None}
+                if compression not in SUPPORTED_COMPRESSIONS:
+                    raise ValueError(
+                        f"Unsupported compression type: {compression}. "
+                        f"Supported types: {SUPPORTED_COMPRESSIONS}"
+                    )
+                if compression == "gzip":
+                    output_file_path = output_file_path + ".gz"
 
                 if isinstance(df, pd.DataFrame):
                     out_df.to_json(
@@ -794,6 +813,7 @@ def single_partition_write_with_filename(
                         lines=True,
                         force_ascii=False,
                         index=False,  # Only index=False is supported for orient="records"
+                        compression=compression,
                     )
                 else:
                     # See open issue here: https://github.com/rapidsai/cudf/issues/15211
@@ -903,6 +923,7 @@ def write_to_disk(
     keep_filename_column: bool = False,
     output_type: str = "jsonl",
     partition_on: Optional[str] = None,
+    compression: Optional[str] = None,
 ):
     """
     This function writes a Dask DataFrame to the specified file path.
@@ -920,6 +941,7 @@ def write_to_disk(
         partition_on: The column name to partition the data on.
                       If specified, the data will be partitioned based on the unique values in this column,
                       and each partition will be written to a separate directory
+        compression: The compression type to use. Can be "gzip" or None
     """
 
     filename_col = _resolve_filename_col(write_to_filename)
@@ -927,7 +949,10 @@ def write_to_disk(
     if isinstance(output_path, str) and output_path.endswith(".jsonl"):
         if df.npartitions == 1:
             df.map_partitions(
-                _write_to_jsonl_or_parquet, output_path, output_type
+                _write_to_jsonl_or_parquet,
+                output_path,
+                output_type,
+                compression=compression,
             ).compute()
             return
         else:
@@ -963,6 +988,7 @@ def write_to_disk(
             keep_filename_column=keep_filename_column,
             output_type=output_type,
             filename_col=filename_col,
+            compression=compression,
             meta=output_meta,
             enforce_metadata=False,
         )
@@ -976,6 +1002,7 @@ def write_to_disk(
                 output_path=output_path,
                 output_type=output_type,
                 partition_on=partition_on,
+                compression=compression,
             )
         elif output_type == "bitext":
             if write_to_filename:
@@ -1011,8 +1038,16 @@ def _write_to_jsonl_or_parquet(
     output_path: str,
     output_type: Literal["jsonl", "parquet"] = "jsonl",
     partition_on: Optional[str] = None,
+    compression: Optional[str] = None,
 ):
     if output_type == "jsonl":
+        SUPPORTED_COMPRESSIONS = {"gzip", None}
+        if compression not in SUPPORTED_COMPRESSIONS:
+            raise ValueError(
+                f"Unsupported compression type: {compression}. "
+                f"Supported types: {SUPPORTED_COMPRESSIONS}"
+            )
+
         if partition_on is not None:
             unique_values = (
                 df[partition_on]
@@ -1032,6 +1067,7 @@ def _write_to_jsonl_or_parquet(
                     lines=True,
                     force_ascii=False,
                     index=False,  # Only index=False is supported for orient="records"
+                    compression=compression,
                 )
         else:
             if is_cudf_type(df):
@@ -1043,6 +1079,7 @@ def _write_to_jsonl_or_parquet(
                     lines=True,
                     force_ascii=False,
                     index=False,
+                    compression=compression,
                 )  # Only index=False is supported for orient="records"
             else:
                 df.to_json(
@@ -1051,8 +1088,13 @@ def _write_to_jsonl_or_parquet(
                     lines=True,
                     force_ascii=False,
                     index=False,
+                    compression=compression,
                 )  # Only index=False is supported for orient="records"
     elif output_type == "parquet":
+        if compression is not None:
+            raise ValueError(
+                "Setting a custom compression type is not supported for Parquet files at this time."
+            )
         df.to_parquet(output_path, write_index=False, partition_on=partition_on)
     else:
         raise ValueError(f"Unknown output type: {output_type}")
