@@ -254,8 +254,7 @@ class DocumentDataset:
                 with each partition written to a separate directory.
             compression (Optional[str]): The compression to use for the output file.
                 If specified, the output file will be compressed using the specified compression.
-                Supported compression types are "gzip" or "none".
-
+                Supported compression types are "gzip" or None.
         For more details, refer to the `write_to_disk` function in
         `nemo_curator.utils.distributed_utils`.
         """
