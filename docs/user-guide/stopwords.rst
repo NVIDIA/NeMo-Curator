@@ -1,12 +1,7 @@
 Stop Words in Text Processing
 =============================
 
-Stop words are common words that are often filtered out in natural language processing (NLP) tasks because they typically don't carry significant meaning. NVIDIA NeMo Curator provides built-in stop word lists for several languages to support text analysis and extraction processes.
-
-What Are Stop Words?
--------------------
-
-Stop words are high-frequency words that generally don't contribute much semantic value to text analysis. Examples in English include "the," "is," "at," "which," and "on." These words appear so frequently in language that they can distort text processing tasks if not properly managed.
+Stop words are common words that are often filtered out in natural language processing (NLP) tasks because they typically don't carry significant meaning. Examples in English include "the," "is," "at," "which," and "on." These words appear so frequently in language that they can distort text processing tasks if not properly managed. NVIDIA NeMo Curator provides built-in stop word lists for several languages to support text analysis and extraction processes.
 
 Key characteristics of stop words:
 
@@ -20,26 +15,32 @@ Why Stop Words Matter in NeMo Curator
 
 In NeMo Curator, stop words play several important roles:
 
-1. **Text Extraction**: The text extraction process (especially for Common Crawl data) uses stop word density as a key metric to identify meaningful content
-2. **Language Detection**: Stop words help in language detection and processing
-3. **Efficient Processing**: Filtering stop words reduces the amount of data that needs to be processed
-4. **Boilerplate Removal**: Stop word density helps differentiate between main content and boilerplate in web pages
+* **Text Extraction**: The text extraction process (especially for Common Crawl data) uses stop word density as a key metric to identify meaningful content
+* **Language Detection**: Stop words help in language detection and processing
+* **Efficient Processing**: Filtering stop words reduces the amount of data that needs to be processed
+* **Boilerplate Removal**: Stop word density helps differentiate between main content and boilerplate in web pages
 
 Available Stop Word Lists
 ------------------------
 
 NeMo Curator includes built-in stop word lists for the following languages:
 
-+------------+----------------------------------------+----------------------+
-| Language   | File Name                              | Number of Stop Words |
-+============+========================================+======================+
-| Thai       | ``thai_stopwords.py`` and             | ~120                 |
-|            | ``th_stopwords.py``                   |                      |
-+------------+----------------------------------------+----------------------+
-| Japanese   | ``ja_stopwords.py``                   | ~140                 |
-+------------+----------------------------------------+----------------------+
-| Chinese    | ``zh_stopwords.py``                   | ~800                 |
-+------------+----------------------------------------+----------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 50 30
+
+   * - Language
+     - File Name
+     - Number of Stop Words
+   * - Thai
+     - ``thai_stopwords.py`` and ``th_stopwords.py``
+     - ~120
+   * - Japanese
+     - ``ja_stopwords.py``
+     - ~140
+   * - Chinese
+     - ``zh_stopwords.py``
+     - ~800
 
 These stop word lists are implemented as Python frozen sets for efficient lookup and immutability.
 
