@@ -1,4 +1,3 @@
-
 .. _data-curator-documentdataset:
 
 ======================================
@@ -78,6 +77,26 @@ Let's walk through this code line by line.
   As mentioned above, the ``write_to_filename=True`` preserves the sharding of the dataset.
   If the dataset was not read in with ``add_filename=True``, setting ``write_to_filename=True`` will throw an error.
   If the dataset was read with ``add_filename="path"`` then along with ``write_to_filename=True`` the ``filename_col="path"`` will need to be set as well.
+
+You can also write the dataset as gzip compressed JSONL files to save disk space:
+
+.. code-block:: python
+
+    # Write as gzip compressed JSONL files
+    long_books.to_json("long_books/", compression="gzip")
+
+This will write files with the `.jsonl.gz` extension. Compression is compatible with all other writing options, including `write_to_filename` and `partition_on`.
+
+NeMo-Curator also supports reading gzip compressed JSONL files. Simply point to the `.jsonl.gz` files and the library will handle the decompression automatically:
+
+.. code-block:: python
+
+    # Read gzip compressed JSONL files
+    compressed_books = DocumentDataset.read_json("books_dataset/*.jsonl.gz")
+
+    # You can also mix compressed and uncompressed files
+    all_books = DocumentDataset.read_json(["books_dataset/books_00.jsonl.gz", 
+                                         "books_dataset/books_01.jsonl"])
 
 ``DocumentDataset`` is just a wrapper around a `Dask dataframe <https://docs.dask.org/en/stable/dataframe.html>`_.
 The underlying dataframe can be accessed with the ``DocumentDataset.df`` member variable.
