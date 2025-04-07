@@ -45,6 +45,8 @@ get_device_total_memory = gpu_only_import_from(
     "dask_cuda.utils", "get_device_total_memory"
 )
 
+SUPPORTED_JSONL_COMPRESSIONS = {"gzip", None}
+
 
 class NoWorkerError(Exception):
     pass
@@ -758,6 +760,7 @@ def single_partition_write_with_filename(
         keep_filename_column: Boolean representing whether to keep or drop the `filename_col`, if it exists.
         output_type: The type of output file to write. Can be "jsonl" or "parquet".
         filename_col: The name of the column that contains the filename. Default is "file_name"
+        compression: The compression type to use. Only supported for JSONL files. Can be "gzip" or None
     Returns:
         If the DataFrame is non-empty, return a Series containing a single element, True.
         If the DataFrame is empty, return a Series containing a single element, False.
@@ -797,11 +800,10 @@ def single_partition_write_with_filename(
 
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
-                SUPPORTED_COMPRESSIONS = {"gzip", None}
-                if compression not in SUPPORTED_COMPRESSIONS:
+                if compression not in SUPPORTED_JSONL_COMPRESSIONS:
                     raise ValueError(
                         f"Unsupported compression type: {compression}. "
-                        f"Supported types: {SUPPORTED_COMPRESSIONS}"
+                        f"Supported types: {SUPPORTED_JSONL_COMPRESSIONS}"
                     )
                 if compression == "gzip":
                     output_file_path = output_file_path + ".gz"
@@ -941,7 +943,7 @@ def write_to_disk(
         partition_on: The column name to partition the data on.
                       If specified, the data will be partitioned based on the unique values in this column,
                       and each partition will be written to a separate directory
-        compression: The compression type to use. Can be "gzip" or None
+        compression: The compression type to use. Only supported for JSONL files. Can be "gzip" or None
     """
 
     filename_col = _resolve_filename_col(write_to_filename)
@@ -1041,11 +1043,10 @@ def _write_to_jsonl_or_parquet(
     compression: Optional[str] = None,
 ):
     if output_type == "jsonl":
-        SUPPORTED_COMPRESSIONS = {"gzip", None}
-        if compression not in SUPPORTED_COMPRESSIONS:
+        if compression not in SUPPORTED_JSONL_COMPRESSIONS:
             raise ValueError(
                 f"Unsupported compression type: {compression}. "
-                f"Supported types: {SUPPORTED_COMPRESSIONS}"
+                f"Supported types: {SUPPORTED_JSONL_COMPRESSIONS}"
             )
 
         if partition_on is not None:
