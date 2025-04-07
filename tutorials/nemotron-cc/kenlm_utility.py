@@ -20,12 +20,40 @@ class KenlmModel:
     # Regex patterns and character mappings
     DIGIT_RE = re.compile(r"\d")
     UNICODE_PUNCT = {
-        "，": ",", "。": ".", "、": ",", "„": '"', """: '"', """: '"',
-        "«": '"', "»": '"', "１": '"', "」": '"', "「": '"', "《": '"',
-        "》": '"', "´": "'", "∶": ":", "：": ":", "？": "?", "！": "!",
-        "（": "(", "）": ")", "；": ";", "–": "-", "—": " - ", "．": ". ",
-        "～": "~", "'": "'", "…": "...", "━": "-", "〈": "<", "〉": ">",
-        "【": "[", "】": "]", "％": "%", "►": "-",
+        "，": ",",  # Chinese comma
+        "。": ".",  # Chinese period
+        "、": ",",  # Chinese enumeration comma
+        "„": '"',  # German opening quote
+        "“": '"',  # Left double quotation mark
+        "”": '"',  # Right double quotation mark
+        "«": '"',  # French opening quote
+        "»": '"',  # French closing quote
+        "１": '"',  # Fullwidth digit one
+        "」": '"',  # Japanese closing quote
+        "「": '"',  # Japanese opening quote
+        "《": '"',  # Chinese opening quote
+        "》": '"',  # Chinese closing quote
+        "´": "'",  # Acute accent
+        "∶": ":",  # Ratio
+        "：": ":",  # Fullwidth colon
+        "？": "?",  # Fullwidth question mark
+        "！": "!",  # Fullwidth exclamation mark
+        "（": "(",  # Fullwidth left parenthesis
+        "）": ")",  # Fullwidth right parenthesis
+        "；": ";",  # Fullwidth semicolon
+        "–": "-",  # En dash
+        "—": " - ",  # Em dash
+        "．": ". ",  # Fullwidth period
+        "～": "~",  # Fullwidth tilde
+        "'": "'",  # Single quote
+        "…": "...",  # Horizontal ellipsis
+        "━": "-",  # Box drawings heavy horizontal
+        "〈": "<",  # Left angle bracket
+        "〉": ">",  # Right angle bracket
+        "【": "[",  # Left black lenticular bracket
+        "】": "]",  # Right black lenticular bracket
+        "％": "%",  # Fullwidth percent sign
+        "►": "-",  # Black right-pointing pointer
     }
     
     def __init__(

@@ -95,4 +95,3 @@ flowchart TD
     %% Style the phase subgraphs with white background and reduced padding
     classDef phaseBox fill:#ffffff,stroke:#76b900,stroke-width:2px,color:#000000,font-weight:bold,padding:17px,text-align:center
     class Phase1,Phase2,Phase3,Phase4 phaseBox
-    
