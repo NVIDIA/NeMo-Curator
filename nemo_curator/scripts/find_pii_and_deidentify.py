@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ def main(args):
         dataset = DocumentDataset(source_data)
         logging.debug(f"Dataset has {source_data.npartitions} partitions")
 
-        modify = Modify(modifier)
+        modify = Modify(modifier, text_field=args.text_field)
         modified_dataset = modify(dataset)
         write_to_disk(
             modified_dataset.df,

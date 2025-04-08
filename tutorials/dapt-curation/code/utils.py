@@ -309,16 +309,18 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache_dir: str) -> DocumentDataset:
     )
     fuzzy_dup = FuzzyDuplicates(config=fuzzy_dedup_config)
     duplicates = fuzzy_dup(dataset)
+    if duplicates is None:
+        return dataset
+    else:
+        docs_to_remove = duplicates.df.map_partitions(
+            lambda x: x[x.group.duplicated(keep="first")]
+        )
 
-    docs_to_remove = duplicates.df.map_partitions(
-        lambda x: x[x.group.duplicated(keep="first")]
-    )
-
-    # When there are few duplicates we can compute the results to a list and use `isin`.
-    duplicate_ids = docs_to_remove.compute().id.to_arrow().to_pylist()
-    dataset_df = dataset.df
-    deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
-    return DocumentDataset(deduped)
+        # When there are few duplicates we can compute the results to a list and use `isin`.
+        duplicate_ids = docs_to_remove.compute().id.to_arrow().to_pylist()
+        dataset_df = dataset.df
+        deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
+        return DocumentDataset(deduped)
 
 
 def semantic_dedupe(
@@ -343,9 +345,9 @@ def semantic_dedupe(
 
     semdedup_config = SemDedupConfig.from_yaml(sem_dedupe_config_yaml_path)
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
-    semdup = SemDedup(config=semdedup_config, id_column_type="str")
-    duplicates = semdup(dataset)
-    return duplicates
+    semdup = SemDedup(config=semdedup_config, perform_removal=True)
+    deduplicated_dataset = semdup(dataset)
+    return deduplicated_dataset
 
 
 class TextLineCountFilter(DocumentFilter):
