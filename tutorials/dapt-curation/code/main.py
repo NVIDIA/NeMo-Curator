@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,11 +37,8 @@ from utils import (
 )
 
 import nemo_curator as nc
-from nemo_curator import ExactDuplicates, Modify, ScoreFilter, Sequential
+from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import RepeatingTopNGramsFilter, WordCountFilter
-from nemo_curator.modifiers.pii_modifier import PiiModifier
-from nemo_curator.modifiers.unicode_reformatter import UnicodeReformatter
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import (
     get_all_files_paths_under,
@@ -122,7 +119,9 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         jsonl_dir (str): Directory path where the JSONL files are stored.
     """
     # Initialize the Dask cluster.
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(
+        **ArgumentHelper.parse_client_args(args), set_torch_to_use_rmm=True
+    )
 
     # Define data curation steps for text and pdf files
     curation_steps_text = Sequential(
@@ -174,6 +173,7 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
     dataset_text = curation_steps_text(orig_dataset_text)
     dataset_code = curation_steps_code(orig_dataset_code)
 
+    print("********************* Generating Statistics *********************")
     print(f"Original dataset length for text files: {len(orig_dataset_text.df)}")
     print(f"After dataprep for text files: {len(dataset_text.df)}")
     print(f"Original dataset length for code files: {len(orig_dataset_code.df)}")
@@ -188,31 +188,28 @@ def run_curation_pipeline(args: Any, text_files: str, code_files: str) -> None:
         )
         CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "semantic_dedupe", "text")
         rm_dir(CACHE_DIR)
-        duplicates = semantic_dedupe(
+        semantic_dataset_text = semantic_dedupe(
             dataset=gpu_dataset_text,
             sem_dedupe_config_yaml_path=sem_dedupe_config_yaml_path,
-            cache=CACHE_DIR,
         )
-        unique_ids = duplicates.df.to_backend("pandas").compute()["id"]
-        semantic_dataset_text = DocumentDataset(
-            gpu_dataset_text.df[gpu_dataset_text.df.id.isin(unique_ids)]
-        )
+        print("********************* Generating Statistics *********************")
         print(f"After semantic dedupe for text files: {len(semantic_dataset_text.df)}")
 
         print("Executing the fuzzy dedupe pipeline...")
         CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "text")
         rm_dir(CACHE_DIR)
         fuzzy_dataset_text = fuzzy_dedupe(
-            dataset=semantic_dataset_text, cache=CACHE_DIR
+            dataset=semantic_dataset_text, cache_dir=CACHE_DIR
         )
         CACHE_DIR = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "code")
         rm_dir(CACHE_DIR)
-        fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, cache=CACHE_DIR)
+        fuzzy_dataset_code = fuzzy_dedupe(dataset=gpu_dataset_code, cache_dir=CACHE_DIR)
 
         dataset_text.df = fuzzy_dataset_text.df.to_backend("pandas")
         dataset_code.df = fuzzy_dataset_code.df.to_backend("pandas")
+        print("********************* Generating Statistics *********************")
         print(f"After fuzzy dedupe for text files: {len(dataset_text.df)}")
-        print(f"After fuzzy dedupe: {len(dataset_code.df)}")
+        print(f"After fuzzy dedupe for code files: {len(dataset_code.df)}")
 
     final_dataset_text = dataset_text.persist()
     final_dataset_code = dataset_code.persist()

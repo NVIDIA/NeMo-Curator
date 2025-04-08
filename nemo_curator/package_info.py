@@ -14,10 +14,10 @@
 
 
 MAJOR = 0
-MINOR = 6
+MINOR = 9
 PATCH = 0
 PRE_RELEASE = "rc0"
-DEV = "dev1"
+DEV = "dev0"
 
 # Use the following formatting: (major, minor, patch, pre-release)
 VERSION = (MAJOR, MINOR, PATCH, PRE_RELEASE, DEV)

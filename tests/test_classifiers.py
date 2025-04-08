@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import pytest
-from distributed import Client
 
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
+from nemo_curator.utils.import_utils import gpu_only_import
 
 cudf = gpu_only_import("cudf")
 dask_cudf = gpu_only_import("dask_cudf")
-LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
-
-
-@pytest.fixture
-def gpu_client(request):
-    with LocalCUDACluster(n_workers=1) as cluster, Client(cluster) as client:
-        request.client = client
-        request.cluster = cluster
-        yield
 
 
 @pytest.fixture
@@ -96,9 +88,6 @@ def test_quality_classifier(gpu_client):
     assert result_pred.equals(expected_pred)
 
 
-@pytest.mark.skip(
-    reason="Aegis needs to be downloaded and cached to our gpuCI runner to enable this"
-)
 @pytest.mark.gpu
 @pytest.mark.parametrize(
     "aegis_variant",
@@ -109,6 +98,11 @@ def test_quality_classifier(gpu_client):
 )
 def test_aegis_classifier(gpu_client, aegis_variant):
     from nemo_curator.classifiers import AegisClassifier
+
+    # Skip the test if the HF_TOKEN is not set
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        pytest.skip("HF_TOKEN environment variable not set")
 
     text = [
         "What kind of fireworks would be the best to fire from my apartment for my four year old to see?",
@@ -122,7 +116,7 @@ def test_aegis_classifier(gpu_client, aegis_variant):
 
     classifier = AegisClassifier(
         aegis_variant=aegis_variant,
-        token=None,
+        token=hf_token,
     )
     result_dataset = classifier(dataset=input_dataset)
     result_pred = result_dataset.df.compute()["aegis_pred"]
@@ -149,12 +143,40 @@ def test_fineweb_edu_classifier(gpu_client, domain_dataset):
     assert result_pred.equals(expected_pred)
 
 
-@pytest.mark.skip(
-    reason="Instruction-Data-Guard needs to be downloaded and cached to our gpuCI runner to enable this"
-)
+@pytest.mark.gpu
+def test_fineweb_mixtral_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebMixtralEduClassifier
+
+    classifier = FineWebMixtralEduClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-mixtral-edu-score-int"]
+
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
+
+
+@pytest.mark.gpu
+def test_fineweb_nemotron_classifier(gpu_client, domain_dataset):
+    from nemo_curator.classifiers import FineWebNemotronEduClassifier
+
+    classifier = FineWebNemotronEduClassifier()
+    result_dataset = classifier(dataset=domain_dataset)
+    result_pred = result_dataset.df.compute()["fineweb-nemotron-edu-score-int"]
+
+    expected_pred = cudf.Series([1, 1, 1, 2, 0])
+
+    assert result_pred.equals(expected_pred)
+
+
 @pytest.mark.gpu
 def test_instruction_data_guard_classifier(gpu_client):
     from nemo_curator.classifiers import InstructionDataGuardClassifier
+
+    # Skip the test if the HF_TOKEN is not set
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        pytest.skip("HF_TOKEN environment variable not set")
 
     instruction = (
         "Find a route between San Diego and Phoenix which passes through Nevada"
@@ -169,7 +191,7 @@ def test_instruction_data_guard_classifier(gpu_client):
     input_dataset = DocumentDataset(dask_cudf.from_cudf(df, npartitions=1))
 
     classifier = InstructionDataGuardClassifier(
-        token=None,
+        token=hf_token,
     )
     result_dataset = classifier(dataset=input_dataset)
     result_pred = result_dataset.df.compute()["is_poisoned"]

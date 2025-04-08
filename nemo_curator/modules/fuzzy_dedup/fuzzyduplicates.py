@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,11 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Union
-
-import dask_cudf
+from typing import Optional, Union
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
+from nemo_curator.modules.base import BaseDeduplicationModule
 from nemo_curator.modules.config import FuzzyDuplicatesConfig
 from nemo_curator.modules.fuzzy_dedup._mapbuckets import _MapBuckets
 from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle
@@ -33,13 +32,15 @@ from nemo_curator.modules.fuzzy_dedup.lsh import LSH
 from nemo_curator.modules.fuzzy_dedup.minhash import MinHash
 from nemo_curator.modules.meta import Sequential
 from nemo_curator.utils.distributed_utils import performance_report_if_with_ts_suffix
+from nemo_curator.utils.duplicates_removal import remove_duplicates
 
 
-class FuzzyDuplicates:
+class FuzzyDuplicates(BaseDeduplicationModule):
     def __init__(
         self,
         config: FuzzyDuplicatesConfig,
         logger: Union[logging.LoggerAdapter, str] = "./",
+        perform_removal: bool = False,
     ):
         """
         Parameters
@@ -47,12 +48,23 @@ class FuzzyDuplicates:
         config: FuzzyDuplicatesConfig,
             Config options for finding FuzzyDuplicates
         logger: Existing logger to log to, or a path to a log directory.
-
+        perform_removal: Whether to remove duplicates from the dataset.
+            Default is False.
         Returns
         -------
         DocumentDataset containing IDs of all documents and the corresponding duplicate group
         they belong to. Documents in the same group are near duplicates.
         """
+        super().__init__(
+            id_field=config.id_field,
+            text_field=config.text_field,
+            input_backend="cudf",
+            logger=logger,
+            perform_removal=perform_removal,
+            profile_dir=config.profile_dir,
+            cache_dir=config.cache_dir,
+        )
+
         if isinstance(logger, str):
             self._logger = create_logger(
                 rank=0,
@@ -129,7 +141,9 @@ class FuzzyDuplicates:
             profile_dir=self.config.profile_dir,
         )
 
-    def __call__(self, dataset: DocumentDataset):
+    def identify_duplicates(
+        self, dataset: DocumentDataset
+    ) -> Optional[DocumentDataset]:
         """
         Parameters
         ----------
@@ -250,4 +264,38 @@ class FuzzyDuplicates:
         print(f"Stage {stage_num}: Connected Components Across Buckets complete!")
         stage_num += 1
 
-        return DocumentDataset(dask_cudf.read_parquet(cc_path, split_row_groups=False))
+        return DocumentDataset.read_parquet(
+            cc_path,
+            backend="cudf",
+            # We read with files_per_partition=1 so that groups are read in whole (and do not exist across partitions)
+            files_per_partition=1,
+            blocksize=None,
+        )
+
+    def remove(
+        self, dataset: DocumentDataset, duplicates_to_remove: Optional[DocumentDataset]
+    ) -> DocumentDataset:
+        """
+        Remove fuzzy duplicates from a given DocumentDataset
+        Parameters
+        ----------
+        dataset: DocumentDataset
+          The input dataset from which to remove fuzzy duplicates
+        duplicates_to_remove: DocumentDataset
+          The dataset containing IDs of the fuzzy duplicates to remove
+        Returns
+        -------
+        DocumentDataset containing only non-duplicate documents
+        """
+
+        if not duplicates_to_remove:
+            print("No fuzzy duplicates to remove, returning original dataset")
+            return dataset
+
+        result = remove_duplicates(
+            left=dataset.df,
+            duplicates=duplicates_to_remove.df,
+            id_field=self.config.id_field,
+            group_field="group",
+        )
+        return DocumentDataset(result)

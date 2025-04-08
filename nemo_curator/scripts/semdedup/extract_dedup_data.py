@@ -1,9 +1,23 @@
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import os
 from datetime import datetime
 
-from nemo_curator import SemanticClusterLevelDedup
 from nemo_curator.log import create_logger
+from nemo_curator.modules import SemanticClusterLevelDedup
 from nemo_curator.modules.config import SemDedupConfig
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
@@ -28,27 +42,28 @@ def main(args):
     dt1 = datetime.now()
     logger.info(f"Start: {dt1}")
     cache_dir = semdedup_config.cache_dir
+
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=semdedup_config.n_clusters,
         emb_by_clust_dir=os.path.join(
             cache_dir, semdedup_config.clustering_save_loc, "embs_by_nearest_center"
         ),
-        sorted_clusters_dir=os.path.join(
-            cache_dir, semdedup_config.clustering_save_loc, "sorted"
-        ),
         id_column=args.id_column,
-        id_column_type=args.id_column_type,
         which_to_keep=semdedup_config.which_to_keep,
+        sim_metric=semdedup_config.sim_metric,
+        batched_cosine_similarity=semdedup_config.batched_cosine_similarity,
         output_dir=os.path.join(
             semdedup_config.cache_dir, semdedup_config.clustering_save_loc
         ),
+        embedding_column=semdedup_config.embedding_column,
         logger=logger,
     )
 
-    semantic_dedup.compute_semantic_match_dfs(semdedup_config.eps_thresholds)
-    for eps in semdedup_config.eps_thresholds:
-        dedup_id_dataset = semantic_dedup.extract_dedup_data(eps_to_extract=eps)
-        print(dedup_id_dataset.df.head(10))
+    semantic_dedup.compute_semantic_match_dfs()
+    dedup_id_dataset = semantic_dedup.extract_dedup_data(
+        eps_to_extract=semdedup_config.eps_to_extract
+    )
+    print(dedup_id_dataset.df.head(10))
 
     dt2 = datetime.now()
     logger.info(f"End: {dt2}")
@@ -72,9 +87,7 @@ def attach_args():
             "Important configuration parameters include:"
             " cache_dir for the directory to store cache"
             " which_to_keep for specifying which duplicates to keep,"
-            " largest_cluster_size_to_process for the largest cluster size to process,"
             " sim_metric for the similarity metric for deduplication,"
-            " eps_thresholds for epsilon thresholds to calculate if semantically similar or not"
             " and eps_to_extract for the epsilon value to extract deduplicated data."
         ),
     )
