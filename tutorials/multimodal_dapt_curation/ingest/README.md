@@ -13,6 +13,7 @@ The tutorial follows these steps:
     - `extract` : Performs multimodal extractions from a document, including text, images, and tables.
     - `dedup` : Identifies duplicate images in document that can be filtered to remove data redundancy.
     - `filter` : Filters out images that are likely not useful using some heuristics, including size and aspect ratio.
+    - `caption` : Describes the image in words with details.
 4. Separate and save the data based on modality
 5. Analyse the data (optional)
 6. Display the extracted images, tables and charts (optional)
@@ -50,7 +51,7 @@ python main.py --analyze --display
 
 ## Notes
 - Computing Recall on Extraction
-    In order to calculate end-to-end recall accuracy of a retrieval pipeline refer to following [tutorial](https://github.com/NVIDIA/nv-ingest/blob/main/evaluation/bo767_recall.ipynb)
+    - In order to calculate end-to-end recall accuracy of a retrieval pipeline refer to following [tutorial](https://github.com/NVIDIA/nv-ingest/blob/main/evaluation/bo767_recall.ipynb)
 - Exploring Outputs
     - Text
         - `content` - The raw extracted content, text in this case - this section will always be populated with a successful job.
