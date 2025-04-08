@@ -2,11 +2,20 @@ import pandas as pd
 from IPython.display import display, HTML
 import uuid
 
-def text_comparison_widget(df, id_column='id', col1='original_text', col2='processed_text', 
-                          title1=None, title2=None, max_height='400px', width='100%'):
+
+def text_comparison_widget(
+    df,
+    id_column="id",
+    col1="original_text",
+    col2="processed_text",
+    title1=None,
+    title2=None,
+    max_height="400px",
+    width="100%",
+):
     """
     Create a beautiful, scrollable side-by-side comparison of two text columns from a DataFrame.
-    
+
     Parameters:
     -----------
     df : pandas.DataFrame
@@ -25,41 +34,41 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
         The maximum height of each text cell
     width : str, default='100%'
         The width of the comparison table
-        
+
     Returns:
     --------
     IPython.display.HTML
         HTML display object with the comparison
     """
     # Set default column titles if not provided
-    title1 = title1 or col1.replace('_', ' ').title()
-    title2 = title2 or col2.replace('_', ' ').title()
-    
+    title1 = title1 or col1.replace("_", " ").title()
+    title2 = title2 or col2.replace("_", " ").title()
+
     # Generate a unique ID for this instance
     widget_id = f"text-comparison-{str(uuid.uuid4())[:8]}"
-    
+
     # Define theme colors
     themes = {
-        'nvidia': {
-            'bg': '#202020',
-            'header_bg': '#151515',
-            'border': '#538300',
-            'id_bg': '#202020',
-            'text_bg': '#282828',
-            'text_color': '#E0E0E0',
-            'header_text': '#76B900',
-            'hover': '#303030',
-            'button_bg': '#538300',
-            'button_hover': '#76B900',
-            'button_text': '#FFFFFF',
-            'scrollbar_track': '#252525',
-            'scrollbar_thumb': '#538300'
+        "nvidia": {
+            "bg": "#202020",
+            "header_bg": "#151515",
+            "border": "#538300",
+            "id_bg": "#202020",
+            "text_bg": "#282828",
+            "text_color": "#E0E0E0",
+            "header_text": "#76B900",
+            "hover": "#303030",
+            "button_bg": "#538300",
+            "button_hover": "#76B900",
+            "button_text": "#FFFFFF",
+            "scrollbar_track": "#252525",
+            "scrollbar_thumb": "#538300",
         }
     }
-    
+
     # Use the selected theme (default to dark if invalid)
-    colors = themes['nvidia']
-    
+    colors = themes["nvidia"]
+
     # Create HTML for the comparison
     html_code = f"""
     <style>
@@ -279,13 +288,13 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
             </thead>
             <tbody>
     """
-    
+
     # Add each row to the HTML
     for _, row in df.iterrows():
         row_id = row[id_column]
         text1 = str(row[col1]) if pd.notna(row[col1]) else ""
         text2 = str(row[col2]) if pd.notna(row[col2]) else ""
-        
+
         html_code += f"""
         <tr>
             <td class="row-id">{row_id}</td>
@@ -293,7 +302,7 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
             <td><div class="text-cell">{text2}</div></td>
         </tr>
         """
-    
+
     html_code += """
             </tbody>
         </table>
@@ -333,15 +342,24 @@ def text_comparison_widget(df, id_column='id', col1='original_text', col2='proce
         }
     </script>
     """
-    
-    return HTML(html_code.replace('{widget_id}', widget_id))
+
+    return HTML(html_code.replace("{widget_id}", widget_id))
 
 
-def compare_row_by_id(df, row_id, id_column='id', col1='original_text', col2='processed_text', 
-                     title1=None, title2=None, max_height='400px', width='100%'):
+def compare_row_by_id(
+    df,
+    row_id,
+    id_column="id",
+    col1="original_text",
+    col2="processed_text",
+    title1=None,
+    title2=None,
+    max_height="400px",
+    width="100%",
+):
     """
     Create a scrollable side-by-side comparison of two text columns for a specific row ID.
-    
+
     Parameters:
     -----------
     df : pandas.DataFrame
@@ -369,9 +387,12 @@ def compare_row_by_id(df, row_id, id_column='id', col1='original_text', col2='pr
     """
     # Filter for the specific row
     filtered_df = df[df[id_column] == row_id]
-    
-    if len(filtered_df) == 0:
-        return HTML(f'<div style="padding: 16px; background-color: #fee2e2; color: #b91c1c; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif;">No row found with {id_column} = {row_id}</div>')
-    
-    return text_comparison_widget(filtered_df, id_column, col1, col2, title1, title2, max_height, width)
 
+    if len(filtered_df) == 0:
+        return HTML(
+            f"<div style=\"padding: 16px; background-color: #fee2e2; color: #b91c1c; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\">No row found with {id_column} = {row_id}</div>"
+        )
+
+    return text_comparison_widget(
+        filtered_df, id_column, col1, col2, title1, title2, max_height, width
+    )

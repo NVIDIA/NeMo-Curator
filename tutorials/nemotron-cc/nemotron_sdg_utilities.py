@@ -188,7 +188,7 @@ def wikipedia_rephraser(
     openai_client: OpenAI,
     tokenizer: AutoTokenizer,
     api_model_name: str,
-    n_entries:int=5
+    n_entries: int = 5,
 ) -> DocumentDataset:
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
@@ -429,7 +429,7 @@ def generate_content(
     tokenizer: AutoTokenizer,
     api_model_name: str,
     task_type: str,
-)->DocumentDataset:
+) -> DocumentDataset:
     """
     Generates content based on the specified task type.
 
@@ -449,7 +449,7 @@ def generate_content(
     client = OpenAIClient(openai_client)
     nemotron_cc = NemotronCCGenerator(client)
     llm_response_field = task_type
-    
+
     # Define configurations for different task types
     task_configs = {
         "distill": {
@@ -502,7 +502,7 @@ def generate_content(
         "TOP_K": 0,
         "TOP_P": 0.9,
         "END_STRINGS": "['</s>']",
-        "TEMPERATURE": 0.5
+        "TEMPERATURE": 0.5,
     }
 
     task_config = task_configs.get(task_type)
@@ -523,7 +523,7 @@ def generate_content(
     dataset = preprocessing_pipeline(dataset)
 
     pandas_df = dataset.df.compute()
-    
+
     # Process with pandas
     rewritten_texts = []
     for text in tqdm(pandas_df[text_field], desc=f"Querying LLM for {task_type}"):
@@ -539,14 +539,13 @@ def generate_content(
             },
         )
         rewritten_texts.append(llm_response[0])
-    
+
     # Assign new column in pandas
     pandas_df[llm_response_field] = rewritten_texts
-    
+
     # Convert back to Dask
     rephrased_dataset = DocumentDataset.from_pandas(pandas_df)
 
-    
     if task_type == "diverse_qa":
         postprocessed_pipeline = task_config["postprocessing_pipeline_builder"](
             tokenizer, text_field, llm_response_field

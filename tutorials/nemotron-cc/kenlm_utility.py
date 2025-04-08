@@ -6,6 +6,7 @@ from typing import Dict
 import kenlm
 import sentencepiece
 
+
 class SentencePiece:
     def __init__(self, model: str):
         self.sp = sentencepiece.SentencePieceProcessor()
@@ -55,7 +56,7 @@ class KenlmModel:
         "％": "%",  # Fullwidth percent sign
         "►": "-",  # Black right-pointing pointer
     }
-    
+
     def __init__(
         self,
         model_path: str,
@@ -68,13 +69,13 @@ class KenlmModel:
         # Load models
         self.model = kenlm.Model(os.path.join(model_path, f"{language}.arpa.bin"))
         self.tokenizer = SentencePiece(os.path.join(model_path, f"{language}.sp.model"))
-        
+
         # Store normalization settings
         self.accent = remove_accents
         self.case = lower_case
         self.numbers = normalize_numbers
         self.punct = punctuation
-        
+
         # Compile regex patterns for better performance
         self.unicode_punct_re = re.compile(f"[{''.join(self.UNICODE_PUNCT.keys())}]")
         self.non_printing_chars_re = re.compile(
@@ -90,10 +91,10 @@ class KenlmModel:
         """Calculate perplexity score for the given text"""
         if normalize:
             text = self.normalize(text)
-            
+
         # Tokenize text
         tokenized = self.tokenizer.tokenize(text)
-        
+
         # Calculate perplexity
         total_log_score, total_length = 0, 0
         for line in tokenized.split("\n"):
@@ -101,7 +102,7 @@ class KenlmModel:
             length = len(line.split()) + 1
             total_log_score += log_score
             total_length += length
-            
+
         # Convert log score to perplexity
         return round(10.0 ** (-total_log_score / total_length), 1)
 
@@ -110,7 +111,7 @@ class KenlmModel:
         text = text.strip()
         if not text:
             return text
-            
+
         # Apply configured normalizations
         if self.case:
             text = text.lower()
@@ -122,7 +123,7 @@ class KenlmModel:
             text = self._replace_unicode_punct(text)
         elif self.punct == 2:
             text = self._remove_unicode_punct(text)
-            
+
         return self._remove_non_printing_chars(text)
 
     def _strip_accents(self, text: str) -> str:

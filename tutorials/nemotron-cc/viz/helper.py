@@ -1,6 +1,7 @@
 import logging
 import matplotlib.pyplot as plt
 
+
 class DataSizeTracker:
     def __init__(self, original_size):
         self.original_size = original_size
@@ -27,7 +28,9 @@ class DataSizeTracker:
             return None
 
         # Find the current stage's index and get its size
-        current_index = next((i for i, (name, _) in enumerate(self.data_list) if name == stage_name), -1)
+        current_index = next(
+            (i for i, (name, _) in enumerate(self.data_list) if name == stage_name), -1
+        )
         current_size = self.data[stage_name]
 
         # Get previous stage's size, or use original size if this is the first stage
@@ -75,13 +78,15 @@ class DataSizeTracker:
         for stage, size in self.data.items():
             filtered_amount, percent = self.calculate_incremental_change(stage)
             if filtered_amount is not None:
-                print(f"  Stage: {stage}, Result Size: {size}, Filtered Out: {filtered_amount} ({percent:.2f}% of original)")
+                print(
+                    f"  Stage: {stage}, Result Size: {size}, Filtered Out: {filtered_amount} ({percent:.2f}% of original)"
+                )
             else:
                 print(f"  Stage: {stage}, Size: {size}, Filtered Amount: Not Available")
 
     def plot_size_reduction(self):
         """Plot the dataset size reduction after each filtering stage."""
-        stages = ['Original'] + [stage for stage, _ in self.data_list]
+        stages = ["Original"] + [stage for stage, _ in self.data_list]
         sizes = [self.original_size] + [size for _, size in self.data_list]
 
         # Calculate percentages of original size
@@ -89,21 +94,21 @@ class DataSizeTracker:
 
         fig = plt.figure(figsize=(12, 6))
         ax = fig.add_subplot(111)
-        ax.plot(range(len(stages)), percentages, marker='o')
+        ax.plot(range(len(stages)), percentages, marker="o")
 
         # Rotate x-axis labels for better readability
         ax.set_xticks(range(len(stages)))
-        ax.set_xticklabels(stages, rotation=45, ha='right')
+        ax.set_xticklabels(stages, rotation=45, ha="right")
 
-        ax.set_title('Dataset Size Reduction by Filtering Stage')
-        ax.set_xlabel('Filtering Stage')
-        ax.set_ylabel('Percentage of Original Size')
+        ax.set_title("Dataset Size Reduction by Filtering Stage")
+        ax.set_xlabel("Filtering Stage")
+        ax.set_ylabel("Percentage of Original Size")
 
         # Add percentage labels on top of each point
         for i, pct in enumerate(percentages):
-            label = f'{pct:.1f}%'
-            ax.text(i, pct, label, ha='center', va='bottom')
+            label = f"{pct:.1f}%"
+            ax.text(i, pct, label, ha="center", va="bottom")
 
-        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.grid(True, linestyle="--", alpha=0.7)
         plt.tight_layout()  # Adjust layout to prevent label cutoff
         plt.show()

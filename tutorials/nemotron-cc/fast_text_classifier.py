@@ -8,6 +8,7 @@ import cudf
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import load_object_on_worker
 
+
 class FastTextQualityClassifier:
     """
     A classifier that uses a fastText model to predict a confidence score for text.
@@ -29,9 +30,13 @@ class FastTextQualityClassifier:
         self.int_column: Optional[str] = int_column
 
         self.repo_id: str = "mlfoundations/fasttext-oh-eli5"
-        self.model_filename: str = "openhermes_reddit_eli5_vs_rw_v2_bigram_200k_train.bin"
+        self.model_filename: str = (
+            "openhermes_reddit_eli5_vs_rw_v2_bigram_200k_train.bin"
+        )
         # Download the fastText model from Hugging Face Hub.
-        self.model_path: str = hf_hub_download(repo_id=self.repo_id, filename=self.model_filename)
+        self.model_path: str = hf_hub_download(
+            repo_id=self.repo_id, filename=self.model_filename
+        )
         self.model_identifier: str = f"{self.repo_id}/{self.model_filename}"
 
     def _load_fasttext_model(self) -> Any:
@@ -48,9 +53,11 @@ class FastTextQualityClassifier:
         Returns:
             Tuple[float, int]: A tuple containing the confidence score (float) and binary indicator (int).
         """
-        model = load_object_on_worker(self.model_identifier, self._load_fasttext_model, {})
+        model = load_object_on_worker(
+            self.model_identifier, self._load_fasttext_model, {}
+        )
         text = text.replace("\n", "")
-        predictions = model.predict(text, k=2)  
+        predictions = model.predict(text, k=2)
         # predictions[0]: labels, predictions[1]: scores
         # If the top predicted label contains "hq", return the first score; otherwise, use the second.
         if "hq" in predictions[0][0]:
@@ -71,7 +78,9 @@ class FastTextQualityClassifier:
             pd.DataFrame: DataFrame with added prediction columns.
         """
         # Load the model on the worker.
-        model = load_object_on_worker(self.model_identifier, self._load_fasttext_model, {})
+        model = load_object_on_worker(
+            self.model_identifier, self._load_fasttext_model, {}
+        )
         results = df["text"].apply(self.predict_text)
         df[self.pred_column] = results.apply(lambda x: x[0]).astype(np.float32)
         if self.int_column is not None:
@@ -99,6 +108,8 @@ class FastTextQualityClassifier:
         if self.int_column is not None:
             meta[self.int_column] = np.int32(0)
 
-        processed_df = dataset.df.to_backend("pandas").map_partitions(self._predict_on_partition, meta=meta)
+        processed_df = dataset.df.to_backend("pandas").map_partitions(
+            self._predict_on_partition, meta=meta
+        )
         processed_df = processed_df.to_backend("cudf")
         return DocumentDataset(processed_df)
