@@ -1,7 +1,7 @@
 # Multimodal Extraction and Curation
 
 ## Workflow
-![Workflow Overview](workflow.png)
+![Workflow Overview](image/workflow.png)
 
 ## Overview
 This tutorial is divided into two parts:
