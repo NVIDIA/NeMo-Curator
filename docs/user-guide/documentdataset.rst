@@ -90,7 +90,7 @@ You can also write the dataset as gzip compressed JSONL files to save disk space
 
 This will write files with the ``.jsonl.gz`` extension. Compression is compatible with all other writing options, including ``write_to_filename`` and ``partition_on``.
 
-NeMo-Curator also supports reading gzip compressed JSONL files. Simply point to the ``.jsonl.gz`` files and the library will handle the decompression automatically:
+NeMo Curator also supports reading gzip compressed JSONL files. Simply point to the ``.jsonl.gz`` files and the library will handle the decompression automatically:
 
 .. code-block:: python
 

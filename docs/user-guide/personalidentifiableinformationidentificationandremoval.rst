@@ -287,6 +287,20 @@ Custom System Prompts
 
 When working with non-English text or when you want to customize how the LLM identifies PII entities, you can provide a custom system prompt. However, ensure that the JSON schema is included exactly as shown in the default system prompt.
 
+.. code-block:: json
+
+    {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "required": ["entity_type", "entity_text"],
+            "properties": {
+                "entity_type": {"type": "string"},
+                "entity_text": {"type": "string"}
+            }
+        }
+    }
+
 For reference, the default system prompt is:
 
 .. code-block:: text
@@ -298,6 +312,8 @@ For reference, the default system prompt is:
     It is very important that you return the entity_text by copying it exactly from the input. 
     Do not perform any modification or normalization of the text. 
     The entity_type should be one of these: {PII_LABELS}"
+
+``{PII_LABELS}`` represents a comma-separated list of strings corresponding to the PII entity types you want to identify (e.g., "name", "email", "ip_address", etc.).
 
 When using a custom system prompt with non-English text, make sure to adapt the instructions while maintaining the exact JSON schema requirement. The LLM models will use this system prompt to guide their identification of PII entities.
 

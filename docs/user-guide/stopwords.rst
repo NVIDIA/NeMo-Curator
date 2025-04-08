@@ -15,15 +15,14 @@ Why Stop Words Matter in NeMo Curator
 
 In NeMo Curator, stop words play several important roles:
 
-* **Text Extraction**: The text extraction process (especially for Common Crawl data) uses stop word density as a key metric to identify meaningful content
+* **Text Extraction and Boilerplate Removal**: The text extraction process (especially for Common Crawl data) uses stop word density as a key metric to identify meaningful content and differentiate between main content and boilerplate in web pages
 * **Language Detection**: Stop words help in language detection and processing
 * **Efficient Processing**: Filtering stop words reduces the amount of data that needs to be processed
-* **Boilerplate Removal**: Stop word density helps differentiate between main content and boilerplate in web pages
 
 Available Stop Word Lists
 ------------------------
 
-NeMo Curator includes built-in stop word lists for the following languages:
+NeMo Curator leverages the extensive stop word collection from `JusText <https://github.com/miso-belica/jusText/tree/main/justext/stoplists>`_. In addition, NeMo Curator provides custom stop word lists for the following languages not covered by JusText:
 
 .. list-table::
    :header-rows: 1
@@ -32,30 +31,28 @@ NeMo Curator includes built-in stop word lists for the following languages:
    * - Language
      - File Name
      - Number of Stop Words
-   * - Thai
-     - ``thai_stopwords.py`` and ``th_stopwords.py``
-     - ~120
-   * - Japanese
-     - ``ja_stopwords.py``
-     - ~140
    * - Chinese
      - ``zh_stopwords.py``
      - ~800
-
+   * - Japanese
+     - ``ja_stopwords.py``
+     - ~140
+   * - Thai
+     - ``th_stopwords.py``
+     - ~120
 These stop word lists are implemented as Python frozen sets for efficient lookup and immutability.
 
-Thai Stop Words
-~~~~~~~~~~~~~~
+Chinese Stop Words
+~~~~~~~~~~~~~~~~
 
-Thai stop words are available in two files: ``thai_stopwords.py`` and ``th_stopwords.py``. Both contain around 120 common Thai words like "กล่าว" (to say), "การ" (the), and "ของ" (of).
+Chinese stop words in ``zh_stopwords.py`` form the largest list with around 800 entries, including words like "一个" (one), "不是" (isn't), and "他们" (they).
 
 .. code-block:: python
 
-   # Example from thai_stopwords.py
-   thai_stopwords = frozenset([
-       "กล่าว", "กว่า", "กัน", "กับ", "การ", "ก็", "ก่อน",
-       # ... more words
-       "ไป", "ไม่", "ไว้",
+   # Example from zh_stopwords.py (partial)
+   zh_stopwords = frozenset([
+       "、", "。", "〈", "〉", "《", "》", "一", "一个",
+       # ... many more words
    ])
 
 Japanese Stop Words
@@ -72,18 +69,21 @@ Japanese stop words in ``ja_stopwords.py`` include approximately 140 common Japa
        "私", "私達", "貴方", "貴方方",
    ])
 
-Chinese Stop Words
-~~~~~~~~~~~~~~~~
 
-Chinese stop words in ``zh_stopwords.py`` form the largest list with around 800 entries, including words like "一个" (one), "不是" (isn't), and "他们" (they).
+Thai Stop Words
+~~~~~~~~~~~~~~
+
+Thai stop words are available in ``th_stopwords.py``. The file contains around 120 common Thai words like "กล่าว" (to say), "การ" (the), and "ของ" (of).
 
 .. code-block:: python
 
-   # Example from zh_stopwords.py (partial)
-   zh_stopwords = frozenset([
-       "、", "。", "〈", "〉", "《", "》", "一", "一个",
-       # ... many more words
+   # Example from th_stopwords.py
+   thai_stopwords = frozenset([
+       "กล่าว", "กว่า", "กัน", "กับ", "การ", "ก็", "ก่อน",
+       # ... more words
+       "ไป", "ไม่", "ไว้",
    ])
+
 
 How Stop Words Are Used in Text Extraction
 -----------------------------------------
