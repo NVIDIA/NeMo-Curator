@@ -1,17 +1,25 @@
+import asyncio
+import logging
+
+import pandas as pd
+from openai import OpenAI
+from tqdm import tqdm
+from transformers import AutoTokenizer
+
 from nemo_curator import (
-    DocumentSplitter,
     DocumentJoiner,
-    Sequential,
-    ScoreFilter,
-    Modify,
+    DocumentSplitter,
     Filter,
+    Modify,
+    ScoreFilter,
+    Sequential,
 )
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.filters import TokenCountFilter, SubstringFilter
+from nemo_curator.filters import SubstringFilter, TokenCountFilter
 from nemo_curator.modifiers import (
-    QuotationRemover,
     LineRemover,
     MarkdownRemover,
+    QuotationRemover,
     Slicer,
 )
 from nemo_curator.services import AsyncOpenAIClient
@@ -20,22 +28,15 @@ from nemo_curator.synthetic import (
     NemotronCCKnowledgeListPostprocessor,
 )
 from nemo_curator.synthetic.async_nemotron_cc import AsyncNemotronCCGenerator
-
-from transformers import AutoTokenizer
-from openai import OpenAI
-import pandas as pd
 from nemo_curator.synthetic.prompts import (
-    NEMOTRON_CC_SYSTEM_PROMPT,
-    WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
-    DIVERSE_QA_PROMPT_TEMPLATE,
     DISTILL_PROMPT_TEMPLATE,
+    DIVERSE_QA_PROMPT_TEMPLATE,
     EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE,
     KNOWLEDGE_LIST_PROMPT_TEMPLATE,
     NEMOTRON_CC_DISTILL_SYSTEM_PROMPT,
+    NEMOTRON_CC_SYSTEM_PROMPT,
+    WIKIPEDIA_REPHRASING_PROMPT_TEMPLATE,
 )
-from tqdm import tqdm
-import asyncio
-import logging
 
 
 def get_prefix_token_count(

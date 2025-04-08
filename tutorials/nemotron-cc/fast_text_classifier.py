@@ -1,9 +1,10 @@
-import fasttext
-import pandas as pd
-import numpy as np
-from typing import Optional, Tuple, Any, Dict, List
-from huggingface_hub import hf_hub_download
+from typing import Any, Dict, List, Optional, Tuple
+
 import cudf
+import fasttext
+import numpy as np
+import pandas as pd
+from huggingface_hub import hf_hub_download
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import load_object_on_worker

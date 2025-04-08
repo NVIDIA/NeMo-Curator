@@ -1,6 +1,7 @@
-import pandas as pd
-from IPython.display import display, HTML
 import uuid
+
+import pandas as pd
+from IPython.display import HTML, display
 
 
 def text_comparison_widget(
