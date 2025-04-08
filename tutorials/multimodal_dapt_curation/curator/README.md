@@ -27,6 +27,9 @@ The tutorial follows these steps:
 
 ## Usage
 After installing the NeMo Curator package, install the required dependencies and run the pipeline using the following command:
+```sh
+pip install -r requirements.txt
+```
 
 ```sh
 python main.py --device "gpu"
