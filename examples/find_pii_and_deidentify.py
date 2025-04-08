@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,8 +32,7 @@ def console_script():
     dataframe = pd.DataFrame(
         {"text": ["Sarah and Ryan went out to play", "Jensen is the CEO of NVIDIA"]}
     )
-    dd = dask.dataframe.from_pandas(dataframe, npartitions=1)
-    dataset = DocumentDataset(dd)
+    dataset = DocumentDataset.from_pandas(dataframe, npartitions=1)
 
     modifier = PiiModifier(
         log_dir="./logs",
@@ -45,7 +44,7 @@ def console_script():
 
     modify = Modify(modifier)
     modified_dataset = modify(dataset)
-    modified_dataset.df.to_json("output_files/*.jsonl", lines=True, orient="records")
+    modified_dataset.to_json("output.jsonl")
 
 
 if __name__ == "__main__":
