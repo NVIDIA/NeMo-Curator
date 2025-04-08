@@ -101,6 +101,9 @@ NeMo-Curator also supports reading gzip compressed JSONL files. Simply point to 
     all_books = DocumentDataset.read_json(["books_dataset/books_00.jsonl.gz", 
                                          "books_dataset/books_01.jsonl"])
 
+.. note::
+   Avoid mixing compressed (``.jsonl.gz``) and uncompressed (``.jsonl``) files, as it may lead to undefined behavior and could break in certain cases or with specific options.
+
 ############################
 Lazy Evaluation with Dask
 ############################
