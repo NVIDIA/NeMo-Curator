@@ -84,7 +84,7 @@ def text_comparison_widget(
             width: {width};
             border: 1px solid {colors['border']};
         }}
-        
+
         /* Table styling */
         #{widget_id} {{
             width: 100%;
@@ -92,7 +92,7 @@ def text_comparison_widget(
             border-spacing: 0;
             background-color: {colors['bg']};
         }}
-        
+
         /* Header styling */
         #{widget_id} th {{
             background-color: {colors['header_bg']};
@@ -105,14 +105,14 @@ def text_comparison_widget(
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        
+
         /* Cell styling */
         #{widget_id} td {{
             padding: 0;
             border-bottom: 1px solid {colors['border']};
             vertical-align: top;
         }}
-        
+
         /* ID column */
         #{widget_id} .row-id {{
             font-weight: 600;
@@ -127,7 +127,7 @@ def text_comparison_widget(
             text-overflow: ellipsis;
             box-shadow: 1px 0 0 {colors['border']};
         }}
-        
+
         /* Text cells */
         #{widget_id} .text-cell {{
             overflow-y: auto;
@@ -141,16 +141,16 @@ def text_comparison_widget(
             line-height: 1.6;
             transition: background-color 0.2s;
         }}
-        
+
         /* Hover effects */
         #{widget_id} tr:hover .text-cell {{
             background-color: {colors['hover']};
         }}
-        
+
         #{widget_id} tr:hover .row-id {{
             background-color: {colors['hover']};
         }}
-        
+
         /* Controls styling */
         #{widget_id}-controls {{
             padding: 12px 16px;
@@ -160,18 +160,18 @@ def text_comparison_widget(
             background-color: {colors['header_bg']};
             border-bottom: 1px solid {colors['border']};
         }}
-        
+
         #{widget_id}-title {{
             font-weight: 600;
             font-size: 16px;
             color: {colors['header_text']};
         }}
-        
+
         #{widget_id}-buttons {{
             display: flex;
             gap: 8px;
         }}
-        
+
         #{widget_id}-buttons button {{
             padding: 8px 12px;
             border-radius: 6px;
@@ -187,36 +187,36 @@ def text_comparison_widget(
             justify-content: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.12);
         }}
-        
+
         #{widget_id}-buttons button:hover {{
             background-color: {colors['button_hover']};
         }}
-        
+
         /* Custom scrollbar styling */
         #{widget_id} .text-cell::-webkit-scrollbar {{
             width: 8px;
         }}
-        
+
         #{widget_id} .text-cell::-webkit-scrollbar-track {{
             background: {colors['scrollbar_track']};
             border-radius: 4px;
         }}
-        
+
         #{widget_id} .text-cell::-webkit-scrollbar-thumb {{
             background: {colors['scrollbar_thumb']};
             border-radius: 4px;
         }}
-        
+
         #{widget_id} .text-cell::-webkit-scrollbar-thumb:hover {{
             background: {colors['button_hover']};
         }}
-        
+
         /* Difference highlight */
         #{widget_id} .diff-highlight {{
             background-color: rgba(255, 230, 0, 0.3);
             border-radius: 2px;
         }}
-        
+
         /* Footer */
         #{widget_id}-footer {{
             font-size: 12px;
@@ -226,7 +226,7 @@ def text_comparison_widget(
             background-color: {colors['header_bg']};
             border-top: 1px solid {colors['border']};
         }}
-        
+
         /* Responsive adjustments */
         @media (max-width: 768px) {{
             #{widget_id} .row-id {{
@@ -235,19 +235,19 @@ def text_comparison_widget(
                 font-size: 12px;
                 padding: 12px 8px;
             }}
-            
+
             #{widget_id} .text-cell {{
                 padding: 12px;
                 font-size: 13px;
             }}
-            
+
             #{widget_id} th {{
                 padding: 12px;
                 font-size: 13px;
             }}
         }}
     </style>
-    
+
     <div id="{widget_id}-container">
         <div id="{widget_id}-controls">
             <div id="{widget_id}-title">Text Comparison</div>
@@ -278,7 +278,7 @@ def text_comparison_widget(
                 </button>
             </div>
         </div>
-        
+
         <table id="{widget_id}">
             <thead>
                 <tr>
@@ -311,7 +311,7 @@ def text_comparison_widget(
             Use mouse wheel to scroll each cell independently
         </div>
     </div>
-    
+
     <script>
         function toggleWordWrap(widgetId) {
             const cells = document.querySelectorAll(`#${widgetId} .text-cell`);
@@ -323,7 +323,7 @@ def text_comparison_widget(
                 }
             });
         }
-        
+
         function increaseFontSize(widgetId) {
             const cells = document.querySelectorAll(`#${widgetId} .text-cell`);
             cells.forEach(cell => {
@@ -332,7 +332,7 @@ def text_comparison_widget(
                 cell.style.fontSize = `${newSize}px`;
             });
         }
-        
+
         function decreaseFontSize(widgetId) {
             const cells = document.querySelectorAll(`#${widgetId} .text-cell`);
             cells.forEach(cell => {
