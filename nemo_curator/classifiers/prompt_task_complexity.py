@@ -45,9 +45,7 @@ class MeanPooling(nn.Module):
         super().__init__()
 
     def forward(self, last_hidden_state, attention_mask):
-        input_mask_expanded = (
-            attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
-        )
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
         sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, 1)
 
         sum_mask = input_mask_expanded.sum(1)
@@ -78,10 +76,7 @@ class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
         self.weights_map = config["weights_map"]
         self.divisor_map = config["divisor_map"]
 
-        self.heads = [
-            MulticlassHead(self.backbone.config.hidden_size, sz)
-            for sz in self.target_sizes
-        ]
+        self.heads = [MulticlassHead(self.backbone.config.hidden_size, sz) for sz in self.target_sizes]
 
         for i, head in enumerate(self.heads):
             self.add_module(f"head_{i}", head)
@@ -96,12 +91,8 @@ class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
             top2 = top2_indices.detach().cpu().tolist()
             top2_prob = top2_probs.detach().cpu().tolist()
 
-            top2_strings = [
-                [self.task_type_map[str(idx)] for idx in sample] for sample in top2
-            ]
-            top2_prob_rounded = [
-                [round(value, 3) for value in sublist] for sublist in top2_prob
-            ]
+            top2_strings = [[self.task_type_map[str(idx)] for idx in sample] for sample in top2]
+            top2_prob_rounded = [[round(value, 3) for value in sublist] for sublist in top2_prob]
 
             counter = 0
             for sublist in top2_prob_rounded:
@@ -150,9 +141,7 @@ class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
         # Round 4: "contextual_knowledge"
         contextual_knowledge_logits = logits[3]
         target = "contextual_knowledge"
-        result[target] = self.compute_results(
-            contextual_knowledge_logits, target=target
-        )
+        result[target] = self.compute_results(contextual_knowledge_logits, target=target)
 
         # Round 5: "number_of_few_shots"
         number_of_few_shots_logits = logits[4]
@@ -200,22 +189,12 @@ class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
 
         # Convert lists results to PyTorch Tensors for CrossFit to handle
         result["task_type_prob"] = torch.tensor(result["task_type_prob"], device="cuda")
-        result["creativity_scope"] = torch.tensor(
-            result["creativity_scope"], device="cuda"
-        )
+        result["creativity_scope"] = torch.tensor(result["creativity_scope"], device="cuda")
         result["reasoning"] = torch.tensor(result["reasoning"], device="cuda")
-        result["contextual_knowledge"] = torch.tensor(
-            result["contextual_knowledge"], device="cuda"
-        )
-        result["number_of_few_shots"] = torch.tensor(
-            result["number_of_few_shots"], device="cuda"
-        )
-        result["domain_knowledge"] = torch.tensor(
-            result["domain_knowledge"], device="cuda"
-        )
-        result["no_label_reason"] = torch.tensor(
-            result["no_label_reason"], device="cuda"
-        )
+        result["contextual_knowledge"] = torch.tensor(result["contextual_knowledge"], device="cuda")
+        result["number_of_few_shots"] = torch.tensor(result["number_of_few_shots"], device="cuda")
+        result["domain_knowledge"] = torch.tensor(result["domain_knowledge"], device="cuda")
+        result["no_label_reason"] = torch.tensor(result["no_label_reason"], device="cuda")
         result["constraint_ct"] = torch.tensor(result["constraint_ct"], device="cuda")
 
         return result
@@ -226,10 +205,7 @@ class CustomHFDeberta(nn.Module, PyTorchModelHubMixin):
         last_hidden_state = outputs.last_hidden_state
         mean_pooled_representation = self.pool(last_hidden_state, attention_mask)
 
-        logits = [
-            self.heads[k](mean_pooled_representation)
-            for k in range(len(self.target_sizes))
-        ]
+        logits = [self.heads[k](mean_pooled_representation) for k in range(len(self.target_sizes))]
 
         return self.process_logits(logits)
 
@@ -311,12 +287,8 @@ class PromptTaskComplexityClassifier(DistributedDataClassifier):
         config = AutoConfig.from_pretrained(PROMPT_TASK_COMPLEXITY_IDENTIFIER)
         pred_column = config.targets
 
-        model_config = PromptTaskComplexityConfig(
-            model_output_type=config.model_output_type
-        )
-        model = PromptTaskComplexityModel(
-            config=model_config, autocast=autocast, max_mem_gb=max_mem_gb
-        )
+        model_config = PromptTaskComplexityConfig(model_output_type=config.model_output_type)
+        model = PromptTaskComplexityModel(config=model_config, autocast=autocast, max_mem_gb=max_mem_gb)
 
         super().__init__(
             model=model,
@@ -361,9 +333,7 @@ class PromptTaskComplexityClassifier(DistributedDataClassifier):
         self,
         dataset: DocumentDataset,
     ) -> DocumentDataset:
-        raise NotImplementedError(
-            "filter_by not supported with PromptTaskComplexityClassifier"
-        )
+        raise NotImplementedError("filter_by not supported with PromptTaskComplexityClassifier")
 
     def get_labels(self):
         raise NotImplementedError(

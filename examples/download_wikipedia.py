@@ -31,9 +31,7 @@ def main(args):
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Download and sample data
-    wikipedia = download_wikipedia(
-        output_directory, dump_date=dump_date, url_limit=url_limit
-    )
+    wikipedia = download_wikipedia(output_directory, dump_date=dump_date, url_limit=url_limit)
     sample = wikipedia.df.sample(frac=10 / len(wikipedia))
 
     # Inspect the samples
@@ -41,9 +39,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

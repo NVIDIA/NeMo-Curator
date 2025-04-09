@@ -463,10 +463,7 @@ class RepeatingTopNGramsFilter(DocumentFilter):
             ngrams = get_ngrams(split_text, self._n)
         unique_ngrams = set(ngrams)
         # Find the most frequent ngram in the zipped ngram list
-        counts = {
-            ngram: {"freq": 0, "num_chars": sum(len(word) for word in ngram)}
-            for ngram in unique_ngrams
-        }
+        counts = {ngram: {"freq": 0, "num_chars": sum(len(word) for word in ngram)} for ngram in unique_ngrams}
         for ngram in ngrams:
             counts[ngram]["freq"] += 1
         most_frqnt_ngram = " ".join(max(counts, key=lambda x: counts[x]["freq"]))
@@ -519,9 +516,7 @@ class RepeatingDuplicateNGramsFilter(DocumentFilter):
             counts[ngram] = counts.get(ngram, 0) + 1
             if counts[ngram] > 1:
                 # Count the number of characters in this ngram that haven't been counted already
-                duplicated_ngrams = sum(
-                    len(gram) for gram in ngram[overlapping_ngrams:]
-                )
+                duplicated_ngrams = sum(len(gram) for gram in ngram[overlapping_ngrams:])
                 # Count the spaces between the ngrams
                 nspaces = min(self._n - overlapping_ngrams, self._n - 1)
                 duplicated_nchar += duplicated_ngrams + nspaces
@@ -556,9 +551,7 @@ class PunctuationFilter(DocumentFilter):
         sentences = self._sentences
         if sentences is None:
             sentences = get_sentences(text)
-        num_sentence_without_endmarks = len(
-            [s for s in sentences if not s.strip().endswith(end_marks)]
-        )
+        num_sentence_without_endmarks = len([s for s in sentences if not s.strip().endswith(end_marks)])
         return num_sentence_without_endmarks / len(sentences)
 
     def keep_document(self, score):
@@ -716,9 +709,7 @@ class SubstringFilter(DocumentFilter):
         super().__init__()
         self._substring = substring
         if position not in ["prefix", "suffix", "any"]:
-            raise ValueError(
-                f"Invalid position: {position}. Must be one of: prefix, suffix, any."
-            )
+            raise ValueError(f"Invalid position: {position}. Must be one of: prefix, suffix, any.")
         self._position = position
 
     def score_document(self, text: str) -> int:
@@ -771,9 +762,7 @@ class HistogramFilter(DocumentFilter):
         """
 
         # Send a GET request to the URL
-        response = requests.get(
-            "https://dl.fbaipublicfiles.com/m2m_100/histograms.tar.gz"
-        )
+        response = requests.get("https://dl.fbaipublicfiles.com/m2m_100/histograms.tar.gz")
 
         # Check if the request was successful
         if response.status_code != 200:

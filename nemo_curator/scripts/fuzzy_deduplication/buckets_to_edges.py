@@ -82,9 +82,7 @@ def main(args):
         logger=logger,
     )
     st = time.time()
-    buckets_df = DocumentDataset(
-        dask_cudf.read_parquet(input_bucket_path, split_row_groups=False)
-    )
+    buckets_df = DocumentDataset(dask_cudf.read_parquet(input_bucket_path, split_row_groups=False))
     _ = buckets_to_edges(buckets_df)
     et = time.time()
     logger.info(f"Bucket to Edges conversion took = {et - st} s")

@@ -137,9 +137,7 @@ class AegisModel(nn.Module):
                 return_dict_in_generate=True,
             )
             # Access the hidden state of the last non-generated token from the last layer
-            instruction_data_guard_input_tensor = response.hidden_states[0][32][
-                :, -1, :
-            ].to(torch.float)
+            instruction_data_guard_input_tensor = response.hidden_states[0][32][:, -1, :].to(torch.float)
             instruction_data_guard_output_tensor = self.instruction_data_guard_net(
                 instruction_data_guard_input_tensor
             ).flatten()
@@ -185,14 +183,10 @@ class AegisHFModel(HFModel):
             add_instruction_data_guard=self.config.add_instruction_data_guard,
         )
         if self.config.add_instruction_data_guard:
-            model.instruction_data_guard_net = (
-                model.instruction_data_guard_net.from_pretrained(
-                    self.config.instruction_data_guard_path
-                )
+            model.instruction_data_guard_net = model.instruction_data_guard_net.from_pretrained(
+                self.config.instruction_data_guard_path
             )
-            model.instruction_data_guard_net = model.instruction_data_guard_net.to(
-                device
-            )
+            model.instruction_data_guard_net = model.instruction_data_guard_net.to(device)
             model.instruction_data_guard_net.eval()
 
         model = model.to(device)
@@ -340,12 +334,9 @@ class AegisClassifier(DistributedDataClassifier):
         )
         original_lengths = df["_hidden_text"].str.len().to_arrow().to_pylist()
         generated_tokens = [
-            chars[original_length:]
-            for chars, original_length in zip(generated_tokens, original_lengths)
+            chars[original_length:] for chars, original_length in zip(generated_tokens, original_lengths)
         ]
-        parsed_response = [
-            self._parse_response(response) for response in generated_tokens
-        ]
+        parsed_response = [self._parse_response(response) for response in generated_tokens]
         if self.keep_raw_pred:
             df[self.raw_pred_column] = cudf.Series(generated_tokens)
         else:
@@ -493,9 +484,7 @@ class InstructionDataGuardClassifier(DistributedDataClassifier):
         print("Starting Instruction Data Guard classifier inference", flush=True)
         ddf = dataset.df
         columns = ddf.columns.tolist()
-        tokenizer = op.Tokenizer(
-            self.model, cols=[self.text_field], tokenizer_type="default"
-        )
+        tokenizer = op.Tokenizer(self.model, cols=[self.text_field], tokenizer_type="default")
         predictor = op.Predictor(
             self.model,
             sorted_data_loader=True,

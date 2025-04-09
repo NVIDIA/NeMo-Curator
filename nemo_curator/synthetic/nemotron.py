@@ -50,9 +50,7 @@ class NemotronGenerator:
     def __init__(self, llm_client: LLMClient) -> None:
         self.client = llm_client
 
-    def _prompt(
-        self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict
-    ) -> List[str]:
+    def _prompt(self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict) -> List[str]:
         prompt = prompt_template.format(**prompt_kwargs)
         messages = [{"role": "user", "content": prompt}]
 
@@ -91,14 +89,10 @@ class NemotronGenerator:
         try:
             parsed_response = yaml.safe_load(yaml_response[0])
         except yaml.error.YAMLError as _:
-            raise YamlConversionError(
-                f"Error parsing yaml response: {yaml_response[0]}"
-            )
+            raise YamlConversionError(f"Error parsing yaml response: {yaml_response[0]}")
 
         if not isinstance(parsed_response, list):
-            raise YamlConversionError(
-                f"Error: Parsed response was not a list: {parsed_response}"
-            )
+            raise YamlConversionError(f"Error: Parsed response was not a list: {parsed_response}")
 
         for elem in parsed_response:
             if not isinstance(elem, str):
@@ -695,9 +689,7 @@ class NemotronGenerator:
             model=assistant_model,
             **assistant_model_kwargs,
         )[0]
-        conversation_history.append(
-            {"role": "assistant", "content": first_assistant_response}
-        )
+        conversation_history.append({"role": "assistant", "content": first_assistant_response})
         for _ in range(n_user_turns - 1):
             user_response = self._impersonate_user(
                 conversation_history=conversation_history,
@@ -712,9 +704,7 @@ class NemotronGenerator:
                 model=assistant_model,
                 **assistant_model_kwargs,
             )[0]
-            conversation_history.append(
-                {"role": "assistant", "content": assistant_response}
-            )
+            conversation_history.append({"role": "assistant", "content": assistant_response})
 
         return conversation_history
 
@@ -759,9 +749,7 @@ class NemotronGenerator:
             model=assistant_model,
             **assistant_model_kwargs,
         )[0]
-        conversation_history.append(
-            {"role": "assistant", "content": first_assistant_response}
-        )
+        conversation_history.append({"role": "assistant", "content": first_assistant_response})
 
         user_response = self._impersonate_user(
             conversation_history=conversation_history,
@@ -1143,9 +1131,7 @@ class NemotronGenerator:
                     raise YamlConversionError(
                         f"Error: Length of openlines {len(parsed_instructions)} does not match desired n_openlines {n_openlines}: {parsed_instructions}"
                     )
-                document_openline_pairs.extend(
-                    [(i, inst) for inst in parsed_instructions]
-                )
+                document_openline_pairs.extend([(i, inst) for inst in parsed_instructions])
             except YamlConversionError as e:
                 if ignore_conversion_failure:
                     continue
@@ -1475,15 +1461,11 @@ class NemotronFormatter(ConversationFormatter):
 
             if user_turn:
                 if turn["role"] != "user":
-                    raise ValueError(
-                        f"Conversation turn {i} is not 'user'. All even number turns should be."
-                    )
+                    raise ValueError(f"Conversation turn {i} is not 'user'. All even number turns should be.")
                 prompt += turn["content"] + "\n<extra_id_1>Assistant\n"
             else:
                 if turn["role"] != "assistant":
-                    raise ValueError(
-                        f"Conversation turn {i} is not 'assistant'. All odd number turns should be."
-                    )
+                    raise ValueError(f"Conversation turn {i} is not 'assistant'. All odd number turns should be.")
                 prompt += turn["content"] + "\n<extra_id_1>User\n"
 
         return prompt

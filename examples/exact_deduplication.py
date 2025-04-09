@@ -38,9 +38,7 @@ def main(args):
         client.run(pre_imports)
 
     t0 = time.time()
-    input_dataset = DocumentDataset.read_json(
-        dataset_dir, backend=backend, blocksize="1GiB", files_per_partition=None
-    )
+    input_dataset = DocumentDataset.read_json(dataset_dir, backend=backend, blocksize="1GiB", files_per_partition=None)
 
     exact_dup = ExactDuplicates(
         logger=log_dir,
@@ -55,9 +53,7 @@ def main(args):
     # When perform_removal=False, it will only call .identify_duplicates() and return the list of duplicate IDs.
     # When perform_removal=True, then exact_dup outputs the dataset with the duplicates removed.
     # It will behave by calling .identify_duplicates() and .remove() in sequence.
-    duplicates = exact_dup(
-        dataset=input_dataset
-    )  # or exact_dup.identify_duplicates(input_dataset)
+    duplicates = exact_dup(dataset=input_dataset)  # or exact_dup.identify_duplicates(input_dataset)
 
     # If caching, result is a path to the output dataset.
     if isinstance(duplicates, str):
@@ -69,9 +65,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

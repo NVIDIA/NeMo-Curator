@@ -186,7 +186,7 @@ include = ["*"]
 exclude = ["tests", "tests.*"]
 
 [tool.ruff]
-line-length = 88
+line-length = 119
 
 [tool.ruff.lint]
 ignore = [

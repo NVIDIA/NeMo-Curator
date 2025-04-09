@@ -86,9 +86,7 @@ class NemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     def generate_diverse_qa(
         self,
@@ -113,9 +111,7 @@ class NemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     def distill(
         self,
@@ -140,9 +136,7 @@ class NemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     def extract_knowledge(
         self,
@@ -167,9 +161,7 @@ class NemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     def generate_knowledge_list(
         self,
@@ -194,9 +186,7 @@ class NemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
 
 class NemotronCCDiverseQAPostprocessor(BaseModule):
@@ -263,9 +253,7 @@ class NemotronCCDiverseQAPostprocessor(BaseModule):
         random.shuffle(qa_pairs)
         if self.tokenizer is not None:
             num_tokens = len(self.tokenizer.tokenize(text))
-            qa_pairs = qa_pairs[
-                : random.randint(1, max(1, int(self.max_num_pairs * num_tokens / 150)))
-            ]
+            qa_pairs = qa_pairs[: random.randint(1, max(1, int(self.max_num_pairs * num_tokens / 150)))]
         else:
             qa_pairs = qa_pairs[: random.randint(1, self.max_num_pairs)]
         qa_pairs_str = "\n\n".join(qa_pairs)
@@ -276,9 +264,7 @@ class NemotronCCDiverseQAPostprocessor(BaseModule):
     def call(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
         df[self.response_field] = df.apply(
-            lambda row: self._postprocess_llm_response(
-                row[self.text_field], row[self.response_field]
-            ),
+            lambda row: self._postprocess_llm_response(row[self.text_field], row[self.response_field]),
             axis=1,
             meta=(None, "object"),
         )

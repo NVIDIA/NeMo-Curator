@@ -56,9 +56,7 @@ class TestBuildFilter:
                 result = build_filter(filter_config)
 
                 # Check assertions
-                mock_filter_class.assert_called_once_with(
-                    param1="value1", param2="value2"
-                )
+                mock_filter_class.assert_called_once_with(param1="value1", param2="value2")
                 mock_score_filter.assert_called_once_with(
                     mock_filter_instance, filter_config["input_field"], score_field=None
                 )
@@ -279,9 +277,7 @@ class TestBuildFilterPipeline:
                             "params": {"param3": "value3"},
                             "input_field": "text",
                         }
-                        mock_sequential.assert_called_once_with(
-                            [mock_filter1, mock_filter2, mock_filter3]
-                        )
+                        mock_sequential.assert_called_once_with([mock_filter1, mock_filter2, mock_filter3])
                         assert result == mock_sequential_instance
 
 
@@ -344,41 +340,29 @@ class TestBuildDownloader:
                                 "nemo_curator.utils.config_utils.locate",
                                 side_effect=mock_locate,
                             ) as mock_locate_func:
-                                with patch(
-                                    "nemo_curator.utils.config_utils.expand_outdir_and_mkdir"
-                                ) as mock_expand:
+                                with patch("nemo_curator.utils.config_utils.expand_outdir_and_mkdir") as mock_expand:
                                     # Call the function
-                                    downloader, iterator, extractor, dataset_format = (
-                                        build_downloader("dummy_path.yaml")
+                                    downloader, iterator, extractor, dataset_format = build_downloader(
+                                        "dummy_path.yaml"
                                     )
 
                                     # Check assertions
-                                    mock_file.assert_called_once_with(
-                                        "dummy_path.yaml", "r"
-                                    )
+                                    mock_file.assert_called_once_with("dummy_path.yaml", "r")
                                     mock_load.assert_called_once()
                                     mock_import_downloader.assert_called_once_with(
                                         "nemo_curator.download.test_downloader"
                                     )
-                                    mock_import_iterator.assert_called_once_with(
-                                        "nemo_curator.download.test_iterator"
-                                    )
+                                    mock_import_iterator.assert_called_once_with("nemo_curator.download.test_iterator")
                                     mock_import_extractor.assert_called_once_with(
                                         "nemo_curator.download.test_extractor"
                                     )
-                                    mock_expand.assert_called_once_with(
-                                        "/path/to/download"
-                                    )
+                                    mock_expand.assert_called_once_with("/path/to/download")
                                     mock_downloader_class.assert_called_once_with(
                                         download_dir="/path/to/download",
                                         param1="value1",
                                     )
-                                    mock_iterator_class.assert_called_once_with(
-                                        param2="value2"
-                                    )
-                                    mock_extractor_class.assert_called_once_with(
-                                        param3="value3"
-                                    )
+                                    mock_iterator_class.assert_called_once_with(param2="value2")
+                                    mock_extractor_class.assert_called_once_with(param3="value3")
                                     assert mock_locate_func.call_count == 2
                                     assert dataset_format == {
                                         "field1": str,
@@ -441,16 +425,12 @@ class TestBuildDownloader:
                                 "nemo_curator.utils.config_utils.locate",
                                 side_effect=mock_locate,
                             ):
-                                with patch(
-                                    "nemo_curator.utils.config_utils.expand_outdir_and_mkdir"
-                                ) as mock_expand:
+                                with patch("nemo_curator.utils.config_utils.expand_outdir_and_mkdir") as mock_expand:
                                     # Call the function with default download dir
                                     default_dir = "/default/download/dir"
-                                    downloader, iterator, extractor, dataset_format = (
-                                        build_downloader(
-                                            "dummy_path.yaml",
-                                            default_download_dir=default_dir,
-                                        )
+                                    downloader, iterator, extractor, dataset_format = build_downloader(
+                                        "dummy_path.yaml",
+                                        default_download_dir=default_dir,
                                     )
 
                                     # Check assertions
@@ -512,9 +492,7 @@ class TestBuildDownloader:
                                 "nemo_curator.utils.config_utils.locate",
                                 side_effect=mock_locate,
                             ):
-                                with patch(
-                                    "nemo_curator.utils.config_utils.expand_outdir_and_mkdir"
-                                ):
+                                with patch("nemo_curator.utils.config_utils.expand_outdir_and_mkdir"):
                                     # Call the function with default download dir
                                     # This should throw a TypeError because download_params is None,
                                     # and we try to check if "download_dir" is in None

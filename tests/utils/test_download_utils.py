@@ -44,24 +44,13 @@ class TestMainWarcPaths:
         ]
 
         # Call the function
-        warc_paths = get_main_warc_paths(
-            mock_index, "2021-10", "2021-31", prefix="https://test.example.com"
-        )
+        warc_paths = get_main_warc_paths(mock_index, "2021-10", "2021-31", prefix="https://test.example.com")
 
         # Check results
         assert len(warc_paths) == 3
-        assert (
-            warc_paths[0]
-            == "https://test.example.com/crawl-data/CC-MAIN-2021-10/warc.paths.gz"
-        )
-        assert (
-            warc_paths[1]
-            == "https://test.example.com/crawl-data/CC-MAIN-2021-25/warc.paths.gz"
-        )
-        assert (
-            warc_paths[2]
-            == "https://test.example.com/crawl-data/CC-MAIN-2021-31/warc.paths.gz"
-        )
+        assert warc_paths[0] == "https://test.example.com/crawl-data/CC-MAIN-2021-10/warc.paths.gz"
+        assert warc_paths[1] == "https://test.example.com/crawl-data/CC-MAIN-2021-25/warc.paths.gz"
+        assert warc_paths[2] == "https://test.example.com/crawl-data/CC-MAIN-2021-31/warc.paths.gz"
 
     def test_ignores_non_standard_format(self):
         """Test that IDs not in the standard format are ignored."""
@@ -168,24 +157,13 @@ class TestNewsWarcPaths:
             mock_now.month = 6
             mock_datetime.now.return_value = mock_now
 
-            warc_paths = get_news_warc_paths(
-                "2023-01", "2023-03", prefix="https://test.example.com"
-            )
+            warc_paths = get_news_warc_paths("2023-01", "2023-03", prefix="https://test.example.com")
 
             # Check results (should have entries for Jan, Feb, Mar 2023)
             assert len(warc_paths) == 3
-            assert (
-                warc_paths[0]
-                == "https://test.example.com/crawl-data/CC-NEWS/2023/01/warc.paths.gz"
-            )
-            assert (
-                warc_paths[1]
-                == "https://test.example.com/crawl-data/CC-NEWS/2023/02/warc.paths.gz"
-            )
-            assert (
-                warc_paths[2]
-                == "https://test.example.com/crawl-data/CC-NEWS/2023/03/warc.paths.gz"
-            )
+            assert warc_paths[0] == "https://test.example.com/crawl-data/CC-NEWS/2023/01/warc.paths.gz"
+            assert warc_paths[1] == "https://test.example.com/crawl-data/CC-NEWS/2023/02/warc.paths.gz"
+            assert warc_paths[2] == "https://test.example.com/crawl-data/CC-NEWS/2023/03/warc.paths.gz"
 
     def test_invalid_date_range(self):
         """Test with start date after end date."""
@@ -225,9 +203,7 @@ class TestCommonCrawlSnapshotIndex:
     def test_retrieves_snapshot_index(self):
         """Test retrieving snapshot index from URL."""
         # Mock response from index URL
-        mock_index_content = json.dumps(
-            [{"id": "CC-MAIN-2021-04"}, {"id": "CC-MAIN-2021-10"}]
-        )
+        mock_index_content = json.dumps([{"id": "CC-MAIN-2021-04"}, {"id": "CC-MAIN-2021-10"}])
         mock_response = MagicMock()
         mock_response.content = mock_index_content.encode()
 
@@ -274,9 +250,7 @@ class TestCommonCrawlUrls:
 
         # Check function calls
         mock_index.assert_called_once_with("https://index.example.com/")
-        mock_paths.assert_called_once_with(
-            "mock_index_data", "2021-10", "2021-25", prefix="https://data.example.com/"
-        )
+        mock_paths.assert_called_once_with("mock_index_data", "2021-10", "2021-25", prefix="https://data.example.com/")
 
         # Check result URLs
         assert len(result) == 3
@@ -293,9 +267,7 @@ class TestCommonCrawlUrls:
 
         # Create mock response
         mock_response = MagicMock()
-        mock_response.content = zlib.compress(
-            "news-warc1\nnews-warc2\n".encode("utf-8")
-        )
+        mock_response.content = zlib.compress("news-warc1\nnews-warc2\n".encode("utf-8"))
         mock_get.return_value = mock_response
 
         # Call the function
@@ -307,9 +279,7 @@ class TestCommonCrawlUrls:
         )
 
         # Check function calls
-        mock_paths.assert_called_once_with(
-            "2023-01", "2023-03", prefix="https://data.example.com/"
-        )
+        mock_paths.assert_called_once_with("2023-01", "2023-03", prefix="https://data.example.com/")
 
         # Check result URLs
         assert len(result) == 2
@@ -339,9 +309,7 @@ class TestCommonCrawlUrls:
                 result = get_common_crawl_urls("2021-10", "2021-25")
 
         # Check error message was printed
-        assert (
-            mock_print.call_count == 3
-        )  # Three print statements: path, content, and exception
+        assert mock_print.call_count == 3  # Three print statements: path, content, and exception
 
         # Check result URLs (only from successful request)
         assert len(result) == 2
@@ -389,16 +357,12 @@ class TestWikipediaUrls:
         mock_get.side_effect = [mock_index_response, mock_dump_response]
 
         # Call the function
-        result = get_wikipedia_urls(
-            language="en", wikidumps_index_prefix="https://dumps.example.com/"
-        )
+        result = get_wikipedia_urls(language="en", wikidumps_index_prefix="https://dumps.example.com/")
 
         # Check requests were made correctly
         assert mock_get.call_count == 2
         mock_get.assert_any_call("https://dumps.example.com/enwiki")
-        mock_get.assert_any_call(
-            "https://dumps.example.com/enwiki/20230201/dumpstatus.json"
-        )
+        mock_get.assert_any_call("https://dumps.example.com/enwiki/20230201/dumpstatus.json")
 
         # Check result URLs
         assert len(result) == 2
@@ -435,9 +399,7 @@ class TestWikipediaUrls:
         )
 
         # Check request was made correctly
-        mock_get.assert_called_once_with(
-            "https://dumps.example.com/enwiki/20220101/dumpstatus.json"
-        )
+        mock_get.assert_called_once_with("https://dumps.example.com/enwiki/20220101/dumpstatus.json")
 
         # Check result URLs
         assert len(result) == 2

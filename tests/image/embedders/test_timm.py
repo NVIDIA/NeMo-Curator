@@ -22,12 +22,8 @@ import torch
 from nemo_curator.utils.import_utils import gpu_only_import_from
 
 # These imports should only work on GPU systems
-ImageTextPairDataset = gpu_only_import_from(
-    "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
-)
-TimmImageEmbedder = gpu_only_import_from(
-    "nemo_curator.image.embedders.timm", "TimmImageEmbedder"
-)
+ImageTextPairDataset = gpu_only_import_from("nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset")
+TimmImageEmbedder = gpu_only_import_from("nemo_curator.image.embedders.timm", "TimmImageEmbedder")
 
 
 # Test initialization parameters
@@ -202,12 +198,8 @@ def test_embedder_workflow(gpu_client):
     # Create mock metadata DataFrame
     with (
         mock.patch("dask_cudf.read_parquet"),
-        mock.patch.object(
-            ImageTextPairDataset, "_get_tar_files", return_value=[str(sample_tar_path)]
-        ),
-        mock.patch.object(
-            ImageTextPairDataset, "_sort_partition", side_effect=lambda df, id_col: df
-        ),
+        mock.patch.object(ImageTextPairDataset, "_get_tar_files", return_value=[str(sample_tar_path)]),
+        mock.patch.object(ImageTextPairDataset, "_sort_partition", side_effect=lambda df, id_col: df),
     ):
         # Create a mock metadata object
         mock_metadata = mock.MagicMock()
@@ -225,14 +217,10 @@ def test_embedder_workflow(gpu_client):
         test_dataset.metadata = mock_metadata
 
         # Create the embedder
-        embedder = TimmImageEmbedder(
-            model_name="resnet18", batch_size=1, image_embedding_column="embeddings"
-        )
+        embedder = TimmImageEmbedder(model_name="resnet18", batch_size=1, image_embedding_column="embeddings")
 
         with (
-            mock.patch(
-                "nemo_curator.image.embedders.base.ImageTextPairDataset"
-            ) as mock_dataset_class,
+            mock.patch("nemo_curator.image.embedders.base.ImageTextPairDataset") as mock_dataset_class,
         ):
             # Call the embedder
             embedder(test_dataset)
@@ -378,9 +366,7 @@ def test_run_inference_with_mock_model(gpu_client):
             self.pretrained = kwargs.get("pretrained", False)
             self.batch_size = kwargs.get("batch_size", 1)
             self.num_threads_per_worker = kwargs.get("num_threads_per_worker", 4)
-            self.image_embedding_column = kwargs.get(
-                "image_embedding_column", "image_embedding"
-            )
+            self.image_embedding_column = kwargs.get("image_embedding_column", "image_embedding")
             self.normalize_embeddings = kwargs.get("normalize_embeddings", True)
             self.autocast = kwargs.get("autocast", True)
             self.use_index_files = kwargs.get("use_index_files", False)
@@ -408,9 +394,7 @@ def test_run_inference_with_mock_model(gpu_client):
                 image_features = model(*args, **kwargs)
 
                 if self.normalize_embeddings:
-                    image_features = torch.nn.functional.normalize(
-                        image_features, dim=-1
-                    )
+                    image_features = torch.nn.functional.normalize(image_features, dim=-1)
 
                 return image_features.to(torch.float32)
 
@@ -420,33 +404,23 @@ def test_run_inference_with_mock_model(gpu_client):
             return original_model
 
     # Create mock data
-    partition = cudf.DataFrame(
-        {"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]}
-    )
+    partition = cudf.DataFrame({"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]})
     tar_paths = ["mock_tar_path.tar"]
     id_col = "id"
     partition_info = {"number": 0}
 
     # Mock the load_object_on_worker function to return our model directly
-    with mock.patch(
-        "nemo_curator.image.embedders.base.load_object_on_worker"
-    ) as mock_load:
+    with mock.patch("nemo_curator.image.embedders.base.load_object_on_worker") as mock_load:
         # Configure the mock to return the model or classifier when called
         mock_load.side_effect = lambda name, fn, args: (
-            MockModel()
-            if name == "mock_model"
-            else (lambda x: torch.ones((x.shape[0], 1), device="cuda") * 0.75)
+            MockModel() if name == "mock_model" else (lambda x: torch.ones((x.shape[0], 1), device="cuda") * 0.75)
         )
 
         # Test without classifiers
-        embedder = MockTimmImageEmbedder(
-            model_name="mock_model", image_embedding_column="embeddings", batch_size=2
-        )
+        embedder = MockTimmImageEmbedder(model_name="mock_model", image_embedding_column="embeddings", batch_size=2)
 
         # Call _run_inference directly
-        result_partition = embedder._run_inference(
-            partition, tar_paths, id_col, partition_info
-        )
+        result_partition = embedder._run_inference(partition, tar_paths, id_col, partition_info)
 
         # Verify that embeddings were added and ordered correctly
         assert "embeddings" in result_partition.columns
@@ -488,9 +462,7 @@ def test_run_inference_with_mock_model(gpu_client):
         embedder.mock_dataset_yielded = False  # Reset for reuse
 
         # Call _run_inference directly
-        result_partition = embedder._run_inference(
-            partition, tar_paths, id_col, partition_info
-        )
+        result_partition = embedder._run_inference(partition, tar_paths, id_col, partition_info)
 
         # Verify that classifier scores were added
         assert "mock_classifier_scores" in result_partition.columns

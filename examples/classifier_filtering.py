@@ -39,9 +39,7 @@ def create_samples(data_path, label, num_samples):
     label_quality = nc.Modify(FastTextLabelModifier(label))
 
     labeled_dataset = label_quality(raw_dataset)
-    labeled_samples = labeled_dataset.df.sample(
-        frac=num_samples / len(labeled_dataset.df)
-    )
+    labeled_samples = labeled_dataset.df.sample(frac=num_samples / len(labeled_dataset.df))
 
     return labeled_samples["text"].compute().values.tolist()
 
@@ -56,12 +54,8 @@ def main(args):
 
     # Prepare samples for the classifier
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
-    low_quality_samples = create_samples(
-        low_quality_data_path, "__label__lq", num_low_quality_samples
-    )
-    high_quality_samples = create_samples(
-        high_quality_data_path, "__label__hq", num_high_quality_samples
-    )
+    low_quality_samples = create_samples(low_quality_data_path, "__label__lq", num_low_quality_samples)
+    high_quality_samples = create_samples(high_quality_data_path, "__label__hq", num_high_quality_samples)
 
     train_samples = low_quality_samples + high_quality_samples
     random.shuffle(train_samples)
@@ -96,9 +90,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

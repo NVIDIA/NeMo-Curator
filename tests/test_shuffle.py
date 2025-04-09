@@ -32,12 +32,8 @@ class TestShuffleNondeterministic:
         # Docs: https://docs.dask.org/en/latest/generated/dask.dataframe.DataFrame.shuffle.html
         with LocalCluster(n_workers=1, threads_per_worker=1) as cluster:
             with Client(cluster):
-                original_dataset = list_to_dataset(
-                    ["one", "two", "three", "four", "five"]
-                )
-                expected_dataset = list_to_dataset(
-                    ["two", "five", "three", "one", "four"]
-                )
+                original_dataset = list_to_dataset(["one", "two", "three", "four", "five"])
+                expected_dataset = list_to_dataset(["two", "five", "three", "one", "four"])
                 shuffle = nc.Shuffle(seed=42)
                 result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
@@ -45,12 +41,8 @@ class TestShuffleNondeterministic:
     def test_new_partitions(self):
         with LocalCluster(n_workers=1, threads_per_worker=1) as cluster:
             with Client(cluster):
-                original_dataset = list_to_dataset(
-                    ["one", "two", "three", "four", "five"], npartitions=3
-                )
-                expected_dataset = list_to_dataset(
-                    ["two", "five", "three", "one", "four"], npartitions=3
-                )
+                original_dataset = list_to_dataset(["one", "two", "three", "four", "five"], npartitions=3)
+                expected_dataset = list_to_dataset(["two", "five", "three", "one", "four"], npartitions=3)
                 shuffle = nc.Shuffle(seed=42, npartitions=2)
                 result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
@@ -58,9 +50,7 @@ class TestShuffleNondeterministic:
     def test_filename(self):
         with LocalCluster(n_workers=1, threads_per_worker=1) as cluster:
             with Client(cluster):
-                original_dataset = list_to_dataset(
-                    ["one", "two", "three", "four", "five"], npartitions=1
-                )
+                original_dataset = list_to_dataset(["one", "two", "three", "four", "five"], npartitions=1)
                 original_dataset.df["file_name"] = "original.jsonl"
 
                 expected_data = {
@@ -83,9 +73,7 @@ class TestShuffleNondeterministic:
     def test_custom_filenames(self):
         with LocalCluster(n_workers=1, threads_per_worker=1) as cluster:
             with Client(cluster):
-                original_dataset = list_to_dataset(
-                    ["one", "two", "three", "four", "five"], npartitions=1
-                )
+                original_dataset = list_to_dataset(["one", "two", "three", "four", "five"], npartitions=1)
                 original_dataset.df["file_name"] = "original.jsonl"
 
                 expected_data = {
@@ -104,9 +92,7 @@ class TestShuffleNondeterministic:
                 def filename_fn(x):
                     return f"my_{x}.test"
 
-                shuffle = nc.Shuffle(
-                    seed=42, npartitions=2, partition_to_filename=filename_fn
-                )
+                shuffle = nc.Shuffle(seed=42, npartitions=2, partition_to_filename=filename_fn)
                 result_dataset = shuffle.shuffle_nondeterministic(original_dataset)
                 all_equal(expected_dataset, result_dataset)
 
@@ -126,20 +112,14 @@ class TestShuffleDeterministic:
         all_equal(expected_dataset, result_dataset)
 
     def test_new_partitions(self):
-        original_dataset = list_to_dataset(
-            ["one", "two", "three", "four", "five"], npartitions=3
-        )
-        expected_dataset = list_to_dataset(
-            ["four", "three", "five", "one", "two"], npartitions=3
-        )
+        original_dataset = list_to_dataset(["one", "two", "three", "four", "five"], npartitions=3)
+        expected_dataset = list_to_dataset(["four", "three", "five", "one", "two"], npartitions=3)
         shuffle = nc.Shuffle(seed=42, npartitions=2)
         result_dataset = shuffle(original_dataset)
         all_equal(expected_dataset, result_dataset)
 
     def test_filename(self):
-        original_dataset = list_to_dataset(
-            ["one", "two", "three", "four", "five"], npartitions=1
-        )
+        original_dataset = list_to_dataset(["one", "two", "three", "four", "five"], npartitions=1)
         original_dataset.df["file_name"] = "original.jsonl"
 
         expected_data = {
@@ -160,9 +140,7 @@ class TestShuffleDeterministic:
         all_equal(expected_dataset, result_dataset)
 
     def test_custom_filenames(self):
-        original_dataset = list_to_dataset(
-            ["one", "two", "three", "four", "five"], npartitions=1
-        )
+        original_dataset = list_to_dataset(["one", "two", "three", "four", "five"], npartitions=1)
         original_dataset.df["file_name"] = "original.jsonl"
 
         expected_data = {

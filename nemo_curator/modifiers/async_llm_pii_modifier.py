@@ -210,9 +210,7 @@ class AsyncLLMPiiModifier(DocumentModifier):
         pii_entities_lists = await self._gather(tasks)
         return pii_entities_lists
 
-    async def _gather(
-        self, requests: List[Coroutine[Any, Any, List[str]]]
-    ) -> List[str]:
+    async def _gather(self, requests: List[Coroutine[Any, Any, List[str]]]) -> List[str]:
         max_requests = self.max_concurrent_requests
         if max_requests is None:
             max_requests = len(requests)
@@ -225,11 +223,6 @@ class AsyncLLMPiiModifier(DocumentModifier):
 
         return final_list
 
-    def batch_redact(
-        self, text: pd.Series, pii_entities_lists: List[List[Dict[str, str]]]
-    ):
-        redacted_texts = [
-            redact(text_str, pii_entities)
-            for text_str, pii_entities in zip(text, pii_entities_lists)
-        ]
+    def batch_redact(self, text: pd.Series, pii_entities_lists: List[List[Dict[str, str]]]):
+        redacted_texts = [redact(text_str, pii_entities) for text_str, pii_entities in zip(text, pii_entities_lists)]
         return pd.Series(redacted_texts, index=text.index)

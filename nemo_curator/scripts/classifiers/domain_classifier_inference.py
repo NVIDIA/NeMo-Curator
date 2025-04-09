@@ -51,9 +51,7 @@ def main():
     else:
         input_file_extension = args.input_file_type
 
-    input_files = get_remaining_files(
-        args.input_data_dir, args.output_data_dir, input_file_extension
-    )
+    input_files = get_remaining_files(args.input_data_dir, args.output_data_dir, input_file_extension)
     print(f"Total input files {len(input_files)}", flush=True)
 
     if args.input_file_type == "pickle":

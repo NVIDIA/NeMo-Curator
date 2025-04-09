@@ -57,9 +57,7 @@ def get_anchor_and_output_map_info(
         text_column=input_text_field,
         input_meta=input_meta,
     )
-    ddf_bk = get_bucket_ddf_from_parquet_path(
-        input_bucket_path=input_bucket_path, num_workers=num_workers
-    )
+    ddf_bk = get_bucket_ddf_from_parquet_path(input_bucket_path=input_bucket_path, num_workers=num_workers)
     map_buckets = _MapBuckets(
         id_fields=["dataset_id", "doc_id"],
         bucket_field=input_bucket_field,
@@ -157,9 +155,7 @@ def main(args):
     input_data_paths = args.input_data_dirs
     input_bucket_path = args.input_bucket_dir
     OUTPUT_PATH = args.output_dir
-    output_anchor_docs_with_bk_path = os.path.join(
-        OUTPUT_PATH, "anchor_docs_with_bk.parquet"
-    )
+    output_anchor_docs_with_bk_path = os.path.join(OUTPUT_PATH, "anchor_docs_with_bk.parquet")
     client = get_client(**ArgumentHelper.parse_client_args(args))
     print(f"Num Workers = {get_num_workers(client)}", flush=True)
     print("Connected to dask cluster", flush=True)

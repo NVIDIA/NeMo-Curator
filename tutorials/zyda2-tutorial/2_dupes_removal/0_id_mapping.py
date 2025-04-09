@@ -15,9 +15,7 @@ def list_deepest_folders(path):
     deepest_folders = []
 
     # Walk through the directory structure
-    for root, dirs, files in os.walk(
-        path, topdown=False
-    ):  # `topdown=False` starts from the deepest folder
+    for root, dirs, files in os.walk(path, topdown=False):  # `topdown=False` starts from the deepest folder
         if not dirs:  # Keep only folders that don't have subdirectories
             deepest_folders.append(root)
 
@@ -50,9 +48,7 @@ def generate_mapping(x: cudf.DataFrame):
 
 
 def convert_cc_ids(cc_df: dask_cudf.DataFrame, doc_id_mapping: dict, pad_width=10):
-    cc_df["doc_id"] = (
-        cc_df["doc_id"].astype(str).str.pad(width=pad_width, side="left", fillchar="0")
-    )
+    cc_df["doc_id"] = cc_df["doc_id"].astype(str).str.pad(width=pad_width, side="left", fillchar="0")
     cc_df["dataset_id"] = cc_df.dataset_id.astype(str).replace(doc_id_mapping)
     cc_df["original_id"] = cc_df.dataset_id + "-" + cc_df.doc_id
     return cc_df[["original_id", "group"]]

@@ -56,9 +56,7 @@ class AsyncNemotronCCGenerator:
             {"role": "user", "content": prompt},
         ]
 
-        return await self.client.query_model(
-            messages=messages, model=model, **model_kwargs
-        )
+        return await self.client.query_model(messages=messages, model=model, **model_kwargs)
 
     async def rewrite_to_wikipedia_style(
         self,
@@ -83,9 +81,7 @@ class AsyncNemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return await self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return await self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     async def generate_diverse_qa(
         self,
@@ -110,9 +106,7 @@ class AsyncNemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return await self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return await self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     async def distill(
         self,
@@ -137,9 +131,7 @@ class AsyncNemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return await self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return await self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     async def extract_knowledge(
         self,
@@ -164,9 +156,7 @@ class AsyncNemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return await self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return await self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)
 
     async def generate_knowledge_list(
         self,
@@ -191,6 +181,4 @@ class AsyncNemotronCCGenerator:
         Returns:
             List[str]: A list of responses from the LLM. The list is only greater than length 1 if n > 1 is set in model_kwargs.
         """
-        return await self._prompt(
-            model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs
-        )
+        return await self._prompt(model, document, prompt_template, system_prompt, prompt_kwargs, model_kwargs)

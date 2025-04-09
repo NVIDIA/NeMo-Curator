@@ -34,18 +34,10 @@ def int_ids_to_str(df, id_column="id"):
     df.drop(columns=["dataset_id", "doc_id"], inplace=True)
 
     if "anchor_0_dataset_id" in df.columns:
-        df[f"anchor_0_{id_column}"] = (
-            df["anchor_0_dataset_id"].astype(str)
-            + "-"
-            + df["anchor_0_doc_id"].astype(str)
-        )
+        df[f"anchor_0_{id_column}"] = df["anchor_0_dataset_id"].astype(str) + "-" + df["anchor_0_doc_id"].astype(str)
         df.drop(columns=["anchor_0_dataset_id", "anchor_0_doc_id"], inplace=True)
 
     if "anchor_1_dataset_id" in df.columns:
-        df[f"anchor_1_{id_column}"] = (
-            df["anchor_1_dataset_id"].astype(str)
-            + "-"
-            + df["anchor_1_doc_id"].astype(str)
-        )
+        df[f"anchor_1_{id_column}"] = df["anchor_1_dataset_id"].astype(str) + "-" + df["anchor_1_doc_id"].astype(str)
         df.drop(columns=["anchor_1_dataset_id", "anchor_1_doc_id"], inplace=True)
     return df

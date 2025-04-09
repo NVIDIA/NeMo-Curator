@@ -39,7 +39,9 @@ SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
 TEMP_DIR = os.path.join(SCRIPT_DIR_PATH, "_temp")
 CONFIG_DIR = os.path.join(SCRIPT_DIR_PATH, "config")
-DATASET_URL = "https://huggingface.co/datasets/ymoslem/Law-StackExchange/resolve/main/law-stackexchange-questions-answers.json"
+DATASET_URL = (
+    "https://huggingface.co/datasets/ymoslem/Law-StackExchange/resolve/main/law-stackexchange-questions-answers.json"
+)
 
 
 def pre_imports():
@@ -96,9 +98,7 @@ def download_and_convert_to_jsonl() -> str:
     train_rows, val_rows, test_rows = random_split_rows(rows, 0.8, 0.1)
 
     # Write the split rows to separate JSONL files.
-    for split_name, split_rows in zip(
-        ["train", "val", "test"], [train_rows, val_rows, test_rows]
-    ):
+    for split_name, split_rows in zip(["train", "val", "test"], [train_rows, val_rows, test_rows]):
         split_fp = os.path.join(splits_dir, f"law-qa-{split_name}.jsonl")
 
         with open(split_fp, "w") as f:
@@ -126,9 +126,7 @@ def semantic_dedupe(dataset):
     if os.path.isdir(TEMP_DIR):
         os.system(f"rm -rf {TEMP_DIR}")
 
-    semdedup_config = SemDedupConfig.from_yaml(
-        os.path.join(CONFIG_DIR, "sem_dedup_config.yaml")
-    )
+    semdedup_config = SemDedupConfig.from_yaml(os.path.join(CONFIG_DIR, "sem_dedup_config.yaml"))
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
     semdup = SemDedup(
         config=semdedup_config,
@@ -204,13 +202,7 @@ def run_curation_pipeline(
     if args.device == "gpu":
         # Create a text field comprised of the title, question, and answer.
         # This field is used for finding semantically similar records and deduping them.
-        dataset.df["text"] = (
-            dataset.df["title"]
-            + "\n"
-            + dataset.df["question"]
-            + "\n"
-            + dataset.df["answer"]
-        )
+        dataset.df["text"] = dataset.df["title"] + "\n" + dataset.df["question"] + "\n" + dataset.df["answer"]
         dataset.df = dataset.df.to_backend("cudf")
         gpu_curation_steps = Sequential(
             [
@@ -244,39 +236,25 @@ def run_pipeline(args, jsonl_fp):
     """
     # Disable synthetic data generation if the necessary arguments are not provided.
     if not args.synth_gen_endpoint:
-        print(
-            "No synthetic data generation endpoint provided. Skipping synthetic data generation."
-        )
+        print("No synthetic data generation endpoint provided. Skipping synthetic data generation.")
         args.synth_gen_rounds = 0
     if not args.synth_gen_model:
-        print(
-            "No synthetic data generation model provided. Skipping synthetic data generation."
-        )
+        print("No synthetic data generation model provided. Skipping synthetic data generation.")
         args.synth_gen_rounds = 0
     if not args.api_key:
-        print(
-            "No synthetic data generation API key provided. Skipping synthetic data generation."
-        )
+        print("No synthetic data generation API key provided. Skipping synthetic data generation.")
         args.synth_gen_rounds = 0
 
     if args.synth_gen_rounds:
-        print(
-            f"Using {args.synth_gen_endpoint}/{args.synth_gen_model} for synthetic data generation."
-        )
+        print(f"Using {args.synth_gen_endpoint}/{args.synth_gen_model} for synthetic data generation.")
 
     synth_gen_ratio = args.synth_gen_ratio
     synth_gen_rounds = args.synth_gen_rounds
     synth_n_variants = args.synth_n_variants
 
-    assert synth_gen_ratio >= 0 and synth_gen_ratio <= 1, (
-        "The synthetic generation ratio must be between 0 and 1."
-    )
-    assert synth_gen_rounds >= 0, (
-        "The number of synthetic generation rounds must be a non-negative integer."
-    )
-    assert synth_n_variants >= 1, (
-        "The number of synthetic variants must be a positive integer."
-    )
+    assert synth_gen_ratio >= 0 and synth_gen_ratio <= 1, "The synthetic generation ratio must be between 0 and 1."
+    assert synth_gen_rounds >= 0, "The number of synthetic generation rounds must be a non-negative integer."
+    assert synth_n_variants >= 1, "The number of synthetic variants must be a positive integer."
 
     if args.device == "gpu":
         backend = "cudf"
@@ -314,23 +292,15 @@ def run_pipeline(args, jsonl_fp):
 
         print(f"Running the initial curation pipeline on '{jsonl_fp}'...")
         dataset_df, n_rows_before, n_rows_after = run_curation_pipeline(args, jsonl_fp)
-        print(
-            f"After the initial curation, the dataset has {n_rows_after} records (originally {n_rows_before})."
-        )
+        print(f"After the initial curation, the dataset has {n_rows_after} records (originally {n_rows_before}).")
 
         for i in range(1, synth_gen_rounds + 1):
-            print(
-                "--------------------------------------------------------------------------------"
-            )
-            print(
-                f"Running synthetic data generation -- round {i} (out of {synth_gen_rounds})..."
-            )
+            print("--------------------------------------------------------------------------------")
+            print(f"Running synthetic data generation -- round {i} (out of {synth_gen_rounds})...")
             out_dir = out_dir_base + f"/round-{i}"
             os.makedirs(out_dir, exist_ok=True)
             # Save the base dataset to disk.
-            dataset_df.to_json(
-                f"{out_dir}/{jsonl_filename}", orient="records", lines=True
-            )
+            dataset_df.to_json(f"{out_dir}/{jsonl_filename}", orient="records", lines=True)
 
             #
             # Synthetic data generation
@@ -340,13 +310,9 @@ def run_pipeline(args, jsonl_fp):
             #
             # Curation of the combined real and synthetic data
             #
-            dataset_df, n_rows_before, n_rows_after = run_curation_pipeline(
-                args, out_dir
-            )
+            dataset_df, n_rows_before, n_rows_after = run_curation_pipeline(args, out_dir)
 
-            print(
-                f"After round {i}, the dataset has {n_rows_after} records (originally {n_rows_before})."
-            )
+            print(f"After round {i}, the dataset has {n_rows_after} records (originally {n_rows_before}).")
 
         dask_client.cancel(dask_client.futures, force=True)
         dask_client.close()
@@ -419,9 +385,7 @@ def main():
     curated_dir = os.path.dirname(train_fp_curated)
     os.system(f"cp {val_fp} {curated_dir}")
     os.system(f"cp {test_fp} {curated_dir}")
-    print(
-        "--------------------------------------------------------------------------------"
-    )
+    print("--------------------------------------------------------------------------------")
     print(f"Curated files are saved in '{curated_dir}'.")
 
 

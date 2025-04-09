@@ -21,21 +21,12 @@ def trim_memory() -> int:
 
 
 def get_folder_size(folder_path):
-    return sum(
-        file.stat().st_size for file in Path(folder_path).rglob("*") if file.is_file()
-    )
+    return sum(file.stat().st_size for file in Path(folder_path).rglob("*") if file.is_file())
 
 
 def sort_folders_by_size(parent_directory):
-    folders = [
-        f
-        for f in os.listdir(parent_directory)
-        if os.path.isdir(os.path.join(parent_directory, f))
-    ]
-    folder_sizes = [
-        (folder, get_folder_size(os.path.join(parent_directory, folder)))
-        for folder in folders
-    ]
+    folders = [f for f in os.listdir(parent_directory) if os.path.isdir(os.path.join(parent_directory, f))]
+    folder_sizes = [(folder, get_folder_size(os.path.join(parent_directory, folder))) for folder in folders]
     return sorted(folder_sizes, key=lambda x: x[1])
 
 
@@ -62,9 +53,7 @@ if __name__ == "__main__":
         if not os.path.exists(input_path) or not os.path.isdir(input_path):
             continue
         output_path = os.path.join(OUTPUT_BASE, component)
-        logging.info(
-            f"Processing {component}, size = {bytes_to_human_readable(component_size)}"
-        )
+        logging.info(f"Processing {component}, size = {bytes_to_human_readable(component_size)}")
         process_data(
             input_folder=input_path,
             output_folder=output_path,

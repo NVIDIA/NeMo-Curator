@@ -52,9 +52,7 @@ def download_wikipedia_sources(
     """
 
     if source_links_file is None:
-        source_links_file = os.path.join(
-            os.path.dirname(__file__), "sources", "wikipedia_urls.jsonl"
-        )
+        source_links_file = os.path.join(os.path.dirname(__file__), "sources", "wikipedia_urls.jsonl")
 
     if not os.path.exists(source_links_file):
         raise FileNotFoundError(f"File '{source_links_file}' not found.")
@@ -119,9 +117,7 @@ def download_github_sources(
     """
 
     if source_links_file is None:
-        source_links_file = os.path.join(
-            os.path.dirname(__file__), "sources", "github_repos.jsonl"
-        )
+        source_links_file = os.path.join(os.path.dirname(__file__), "sources", "github_repos.jsonl")
 
     if not os.path.exists(source_links_file):
         raise FileNotFoundError(f"File '{source_links_file}' not found.")
@@ -157,9 +153,7 @@ def download_github_sources(
 
     dataset = download_and_extract(
         urls=urls,
-        output_paths=[
-            os.path.join(output_jsonl_dir, os.path.basename(url)) for url in urls
-        ],
+        output_paths=[os.path.join(output_jsonl_dir, os.path.basename(url)) for url in urls],
         downloader=downloader,
         iterator=iterator,
         extractor=extractor,
@@ -192,9 +186,7 @@ def download_pdf_sources(
     """
 
     if source_links_file is None:
-        source_links_file = os.path.join(
-            os.path.dirname(__file__), "sources", "arxiv_urls.jsonl"
-        )
+        source_links_file = os.path.join(os.path.dirname(__file__), "sources", "arxiv_urls.jsonl")
 
     if not os.path.exists(source_links_file):
         raise FileNotFoundError(f"File '{source_links_file}' not found.")
@@ -206,9 +198,7 @@ def download_pdf_sources(
         urls = urls[:limit]
 
     if output_dir is None:
-        output_dir = os.path.join(
-            os.path.dirname(__file__), "data", "raw", "arxiv_pdfs"
-        )
+        output_dir = os.path.join(os.path.dirname(__file__), "data", "raw", "arxiv_pdfs")
 
     os.makedirs(output_dir, exist_ok=True)
     output_jsonl_dir = os.path.join(output_dir, "jsonl")
@@ -232,9 +222,7 @@ def download_pdf_sources(
 
     dataset = download_and_extract(
         urls=urls,
-        output_paths=[
-            os.path.join(output_jsonl_dir, os.path.basename(url)) for url in urls
-        ],
+        output_paths=[os.path.join(output_jsonl_dir, os.path.basename(url)) for url in urls],
         downloader=downloader,
         iterator=iterator,
         extractor=extractor,

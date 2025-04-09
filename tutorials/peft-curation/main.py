@@ -118,15 +118,9 @@ def run_curation_pipeline(args: Any, jsonl_fp: str) -> str:
             # Filtering
             #
             # Filter out empty emails.
-            ScoreFilter(
-                FilterEmptyEmails(), text_field="subject", score_type=bool, invert=True
-            ),
-            ScoreFilter(
-                FilterEmptyEmails(), text_field="body", score_type=bool, invert=True
-            ),
-            ScoreFilter(
-                FilterEmptyEmails(), text_field="category", score_type=bool, invert=True
-            ),
+            ScoreFilter(FilterEmptyEmails(), text_field="subject", score_type=bool, invert=True),
+            ScoreFilter(FilterEmptyEmails(), text_field="body", score_type=bool, invert=True),
+            ScoreFilter(FilterEmptyEmails(), text_field="category", score_type=bool, invert=True),
             # Filter out emails that are too long.
             ScoreFilter(FilterEmailsWithLongBody(), text_field="body", score_type=bool),
             #

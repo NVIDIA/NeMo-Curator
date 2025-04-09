@@ -75,9 +75,7 @@ class CustomBatchAnalyzerEngine(BatchAnalyzerEngine):
         for text, nlp_artifacts in nlp_artifacts_batch:
             results = []
             for recognizer in recognizers:
-                current_results = recognizer.analyze(
-                    text=text, entities=entities, nlp_artifacts=nlp_artifacts
-                )
+                current_results = recognizer.analyze(text=text, entities=entities, nlp_artifacts=nlp_artifacts)
                 if current_results:
                     # add recognizer name to recognition metadata inside results
                     # if not exists

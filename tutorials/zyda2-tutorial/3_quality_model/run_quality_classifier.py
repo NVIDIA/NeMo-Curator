@@ -18,9 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run NeMo quality classifier.")
     parser.add_argument("--input", help="Path to the input folder")
     parser.add_argument("--output", help="Path to the output folder")
-    parser.add_argument(
-        "--batch-size", type=int, default=64, help="Batch size for quality model"
-    )
+    parser.add_argument("--batch-size", type=int, default=64, help="Batch size for quality model")
     args = parser.parse_args()
 
     t0 = time.time()
@@ -35,9 +33,7 @@ if __name__ == "__main__":
     files = get_remaining_files(raw_base_path, qm_base_path, "parquet")
     if files:
         logging.info(f"Found {len(files)} remaining files for processing")
-        input_dataset = DocumentDataset.read_parquet(
-            files, backend="cudf", add_filename=True
-        )
+        input_dataset = DocumentDataset.read_parquet(files, backend="cudf", add_filename=True)
         result_dataset = classifier(dataset=input_dataset)
         result_dataset.to_parquet(qm_base_path, write_to_filename=True)
     else:

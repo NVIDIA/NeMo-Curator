@@ -95,9 +95,7 @@ class ImageEmbedder(ABC):
         )
         classifier_models = []
         for classifier in self.classifiers:
-            loaded_classifier = load_object_on_worker(
-                classifier.model_name, classifier.load_model, {"device": device}
-            )
+            loaded_classifier = load_object_on_worker(classifier.model_name, classifier.load_model, {"device": device})
             classifier_models.append(loaded_classifier)
 
         dataset = self.load_dataset_shard(tar_path)
@@ -115,9 +113,7 @@ class ImageEmbedder(ABC):
                 final_image_embeddings.append(image_embeddings)
                 image_ids.extend(m[id_col] for m in metadata)
 
-                for classifier_model, results in zip(
-                    classifier_models, classifier_results
-                ):
+                for classifier_model, results in zip(classifier_models, classifier_results):
                     classifier_result = classifier_model(image_embeddings)
                     results.append(classifier_result)
 
@@ -144,9 +140,7 @@ class ImageEmbedder(ABC):
         for classifier, results in zip(self.classifiers, classifier_results):
             sorted_results = torch.cat(results, dim=0)[sorted_indices]
             concat_output = cp.asarray(sorted_results)
-            series = create_list_series_from_1d_or_2d_ar(
-                concat_output, index=partition.index
-            )
+            series = create_list_series_from_1d_or_2d_ar(concat_output, index=partition.index)
             partition[classifier.pred_column] = classifier.postprocess(series)
 
         return partition

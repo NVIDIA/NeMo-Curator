@@ -43,12 +43,8 @@ except (ImportError, TypeError):
 
 # minhash in < 24.12 used to have a minhash(txt) api which was deprecated in favor of
 # minhash(a, b) in 25.02 (in 24.12, minhash_permuted(a,b) was introduced)
-MINHASH_DEPRECATED_API = (
-    CURRENT_CUDF_VERSION.base_version < parse_version("24.12").base_version
-)
-MINHASH_PERMUTED_AVAILABLE = (CURRENT_CUDF_VERSION.major == 24) & (
-    CURRENT_CUDF_VERSION.minor == 12
-)
+MINHASH_DEPRECATED_API = CURRENT_CUDF_VERSION.base_version < parse_version("24.12").base_version
+MINHASH_PERMUTED_AVAILABLE = (CURRENT_CUDF_VERSION.major == 24) & (CURRENT_CUDF_VERSION.minor == 12)
 
 # TODO: remove when dask min version gets bumped
 DASK_SHUFFLE_METHOD_ARG = _dask_version > parse_version("2024.1.0")

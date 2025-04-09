@@ -19,15 +19,11 @@ from nemo_curator.services.conversation_formatter import ConversationFormatter
 class NoFormat(ConversationFormatter):
     def format_conversation(self, conv: List[dict]) -> str:
         if len(conv) != 1:
-            raise ValueError(
-                "There must be exactly one turn in the conversation to use NoFormat"
-            )
+            raise ValueError("There must be exactly one turn in the conversation to use NoFormat")
 
         turn = conv[0]
 
         if turn["role"] != "user":
-            raise ValueError(
-                "Conversation turn 0 is not 'user'. All even number turns should be."
-            )
+            raise ValueError("Conversation turn 0 is not 'user'. All even number turns should be.")
 
         return turn["content"]

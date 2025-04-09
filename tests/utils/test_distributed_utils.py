@@ -70,9 +70,7 @@ class TestClientFunctions:
     @patch("nemo_curator.utils.distributed_utils.LocalCUDACluster")
     @patch("nemo_curator.utils.distributed_utils.Client")
     @patch("nemo_curator.utils.distributed_utils._set_torch_to_use_rmm")
-    def test_start_dask_gpu_local_cluster(
-        self, mock_set_torch_rmm, mock_client, mock_cuda_cluster
-    ):
+    def test_start_dask_gpu_local_cluster(self, mock_set_torch_rmm, mock_client, mock_cuda_cluster):
         """Test starting a GPU local cluster."""
         # Setup mock return values
         mock_cluster_instance = MagicMock()
@@ -81,9 +79,7 @@ class TestClientFunctions:
         mock_client.return_value = mock_client_instance
 
         # Mock get_num_workers to return a positive value
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_num_workers", return_value=1):
             # Call the function
             client = start_dask_gpu_local_cluster()
 
@@ -105,9 +101,7 @@ class TestClientFunctions:
         mock_client.return_value = mock_client_instance
 
         # Mock get_num_workers to return a positive value
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_num_workers", return_value=1):
             # Call the function
             client = start_dask_cpu_local_cluster()
 
@@ -125,20 +119,14 @@ class TestClientFunctions:
         mock_client.return_value = mock_client_instance
 
         # Mock get_num_workers to return a positive value
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_num_workers", return_value=1):
             # Test with scheduler_address
             get_client(scheduler_address="tcp://localhost:8786")
-            mock_client.assert_called_with(
-                address="tcp://localhost:8786", timeout="30s"
-            )
+            mock_client.assert_called_with(address="tcp://localhost:8786", timeout="30s")
 
             # Test with scheduler_file
             get_client(scheduler_file="/path/to/scheduler.json")
-            mock_client.assert_called_with(
-                scheduler_file="/path/to/scheduler.json", timeout="30s"
-            )
+            mock_client.assert_called_with(scheduler_file="/path/to/scheduler.json", timeout="30s")
 
             # Test with both scheduler_address and scheduler_file
             with pytest.raises(
@@ -162,9 +150,7 @@ class TestClientFunctions:
     @patch("nemo_curator.utils.distributed_utils.start_dask_gpu_local_cluster")
     @patch("nemo_curator.utils.distributed_utils.Client")
     @patch("nemo_curator.utils.distributed_utils._set_torch_to_use_rmm")
-    def test_get_client_gpu_cluster(
-        self, mock_set_torch_rmm, mock_client, mock_gpu_cluster
-    ):
+    def test_get_client_gpu_cluster(self, mock_set_torch_rmm, mock_client, mock_gpu_cluster):
         """Test get_client function with GPU cluster type."""
         mock_client_instance = MagicMock()
         mock_client.return_value = mock_client_instance
@@ -172,9 +158,7 @@ class TestClientFunctions:
         mock_gpu_cluster.return_value = mock_client_instance
 
         # Mock get_num_workers to return a positive value
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_num_workers", return_value=1
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_num_workers", return_value=1):
             # Test with GPU cluster
             client = get_client(cluster_type="gpu")
             mock_gpu_cluster.assert_called_once()
@@ -233,16 +217,12 @@ class TestDataReadingFunctions:
         mock_pd.read_parquet.return_value = pd.DataFrame({"a": [1, 2]})
 
         # Test reading jsonl with cudf backend
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True):
             with patch(
                 "nemo_curator.utils.distributed_utils.select_columns",
                 return_value=mock_cudf.read_json.return_value,
             ):
-                result = read_single_partition(
-                    files=["file.jsonl"], backend="cudf", file_type="jsonl"
-                )
+                result = read_single_partition(files=["file.jsonl"], backend="cudf", file_type="jsonl")
                 mock_cudf.read_json.assert_called_once()
                 assert result == mock_cudf.read_json.return_value
 
@@ -251,9 +231,7 @@ class TestDataReadingFunctions:
             "nemo_curator.utils.distributed_utils.select_columns",
             return_value=mock_pd.read_parquet.return_value,
         ):
-            result = read_single_partition(
-                files=["file.parquet"], backend="pandas", file_type="parquet"
-            )
+            result = read_single_partition(files=["file.parquet"], backend="pandas", file_type="parquet")
             mock_pd.read_parquet.assert_called_once()
             assert result.equals(mock_pd.read_parquet.return_value)
 
@@ -287,12 +265,8 @@ class TestDataReadingFunctions:
         mock_read_single.return_value = pd.DataFrame({"a": [1]})
 
         # Create a mock for dd.from_map that calls the function with our input and returns a DataFrame
-        with patch(
-            "nemo_curator.utils.distributed_utils.dd.from_map"
-        ) as mock_dd_from_map:
-            mock_dd_from_map.return_value = dd.from_pandas(
-                pd.DataFrame({"a": [1, 2]}), npartitions=2
-            )
+        with patch("nemo_curator.utils.distributed_utils.dd.from_map") as mock_dd_from_map:
+            mock_dd_from_map.return_value = dd.from_pandas(pd.DataFrame({"a": [1, 2]}), npartitions=2)
 
             # Call the function
             read_data_files_per_partition(
@@ -323,12 +297,8 @@ class TestDataReadingFunctions:
     def test_read_data_blocksize(self, mock_read_parquet, mock_read_json, temp_dir):
         """Test read_data_blocksize function."""
         # Setup mocks
-        mock_read_json.return_value = dd.from_pandas(
-            pd.DataFrame({"a": [1, 2]}), npartitions=2
-        )
-        mock_read_parquet.return_value = dd.from_pandas(
-            pd.DataFrame({"a": [1, 2]}), npartitions=2
-        )
+        mock_read_json.return_value = dd.from_pandas(pd.DataFrame({"a": [1, 2]}), npartitions=2)
+        mock_read_parquet.return_value = dd.from_pandas(pd.DataFrame({"a": [1, 2]}), npartitions=2)
 
         # Test with jsonl
         with patch(
@@ -402,12 +372,8 @@ class TestDataReadingFunctions:
         """Test the main read_data function."""
         # Setup mocks
         mock_read_pickle.return_value = pd.DataFrame({"a": [1, 2]})
-        mock_read_fpp.return_value = dd.from_pandas(
-            pd.DataFrame({"a": [1, 2]}), npartitions=2
-        )
-        mock_read_blocksize.return_value = dd.from_pandas(
-            pd.DataFrame({"a": [1, 2]}), npartitions=2
-        )
+        mock_read_fpp.return_value = dd.from_pandas(pd.DataFrame({"a": [1, 2]}), npartitions=2)
+        mock_read_blocksize.return_value = dd.from_pandas(pd.DataFrame({"a": [1, 2]}), npartitions=2)
 
         # Test reading pickle
         with patch(
@@ -473,9 +439,7 @@ class TestDataWritingFunctions:
         os.makedirs(os.path.join(temp_dir, "output"), exist_ok=True)
 
         # Create test dataframe
-        df = pd.DataFrame(
-            {"text": ["hello", "world"], "file_name": ["file1.jsonl", "file2.jsonl"]}
-        )
+        df = pd.DataFrame({"text": ["hello", "world"], "file_name": ["file1.jsonl", "file2.jsonl"]})
 
         # Test with empty dataframe
         empty_df = pd.DataFrame(columns=df.columns)
@@ -569,13 +533,9 @@ class TestDataWritingFunctions:
 
         # Test error when write_to_filename is True but column doesn't exist
         # Create a new DataFrame without file_name column instead of patching columns
-        df_no_filename = dd.from_pandas(
-            pd.DataFrame({"text": ["hello", "world"]}), npartitions=1
-        )
+        df_no_filename = dd.from_pandas(pd.DataFrame({"text": ["hello", "world"]}), npartitions=1)
         with pytest.raises(ValueError):
-            write_to_disk(
-                df_no_filename, os.path.join(temp_dir, "output"), write_to_filename=True
-            )
+            write_to_disk(df_no_filename, os.path.join(temp_dir, "output"), write_to_filename=True)
 
         # Test error when both partition_on and write_to_filename are used
         with pytest.raises(ValueError):
@@ -639,9 +599,7 @@ class TestDataWritingFunctions:
         output_path = os.path.join(temp_dir, "partitioned_jsonl")
         os.makedirs(output_path, exist_ok=True)
 
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False):
             _write_to_jsonl_or_parquet(
                 pandas_ddf,
                 output_path=output_path,
@@ -674,9 +632,7 @@ class TestDataWritingFunctions:
         output_path = os.path.join(temp_dir, "pandas_jsonl")
         os.makedirs(output_path, exist_ok=True)
 
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False):
             _write_to_jsonl_or_parquet(
                 pandas_ddf,
                 output_path=os.path.join(output_path, "output.jsonl"),
@@ -705,9 +661,7 @@ class TestDataWritingFunctions:
         output_path = os.path.join(temp_dir, "cudf_jsonl")
         os.makedirs(output_path, exist_ok=True)
 
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True):
             _write_to_jsonl_or_parquet(
                 pandas_ddf,  # We're still using pandas_ddf but mocking is_cudf_type to return True
                 output_path=os.path.join(output_path, "output.jsonl"),
@@ -744,22 +698,16 @@ class TestDataWritingFunctions:
                 partition_on="category",
             )
             # Verify to_parquet was called with the correct parameters
-            mock_to_parquet.assert_called_once_with(
-                output_path, write_index=False, partition_on="category"
-            )
+            mock_to_parquet.assert_called_once_with(output_path, write_index=False, partition_on="category")
 
         # 8. Test Parquet without partitioning
         output_path = os.path.join(temp_dir, "simple_parquet")
         os.makedirs(output_path, exist_ok=True)
 
         with patch.object(pandas_ddf, "to_parquet") as mock_to_parquet:
-            _write_to_jsonl_or_parquet(
-                pandas_ddf, output_path=output_path, output_type="parquet"
-            )
+            _write_to_jsonl_or_parquet(pandas_ddf, output_path=output_path, output_type="parquet")
             # Verify to_parquet was called with the correct parameters
-            mock_to_parquet.assert_called_once_with(
-                output_path, write_index=False, partition_on=None
-            )
+            mock_to_parquet.assert_called_once_with(output_path, write_index=False, partition_on=None)
 
         # 9. Test unknown output type
         with pytest.raises(ValueError):
@@ -779,16 +727,12 @@ class TestWorkerFunctions:
         mock_worker.attr = "existing_value"
 
         # Test with existing attribute
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker):
             result = load_object_on_worker("attr", lambda: "new_value", {})
             assert result == "existing_value"
 
         # Test with new attribute
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker):
             delattr(mock_worker, "attr")
             load_fn = MagicMock(return_value="new_value")
             result = load_object_on_worker("attr", load_fn, {"arg": "value"})
@@ -812,17 +756,13 @@ class TestWorkerFunctions:
         mock_worker.attr = "value"
 
         # Test with existing attribute
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker):
             result = offload_object_on_worker("attr")
             assert result is True
             assert not hasattr(mock_worker, "attr")
 
         # Test with non-existing attribute
-        with patch(
-            "nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker
-        ):
+        with patch("nemo_curator.utils.distributed_utils.get_worker", return_value=mock_worker):
             result = offload_object_on_worker("nonexistent")
             assert result is True
 
@@ -879,17 +819,13 @@ class TestUtilityFunctions:
 
         # Test with valid client
         mock_client = MagicMock()
-        mock_client.scheduler_info.return_value = {
-            "workers": {"worker1": {}, "worker2": {}}
-        }
+        mock_client.scheduler_info.return_value = {"workers": {"worker1": {}, "worker2": {}}}
         assert get_num_workers(mock_client) == 2
 
     def test_get_current_client(self):
         """Test get_current_client function."""
         # Test when client exists
-        with patch(
-            "nemo_curator.utils.distributed_utils.Client.current", return_value="client"
-        ):
+        with patch("nemo_curator.utils.distributed_utils.Client.current", return_value="client"):
             assert get_current_client() == "client"
 
         # Test when no client exists
@@ -946,18 +882,14 @@ class TestUtilityFunctions:
             assert ctx is None
 
         # Test with valid path
-        with patch(
-            "nemo_curator.utils.distributed_utils.performance_report"
-        ) as mock_perf_report:
+        with patch("nemo_curator.utils.distributed_utils.performance_report") as mock_perf_report:
             # Create a mock context manager instead of a string
             mock_context = MagicMock()
             # Set up the context manager to return itself from __enter__
             mock_context.__enter__.return_value = mock_context
             mock_perf_report.return_value = mock_context
             with performance_report_if("/path/to/reports") as ctx:
-                mock_perf_report.assert_called_once_with(
-                    "/path/to/reports/dask-profile.html"
-                )
+                mock_perf_report.assert_called_once_with("/path/to/reports/dask-profile.html")
                 assert ctx is mock_context
 
     def test_performance_report_if_with_ts_suffix(self):
@@ -967,17 +899,11 @@ class TestUtilityFunctions:
             assert ctx is None
 
         # Test with valid path
-        with patch(
-            "nemo_curator.utils.distributed_utils.performance_report_if"
-        ) as mock_perf_report_if:
+        with patch("nemo_curator.utils.distributed_utils.performance_report_if") as mock_perf_report_if:
             mock_perf_report_if.return_value = nullcontext()
-            with patch(
-                "nemo_curator.utils.distributed_utils.datetime"
-            ) as mock_datetime:
+            with patch("nemo_curator.utils.distributed_utils.datetime") as mock_datetime:
                 mock_datetime.now.return_value.strftime.return_value = "20240715_120000"
-                with performance_report_if_with_ts_suffix(
-                    "/path/to/reports", "custom-report"
-                ) as ctx:
+                with performance_report_if_with_ts_suffix("/path/to/reports", "custom-report") as ctx:
                     mock_perf_report_if.assert_called_once_with(
                         path="/path/to/reports",
                         report_name="custom-report-20240715_120000.html",
@@ -991,9 +917,7 @@ class TestUtilityFunctions:
                 with patch("torch.manual_seed") as mock_torch_seed:
                     with patch("torch.cuda.is_available", return_value=True):
                         with patch("torch.cuda.manual_seed") as mock_cuda_seed:
-                            with patch(
-                                "torch.cuda.manual_seed_all"
-                            ) as mock_cuda_seed_all:
+                            with patch("torch.cuda.manual_seed_all") as mock_cuda_seed_all:
                                 # Create a mock for torch.backends.cudnn instead of patching properties
                                 mock_cudnn = MagicMock()
                                 with patch("torch.backends.cudnn", mock_cudnn):
@@ -1029,9 +953,7 @@ class TestUtilityFunctions:
     def test_set_torch_to_use_rmm(self):
         """Test _set_torch_to_use_rmm function."""
         # Mock the imports inside the function
-        with patch.dict(
-            "sys.modules", {"torch": MagicMock(), "rmm.allocators.torch": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"torch": MagicMock(), "rmm.allocators.torch": MagicMock()}):
             # Create our mock torch module with cuda attributes
             mock_torch = sys.modules["torch"]
             mock_torch.cuda = MagicMock()
@@ -1047,9 +969,7 @@ class TestUtilityFunctions:
             _set_torch_to_use_rmm()
 
             # Verify that torch.cuda.memory.change_current_allocator was called
-            mock_torch.cuda.memory.change_current_allocator.assert_called_once_with(
-                mock_rmm_torch.rmm_torch_allocator
-            )
+            mock_torch.cuda.memory.change_current_allocator.assert_called_once_with(mock_rmm_torch.rmm_torch_allocator)
 
             # Reset the mock call history
             mock_torch.cuda.memory.change_current_allocator.reset_mock()
@@ -1058,9 +978,7 @@ class TestUtilityFunctions:
             mock_torch.cuda.get_allocator_backend.return_value = "pluggable"
 
             # Call the function again with warning module mocked
-            with patch(
-                "nemo_curator.utils.distributed_utils.warnings"
-            ) as mock_warnings:
+            with patch("nemo_curator.utils.distributed_utils.warnings") as mock_warnings:
                 _set_torch_to_use_rmm()
 
                 # Verify warning was issued

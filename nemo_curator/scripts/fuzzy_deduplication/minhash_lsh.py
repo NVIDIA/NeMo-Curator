@@ -33,9 +33,7 @@ def pre_imports():
 
 
 def main(args):
-    logger = create_logger(
-        rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="lsh_log"
-    )
+    logger = create_logger(rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="lsh_log")
     logger.info(f"Starting workflow with args:\n {args}")
 
     assert args.device == "gpu"
@@ -50,17 +48,13 @@ def main(args):
 
     dfs = []
     for data_path in data_paths:
-        dfs.append(
-            dask_cudf.read_parquet(data_path, blocksize="2GB", aggregate_files=True)
-        )
+        dfs.append(dask_cudf.read_parquet(data_path, blocksize="2GB", aggregate_files=True))
     df = dask_cudf.concat(dfs, ignore_unknown_divisions=True)
     df = df[~df[id_field].isna()]
     df = df.map_partitions(
         convert_str_id_to_int,
         id_column=id_field,
-        meta=cudf.DataFrame(
-            {minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}
-        ),
+        meta=cudf.DataFrame({minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}),
     )
 
     lsh = LSH(

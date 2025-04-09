@@ -75,11 +75,7 @@ class BoilerPlateStringModifier(DocumentModifier):
             if self._paragraphs is None:
                 self._paragraphs = get_paragraphs(text)
             modified_doc = "\n\n".join(
-                [
-                    p
-                    for idx, p in enumerate(self._paragraphs)
-                    if idx not in self._boilerplate_paragraph_indices
-                ]
+                [p for idx, p in enumerate(self._paragraphs) if idx not in self._boilerplate_paragraph_indices]
             )
             # Set the paragraphs back to None as the document has been
             # changed

@@ -21,9 +21,7 @@ if __name__ == "__main__":
 
     # Input
     lsh_base_output_path = os.path.join(DATA_BASE, "fuzzy/lsh")
-    lsh_buckets_output_path = os.path.join(
-        lsh_base_output_path, "data/_buckets.parquet"
-    )
+    lsh_buckets_output_path = os.path.join(lsh_base_output_path, "data/_buckets.parquet")
 
     # Output
     buckets_to_edges_out = os.path.join(DATA_BASE, "fuzzy/buckets_to_edges/data")

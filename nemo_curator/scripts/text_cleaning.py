@@ -90,9 +90,7 @@ the \"language\" field within each JSON object.
         default=False,
         help="Replace 3 or more consecutive newline characters in each document with only 2 newline characters.",
     )
-    argumentHelper.attach_bool_arg(
-        parser, "remove-urls", default=False, help="Removes all URLs in each document."
-    )
+    argumentHelper.attach_bool_arg(parser, "remove-urls", default=False, help="Removes all URLs in each document.")
     parser.add_argument(
         "--output-clean-dir",
         type=str,

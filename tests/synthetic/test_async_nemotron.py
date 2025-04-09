@@ -100,9 +100,7 @@ class TestAsyncNemotronGenerator:
         generator = AsyncNemotronGenerator(mock_llm_client)
 
         # Test with list containing non-string elements
-        mock_llm_client.query_model.return_value = [
-            yaml.dump(["Valid string", 123, True, {"nested": "dict"}])
-        ]
+        mock_llm_client.query_model.return_value = [yaml.dump(["Valid string", 123, True, {"nested": "dict"}])]
 
         with pytest.raises(YamlConversionError) as excinfo:
             await generator.convert_response_to_yaml_list(
@@ -164,9 +162,7 @@ class TestAsyncNemotronGenerator:
             )
 
         # Test with YAML list of wrong length - should raise exception when ignore_conversion_failure=False
-        mock_llm_client.query_model.return_value = [
-            yaml.dump(["Item 1"])
-        ]  # Only 1 item
+        mock_llm_client.query_model.return_value = [yaml.dump(["Item 1"])]  # Only 1 item
         with pytest.raises(YamlConversionError):
             await generator._try_convert_yaml_list(
                 response="Original response",
@@ -178,9 +174,7 @@ class TestAsyncNemotronGenerator:
             )
 
         # Test with hallucination - should raise exception when ignore_conversion_failure=False
-        mock_llm_client.query_model.return_value = [
-            yaml.dump(["Item in response", "Hallucinated item"])
-        ]
+        mock_llm_client.query_model.return_value = [yaml.dump(["Item in response", "Hallucinated item"])]
         with pytest.raises(YamlConversionError):
             await generator._try_convert_yaml_list(
                 response="Original response with Item in response",
@@ -207,9 +201,7 @@ class TestAsyncNemotronGenerator:
         # Check the parameters sent to _prompt
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert messages[0]["content"].find("3") != -1, (
-            "Number of topics wasn't passed to the prompt"
-        )
+        assert messages[0]["content"].find("3") != -1, "Number of topics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["Topic 1\nTopic 2\nTopic 3"]
@@ -228,12 +220,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Science" in messages[0]["content"], (
-            "Macro topic wasn't passed to the prompt"
-        )
-        assert "5" in messages[0]["content"], (
-            "Number of subtopics wasn't passed to the prompt"
-        )
+        assert "Science" in messages[0]["content"], "Macro topic wasn't passed to the prompt"
+        assert "5" in messages[0]["content"], "Number of subtopics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -252,12 +240,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Artificial Intelligence" in messages[0]["content"], (
-            "Topic wasn't passed to the prompt"
-        )
-        assert "3" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert "Artificial Intelligence" in messages[0]["content"], "Topic wasn't passed to the prompt"
+        assert "3" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -276,12 +260,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "What is machine learning?" in messages[0]["content"], (
-            "Openline wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of revisions wasn't passed to the prompt"
-        )
+        assert "What is machine learning?" in messages[0]["content"], "Openline wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of revisions wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -301,15 +281,9 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Environment" in messages[0]["content"], (
-            "Topic wasn't passed to the prompt"
-        )
-        assert "Essay" in messages[0]["content"], (
-            "Text material type wasn't passed to the prompt"
-        )
-        assert "4" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert "Environment" in messages[0]["content"], "Topic wasn't passed to the prompt"
+        assert "Essay" in messages[0]["content"], "Text material type wasn't passed to the prompt"
+        assert "4" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -328,12 +302,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Write an essay about climate change." in messages[0]["content"], (
-            "Openline wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of revisions wasn't passed to the prompt"
-        )
+        assert "Write an essay about climate change." in messages[0]["content"], "Openline wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of revisions wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -353,12 +323,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert document in messages[0]["content"], (
-            "Document wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert document in messages[0]["content"], "Document wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -399,12 +365,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "3" in messages[0]["content"], (
-            "Number of topics wasn't passed to the prompt"
-        )
-        assert "High School" in messages[0]["content"], (
-            "School level wasn't passed to the prompt"
-        )
+        assert "3" in messages[0]["content"], "Number of topics wasn't passed to the prompt"
+        assert "High School" in messages[0]["content"], "School level wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -423,12 +385,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Calculus" in messages[0]["content"], (
-            "Macro topic wasn't passed to the prompt"
-        )
-        assert "4" in messages[0]["content"], (
-            "Number of subtopics wasn't passed to the prompt"
-        )
+        assert "Calculus" in messages[0]["content"], "Macro topic wasn't passed to the prompt"
+        assert "4" in messages[0]["content"], "Number of subtopics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -446,9 +404,7 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Linear Algebra" in messages[0]["content"], (
-            "Entity wasn't passed to the prompt"
-        )
+        assert "Linear Algebra" in messages[0]["content"], "Entity wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -468,9 +424,7 @@ class TestAsyncNemotronGenerator:
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
         assert "Calculus" in messages[0]["content"], "Topic wasn't passed to the prompt"
-        assert "3" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert "3" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -488,9 +442,7 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "3" in messages[0]["content"], (
-            "Number of topics wasn't passed to the prompt"
-        )
+        assert "3" in messages[0]["content"], "Number of topics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -509,12 +461,8 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Data Structures" in messages[0]["content"], (
-            "Macro topic wasn't passed to the prompt"
-        )
-        assert "4" in messages[0]["content"], (
-            "Number of subtopics wasn't passed to the prompt"
-        )
+        assert "Data Structures" in messages[0]["content"], "Macro topic wasn't passed to the prompt"
+        assert "4" in messages[0]["content"], "Number of subtopics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -532,9 +480,7 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "List Comprehension" in messages[0]["content"], (
-            "Entity wasn't passed to the prompt"
-        )
+        assert "List Comprehension" in messages[0]["content"], "Entity wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -554,15 +500,9 @@ class TestAsyncNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Lists and Dictionaries" in messages[0]["content"], (
-            "Topic wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
-        assert "Python" in messages[0]["content"], (
-            "Language wasn't passed to the prompt"
-        )
+        assert "Lists and Dictionaries" in messages[0]["content"], "Topic wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
+        assert "Python" in messages[0]["content"], "Language wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -601,9 +541,7 @@ class TestAsyncNemotronGenerator:
         generator = AsyncNemotronGenerator(mock_llm_client)
 
         # Patch the _impersonate_user method
-        with patch.object(
-            AsyncNemotronGenerator, "_impersonate_user", new_callable=AsyncMock
-        ) as mock_impersonate:
+        with patch.object(AsyncNemotronGenerator, "_impersonate_user", new_callable=AsyncMock) as mock_impersonate:
             # Set up return values
             mock_llm_client.query_model.side_effect = [
                 ["Assistant response 1"],
@@ -650,9 +588,7 @@ class TestAsyncNemotronGenerator:
         generator = AsyncNemotronGenerator(mock_llm_client)
 
         # Patch the _impersonate_user method
-        with patch.object(
-            AsyncNemotronGenerator, "_impersonate_user", new_callable=AsyncMock
-        ) as mock_impersonate:
+        with patch.object(AsyncNemotronGenerator, "_impersonate_user", new_callable=AsyncMock) as mock_impersonate:
             # Set up return values
             mock_llm_client.query_model.return_value = ["Assistant response"]
             mock_impersonate.return_value = "User follow-up"
@@ -693,9 +629,7 @@ class TestAsyncNemotronGenerator:
         generator = AsyncNemotronGenerator(mock_llm_client)
 
         # Patch the methods
-        with patch.object(
-            AsyncNemotronGenerator, "generate_subtopics", new_callable=AsyncMock
-        ) as mock_subtopics:
+        with patch.object(AsyncNemotronGenerator, "generate_subtopics", new_callable=AsyncMock) as mock_subtopics:
             with patch.object(
                 AsyncNemotronGenerator, "_try_convert_yaml_list", new_callable=AsyncMock
             ) as mock_convert:
@@ -852,23 +786,13 @@ class TestAsyncNemotronGenerator:
                             # Check that methods were called correctly
                             mock_macro_topics.assert_called_once()
                             mock_convert.assert_called_once()
-                            assert (
-                                mock_parse_subtopic.call_count == 2
-                            )  # Called for each macro topic
-                            assert (
-                                mock_parse_openline.call_count >= 4
-                            )  # Called at least once for each subtopic
-                            assert (
-                                mock_revise_openline.call_count >= 8
-                            )  # Called for each openline item
+                            assert mock_parse_subtopic.call_count == 2  # Called for each macro topic
+                            assert mock_parse_openline.call_count >= 4  # Called at least once for each subtopic
+                            assert mock_revise_openline.call_count >= 8  # Called for each openline item
 
                             # Check the result - should have all the revised questions
-                            assert (
-                                len(result) >= 8
-                            )  # At least 2 macro topics x 2 subtopics x 2 questions
-                            assert (
-                                "Revised" in result[0]
-                            )  # Verify we're getting the revised questions
+                            assert len(result) >= 8  # At least 2 macro topics x 2 subtopics x 2 questions
+                            assert "Revised" in result[0]  # Verify we're getting the revised questions
 
     @pytest.mark.asyncio
     async def test_run_writing_pipeline(self, mock_llm_client):
@@ -917,17 +841,11 @@ class TestAsyncNemotronGenerator:
                 )
 
                 # Check methods were called correctly
-                assert (
-                    mock_generate_task.call_count == 4
-                )  # Called for each topic/material type pair
-                assert (
-                    mock_revise_task.call_count >= 8
-                )  # Called for each task item (2 per generate call)
+                assert mock_generate_task.call_count == 4  # Called for each topic/material type pair
+                assert mock_revise_task.call_count >= 8  # Called for each task item (2 per generate call)
 
                 # Check the result - may have more than 8 items if _revise_parse_writing_task is called more times
-                assert (
-                    len(result) >= 8
-                )  # At least 2 topics x 2 material types x 2 tasks
+                assert len(result) >= 8  # At least 2 topics x 2 material types x 2 tasks
                 assert "Revised" in result[0]  # Verify we're getting the revised tasks
 
     @pytest.mark.asyncio
@@ -944,17 +862,11 @@ class TestAsyncNemotronGenerator:
                 "convert_response_to_yaml_list",
                 new_callable=AsyncMock,
             ) as mock_convert:
-                with patch.object(
-                    AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
-                ) as mock_gather:
+                with patch.object(AsyncNemotronGenerator, "_gather", new_callable=AsyncMock) as mock_gather:
                     # Set up mocks - first throw an error to test error propagation
                     mock_macro_topics.return_value = ["Raw response"]
-                    mock_convert.side_effect = YamlConversionError(
-                        "Test conversion error"
-                    )
-                    mock_gather.return_value = [
-                        "Raw response"
-                    ]  # Mock the gather method to avoid range() issue
+                    mock_convert.side_effect = YamlConversionError("Test conversion error")
+                    mock_gather.return_value = ["Raw response"]  # Mock the gather method to avoid range() issue
 
                     # Verify that the error is propagated when ignore_conversion_failure=False
                     with pytest.raises(YamlConversionError):
@@ -1181,9 +1093,7 @@ class TestAsyncNemotronGenerator:
             "_generate_parse_closed_qa",
             new_callable=AsyncMock,
         ) as mock_parse_qa:
-            with patch.object(
-                AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
-            ) as mock_gather:
+            with patch.object(AsyncNemotronGenerator, "_gather", new_callable=AsyncMock) as mock_gather:
                 # Set up return values
                 mock_parse_qa.side_effect = [
                     [(0, "Question 1"), (0, "Question 2")],  # Document 0
@@ -1325,9 +1235,7 @@ class TestAsyncNemotronGenerator:
                         "_generate_parse_math_openline",
                         new_callable=AsyncMock,
                     ) as mock_parse_openline:
-                        with patch.object(
-                            AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
-                        ) as mock_gather:
+                        with patch.object(AsyncNemotronGenerator, "_gather", new_callable=AsyncMock) as mock_gather:
                             # Set up return values
                             mock_macro_topics.return_value = ["Math topics response"]
                             mock_convert.return_value = [
@@ -1338,9 +1246,7 @@ class TestAsyncNemotronGenerator:
                                 ["Equations", "Polynomials"],  # Subtopics for Algebra
                                 ["Triangles", "Circles"],  # Subtopics for Geometry
                             ]
-                            mock_parse_openline.side_effect = [
-                                ["Problem 1", "Problem 2"]
-                            ] * 4  # For each subtopic
+                            mock_parse_openline.side_effect = [["Problem 1", "Problem 2"]] * 4  # For each subtopic
 
                             # Setup gather to return all problems
                             mock_gather.side_effect = [
@@ -1370,18 +1276,14 @@ class TestAsyncNemotronGenerator:
                                 n_macro_topics=2,
                                 school_level="High School",
                                 model="test_model",
-                                prompt_template=mock_macro_topics.call_args[1][
-                                    "prompt_template"
-                                ],
+                                prompt_template=mock_macro_topics.call_args[1]["prompt_template"],
                                 model_kwargs={},
                             )
                             mock_convert.assert_called_once()
                             assert mock_gather.call_count >= 2
 
                             # Check the result
-                            assert (
-                                len(result) == 8
-                            )  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
+                            assert len(result) == 8  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
                             assert all("Problem" in item for item in result)
 
     @pytest.mark.asyncio
@@ -1498,9 +1400,7 @@ class TestAsyncNemotronGenerator:
                         "_generate_parse_python_openline",
                         new_callable=AsyncMock,
                     ) as mock_parse_openline:
-                        with patch.object(
-                            AsyncNemotronGenerator, "_gather", new_callable=AsyncMock
-                        ) as mock_gather:
+                        with patch.object(AsyncNemotronGenerator, "_gather", new_callable=AsyncMock) as mock_gather:
                             # Set up return values
                             mock_macro_topics.return_value = ["Python topics response"]
                             mock_convert.return_value = [
@@ -1514,9 +1414,7 @@ class TestAsyncNemotronGenerator:
                                 ],  # Subtopics for Data Structures
                                 ["Lambda", "Decorators"],  # Subtopics for Functions
                             ]
-                            mock_parse_openline.side_effect = [
-                                ["Problem 1", "Problem 2"]
-                            ] * 4  # For each subtopic
+                            mock_parse_openline.side_effect = [["Problem 1", "Problem 2"]] * 4  # For each subtopic
 
                             # Setup gather to return all problems
                             mock_gather.side_effect = [
@@ -1544,18 +1442,14 @@ class TestAsyncNemotronGenerator:
                             mock_macro_topics.assert_called_once_with(
                                 n_macro_topics=2,
                                 model="test_model",
-                                prompt_template=mock_macro_topics.call_args[1][
-                                    "prompt_template"
-                                ],
+                                prompt_template=mock_macro_topics.call_args[1]["prompt_template"],
                                 model_kwargs={},
                             )
                             mock_convert.assert_called_once()
                             assert mock_gather.call_count >= 2
 
                             # Check the result
-                            assert (
-                                len(result) == 8
-                            )  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
+                            assert len(result) == 8  # Should have 8 problems (2 macro x 2 subtopics x 2 problems)
                             assert all("Problem" in item for item in result)
 
     @pytest.mark.asyncio
@@ -1601,9 +1495,7 @@ class TestAsyncNemotronGenerator:
                 n_revisions=2,
                 model="test_model",
                 ignore_conversion_failure=True,
-                additional_macro_topics=[
-                    "Backup Topic"
-                ],  # Ensure we have something to process
+                additional_macro_topics=["Backup Topic"],  # Ensure we have something to process
             )
             assert isinstance(result, list)
 
@@ -1706,9 +1598,7 @@ class TestAsyncNemotronGenerator:
                 n_openlines=2,
                 model="test_model",
                 ignore_conversion_failure=True,
-                additional_macro_topics=[
-                    "Backup Topic"
-                ],  # Ensure we have something to process
+                additional_macro_topics=["Backup Topic"],  # Ensure we have something to process
             )
             assert isinstance(result, list)
 
@@ -1745,8 +1635,6 @@ class TestAsyncNemotronGenerator:
                 n_openlines=2,
                 model="test_model",
                 ignore_conversion_failure=True,
-                additional_macro_topics=[
-                    "Backup Topic"
-                ],  # Ensure we have something to process
+                additional_macro_topics=["Backup Topic"],  # Ensure we have something to process
             )
             assert isinstance(result, list)

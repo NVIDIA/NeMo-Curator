@@ -47,9 +47,7 @@ class Shuffle(BaseModule):
             return self.shuffle_deterministic(dataset)
 
     def shuffle_deterministic(self, dataset: DocumentDataset) -> DocumentDataset:
-        new_npartitions = (
-            dataset.df.npartitions if self.npartitions is None else self.npartitions
-        )
+        new_npartitions = dataset.df.npartitions if self.npartitions is None else self.npartitions
 
         dataset.df[self.rand_col] = dataset.df.map_partitions(self._add_rand_col)
 
@@ -57,22 +55,16 @@ class Shuffle(BaseModule):
         shuffled_df = shuffled_df.reset_index(drop=True)
 
         if self.filename_col in shuffled_df:
-            shuffled_df[self.filename_col] = shuffled_df.map_partitions(
-                self._add_filename
-            )
+            shuffled_df[self.filename_col] = shuffled_df.map_partitions(self._add_filename)
 
         return DocumentDataset(shuffled_df)
 
     def shuffle_nondeterministic(self, dataset: DocumentDataset) -> DocumentDataset:
-        new_npartitions = (
-            dataset.df.npartitions if self.npartitions is None else self.npartitions
-        )
+        new_npartitions = dataset.df.npartitions if self.npartitions is None else self.npartitions
 
         dataset.df[self.rand_col] = dataset.df.map_partitions(self._add_rand_col)
 
-        shuffled_df = dataset.df.shuffle(
-            self.rand_col, npartitions=new_npartitions, ignore_index=True
-        )
+        shuffled_df = dataset.df.shuffle(self.rand_col, npartitions=new_npartitions, ignore_index=True)
         shuffled_df = shuffled_df.drop(columns=[self.rand_col])
         shuffled_df = shuffled_df.map_partitions(self._partition_shuffle)
 
@@ -100,9 +92,7 @@ class Shuffle(BaseModule):
         else:
             random_state = None
 
-        partition = partition.sample(frac=1, random_state=random_state).reset_index(
-            drop=True
-        )
+        partition = partition.sample(frac=1, random_state=random_state).reset_index(drop=True)
 
         if self.filename_col in partition:
             filename = self.partition_to_filename(partition_num)
@@ -142,9 +132,7 @@ def blend_datasets(
 
     weight_sum = sum(sampling_weights)
     sampling_weights = [weight / weight_sum for weight in sampling_weights]
-    num_documents_per_dataset = [
-        math.ceil(weight * target_size) for weight in sampling_weights
-    ]
+    num_documents_per_dataset = [math.ceil(weight * target_size) for weight in sampling_weights]
 
     blend_components = []
     for dataset, num_documents in zip(datasets, num_documents_per_dataset):

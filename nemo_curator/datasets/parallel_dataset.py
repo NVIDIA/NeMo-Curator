@@ -50,9 +50,7 @@ class ParallelDataset(DocumentDataset):
         if isinstance(src_input_files, str) and isinstance(tgt_input_files, str):
             src_input_files = [src_input_files]
             tgt_input_files = [tgt_input_files]
-        elif not isinstance(src_input_files, list) or not isinstance(
-            tgt_input_files, list
-        ):
+        elif not isinstance(src_input_files, list) or not isinstance(tgt_input_files, list):
             raise TypeError("Both file inputs must be strings or lists.")
 
         # use default doc id for now
@@ -138,9 +136,7 @@ class ParallelDataset(DocumentDataset):
             Union[dd.DataFrame, dask_cudf.DataFrame]
         """
         src_input_file, tgt_input_file = input_file_pair
-        assert remove_path_extension(src_input_file) == remove_path_extension(
-            tgt_input_file
-        ), (
+        assert remove_path_extension(src_input_file) == remove_path_extension(tgt_input_file), (
             f"Assuming source and target filenames would have common prefix before language code, but got {src_input_file} and {tgt_input_file}."
         )
 
@@ -152,12 +148,8 @@ class ParallelDataset(DocumentDataset):
         else:
             df = pd
 
-        df_src = df.read_csv(
-            src_input_file, names=["src"], sep="\t", quoting=csv.QUOTE_NONE
-        )
-        df_tgt = df.read_csv(
-            tgt_input_file, names=["tgt"], sep="\t", quoting=csv.QUOTE_NONE
-        )
+        df_src = df.read_csv(src_input_file, names=["src"], sep="\t", quoting=csv.QUOTE_NONE)
+        df_tgt = df.read_csv(tgt_input_file, names=["tgt"], sep="\t", quoting=csv.QUOTE_NONE)
         assert len(df_src) == len(df_tgt), (
             f"We assume the source and target file would have the same number of lines, but got {len(df_src)} and {len(df_tgt)}."
         )
@@ -167,8 +159,6 @@ class ParallelDataset(DocumentDataset):
         df_combined["tgt_lang"] = tgt_lang
 
         if add_filename:
-            df_combined[_resolve_filename_col(add_filename)] = remove_path_extension(
-                src_input_file
-            )
+            df_combined[_resolve_filename_col(add_filename)] = remove_path_extension(src_input_file)
 
         return df_combined

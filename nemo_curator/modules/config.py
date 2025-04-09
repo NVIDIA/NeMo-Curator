@@ -117,9 +117,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
                     " Using a value of at least 20 for char_ngrams is recommended."
                 )
             unused_false_positive_args = [
-                arg
-                for arg in false_positive_defaults.keys()
-                if getattr(self, arg) is not None
+                arg for arg in false_positive_defaults.keys() if getattr(self, arg) is not None
             ]
             if unused_false_positive_args:
                 warnings.warn(
@@ -135,9 +133,7 @@ class FuzzyDuplicatesConfig(BaseConfig):
             raise ValueError("Buckets per shuffle must be between [1, num_buckets]")
 
         if not self.perform_removal:
-            warnings.warn(
-                "In future NeMo Curator releases, the default value for perform_removal will be True."
-            )
+            warnings.warn("In future NeMo Curator releases, the default value for perform_removal will be True.")
 
 
 @dataclass
@@ -225,9 +221,7 @@ class SemDedupConfig(BaseConfig):
             raise ValueError(
                 "Finding sem-dedup requires a cache directory accessible via all workers to store intermediates"
             )
-        assert 0 <= self.eps_to_extract <= 1, (
-            "Epsilon to extract must be between [0, 1]"
-        )
+        assert 0 <= self.eps_to_extract <= 1, "Epsilon to extract must be between [0, 1]"
 
         # Convert bool to int
         if isinstance(self.batched_cosine_similarity, bool):

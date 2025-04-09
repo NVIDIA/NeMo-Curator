@@ -217,9 +217,7 @@ class PerExtensionFilter(DocumentFilter):
             for row in csv.DictReader(f):
                 # Only take the rows corresponding to the language if specified
                 if language is None or row["language"] == language:
-                    ext_to_filter[(row["language"], row["extension"])] = (
-                        self._get_filter_params(row)
-                    )
+                    ext_to_filter[(row["language"], row["extension"])] = self._get_filter_params(row)
         assert len(ext_to_filter) > 0, (
             f"Did not find filtering params corresponding to language: `{language}` in: {path}"
         )
@@ -270,14 +268,12 @@ class PerExtensionFilter(DocumentFilter):
         # Get the filter-params we want to use
         # extension `None` is an empty string in the csv
         try:
-            (include, line_max, line_mean, alphanum_frac, alphabetic_frac) = (
-                self._ext_to_filter[
-                    (
-                        self._language_format_from_dataset(self._lang),
-                        self._extension if self._extension is not None else "",
-                    )
-                ]
-            )
+            (include, line_max, line_mean, alphanum_frac, alphabetic_frac) = self._ext_to_filter[
+                (
+                    self._language_format_from_dataset(self._lang),
+                    self._extension if self._extension is not None else "",
+                )
+            ]
         except KeyError as e:
             # Some extensions are not in the csv. This happens for dockerfiles.
             # Exclude these files
@@ -300,9 +296,7 @@ class PerExtensionFilter(DocumentFilter):
             return 0
 
         # Filter files with low percentage of alphabetic chars
-        elif alphabetic_frac and sum(map(str.isalpha, source)) < alphabetic_frac * len(
-            source
-        ):
+        elif alphabetic_frac and sum(map(str.isalpha, source)) < alphabetic_frac * len(source):
             return 0
 
         return 1

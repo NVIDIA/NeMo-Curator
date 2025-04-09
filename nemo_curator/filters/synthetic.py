@@ -198,9 +198,7 @@ class AnswerabilityFilter(DocumentFilter):
 
     def _llm_as_judge(self, context: str, question: str):
         user_query = self.system_prompt + "\n\n"
-        user_query += self.user_prompt_template.format(
-            context=context, question=question
-        )
+        user_query += self.user_prompt_template.format(context=context, question=question)
 
         try:
             completion = self.client.chat.completions.create(

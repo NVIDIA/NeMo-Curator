@@ -28,11 +28,7 @@ class TestMixtral8x7BFormatter:
         ]
 
         expected_output = (
-            "<s> [INST] \n"
-            "Hello [/INST]"
-            "Hi there!</s>[INST] "
-            "How are you? [/INST]"
-            "I'm doing well, thank you!</s>[INST] "
+            "<s> [INST] \nHello [/INST]Hi there!</s>[INST] How are you? [/INST]I'm doing well, thank you!</s>[INST] "
         )
 
         result = Mixtral8x7BFormatter.format_conversation(conv)

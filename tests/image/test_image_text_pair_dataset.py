@@ -36,24 +36,14 @@ dask_cudf = gpu_only_import("dask_cudf")
 MaybeToTensor = gpu_only_import_from("timm.data.transforms", "MaybeToTensor")
 CenterCrop = gpu_only_import_from("torchvision.transforms.transforms", "CenterCrop")
 Compose = gpu_only_import_from("torchvision.transforms.transforms", "Compose")
-InterpolationMode = gpu_only_import_from(
-    "torchvision.transforms.transforms", "InterpolationMode"
-)
+InterpolationMode = gpu_only_import_from("torchvision.transforms.transforms", "InterpolationMode")
 Normalize = gpu_only_import_from("torchvision.transforms.transforms", "Normalize")
 Resize = gpu_only_import_from("torchvision.transforms.transforms", "Resize")
 
-ImageTextPairDataset = gpu_only_import_from(
-    "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
-)
-TimmImageEmbedder = gpu_only_import_from(
-    "nemo_curator.image.embedders.timm", "TimmImageEmbedder"
-)
-NsfwClassifier = gpu_only_import_from(
-    "nemo_curator.image.classifiers.nsfw", "NsfwClassifier"
-)
-AestheticClassifier = gpu_only_import_from(
-    "nemo_curator.image.classifiers.aesthetic", "AestheticClassifier"
-)
+ImageTextPairDataset = gpu_only_import_from("nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset")
+TimmImageEmbedder = gpu_only_import_from("nemo_curator.image.embedders.timm", "TimmImageEmbedder")
+NsfwClassifier = gpu_only_import_from("nemo_curator.image.classifiers.nsfw", "NsfwClassifier")
+AestheticClassifier = gpu_only_import_from("nemo_curator.image.classifiers.aesthetic", "AestheticClassifier")
 
 
 # Common fixtures for all test classes
@@ -179,9 +169,7 @@ class TestImageTextPairDatasetBase:
     @pytest.mark.gpu
     def test_get_tar_files(self):
         """Test the _get_tar_files static method."""
-        with mock.patch(
-            "nemo_curator.datasets.image_text_pair_dataset.open_files"
-        ) as mock_open_files:
+        with mock.patch("nemo_curator.datasets.image_text_pair_dataset.open_files") as mock_open_files:
             # Setup mock return values
             mock_file1 = mock.MagicMock()
             mock_file1.path = "path/to/00000.tar"
@@ -203,9 +191,7 @@ class TestImageTextPairDatasetBase:
         assert ImageTextPairDataset._name_partition(42) == "00042.parquet"
 
         # Test with temp flag
-        assert (
-            ImageTextPairDataset._name_partition(42, temp=True) == "temp_00042.parquet"
-        )
+        assert ImageTextPairDataset._name_partition(42, temp=True) == "temp_00042.parquet"
 
         # Test with custom max_shards
         assert ImageTextPairDataset._name_partition(42, max_shards=3) == "042.parquet"
@@ -237,9 +223,7 @@ class TestImageTextPairDatasetBase:
         assert combined_id == "000420007"
 
         # Test with custom max_shards and max_samples_per_shard
-        combined_id = ImageTextPairDataset._combine_id(
-            42, 7, max_shards=3, max_samples_per_shard=2
-        )
+        combined_id = ImageTextPairDataset._combine_id(42, 7, max_shards=3, max_samples_per_shard=2)
         assert combined_id == "04207"
 
     @pytest.mark.gpu
@@ -259,9 +243,7 @@ class TestImageTextPairDatasetBase:
         valid_ids = {1, 3}
 
         # Call the method
-        filtered_members = ImageTextPairDataset._filter_valid_members(
-            members, valid_ids
-        )
+        filtered_members = ImageTextPairDataset._filter_valid_members(members, valid_ids)
 
         # Verify the result
         assert len(filtered_members) == 2
@@ -279,9 +261,7 @@ class TestImageTextPairDatasetBase:
         metadata_df = pd.DataFrame(
             {
                 "id": ["0"],
-                "caption": [
-                    "A wine bottle outfitted with two forks in its cork and a duck head on top."
-                ],
+                "caption": ["A wine bottle outfitted with two forks in its cork and a duck head on top."],
             }
         )
         metadata_path = Path(temp_dataset_dir) / "00000.parquet"
@@ -376,9 +356,7 @@ class TestImageTextPairDatasetBase:
         dataset.save_metadata(path=None)
 
         # Verify that to_parquet was called with the original dataset path
-        metadata.to_parquet.assert_called_once_with(
-            test_path, name_function=ImageTextPairDataset._name_partition
-        )
+        metadata.to_parquet.assert_called_once_with(test_path, name_function=ImageTextPairDataset._name_partition)
 
         # Test with None path and specific columns
         metadata.reset_mock()
@@ -404,16 +382,12 @@ class TestImageTextPairDatasetBase:
         with tarfile.open(temp_tar_path, "r") as tar:
             json_files = [f for f in tar.getmembers() if f.name.endswith(".json")]
             if json_files:
-                metadata_json = json.loads(
-                    tar.extractfile(json_files[0]).read().decode("utf-8")
-                )
+                metadata_json = json.loads(tar.extractfile(json_files[0]).read().decode("utf-8"))
                 sample_id = metadata_json.get("id", "0")
             else:
                 sample_id = "0"
 
-        metadata_df = pd.DataFrame(
-            {"id": [sample_id], "caption": ["Sample caption"], "filter_col": [True]}
-        )
+        metadata_df = pd.DataFrame({"id": [sample_id], "caption": ["Sample caption"], "filter_col": [True]})
 
         metadata_path = Path(temp_dataset_dir) / "00000.parquet"
         metadata_df.to_parquet(metadata_path)
@@ -455,9 +429,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
         metadata_df = pd.DataFrame(
             {
                 "id": ["0"],
-                "caption": [
-                    "A wine bottle outfitted with two forks in its cork and a duck head on top."
-                ],
+                "caption": ["A wine bottle outfitted with two forks in its cork and a duck head on top."],
             }
         )
         metadata_path = Path(temp_dataset_dir) / "00000.parquet"
@@ -469,9 +441,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
             mock.patch("timm.create_model") as mock_create_model,
             mock.patch("timm.data.create_transform") as mock_create_transform,
             mock.patch("timm.data.resolve_data_config") as mock_resolve_config,
-            mock.patch.object(
-                TimmImageEmbedder, "load_dataset_shard"
-            ) as mock_load_dataset_shard,
+            mock.patch.object(TimmImageEmbedder, "load_dataset_shard") as mock_load_dataset_shard,
         ):
             # Configure mocks
             mock_model = MockTimmModel()
@@ -510,9 +480,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
                 "embeddings",
                 f"{mock_classifier.model_name}_score",
             ]
-            mock_df.map_partitions.return_value.map_partitions.return_value = (
-                result_mock_df
-            )
+            mock_df.map_partitions.return_value.map_partitions.return_value = result_mock_df
 
             # Call the embedder on the dataset
             with mock.patch(
@@ -535,14 +503,10 @@ class TestImageTextPairDatasetEmbedderIntegration:
             assert "embeddings" in result_dataset.metadata.columns
 
             # The classifier score column should be added to the metadata
-            assert (
-                f"{mock_classifier.model_name}_score" in result_dataset.metadata.columns
-            )
+            assert f"{mock_classifier.model_name}_score" in result_dataset.metadata.columns
 
     @pytest.mark.gpu
-    def test_dataset_with_multiple_classifiers(
-        self, sample_data_path, temp_dataset_dir
-    ):
+    def test_dataset_with_multiple_classifiers(self, sample_data_path, temp_dataset_dir):
         """Test using the dataset with multiple image classifiers."""
         # Copy the sample tar file to the temp directory
         temp_tar_path = Path(temp_dataset_dir) / "00000.tar"
@@ -552,9 +516,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
         metadata_df = pd.DataFrame(
             {
                 "id": ["0"],
-                "caption": [
-                    "A wine bottle outfitted with two forks in its cork and a duck head on top."
-                ],
+                "caption": ["A wine bottle outfitted with two forks in its cork and a duck head on top."],
             }
         )
         metadata_path = Path(temp_dataset_dir) / "00000.parquet"
@@ -566,9 +528,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
             mock.patch("timm.create_model") as mock_create_model,
             mock.patch("timm.data.create_transform") as mock_create_transform,
             mock.patch("timm.data.resolve_data_config") as mock_resolve_config,
-            mock.patch.object(
-                TimmImageEmbedder, "load_dataset_shard"
-            ) as mock_load_dataset_shard,
+            mock.patch.object(TimmImageEmbedder, "load_dataset_shard") as mock_load_dataset_shard,
             mock.patch.object(
                 NsfwClassifier,
                 "load_model",
@@ -579,9 +539,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
                 "load_model",
                 return_value=lambda x: torch.ones((x.shape[0], 1), device="cuda") * 0.9,
             ),
-            mock.patch.object(
-                NsfwClassifier, "_get_default_model", return_value="mock_nsfw_model"
-            ),
+            mock.patch.object(NsfwClassifier, "_get_default_model", return_value="mock_nsfw_model"),
             mock.patch.object(
                 AestheticClassifier,
                 "_get_default_model",
@@ -628,9 +586,7 @@ class TestImageTextPairDatasetEmbedderIntegration:
                 "nsfw_score",
                 "aesthetic_score",
             ]
-            mock_df.map_partitions.return_value.map_partitions.return_value = (
-                result_mock_df
-            )
+            mock_df.map_partitions.return_value.map_partitions.return_value = result_mock_df
 
             # Call the embedder on the dataset
             with mock.patch(
@@ -665,17 +621,13 @@ class TestImageTextPairDatasetEmbedderIntegration:
 
         # Create a mock metadata DataFrame with embeddings
         embeddings = [[0.1] * 512]  # Mock embeddings
-        metadata_df = cudf.DataFrame(
-            {"id": ["0"], "caption": ["A sample caption"], "embeddings": embeddings}
-        )
+        metadata_df = cudf.DataFrame({"id": ["0"], "caption": ["A sample caption"], "embeddings": embeddings})
 
         # Convert to Dask-cuDF DataFrame to support name_function parameter
         dask_metadata_df = dask_cudf.from_cudf(metadata_df, npartitions=1)
 
         # Create the dataset
-        dataset = ImageTextPairDataset(
-            temp_dataset_dir, dask_metadata_df, [str(temp_tar_path)], "id"
-        )
+        dataset = ImageTextPairDataset(temp_dataset_dir, dask_metadata_df, [str(temp_tar_path)], "id")
 
         # Save the metadata
         output_dir = os.path.join(temp_dataset_dir, "output")
@@ -740,14 +692,10 @@ class TestImageTextPairDatasetConversion:
 
         # Create temp parquet file that to_webdataset will read
         filtered_metadata = metadata[metadata["filter_col"]].reset_index(drop=True)
-        filtered_metadata.to_pandas().to_parquet(
-            os.path.join(output_dir, "temp_00000.parquet")
-        )
+        filtered_metadata.to_pandas().to_parquet(os.path.join(output_dir, "temp_00000.parquet"))
 
         # Create the dataset
-        dataset = ImageTextPairDataset(
-            temp_dataset_dir, dask_metadata, [tar_path], "id"
-        )
+        dataset = ImageTextPairDataset(temp_dataset_dir, dask_metadata, [tar_path], "id")
 
         # Mock fsspec.open to handle file operations without actually writing to disk
         with mock.patch("fsspec.open", autospec=True) as mock_fsspec_open:
@@ -794,9 +742,7 @@ class TestImageTextPairDatasetConversion:
             mock_fsspec_open.side_effect = mock_open_side_effect
 
             # Patch open_files to ensure it finds our temp parquet file
-            with mock.patch(
-                "nemo_curator.datasets.image_text_pair_dataset.open_files"
-            ) as mock_open_files:
+            with mock.patch("nemo_curator.datasets.image_text_pair_dataset.open_files") as mock_open_files:
 
                 def custom_open_files(path_glob):
                     if "temp_*.parquet" in path_glob:
@@ -811,9 +757,7 @@ class TestImageTextPairDatasetConversion:
                             mock_file.fs = mock.MagicMock()
                             mock_file.fs.delete = mock.MagicMock(
                                 side_effect=lambda path: (
-                                    os.remove(path)
-                                    if "temp_" in path and os.path.exists(path)
-                                    else None
+                                    os.remove(path) if "temp_" in path and os.path.exists(path) else None
                                 )
                             )
                             return [mock_file]
@@ -843,14 +787,10 @@ class TestImageTextPairDatasetConversion:
 
                 # Verify the results
                 # Check that fsspec.open was called for the output files
-                assert (
-                    mock_fsspec_open.call_count >= 2
-                )  # At least once for parquet and once for tar
+                assert mock_fsspec_open.call_count >= 2  # At least once for parquet and once for tar
 
                 # Verify tarfile operations were properly handled
-                assert (
-                    mock_open_files.call_count >= 2
-                )  # Called for both tar and parquet globs
+                assert mock_open_files.call_count >= 2  # Called for both tar and parquet globs
 
                 # Verify that the temp file was properly handled
                 temp_file_path = os.path.join(output_dir, "temp_00000.parquet")
@@ -864,17 +804,13 @@ class TestImageTextPairDatasetConversion:
         shutil.copy(sample_data_path, temp_tar_path)
 
         # Create a metadata DataFrame
-        metadata_df = cudf.DataFrame(
-            {"id": ["0"], "caption": ["A sample caption"], "filter_col": [True]}
-        )
+        metadata_df = cudf.DataFrame({"id": ["0"], "caption": ["A sample caption"], "filter_col": [True]})
 
         # Convert to Dask-cuDF DataFrame to support name_function parameter
         dask_metadata_df = dask_cudf.from_cudf(metadata_df, npartitions=1)
 
         # Create the dataset
-        dataset = ImageTextPairDataset(
-            temp_dataset_dir, dask_metadata_df, [str(temp_tar_path)], "id"
-        )
+        dataset = ImageTextPairDataset(temp_dataset_dir, dask_metadata_df, [str(temp_tar_path)], "id")
 
         # Set up the output directory
         output_dir = os.path.join(temp_dataset_dir, "output")
@@ -886,9 +822,7 @@ class TestImageTextPairDatasetConversion:
 
         # Mock _get_eligible_samples to use our real data
         with (
-            mock.patch.object(
-                ImageTextPairDataset, "_get_eligible_samples"
-            ) as mock_get_eligible_samples,
+            mock.patch.object(ImageTextPairDataset, "_get_eligible_samples") as mock_get_eligible_samples,
             mock.patch("fsspec.open", wraps=fsspec_open_wrapper),
         ):
             # Extract real tar content
@@ -896,17 +830,11 @@ class TestImageTextPairDatasetConversion:
                 members = tar.getmembers()
                 content = []
                 for member in members:
-                    member_content = (
-                        tar.extractfile(member).read()
-                        if tar.extractfile(member)
-                        else b""
-                    )
+                    member_content = tar.extractfile(member).read() if tar.extractfile(member) else b""
                     content.append((member, member_content))
 
             # Mock the eligible samples generator to return our real data
-            mock_get_eligible_samples.return_value = [
-                (metadata_df.to_pandas(), content)
-            ]
+            mock_get_eligible_samples.return_value = [(metadata_df.to_pandas(), content)]
 
             # Call to_webdataset
             dataset.to_webdataset(
@@ -927,9 +855,7 @@ class TestImageTextPairDatasetConversion:
             # Check the parquet file content
             output_df = pd.read_parquet(output_parquet_path)
             assert "id" in output_df.columns
-            assert (
-                "original_id" in output_df.columns
-            )  # should have preserved the old ID
+            assert "original_id" in output_df.columns  # should have preserved the old ID
             assert output_df.shape[0] == 1  # One sample
 
             # Check the tar file structure
@@ -976,29 +902,20 @@ class TestImageTextPairDatasetConversion:
                 member_ids.add(file_id)
 
             # Test filtering with all IDs
-            filtered_members = ImageTextPairDataset._filter_valid_members(
-                all_members, member_ids
-            )
+            filtered_members = ImageTextPairDataset._filter_valid_members(all_members, member_ids)
             assert len(filtered_members) == len(all_members)
 
             # Test filtering with a subset of IDs
             if len(member_ids) > 0:
                 subset_ids = {next(iter(member_ids))}  # Get the first ID
-                filtered_subset = ImageTextPairDataset._filter_valid_members(
-                    all_members, subset_ids
-                )
+                filtered_subset = ImageTextPairDataset._filter_valid_members(all_members, subset_ids)
 
                 # The filtered list should contain only members with the specified ID
-                assert all(
-                    int(member.name.split(".")[0]) in subset_ids
-                    for member in filtered_subset
-                )
+                assert all(int(member.name.split(".")[0]) in subset_ids for member in filtered_subset)
 
                 # There should be multiple files (jpg, txt, json) for the same ID
                 if len(filtered_subset) > 1:
-                    extensions = [
-                        member.name.split(".")[-1] for member in filtered_subset
-                    ]
+                    extensions = [member.name.split(".")[-1] for member in filtered_subset]
                     assert len(set(extensions)) > 1
 
     @pytest.mark.gpu
@@ -1030,9 +947,7 @@ class TestImageTextPairDatasetConversion:
                 "filter_col": [True, True, True, True],
             }
         )
-        df3 = pd.DataFrame(
-            {"id": ["7", "8"], "caption": ["c7", "c8"], "filter_col": [True, True]}
-        )
+        df3 = pd.DataFrame({"id": ["7", "8"], "caption": ["c7", "c8"], "filter_col": [True, True]})
 
         # Write parquet files
         df1.to_parquet(os.path.join(output_dir, "temp_00000.parquet"))
@@ -1064,9 +979,7 @@ class TestImageTextPairDatasetConversion:
         dataset = ImageTextPairDataset(input_dir, mock_metadata, tar_files, "id")
 
         # Patch open_files to return our prepared files in the right order
-        with mock.patch(
-            "nemo_curator.datasets.image_text_pair_dataset.open_files"
-        ) as mock_open_files:
+        with mock.patch("nemo_curator.datasets.image_text_pair_dataset.open_files") as mock_open_files:
 
             def mock_open_files_side_effect(path_glob):
                 if "temp_*.parquet" in path_glob:
@@ -1074,18 +987,14 @@ class TestImageTextPairDatasetConversion:
                     files = []
                     for i in range(3):
                         path = os.path.join(output_dir, f"temp_{i:05d}.parquet")
-                        if os.path.exists(
-                            path
-                        ):  # Only include files that haven't been deleted
+                        if os.path.exists(path):  # Only include files that haven't been deleted
                             mock_file = mock.MagicMock()
                             mock_file.path = path
                             mock_file.__enter__ = lambda self: open(self.path, "rb")
                             mock_file.__exit__ = lambda self, *args: None
                             mock_file.fs = mock.MagicMock()
                             mock_file.fs.delete = mock.MagicMock(
-                                side_effect=lambda path: (
-                                    os.remove(path) if os.path.exists(path) else None
-                                )
+                                side_effect=lambda path: (os.remove(path) if os.path.exists(path) else None)
                             )
                             files.append(mock_file)
                     return files
@@ -1108,9 +1017,7 @@ class TestImageTextPairDatasetConversion:
             # This should yield:
             # 1. First yield: 5 samples (3 from first file + 2 from second file)
             # 2. Second yield: 4 remaining samples (2 from second file + 2 from third file)
-            results = list(
-                dataset._get_eligible_samples(output_dir, samples_per_shard=5)
-            )
+            results = list(dataset._get_eligible_samples(output_dir, samples_per_shard=5))
 
             # Verify results
             assert len(results) == 2, "Should have yielded 2 batches"
@@ -1125,9 +1032,7 @@ class TestImageTextPairDatasetConversion:
                 "3",
                 "4",
             ], "First dataframe should have IDs 0-4"
-            assert len(first_samples) == 15, (
-                "First batch should have 15 tar samples (5 samples * 3 files per sample)"
-            )
+            assert len(first_samples) == 15, "First batch should have 15 tar samples (5 samples * 3 files per sample)"
 
             # Second batch: 4 samples
             second_df, second_samples = results[1]
@@ -1144,6 +1049,6 @@ class TestImageTextPairDatasetConversion:
 
             # Verify all temp files were deleted
             for i in range(3):
-                assert not os.path.exists(
-                    os.path.join(output_dir, f"temp_{i:05d}.parquet")
-                ), f"Temp file {i} should be deleted"
+                assert not os.path.exists(os.path.join(output_dir, f"temp_{i:05d}.parquet")), (
+                    f"Temp file {i} should be deleted"
+                )

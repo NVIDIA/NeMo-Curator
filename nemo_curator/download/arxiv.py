@@ -92,10 +92,7 @@ class ArxivIterator(DocumentIterator):
                     try:
                         clean_arxiv_id = self._format_arxiv_id(arxiv_id)
                     except Exception as e:
-                        print(
-                            f"[WARNING] failed to format arxiv id "
-                            f"{arxiv_id}; exception={e}"
-                        )
+                        print(f"[WARNING] failed to format arxiv id {arxiv_id}; exception={e}")
                         clean_arxiv_id = arxiv_id
 
                     if tex_files is None:
@@ -404,9 +401,7 @@ def download_arxiv(
     arxiv_urls = get_arxiv_urls()
     if url_limit:
         arxiv_urls = arxiv_urls[:url_limit]
-    output_paths = list(
-        map(lambda url: os.path.join(output_path, f"{url}.{output_type}"), arxiv_urls)
-    )
+    output_paths = list(map(lambda url: os.path.join(output_path, f"{url}.{output_type}"), arxiv_urls))
 
     if not raw_download_dir:
         raw_download_dir = os.path.join(output_path, "downloads")

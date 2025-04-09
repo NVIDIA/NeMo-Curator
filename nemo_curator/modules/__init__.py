@@ -36,32 +36,20 @@ from .to_backend import ToBackend
 # GPU packages
 MinHash = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.minhash", "MinHash")
 LSH = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.lsh", "LSH")
-JaccardSimilarity = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup.jaccardsimilarity", "JaccardSimilarity"
-)
-BucketsToEdges = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup.bucketstoedges", "BucketsToEdges"
-)
+JaccardSimilarity = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.jaccardsimilarity", "JaccardSimilarity")
+BucketsToEdges = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.bucketstoedges", "BucketsToEdges")
 ConnectedComponents = gpu_only_import_from(
     "nemo_curator.modules.fuzzy_dedup.connectedcomponents", "ConnectedComponents"
 )
-FuzzyDuplicates = gpu_only_import_from(
-    "nemo_curator.modules.fuzzy_dedup.fuzzyduplicates", "FuzzyDuplicates"
-)
+FuzzyDuplicates = gpu_only_import_from("nemo_curator.modules.fuzzy_dedup.fuzzyduplicates", "FuzzyDuplicates")
 
-EmbeddingCreator = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator"
-)
-ClusteringModel = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel"
-)
+EmbeddingCreator = gpu_only_import_from("nemo_curator.modules.semantic_dedup.embeddings", "EmbeddingCreator")
+ClusteringModel = gpu_only_import_from("nemo_curator.modules.semantic_dedup.clusteringmodel", "ClusteringModel")
 SemanticClusterLevelDedup = gpu_only_import_from(
     "nemo_curator.modules.semantic_dedup.semanticclusterleveldedup",
     "SemanticClusterLevelDedup",
 )
-SemDedup = gpu_only_import_from(
-    "nemo_curator.modules.semantic_dedup.semdedup", "SemDedup"
-)
+SemDedup = gpu_only_import_from("nemo_curator.modules.semantic_dedup.semdedup", "SemDedup")
 
 # PyTorch-related imports must come after all imports that require cuGraph
 # because of context cleanup issues between PyTorch and cuGraph

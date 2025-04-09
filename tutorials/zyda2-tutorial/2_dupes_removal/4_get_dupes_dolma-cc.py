@@ -15,9 +15,7 @@ RAW_DATA_BASE = os.path.join(DATA_BASE, "processed")
 CC_BASE = os.path.join(DATA_BASE, "fuzzy/cc/")
 
 DUPES_BASE = os.path.join(CC_BASE, "dupes")
-DUPES_IDS_GROUPED_IN_COLUMNS = os.path.join(
-    DUPES_BASE, "dupes_ids_grouped_in_columns.parquet"
-)
+DUPES_IDS_GROUPED_IN_COLUMNS = os.path.join(DUPES_BASE, "dupes_ids_grouped_in_columns.parquet")
 
 DOLMA_EXPLODED = os.path.join(DUPES_BASE, "dupes_dolma_exploded.parquet")
 DUPES_DOLMA_TO_REMOVE = os.path.join(DUPES_BASE, "dupes_dolma_to_remove.jsonl")
@@ -38,14 +36,10 @@ if __name__ == "__main__":
     }
 
     # Counting digits
-    dolma_digits = count_digits(
-        len([x for x in os.listdir(paths["dolma-cc"]) if ".parquet" in x])
-    )
+    dolma_digits = count_digits(len([x for x in os.listdir(paths["dolma-cc"]) if ".parquet" in x]))
 
     # Processing DCLM dupes
-    grouped_dupes_df = dd.read_parquet(
-        DUPES_IDS_GROUPED_IN_COLUMNS, split_row_groups=False
-    )
+    grouped_dupes_df = dd.read_parquet(DUPES_IDS_GROUPED_IN_COLUMNS, split_row_groups=False)
     dolma_df = grouped_dupes_df[grouped_dupes_df["dolma_dupes"] != "[]"][
         ["group", "size", "dclm", "fwe2", "zyda", "dolma-cc", "dolma_dupes"]
     ]
@@ -59,9 +53,7 @@ if __name__ == "__main__":
         "group": int,
         "id_list": str,
     }
-    dolma_exploded_df = dolma_df.map_partitions(
-        decode_and_explode, "dolma_dupes", meta=meta
-    ).reset_index(drop=True)
+    dolma_exploded_df = dolma_df.map_partitions(decode_and_explode, "dolma_dupes", meta=meta).reset_index(drop=True)
     dolma_exploded_df = dolma_exploded_df.rename(columns={"id_list": "id"})
 
     def split_id(df, id_column="id"):
@@ -117,6 +109,4 @@ if __name__ == "__main__":
         with open(file_path, "w") as f:
             f.write(json.dumps(partition_dict))
 
-    dolma_exploded_df.groupby(["partition"]).apply(
-        write_group_to_jsonl, meta=()
-    ).compute()
+    dolma_exploded_df.groupby(["partition"]).apply(write_group_to_jsonl, meta=()).compute()

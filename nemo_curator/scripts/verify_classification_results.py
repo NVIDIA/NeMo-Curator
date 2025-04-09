@@ -83,21 +83,15 @@ def verify_same_counts(got_counts, expected_counts):
         for key in expected_counts:
             if got_counts[key] != expected_counts[key]:
                 diff = expected_counts[key] - got_counts[key]
-                print(
-                    f"Expected doc count for label {key} {expected_counts[key]} but got {got_counts[key]}"
-                )
+                print(f"Expected doc count for label {key} {expected_counts[key]} but got {got_counts[key]}")
                 total_diff = total_diff + abs(diff)
 
         diff_percent = (total_diff / total_count) * 100
-        print(
-            f"Total difference: {total_diff} out of {total_count}, diff percentage: {diff_percent}%"
-        )
+        print(f"Total difference: {total_diff} out of {total_count}, diff percentage: {diff_percent}%")
     print("---" * 30)
 
 
-def verify_same_dataframe(
-    got_df, expected_df, results_pred_column, expected_pred_column
-):
+def verify_same_dataframe(got_df, expected_df, results_pred_column, expected_pred_column):
     """
     This function verifies whether a column from one DataFrame is identical to another column in another DataFrame.
     It prints information about the differences between the two columns.
@@ -159,24 +153,16 @@ def verify_results(
 
     expected_columns = expected_df.columns
     if results_pred_column != expected_pred_column:
-        expected_columns = [
-            results_pred_column if item == expected_pred_column else item
-            for item in expected_columns
-        ]
+        expected_columns = [results_pred_column if item == expected_pred_column else item for item in expected_columns]
 
     got_paths = [p for p in os.scandir(results_file_path)]
-    got_df = [
-        pd.read_json(path, lines=True, dtype=input_meta)[expected_columns]
-        for path in got_paths
-    ]
+    got_df = [pd.read_json(path, lines=True, dtype=input_meta)[expected_columns] for path in got_paths]
     got_df = pd.concat(got_df, ignore_index=True)
     got_df = got_df.sort_values(by=["text"]).reset_index(drop=True)
     got_counts = got_df[results_pred_column].value_counts().to_dict()
 
     verify_same_counts(got_counts, expected_counts)
-    verify_same_dataframe(
-        got_df, expected_df, results_pred_column, expected_pred_column
-    )
+    verify_same_dataframe(got_df, expected_df, results_pred_column, expected_pred_column)
 
 
 def main():

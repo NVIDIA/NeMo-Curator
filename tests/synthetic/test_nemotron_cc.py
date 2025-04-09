@@ -85,10 +85,7 @@ class TestNemotronCCGenerator:
         assert call_args["messages"][0]["role"] == "system"
         assert call_args["messages"][0]["content"] == "System instruction"
         assert call_args["messages"][1]["role"] == "user"
-        assert (
-            call_args["messages"][1]["content"]
-            == "Test prompt for Test document content."
-        )
+        assert call_args["messages"][1]["content"] == "Test prompt for Test document content."
 
         # Check return value
         assert result == ["This is a mock response"]
@@ -132,10 +129,7 @@ class TestNemotronCCGenerator:
         assert messages[0]["content"] == NEMOTRON_CC_SYSTEM_PROMPT
         assert messages[1]["role"] == "user"
         assert document in messages[1]["content"]
-        assert (
-            DIVERSE_QA_PROMPT_TEMPLATE.format(document=document)
-            == messages[1]["content"]
-        )
+        assert DIVERSE_QA_PROMPT_TEMPLATE.format(document=document) == messages[1]["content"]
         assert "test_model" == mock_llm_client.query_model.call_args[1]["model"]
 
         # Check the result
@@ -158,9 +152,7 @@ class TestNemotronCCGenerator:
         assert messages[0]["content"] == NEMOTRON_CC_DISTILL_SYSTEM_PROMPT
         assert messages[1]["role"] == "user"
         assert document in messages[1]["content"]
-        assert (
-            DISTILL_PROMPT_TEMPLATE.format(document=document) == messages[1]["content"]
-        )
+        assert DISTILL_PROMPT_TEMPLATE.format(document=document) == messages[1]["content"]
         assert "test_model" == mock_llm_client.query_model.call_args[1]["model"]
 
         # Check the result
@@ -183,10 +175,7 @@ class TestNemotronCCGenerator:
         assert messages[0]["content"] == NEMOTRON_CC_SYSTEM_PROMPT
         assert messages[1]["role"] == "user"
         assert document in messages[1]["content"]
-        assert (
-            EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE.format(document=document)
-            == messages[1]["content"]
-        )
+        assert EXTRACT_KNOWLEDGE_PROMPT_TEMPLATE.format(document=document) == messages[1]["content"]
         assert "test_model" == mock_llm_client.query_model.call_args[1]["model"]
 
         # Check the result
@@ -209,10 +198,7 @@ class TestNemotronCCGenerator:
         assert messages[0]["content"] == NEMOTRON_CC_SYSTEM_PROMPT
         assert messages[1]["role"] == "user"
         assert document in messages[1]["content"]
-        assert (
-            KNOWLEDGE_LIST_PROMPT_TEMPLATE.format(document=document)
-            == messages[1]["content"]
-        )
+        assert KNOWLEDGE_LIST_PROMPT_TEMPLATE.format(document=document) == messages[1]["content"]
         assert "test_model" == mock_llm_client.query_model.call_args[1]["model"]
 
         # Check the result
@@ -243,9 +229,7 @@ class TestNemotronCCGenerator:
         assert call_args["temperature"] == 0.5
         assert call_args["top_p"] == 0.9
         assert call_args["messages"][0]["content"] == custom_system_prompt
-        expected_prompt = custom_prompt.format(
-            document=document, extra_param="additional context"
-        )
+        expected_prompt = custom_prompt.format(document=document, extra_param="additional context")
         assert call_args["messages"][1]["content"] == expected_prompt
 
 
@@ -282,16 +266,13 @@ class TestDiverseQAPostprocessor:
         #       "Question: How does it work?\nAnswer: By magic."
         # 4. With our patched randint, both QA pairs are kept.
         expected_qa = (
-            "Question: What is this?\nAnswer: It is a test.\n\n"
-            "Question: How does it work?\nAnswer: By magic."
+            "Question: What is this?\nAnswer: It is a test.\n\nQuestion: How does it work?\nAnswer: By magic."
         )
         expected_response = f"{text}\n\n{expected_qa}"
 
         assert not result_df.empty, "Expected non-empty dataset"
         actual_response = result_df.iloc[0]["response"]
-        assert actual_response == expected_response, (
-            f"Expected: {expected_response}, got: {actual_response}"
-        )
+        assert actual_response == expected_response, f"Expected: {expected_response}, got: {actual_response}"
 
     def test_valid_response_with_tokenizer(self, monkeypatch):
         # Using a dummy tokenizer.
@@ -311,9 +292,7 @@ class TestDiverseQAPostprocessor:
             "Answer: By magic."
         )
         ds = create_dataset({"text": [text], "response": [llm_response]})
-        processor = NemotronCCDiverseQAPostprocessor(
-            tokenizer=dummy_tokenizer, max_num_pairs=2
-        )
+        processor = NemotronCCDiverseQAPostprocessor(tokenizer=dummy_tokenizer, max_num_pairs=2)
         result_ds = processor(ds)
         result_df = result_ds.df.compute()
 
@@ -323,9 +302,7 @@ class TestDiverseQAPostprocessor:
 
         assert not result_df.empty, "Expected non-empty dataset"
         actual_response = result_df.iloc[0]["response"]
-        assert actual_response == expected_response, (
-            f"Expected: {expected_response}, got: {actual_response}"
-        )
+        assert actual_response == expected_response, f"Expected: {expected_response}, got: {actual_response}"
 
     def test_invalid_response_format(self, monkeypatch):
         # Test a response with an invalid QA format (missing a "Question:" line).
@@ -334,10 +311,7 @@ class TestDiverseQAPostprocessor:
 
         text = "Doc"
         # The response only has an answer line.
-        llm_response = (
-            "Here are the questions and answers based on the provided text:\n"
-            "- Answer: Missing question."
-        )
+        llm_response = "Here are the questions and answers based on the provided text:\n- Answer: Missing question."
         ds = create_dataset({"text": [text], "response": [llm_response]})
         processor = NemotronCCDiverseQAPostprocessor(tokenizer=None, max_num_pairs=2)
         result_ds = processor(ds)
@@ -346,9 +320,7 @@ class TestDiverseQAPostprocessor:
         # Since the response format is invalid (no "Question:" to start a QA pair),
         # the postprocessing should return an empty string; the __call__ method then
         # drops that row.
-        assert result_df.empty, (
-            "Expected dataset to be empty due to invalid response format"
-        )
+        assert result_df.empty, "Expected dataset to be empty due to invalid response format"
 
     def test_empty_response(self):
         # Test when the LLM response is empty.
@@ -391,9 +363,7 @@ class TestDiverseQAPostprocessor:
 
         assert not result_df.empty, "Expected non-empty dataset"
         actual_response = result_df.iloc[0]["response"]
-        assert actual_response == expected_response, (
-            f"Expected: {expected_response}, got: {actual_response}"
-        )
+        assert actual_response == expected_response, f"Expected: {expected_response}, got: {actual_response}"
 
     def test_no_qa_pairs(self):
         """Test case where len(qa_pairs) == 0, which happens when there are no lines
@@ -412,9 +382,7 @@ class TestDiverseQAPostprocessor:
 
         # Since there are no valid QA pairs, we expect the dataset to be empty
         # because _postprocess_llm_response returns an empty string
-        assert result_df.empty, (
-            "Expected dataset to be empty when no QA pairs are found"
-        )
+        assert result_df.empty, "Expected dataset to be empty when no QA pairs are found"
 
 
 class TestKnowledgeListPostprocessor:
@@ -435,15 +403,9 @@ class TestKnowledgeListPostprocessor:
         # Expected:
         # - First line is skipped (since it does not start with "-").
         # - Bullet lines have the leading "- " or "  " removed.
-        expected_output = (
-            "Fact one: This is the first fact.\n"
-            "Continued fact one.\n"
-            "Fact two: This is the second fact."
-        )
+        expected_output = "Fact one: This is the first fact.\nContinued fact one.\nFact two: This is the second fact."
         actual_output = result_df.iloc[0]["text"]
-        assert actual_output == expected_output, (
-            f"Expected: {expected_output}, got: {actual_output}"
-        )
+        assert actual_output == expected_output, f"Expected: {expected_output}, got: {actual_output}"
 
     def test_all_bullet_lines(self):
         # Test when every line starts with a bullet prefix.
@@ -456,9 +418,7 @@ class TestKnowledgeListPostprocessor:
         # Each line should be cleaned by removing the leading bullet.
         expected_output = "Item one\nItem two\nItem three"
         actual_output = result_df.iloc[0]["text"]
-        assert actual_output == expected_output, (
-            f"Expected: {expected_output}, got: {actual_output}"
-        )
+        assert actual_output == expected_output, f"Expected: {expected_output}, got: {actual_output}"
 
     def test_no_bullet_lines(self):
         # If the response contains no bullet lines, then the first line is
@@ -471,9 +431,7 @@ class TestKnowledgeListPostprocessor:
 
         expected_output = ""
         actual_output = result_df.iloc[0]["text"]
-        assert actual_output == expected_output, (
-            f"Expected an empty string, got: {actual_output}"
-        )
+        assert actual_output == expected_output, f"Expected an empty string, got: {actual_output}"
 
     def test_mixed_indentation(self):
         # Test mixed bullet prefixes and additional non-bullet lines.
@@ -502,9 +460,7 @@ class TestKnowledgeListPostprocessor:
             "Another standalone line"
         )
         actual_output = result_df.iloc[0]["text"]
-        assert actual_output == expected_output, (
-            f"Expected: {expected_output}, got: {actual_output}"
-        )
+        assert actual_output == expected_output, f"Expected: {expected_output}, got: {actual_output}"
 
     def test_empty_input(self):
         # Test that an empty input returns an empty string.
@@ -516,6 +472,4 @@ class TestKnowledgeListPostprocessor:
 
         expected_output = ""
         actual_output = result_df.iloc[0]["text"]
-        assert actual_output == expected_output, (
-            f"Expected empty string, got: {actual_output}"
-        )
+        assert actual_output == expected_output, f"Expected empty string, got: {actual_output}"

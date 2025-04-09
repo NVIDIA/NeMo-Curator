@@ -25,22 +25,14 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 cudf = gpu_only_import("cudf")
 cp = gpu_only_import("cupy")
 
-NsfwClassifier = gpu_only_import_from(
-    "nemo_curator.image.classifiers.nsfw", "NsfwClassifier"
-)
+NsfwClassifier = gpu_only_import_from("nemo_curator.image.classifiers.nsfw", "NsfwClassifier")
 NSFWModel = gpu_only_import_from("nemo_curator.image.classifiers.nsfw", "NSFWModel")
-ImageTextPairDataset = gpu_only_import_from(
-    "nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset"
-)
-TimmImageEmbedder = gpu_only_import_from(
-    "nemo_curator.image.embedders.timm", "TimmImageEmbedder"
-)
+ImageTextPairDataset = gpu_only_import_from("nemo_curator.datasets.image_text_pair_dataset", "ImageTextPairDataset")
+TimmImageEmbedder = gpu_only_import_from("nemo_curator.image.embedders.timm", "TimmImageEmbedder")
 create_list_series_from_1d_or_2d_ar = gpu_only_import_from(
     "crossfit.backend.cudf.series", "create_list_series_from_1d_or_2d_ar"
 )
-Normalization = gpu_only_import_from(
-    "nemo_curator.image.classifiers.nsfw", "Normalization"
-)
+Normalization = gpu_only_import_from("nemo_curator.image.classifiers.nsfw", "Normalization")
 
 
 # Test initialization parameters
@@ -242,12 +234,8 @@ def test_classifier_with_embedder_workflow(gpu_client):
 
     # Create the image embedder with our classifier
     with (
-        mock.patch(
-            "nemo_curator.image.embedders.timm.TimmImageEmbedder.load_embedding_model"
-        ) as mock_load_embedding,
-        mock.patch(
-            "nemo_curator.image.embedders.timm.TimmImageEmbedder.load_dataset_shard"
-        ) as mock_load_dataset,
+        mock.patch("nemo_curator.image.embedders.timm.TimmImageEmbedder.load_embedding_model") as mock_load_embedding,
+        mock.patch("nemo_curator.image.embedders.timm.TimmImageEmbedder.load_dataset_shard") as mock_load_dataset,
         mock.patch(
             "nemo_curator.image.embedders.base.load_object_on_worker",
             side_effect=mock_load_object,
@@ -269,9 +257,7 @@ def test_classifier_with_embedder_workflow(gpu_client):
 
         mock_load_dataset.side_effect = mock_load_dataset_shard
 
-        embedder = TimmImageEmbedder(
-            model_name="resnet18", batch_size=1, classifiers=[classifier]
-        )
+        embedder = TimmImageEmbedder(model_name="resnet18", batch_size=1, classifiers=[classifier])
 
         # Create a mock dataset with metadata that includes our ID
         mock_metadata = mock.MagicMock()
@@ -303,9 +289,7 @@ def test_classifier_with_embedder_workflow(gpu_client):
         test_dataset.metadata = mock_metadata
 
         # Call the embedder
-        with mock.patch(
-            "nemo_curator.image.embedders.base.ImageTextPairDataset"
-        ) as mock_dataset_class:
+        with mock.patch("nemo_curator.image.embedders.base.ImageTextPairDataset") as mock_dataset_class:
             # Configure the mock to return our dataset
             mock_dataset_class.return_value = test_dataset
 
@@ -428,23 +412,17 @@ def test_run_inference_with_mock_model(gpu_client):
     embeddings = np.ones((2, 768), dtype=np.float32) * 0.5
 
     # Create a cuDF DataFrame with the embeddings
-    partition = cudf.DataFrame(
-        {"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]}
-    )
+    partition = cudf.DataFrame({"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]})
 
     # Add the embeddings as a list-like column
-    embedding_series = create_list_series_from_1d_or_2d_ar(
-        cp.asarray(embeddings), index=partition.index
-    )
+    embedding_series = create_list_series_from_1d_or_2d_ar(cp.asarray(embeddings), index=partition.index)
     partition["image_embedding"] = embedding_series
 
     # Create partition info
     partition_info = {"number": 0}
 
     # Mock the load_object_on_worker function to return our model directly
-    with mock.patch(
-        "nemo_curator.image.classifiers.base.load_object_on_worker"
-    ) as mock_load:
+    with mock.patch("nemo_curator.image.classifiers.base.load_object_on_worker") as mock_load:
         # Configure the mock to return our model when called
         mock_load.return_value = MockModel()
 
@@ -467,9 +445,7 @@ def test_run_inference_with_mock_model(gpu_client):
             assert np.isclose(score, 0.25, atol=1e-6)
 
         # Test with custom parameters
-        classifier = MockNsfwClassifier(
-            embedding_column="image_embedding", pred_column="custom_score", batch_size=1
-        )
+        classifier = MockNsfwClassifier(embedding_column="image_embedding", pred_column="custom_score", batch_size=1)
 
         # Call _run_inference directly
         result_partition = classifier._run_inference(partition, partition_info)
@@ -522,14 +498,10 @@ def test_classifier_call_with_mock_dataset(gpu_client):
     embeddings = np.ones((2, 768), dtype=np.float32) * 0.5
 
     # Create a cuDF DataFrame with the embeddings
-    df = cudf.DataFrame(
-        {"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]}
-    )
+    df = cudf.DataFrame({"id": ["0", "1"], "caption": ["test caption 1", "test caption 2"]})
 
     # Add embeddings as a list-like column
-    embedding_series = create_list_series_from_1d_or_2d_ar(
-        cp.asarray(embeddings), index=df.index
-    )
+    embedding_series = create_list_series_from_1d_or_2d_ar(cp.asarray(embeddings), index=df.index)
     df["image_embedding"] = embedding_series
 
     # Create a mock Dask DataFrame instead of trying to mock map_partitions on a regular DataFrame
@@ -548,9 +520,7 @@ def test_classifier_call_with_mock_dataset(gpu_client):
         result_df[mock_classifier.pred_column] = 0.25
         return result_df
 
-    mock_dask_df.map_partitions = mock.MagicMock(
-        side_effect=mock_map_partitions_implementation
-    )
+    mock_dask_df.map_partitions = mock.MagicMock(side_effect=mock_map_partitions_implementation)
 
     # Mock a dataset object with our mock Dask DataFrame
     mock_dataset = mock.MagicMock(spec=ImageTextPairDataset)
@@ -560,9 +530,7 @@ def test_classifier_call_with_mock_dataset(gpu_client):
     mock_dataset.id_col = "id"
 
     # Mock ImageTextPairDataset to return a new dataset
-    with mock.patch(
-        "nemo_curator.image.classifiers.base.ImageTextPairDataset"
-    ) as mock_itpd_class:
+    with mock.patch("nemo_curator.image.classifiers.base.ImageTextPairDataset") as mock_itpd_class:
         # Configure mock_itpd_class to return a new mock dataset
         new_dataset = mock.MagicMock(spec=ImageTextPairDataset)
         mock_itpd_class.return_value = new_dataset

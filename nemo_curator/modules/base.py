@@ -48,9 +48,7 @@ class BaseModule(ABC):
         self.name = name or self.__class__.__name__
 
         if input_backend not in self.SUPPORTED_BACKENDS:
-            raise ValueError(
-                f"{input_backend} not one of the supported backends {self.SUPPORTED_BACKENDS}"
-            )
+            raise ValueError(f"{input_backend} not one of the supported backends {self.SUPPORTED_BACKENDS}")
         self.input_backend = input_backend
 
     @abstractmethod
@@ -114,14 +112,10 @@ class BaseDeduplicationModule(BaseModule):
             warnings.warn("cache_dir is recommended to remove duplicates.")
 
         if cache_dir is None and profile_dir is not None:
-            warnings.warn(
-                "cache_dir for intermediate outputs is required to generate profiles"
-            )
+            warnings.warn("cache_dir for intermediate outputs is required to generate profiles")
 
         if not self.perform_removal:
-            warnings.warn(
-                "In future NeMo Curator releases, the default value for perform_removal will be True."
-            )
+            warnings.warn("In future NeMo Curator releases, the default value for perform_removal will be True.")
 
     @abstractmethod
     def identify_duplicates(self, dataset: DocumentDataset) -> DocumentDataset:
@@ -131,14 +125,10 @@ class BaseDeduplicationModule(BaseModule):
         Args:
             dataset (DocumentDataset): The dataset to identify duplicates in
         """
-        raise NotImplementedError(
-            "identify_duplicates method must be implemented by subclasses"
-        )
+        raise NotImplementedError("identify_duplicates method must be implemented by subclasses")
 
     @abstractmethod
-    def remove(
-        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
-    ) -> DocumentDataset:
+    def remove(self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset) -> DocumentDataset:
         """
         Removes duplicates from a dataset
 

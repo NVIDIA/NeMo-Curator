@@ -28,9 +28,7 @@ def main(args):
     """
     OUTPUT_PATH = args.output_dir
     shuffled_docs_path = args.shuffled_docs_path
-    output_final_results_path = os.path.join(
-        OUTPUT_PATH, "jaccard_similarity_results.parquet"
-    )
+    output_final_results_path = os.path.join(OUTPUT_PATH, "jaccard_similarity_results.parquet")
     args.enable_spilling = True
     client = get_client(**ArgumentHelper.parse_client_args(args))
 

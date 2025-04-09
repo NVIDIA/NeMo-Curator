@@ -38,9 +38,7 @@ def get_dataframe_complement(original_df, filtered_df):
 def get_score_fields(pipeline):
     score_fields = []
     for nc_module in pipeline.modules:
-        if isinstance(nc_module, nemo_curator.Score) or isinstance(
-            nc_module, nemo_curator.ScoreFilter
-        ):
+        if isinstance(nc_module, nemo_curator.Score) or isinstance(nc_module, nemo_curator.ScoreFilter):
             if nc_module.score_field:
                 score_fields.append(nc_module.score_field)
 
@@ -67,9 +65,7 @@ def main(args):
     elif args.device == "gpu":
         backend = "cudf"
     else:
-        raise ValueError(
-            f'Invalid device "{args.device}". Please specify either "cpu" or "gpu".'
-        )
+        raise ValueError(f'Invalid device "{args.device}". Please specify either "cpu" or "gpu".')
 
     # Make the output directories
     kept_document_dir = args.output_retained_document_dir
@@ -126,10 +122,7 @@ def main(args):
 
         # Write scores to separate directory
         if args.output_document_score_dir:
-            if (
-                args.id_field is not None
-                and args.id_field in filtered_dataset.df.columns
-            ):
+            if args.id_field is not None and args.id_field in filtered_dataset.df.columns:
                 output_df = filtered_dataset.df[[args.id_field, *score_fields]]
             else:
                 output_df = filtered_dataset.df[score_fields]
@@ -137,9 +130,7 @@ def main(args):
 
         # Remove scores if not logged
         if not args.log_scores:
-            filtered_dataset = DocumentDataset(
-                filtered_dataset.df.drop(columns=score_fields)
-            )
+            filtered_dataset = DocumentDataset(filtered_dataset.df.drop(columns=score_fields))
 
         # If kept_document_dir is specified, then create it
         if kept_document_dir is not None:

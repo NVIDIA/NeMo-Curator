@@ -62,9 +62,7 @@ def create_cluster(
             if n_cpus_per_worker:
                 ctr["resources"]["limits"]["cpu"] = str(n_cpus_per_worker)
 
-    cluster = KubeCluster(
-        custom_cluster_spec=custom_cluster_spec, shutdown_on_close=False
-    )
+    cluster = KubeCluster(custom_cluster_spec=custom_cluster_spec, shutdown_on_close=False)
     print(f"{cluster = }")
 
 
@@ -88,9 +86,7 @@ if __name__ == "__main__":
         default="rapids-dask",
         help="The name of the DaskCluster which you would be able to inspect via `kubectl describe daskcluster <name>`.",
     )
-    parser.add_argument(
-        "-w", "--n_workers", type=int, default=2, help="Number of workers"
-    )
+    parser.add_argument("-w", "--n_workers", type=int, default=2, help="Number of workers")
     parser.add_argument(
         "-g",
         "--n_gpus_per_worker",

@@ -81,9 +81,7 @@ class _Shuffle:
             blocksize=bucket_mapping_df_blocksize,
         )
         self._logger.info("Getting ddf_anchor_docs_with_bk completed")
-        self._logger.debug(
-            f"ddf_anchor_docs_with_bk.npartitions = {ddf_anchor_docs_with_bk.npartitions}"
-        )
+        self._logger.debug(f"ddf_anchor_docs_with_bk.npartitions = {ddf_anchor_docs_with_bk.npartitions}")
         st = time.time()
         num_workers = get_num_workers(get_current_client())
         parts_per_batch = num_workers * parts_per_worker
@@ -92,9 +90,7 @@ class _Shuffle:
         self._logger.debug(f"parts_per_bucket_batch  = {parts_per_bucket_batch}")
 
         dask_profile_name = (
-            "suffle_docs"
-            + f"-parts_per_batch-{parts_per_batch}"
-            + f"-parts_per_bucket_batch-{parts_per_bucket_batch}"
+            "suffle_docs" + f"-parts_per_batch-{parts_per_batch}" + f"-parts_per_bucket_batch-{parts_per_bucket_batch}"
         )
         documents_df = documents_df[self.id_fields + [self.text_field]]
 
@@ -139,9 +135,7 @@ class _Shuffle:
         )
 
         # Set start offsets
-        bucket_part_start_offset, text_part_start_offset = get_restart_offsets(
-            output_path
-        )
+        bucket_part_start_offset, text_part_start_offset = get_restart_offsets(output_path)
 
         # Set end offsets
         # NOTE: These end offsets are always set to the end
@@ -174,14 +168,10 @@ class _Shuffle:
         )
 
         for bucket_part_offset in tqdm(
-            range(
-                bucket_part_start_offset, bucket_part_end_offset, parts_per_bucket_batch
-            )
+            range(bucket_part_start_offset, bucket_part_end_offset, parts_per_bucket_batch)
         ):
             # Outer loop over batches of "bucket-map" partitions
-            end_bucket_offset = min(
-                bucket_part_offset + parts_per_bucket_batch, bucket_part_end_offset
-            )
+            end_bucket_offset = min(bucket_part_offset + parts_per_bucket_batch, bucket_part_end_offset)
             print(
                 f"\nStarted processing bucket-map partitions {bucket_part_offset} "
                 f"through {end_bucket_offset} of {bucket_part_end_offset}",
@@ -214,12 +204,8 @@ class _Shuffle:
                 print(f"Using {parts_per_text_batch_use} text partitions.", flush=True)
 
                 # Select partitions for our text batch
-                end_text_offset = min(
-                    text_part_offset + parts_per_text_batch_use, text_part_end_offset
-                )
-                subset_text_df = left_df_use.partitions[
-                    text_part_offset:end_text_offset
-                ]
+                end_text_offset = min(text_part_offset + parts_per_text_batch_use, text_part_end_offset)
+                subset_text_df = left_df_use.partitions[text_part_offset:end_text_offset]
                 subset_merged_df = merge_left_to_shuffled_right(
                     subset_text_df,
                     subset_bucket_df,
@@ -228,9 +214,7 @@ class _Shuffle:
                 output_df = subset_merged_df.shuffle(on=partition_on)
 
                 if self.int_to_str_id is not None and output_df is not None:
-                    output_df = output_df.map_partitions(
-                        int_ids_to_str, id_column=self.int_to_str_id
-                    )
+                    output_df = output_df.map_partitions(int_ids_to_str, id_column=self.int_to_str_id)
                 batch_label = f"{end_bucket_offset}_{end_text_offset}"
                 if output_df is not None:
                     written_files = output_df.map_partitions(
@@ -246,8 +230,7 @@ class _Shuffle:
 
                 print(
                     "Text-df partition ",
-                    f"{end_text_offset}/{text_part_end_offset} "
-                    f"completed in {time.time() - st_text}",
+                    f"{end_text_offset}/{text_part_end_offset} completed in {time.time() - st_text}",
                     flush=True,
                 )
 
@@ -270,8 +253,7 @@ class _Shuffle:
             update_restart_offsets(output_path, end_bucket_offset, end_text_offset)
             print(
                 "Bucket partition ",
-                f"{end_bucket_offset}/{bucket_part_end_offset} "
-                f"completed in {time.time() - st_bucket}",
+                f"{end_bucket_offset}/{bucket_part_end_offset} completed in {time.time() - st_bucket}",
                 flush=True,
             )
 

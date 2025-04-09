@@ -16,9 +16,7 @@ CC_BASE = os.path.join(DATA_BASE, "fuzzy/cc/")
 CC_FOLDER = os.path.join(CC_BASE, "connected_components.parquet")
 CC_CONVERTED_FOLDER = os.path.join(CC_BASE, "connected_components_converted.parquet")
 CC_GROUPED_FOLDER = os.path.join(CC_BASE, "connected_components_grouped.parquet")
-CC_GROUPED_COUNTS_FOLDER = os.path.join(
-    CC_BASE, "connected_components_grouped_counts.parquet"
-)
+CC_GROUPED_COUNTS_FOLDER = os.path.join(CC_BASE, "connected_components_grouped_counts.parquet")
 CPU_WORKERS = os.environ.get("CPU_WORKERS")
 
 
@@ -49,9 +47,7 @@ if __name__ == "__main__":
 
         result = pd.merge(sizes, grouped, on="group")
 
-        return result[
-            ["group", "global_dataset_id", "dataset_id", "original_id", "size"]
-        ]
+        return result[["group", "global_dataset_id", "dataset_id", "original_id", "size"]]
 
     meta = {
         "group": int,
@@ -70,9 +66,7 @@ if __name__ == "__main__":
 
     def count_occurrences_in_partition(partition):
         for id in global_dataset_ids:
-            partition[id] = partition["global_dataset_id"].apply(
-                lambda x: json.loads(x).count(id)
-            )
+            partition[id] = partition["global_dataset_id"].apply(lambda x: json.loads(x).count(id))
         return partition
 
     meta = {

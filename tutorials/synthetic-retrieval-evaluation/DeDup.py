@@ -42,12 +42,6 @@ class Dedup:
         labels = self.clustering(embeddings)
 
         unique_text = {}
-        unique_text.update(
-            {
-                label: text
-                for text, label in zip(texts, labels)
-                if label not in unique_text
-            }
-        )
+        unique_text.update({label: text for text, label in zip(texts, labels) if label not in unique_text})
 
         return list(unique_text.values())

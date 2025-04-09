@@ -211,13 +211,9 @@ class ANLI(DownstreamTask):
             for line in data:
                 try:
                     text = line["premise"]
-                    self._update_ngrams(
-                        text, self._min_ngram_size, self._max_ngram_size
-                    )
+                    self._update_ngrams(text, self._min_ngram_size, self._max_ngram_size)
                     text = line["hypothesis"]
-                    self._update_ngrams(
-                        text, self._min_ngram_size, self._max_ngram_size
-                    )
+                    self._update_ngrams(text, self._min_ngram_size, self._max_ngram_size)
                 except Exception as e:
                     print("Error:", e)
 
@@ -362,9 +358,7 @@ class MMLU(DownstreamTask):
         self._max_ngram_size = max_ngram_size
         self._path = path
         if self._path is None:
-            raise Exception(
-                "Must provide path that contain MMLU task data in JSONL format"
-            )
+            raise Exception("Must provide path that contain MMLU task data in JSONL format")
 
     def generate_ngrams(self):
         for ifile in get_all_files_paths_under(self._path):
@@ -384,9 +378,7 @@ class BigBenchHard(DownstreamTask):
         self._max_ngram_size = max_ngram_size
         self._path = path
         if self._path is None:
-            raise Exception(
-                "Must provide path that contain BigBenchHard task data in JSONL format"
-            )
+            raise Exception("Must provide path that contain BigBenchHard task data in JSONL format")
 
     def generate_ngrams(self):
         for ifile in get_all_files_paths_under(self._path):
@@ -406,9 +398,7 @@ class BigBenchLight(DownstreamTask):
         self._max_ngram_size = max_ngram_size
         self._path = path
         if self._path is None:
-            raise Exception(
-                "Must provide path that contain BigBenchLight task data in JSONL format"
-            )
+            raise Exception("Must provide path that contain BigBenchLight task data in JSONL format")
 
     def generate_ngrams(self):
         for ifile in get_all_files_paths_under(self._path):
@@ -428,9 +418,7 @@ class Multilingual(DownstreamTask):
         self._max_ngram_size = max_ngram_size
         self._path = path
         if self._path is None:
-            raise Exception(
-                "Must provide path to multilingual task data in JSONL format"
-            )
+            raise Exception("Must provide path to multilingual task data in JSONL format")
 
     def generate_ngrams(self):
         for ifile in get_all_files_paths_under(self._path):
@@ -492,9 +480,7 @@ class Lambada(DownstreamTask):
                 try:
                     myjson = json.loads(line)
                     text = myjson["text"]
-                    self._update_ngrams(
-                        text, self._min_ngram_size, self._max_ngram_size
-                    )
+                    self._update_ngrams(text, self._min_ngram_size, self._max_ngram_size)
                 except Exception as e:
                     print(f"Error {e}")
 
@@ -516,9 +502,7 @@ class NumDasc(DownstreamTask):
                 try:
                     myjson = json.loads(line)
                     text = myjson["context"] + myjson["completion"]
-                    self._update_ngrams(
-                        text, self._min_ngram_size, self._max_ngram_size
-                    )
+                    self._update_ngrams(text, self._min_ngram_size, self._max_ngram_size)
                 except Exception as e:
                     print(f"Error {e}")
 
@@ -546,9 +530,7 @@ class StoryCloze(DownstreamTask):
                             myjson["InputSentence4"],
                         ]
                     )
-                    self._update_ngrams(
-                        text, self._min_ngram_size, self._max_ngram_size
-                    )
+                    self._update_ngrams(text, self._min_ngram_size, self._max_ngram_size)
                 except Exception as e:
                     print(f"Error {e}")
 

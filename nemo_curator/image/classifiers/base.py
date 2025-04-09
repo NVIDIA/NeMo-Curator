@@ -96,9 +96,7 @@ class ImageClassifier(ABC):
         )
 
         embeddings = torch.as_tensor(
-            partition[self.embedding_column].list.leaves.values.reshape(
-                len(partition), -1
-            ),
+            partition[self.embedding_column].list.leaves.values.reshape(len(partition), -1),
             device=device,
         )
 

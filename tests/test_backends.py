@@ -262,9 +262,7 @@ def real_module_raw_data():
 @pytest.fixture
 def real_module_cpu_data(real_module_raw_data):
     df = pd.DataFrame(real_module_raw_data)
-    gt_results = pd.Series(
-        [35 / 9, 37 / 9, 4.0, 35 / 9, 33 / 9, 51 / 9, 48 / 9], name="mean_lengths"
-    )
+    gt_results = pd.Series([35 / 9, 37 / 9, 4.0, 35 / 9, 33 / 9, 51 / 9, 48 / 9], name="mean_lengths")
     return DocumentDataset.from_pandas(df), gt_results
 
 
@@ -285,9 +283,7 @@ class TestRealModules:
     ):
         print("client", gpu_client)
         dataset, gt_results = real_module_cpu_data
-        pipeline = ScoreFilter(
-            MeanWordLengthFilter(), score_field="mean_lengths", score_type=float
-        )
+        pipeline = ScoreFilter(MeanWordLengthFilter(), score_field="mean_lengths", score_type=float)
         result = pipeline(dataset)
         result_df = result.df.compute()
         assert_eq(result_df["mean_lengths"], gt_results)
@@ -300,9 +296,7 @@ class TestRealModules:
         with pytest.raises(ValueError):
             print("client", gpu_client)
             dataset, _ = real_module_gpu_data
-            pipeline = ScoreFilter(
-                MeanWordLengthFilter(), score_field="mean_lengths", score_type=float
-            )
+            pipeline = ScoreFilter(MeanWordLengthFilter(), score_field="mean_lengths", score_type=float)
             result = pipeline(dataset)
             _ = result.df.compute()
 
@@ -400,9 +394,7 @@ class TestRealModules:
         )
         pipeline = Sequential(
             [
-                ScoreFilter(
-                    MeanWordLengthFilter(), score_field="mean_lengths", score_type=float
-                ),
+                ScoreFilter(MeanWordLengthFilter(), score_field="mean_lengths", score_type=float),
                 ToBackend("cudf"),
                 FuzzyDuplicates(config=config),
             ]

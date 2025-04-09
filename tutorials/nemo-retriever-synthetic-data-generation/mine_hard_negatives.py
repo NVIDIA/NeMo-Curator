@@ -76,9 +76,7 @@ def main():
         raise ValueError("provide input file path")
 
     if args.hard_negative_mining_config:
-        cfg = RetrieverHardNegativeMiningConfig.from_yaml(
-            args.hard_negative_mining_config
-        )
+        cfg = RetrieverHardNegativeMiningConfig.from_yaml(args.hard_negative_mining_config)
 
     else:
         raise ValueError("provide config for hard negative mining")
@@ -94,9 +92,7 @@ def main():
         mined_dataset.persist()
 
     print("Saving data in jsonl format ...")
-    mined_dataset.df.to_json(
-        os.path.join(args.output_dir), lines=True, orient="records"
-    )
+    mined_dataset.df.to_json(os.path.join(args.output_dir), lines=True, orient="records")
     print("Time taken = {:.2f} s".format(time.time() - st_time))
 
 

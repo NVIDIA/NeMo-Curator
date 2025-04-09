@@ -98,11 +98,7 @@ class ExactDuplicates(BaseDeduplicationModule):
         """
         hash_df = self._compute_hashes(df)
 
-        shuffle_context = (
-            config.set({"dataframe.shuffle.method": "tasks"})
-            if DASK_P2P_ERROR
-            else nullcontext()
-        )
+        shuffle_context = config.set({"dataframe.shuffle.method": "tasks"}) if DASK_P2P_ERROR else nullcontext()
 
         with shuffle_context:
             dup_ids = hash_df.shuffle(
@@ -125,15 +121,11 @@ class ExactDuplicates(BaseDeduplicationModule):
         res = df[[self.id_field]]
         res["_hashes"] = df[self.text_field].map_partitions(self.hash_documents)
 
-        self._logger.info(
-            f"Lazy hash generation complete for {res.npartitions} partitions"
-        )
+        self._logger.info(f"Lazy hash generation complete for {res.npartitions} partitions")
 
         return res
 
-    def hash_documents(
-        self, df: Union[cudf.Series, pd.Series]
-    ) -> Union[cudf.Series, pd.Series]:
+    def hash_documents(self, df: Union[cudf.Series, pd.Series]) -> Union[cudf.Series, pd.Series]:
         """
         Compute hashes for a Series containing documents
         """
@@ -168,9 +160,7 @@ class ExactDuplicates(BaseDeduplicationModule):
         write_path = os.path.join(self.cache_dir, "_exact_duplicates.parquet")
 
         if os.path.exists(write_path):
-            warnings.warn(
-                f"Output path f{write_path} already exists and will be overwritten"
-            )
+            warnings.warn(f"Output path f{write_path} already exists and will be overwritten")
 
         with performance_report_if_with_ts_suffix(
             self.profile_dir,
@@ -192,9 +182,7 @@ class ExactDuplicates(BaseDeduplicationModule):
             blocksize=None,
         )
 
-    def remove(
-        self, dataset: DocumentDataset, duplicates_to_remove: Optional[DocumentDataset]
-    ) -> DocumentDataset:
+    def remove(self, dataset: DocumentDataset, duplicates_to_remove: Optional[DocumentDataset]) -> DocumentDataset:
         """
         Remove exact duplicates from a given DocumentDataset
         Parameters

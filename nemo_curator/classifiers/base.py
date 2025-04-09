@@ -94,9 +94,7 @@ class HFDeberta(nn.Module, PyTorchModelHubMixin):
         self.fc = nn.Linear(self.model.config.hidden_size, len(config["id2label"]))
 
     def _forward(self, batch):
-        features = self.model(
-            batch["input_ids"], batch["attention_mask"]
-        ).last_hidden_state
+        features = self.model(batch["input_ids"], batch["attention_mask"]).last_hidden_state
         dropped = self.dropout(features)
         outputs = self.fc(dropped)
         return torch.softmax(outputs[:, 0, :], dim=1)
@@ -126,16 +124,12 @@ def _run_classifier_helper(
         prob_col = "_prob"
         labeler = op.Labeler(labels, cols=[prob_col], suffix=label_col)
     else:
-        labeler = op.Labeler(
-            labels, cols=[prob_col], keep_cols=[prob_col], suffix=label_col
-        )
+        labeler = op.Labeler(labels, cols=[prob_col], keep_cols=[prob_col], suffix=label_col)
 
     columns_to_keep_list = df.columns.to_list()
 
     classifier_pipe = op.Sequential(
-        op.Tokenizer(
-            model, cols=[text_field], tokenizer_type="default", max_chars=max_chars
-        ),
+        op.Tokenizer(model, cols=[text_field], tokenizer_type="default", max_chars=max_chars),
         op.Predictor(
             model,
             sorted_data_loader=True,

@@ -19,9 +19,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args):
-    wikipedia_urls = get_wikipedia_urls(
-        language=args.language, wikidumps_index_prefix=args.wikidumps_index_baseurl
-    )
+    wikipedia_urls = get_wikipedia_urls(language=args.language, wikidumps_index_prefix=args.wikidumps_index_baseurl)
     with open(args.output_url_file, "w") as output_file:
         for url in wikipedia_urls:
             output_file.write(url)
@@ -36,15 +34,12 @@ Pulls URLs pointing to the latest Wikipedia dumps.
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     ),
 ):
-    ArgumentHelper(parser).add_arg_language(
-        help="Desired language of the Wikipedia dump."
-    )
+    ArgumentHelper(parser).add_arg_language(help="Desired language of the Wikipedia dump.")
     parser.add_argument(
         "--output-url-file",
         type=str,
         default="wikipedia_urls_latest.txt",
-        help="The output file to which the URLs containing "
-        "the latest dump data will be written.",
+        help="The output file to which the URLs containing the latest dump data will be written.",
     )
     parser.add_argument(
         "--wikidumps-index-baseurl",

@@ -27,9 +27,7 @@ class TestLLMClient:
         """Test that subclasses must implement query_model."""
 
         class IncompleteClient(LLMClient):
-            def query_reward_model(
-                self, *, messages, model, conversation_formatter=None
-            ):
+            def query_reward_model(self, *, messages, model, conversation_formatter=None):
                 return {}
 
         with pytest.raises(TypeError, match=r"Can't instantiate abstract class"):
@@ -80,9 +78,7 @@ class TestLLMClient:
             ):
                 return ["response"]
 
-            def query_reward_model(
-                self, *, messages, model, conversation_formatter=None
-            ):
+            def query_reward_model(self, *, messages, model, conversation_formatter=None):
                 return {"score": 0.5}
 
         client = CompleteClient()
@@ -99,9 +95,7 @@ class TestAsyncLLMClient:
         """Test that subclasses must implement query_model."""
 
         class IncompleteAsyncClient(AsyncLLMClient):
-            async def query_reward_model(
-                self, *, messages, model, conversation_formatter=None
-            ):
+            async def query_reward_model(self, *, messages, model, conversation_formatter=None):
                 return {}
 
         with pytest.raises(TypeError, match=r"Can't instantiate abstract class"):
@@ -152,9 +146,7 @@ class TestAsyncLLMClient:
             ):
                 return ["response"]
 
-            async def query_reward_model(
-                self, *, messages, model, conversation_formatter=None
-            ):
+            async def query_reward_model(self, *, messages, model, conversation_formatter=None):
                 return {"score": 0.5}
 
         client = CompleteAsyncClient()
@@ -192,9 +184,7 @@ async def test_async_implementation_called_correctly():
             self.last_messages = messages
             return ["test response"]
 
-        async def query_reward_model(
-            self, *, messages, model, conversation_formatter=None
-        ):
+        async def query_reward_model(self, *, messages, model, conversation_formatter=None):
             self.query_reward_model_called = True
             self.last_model = model
             self.last_messages = messages
@@ -211,9 +201,7 @@ async def test_async_implementation_called_correctly():
     assert result == ["test response"]
 
     # Test query_reward_model
-    result = await client.query_reward_model(
-        messages=test_messages, model="reward-model"
-    )
+    result = await client.query_reward_model(messages=test_messages, model="reward-model")
     assert client.query_reward_model_called
     assert client.last_model == "reward-model"
     assert client.last_messages == test_messages

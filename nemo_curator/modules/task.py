@@ -72,14 +72,10 @@ class TaskDecontamination(BaseModule):
             found_result["matched-ngrams"],
             found_result["ngrams-freq"],
         )
-        delayed_removed_dataset = self._remove_matching_ngrams(
-            matched_ngrams, ngram_freq, delayed_dataset
-        )
+        delayed_removed_dataset = self._remove_matching_ngrams(matched_ngrams, ngram_freq, delayed_dataset)
 
         # Restore the dataset to its original format
-        removed_dataset = DocumentDataset(
-            dataset_df=dd.from_delayed(delayed_removed_dataset, meta=original_meta)
-        )
+        removed_dataset = DocumentDataset(dataset_df=dd.from_delayed(delayed_removed_dataset, meta=original_meta))
 
         return removed_dataset
 
@@ -93,9 +89,7 @@ class TaskDecontamination(BaseModule):
         Computes a dictionary of all ngrams in each task as keys and each value set to 0.
         """
         delayed_ngrams = [delayed(task.generate_ngrams)() for task in self.tasks]
-        aggregated_ngrams = delayed(reduce)(
-            TaskDecontamination._merge_task_ngrams, delayed_ngrams
-        )
+        aggregated_ngrams = delayed(reduce)(TaskDecontamination._merge_task_ngrams, delayed_ngrams)
 
         return aggregated_ngrams
 
@@ -117,31 +111,21 @@ class TaskDecontamination(BaseModule):
         return self._find_matching_ngrams(task_ngrams, delayed_dataset)
 
     def _find_matching_ngrams(self, task_ngrams: dict, delayed_dataset) -> dict:
-        task_ngrams_frequency_sorted = delayed(self._compute_ngram_freq_sorted)(
-            task_ngrams
-        )
+        task_ngrams_frequency_sorted = delayed(self._compute_ngram_freq_sorted)(task_ngrams)
         delayed_counts = [
-            delayed(self._find_ngrams_partition)(
-                partition, task_ngrams, task_ngrams_frequency_sorted
-            )
+            delayed(self._find_ngrams_partition)(partition, task_ngrams, task_ngrams_frequency_sorted)
             for partition in delayed_dataset
         ]
         combined_counts = delayed(reduce)(self._merge_counts, delayed_counts)
-        formatted_result = delayed(self._format_matching_ngrams_result)(
-            combined_counts, task_ngrams_frequency_sorted
-        )
+        formatted_result = delayed(self._format_matching_ngrams_result)(combined_counts, task_ngrams_frequency_sorted)
 
         return formatted_result
 
-    def _find_ngrams_partition(
-        self, dataset_partition, task_ngrams, ngrams_freq_sorted
-    ):
+    def _find_ngrams_partition(self, dataset_partition, task_ngrams, ngrams_freq_sorted):
         partition_count = defaultdict(int)
         for document in dataset_partition[self.text_field]:
             doc_result = self._find_ngrams(document, task_ngrams, ngrams_freq_sorted)
-            partition_count = TaskDecontamination._merge_counts(
-                partition_count, doc_result
-            )
+            partition_count = TaskDecontamination._merge_counts(partition_count, doc_result)
 
         return partition_count
 
@@ -265,28 +249,18 @@ class TaskDecontamination(BaseModule):
 
         return True
 
-    def remove_matching_ngrams(
-        self, matched_ngrams: dict, ngram_freq: List[tuple], dataset: DocumentDataset
-    ):
+    def remove_matching_ngrams(self, matched_ngrams: dict, ngram_freq: List[tuple], dataset: DocumentDataset):
         original_meta = dataset.df.dtypes.to_dict()
         delayed_dataset = dataset.df.to_delayed()
-        delayed_removed_dataset = self._remove_matching_ngrams(
-            matched_ngrams, ngram_freq, delayed_dataset
-        )
-        removed_dataset = DocumentDataset(
-            dataset_df=dd.from_delayed(delayed_removed_dataset, meta=original_meta)
-        )
+        delayed_removed_dataset = self._remove_matching_ngrams(matched_ngrams, ngram_freq, delayed_dataset)
+        removed_dataset = DocumentDataset(dataset_df=dd.from_delayed(delayed_removed_dataset, meta=original_meta))
 
         return removed_dataset
 
-    def _remove_matching_ngrams(
-        self, matched_ngrams: dict, ngram_freq: List[tuple], delayed_dataset
-    ):
+    def _remove_matching_ngrams(self, matched_ngrams: dict, ngram_freq: List[tuple], delayed_dataset):
         threshhold_ngrams = delayed(self._threshold_ngram_count)(matched_ngrams)
         delayed_removed_dataset = [
-            delayed(self._remove_ngrams_partition)(
-                partition, threshhold_ngrams, ngram_freq
-            )
+            delayed(self._remove_ngrams_partition)(partition, threshhold_ngrams, ngram_freq)
             for partition in delayed_dataset
         ]
 
@@ -319,13 +293,9 @@ class TaskDecontamination(BaseModule):
 
         partition[self.text_field] = split_text
         filtered_partition = partition[valid_documents_mask]
-        exploded_partition = filtered_partition.explode(
-            self.text_field, ignore_index=True
-        )
+        exploded_partition = filtered_partition.explode(self.text_field, ignore_index=True)
         # After exploding, the string datatype can become an "object" type
-        exploded_partition[self.text_field] = exploded_partition[
-            self.text_field
-        ].astype(text_type)
+        exploded_partition[self.text_field] = exploded_partition[self.text_field].astype(text_type)
 
         return exploded_partition
 

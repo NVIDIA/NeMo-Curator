@@ -233,9 +233,7 @@ def get_client(
 
     if scheduler_address:
         if scheduler_file:
-            raise ValueError(
-                "Only one of scheduler_address or scheduler_file can be provided"
-            )
+            raise ValueError("Only one of scheduler_address or scheduler_file can be provided")
         else:
             client = Client(address=scheduler_address, timeout="30s")
             assert get_num_workers(client) > 0, "No workers are currently connected."
@@ -347,10 +345,7 @@ def read_single_partition(
 
     """
     if input_meta is not None and file_type != "jsonl":
-        warnings.warn(
-            "input_meta is only valid for JSONL files and will be ignored for other "
-            " file formats.."
-        )
+        warnings.warn("input_meta is only valid for JSONL files and will be ignored for other  file formats..")
 
     if file_type in ["jsonl", "json"]:
         read_kwargs = {"lines": file_type == "jsonl"}
@@ -363,11 +358,7 @@ def read_single_partition(
             read_f = pd.read_json
 
         if input_meta is not None:
-            read_kwargs["dtype"] = (
-                ast.literal_eval(input_meta)
-                if isinstance(input_meta, str)
-                else input_meta
-            )
+            read_kwargs["dtype"] = ast.literal_eval(input_meta) if isinstance(input_meta, str) else input_meta
             # because pandas doesn't support `prune_columns`, it'll always return all columns even when input_meta is specified
             # to maintain consistency we explicitly set `io_columns` here
             if backend == "pandas" and not io_columns:
@@ -444,11 +435,7 @@ def read_data_blocksize(
                 # specified in the input_meta
                 read_kwargs["prune_columns"] = True
 
-            read_kwargs["dtype"] = (
-                ast.literal_eval(input_meta)
-                if isinstance(input_meta, str)
-                else input_meta
-            )
+            read_kwargs["dtype"] = ast.literal_eval(input_meta) if isinstance(input_meta, str) else input_meta
 
             if not columns:
                 # To maintain consistency with the behavior of `read_data_fpp` where passing `input_meta`
@@ -521,8 +508,7 @@ def read_data_files_per_partition(
 
     if files_per_partition > 1:
         input_files = [
-            input_files[i : i + files_per_partition]
-            for i in range(0, len(input_files), files_per_partition)
+            input_files[i : i + files_per_partition] for i in range(0, len(input_files), files_per_partition)
         ]
     else:
         input_files = [[file] for file in input_files]
@@ -629,9 +615,7 @@ def read_data(
             **kwargs,
         )
     elif file_type == "pickle":
-        df = read_pandas_pickle(
-            input_files[0], add_filename=add_filename, columns=columns, **kwargs
-        )
+        df = read_pandas_pickle(input_files[0], add_filename=add_filename, columns=columns, **kwargs)
         df = dd.from_pandas(df, npartitions=16)
         if backend == "cudf":
             df = df.to_backend("cudf")
@@ -657,9 +641,7 @@ def read_data(
             msg = "blocksize and files_per_partition cannot be set at the same time"
             raise ValueError(msg)
 
-        if blocksize is not None and (
-            file_type == "jsonl" or (file_type == "parquet" and not add_filename)
-        ):
+        if blocksize is not None and (file_type == "jsonl" or (file_type == "parquet" and not add_filename)):
             return read_data_blocksize(
                 input_files,
                 backend=backend,
@@ -671,12 +653,8 @@ def read_data(
                 **kwargs,
             )
         else:
-            if backend == "cudf" and (
-                file_type == "jsonl" or (file_type == "parquet" and not add_filename)
-            ):
-                warnings.warn(
-                    "Consider passing in blocksize for better control over memory usage."
-                )
+            if backend == "cudf" and (file_type == "jsonl" or (file_type == "parquet" and not add_filename)):
+                warnings.warn("Consider passing in blocksize for better control over memory usage.")
             return read_data_files_per_partition(
                 input_files,
                 file_type=file_type,
@@ -694,9 +672,7 @@ def read_data(
     return df
 
 
-def process_batch(
-    load_model_function, load_model_kwargs, run_inference_function, run_inference_kwargs
-):
+def process_batch(load_model_function, load_model_kwargs, run_inference_function, run_inference_kwargs):
     """
     This function loads a model on a Dask worker and then runs inference on a batch of data.
 
@@ -839,18 +815,14 @@ def single_partition_write_with_filename(
                 output_file_path = output_file_path + ".parquet"
                 out_df.to_parquet(output_file_path)
             elif output_type == "bitext":
-                raise RuntimeError(
-                    "You shouldn't call this function to write to simple bitext."
-                )
+                raise RuntimeError("You shouldn't call this function to write to simple bitext.")
             else:
                 raise ValueError(f"Unknown output type: {output_type}")
 
     return success_ser
 
 
-def _single_partition_write_to_simple_bitext(
-    out_df, output_file_path, partition_info=None
-):
+def _single_partition_write_to_simple_bitext(out_df, output_file_path, partition_info=None):
     if len(out_df) > 0:
         empty_partition = False
     else:
@@ -899,9 +871,7 @@ def _merge_tmp_simple_bitext_partitions(tmp_output_dir: str, output_dir: str):
         output_file_path (str): dir to write output files
     """
 
-    sorted_tmp_files = sorted(
-        os.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1])
-    )
+    sorted_tmp_files = sorted(os.listdir(tmp_output_dir), key=lambda x: int(x.split(".")[-1]))
     unique_file_handles = {}
     # Loop through the sorted files and concatenate their contents
     for f in sorted_tmp_files:
@@ -970,14 +940,10 @@ def write_to_disk(
 
     # output_path is a directory
     elif write_to_filename and filename_col not in df.columns:
-        raise ValueError(
-            f"write_using_filename is True but no {filename_col} column found in DataFrame"
-        )
+        raise ValueError(f"write_using_filename is True but no {filename_col} column found in DataFrame")
 
     if partition_on is not None and write_to_filename:
-        raise ValueError(
-            "Cannot use both partition_on and write_to_filename parameters simultaneously. "
-        )
+        raise ValueError("Cannot use both partition_on and write_to_filename parameters simultaneously. ")
 
     if is_cudf_type(df):
         import cudf
@@ -1064,9 +1030,7 @@ def _write_to_jsonl_or_parquet(
             )
             for value in unique_values:
                 os.makedirs(output_path, exist_ok=True)
-                partition_output_path = os.path.join(
-                    output_path, f"{partition_on}={value}"
-                )
+                partition_output_path = os.path.join(output_path, f"{partition_on}={value}")
                 df[df[partition_on] == value].to_json(
                     partition_output_path,
                     orient="records",
@@ -1189,9 +1153,7 @@ def check_dask_cwd(file_list: List[str]):
             )
 
 
-def performance_report_if(
-    path: Optional[str] = None, report_name: str = "dask-profile.html"
-):
+def performance_report_if(path: Optional[str] = None, report_name: str = "dask-profile.html"):
     """
     Generates a performance report if a valid path is provided, or returns a
     no-op context manager if not.
@@ -1208,9 +1170,7 @@ def performance_report_if(
         return nullcontext()
 
 
-def performance_report_if_with_ts_suffix(
-    path: Optional[str] = None, report_name: str = "dask-profile"
-):
+def performance_report_if_with_ts_suffix(path: Optional[str] = None, report_name: str = "dask-profile"):
     """
     Same as performance_report_if, except it suffixes the report_name with the timestamp.
 

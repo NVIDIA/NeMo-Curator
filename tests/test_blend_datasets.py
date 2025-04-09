@@ -34,9 +34,7 @@ class TestBlending:
     def test_equal_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
-        result_dataset = nc.blend_datasets(
-            2, [first_dataset, second_dataset], [0.5, 0.5]
-        )
+        result_dataset = nc.blend_datasets(2, [first_dataset, second_dataset], [0.5, 0.5])
         counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 2
         assert counts["a"] == 1
@@ -45,9 +43,7 @@ class TestBlending:
     def test_equal_blend_with_weights(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
-        result_dataset = nc.blend_datasets(
-            2, [first_dataset, second_dataset], [2.0, 2.0]
-        )
+        result_dataset = nc.blend_datasets(2, [first_dataset, second_dataset], [2.0, 2.0])
         counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 2
         assert counts["a"] == 1
@@ -56,9 +52,7 @@ class TestBlending:
     def test_uneven_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
-        result_dataset = nc.blend_datasets(
-            4, [first_dataset, second_dataset], [3.0, 1.0]
-        )
+        result_dataset = nc.blend_datasets(4, [first_dataset, second_dataset], [3.0, 1.0])
         counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 4
         assert counts["a"] == 3
@@ -67,9 +61,7 @@ class TestBlending:
     def test_very_uneven_blend(self):
         first_dataset = list_to_dataset(["a", "a"])
         second_dataset = list_to_dataset(["b", "b"])
-        result_dataset = nc.blend_datasets(
-            4, [first_dataset, second_dataset], [1.0, 0.0]
-        )
+        result_dataset = nc.blend_datasets(4, [first_dataset, second_dataset], [1.0, 0.0])
         counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 4
         assert counts["a"] == 4
@@ -78,9 +70,7 @@ class TestBlending:
     def test_proper_uneven_blend(self):
         first_dataset = list_to_dataset(["a", "b", "c", "d"])
         second_dataset = list_to_dataset(["e", "f"])
-        result_dataset = nc.blend_datasets(
-            8, [first_dataset, second_dataset], [1.0, 0.0]
-        )
+        result_dataset = nc.blend_datasets(8, [first_dataset, second_dataset], [1.0, 0.0])
         counts = result_dataset.df["text"].value_counts().compute()
         assert len(result_dataset) == 8
         assert counts["a"] == 2

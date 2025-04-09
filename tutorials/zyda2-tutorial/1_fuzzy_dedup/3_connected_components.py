@@ -16,18 +16,14 @@ if __name__ == "__main__":
     client = get_client(scheduler_file=SCHEDULER_FILE)
     logging.info(f"Number of dask workers: {get_num_workers(client)}")
     # Input
-    buckets_to_edges_out = os.path.join(
-        DATA_BASE, "fuzzy/buckets_to_edges/data/_edges.parquet"
-    )
+    buckets_to_edges_out = os.path.join(DATA_BASE, "fuzzy/buckets_to_edges/data/_edges.parquet")
 
     # Output
     connected_component_base_output_path = os.path.join(DATA_BASE, "fuzzy/cc")
     connected_component_output_path = os.path.join(
         connected_component_base_output_path, "connected_components.parquet"
     )
-    connected_component_cache_dir = os.path.join(
-        connected_component_base_output_path, "cache"
-    )
+    connected_component_cache_dir = os.path.join(connected_component_base_output_path, "cache")
 
     # Relevant parameters
     input_id_field = "id"

@@ -88,9 +88,7 @@ class TestLLMPiiUtils:
             EntitySpan(entity_type="name", start_position=54, end_position=65),
             EntitySpan(entity_type="name", start_position=94, end_position=106),
             EntitySpan(entity_type="email", start_position=94, end_position=118),
-            EntitySpan(
-                entity_type="phone_number", start_position=135, end_position=155
-            ),
+            EntitySpan(entity_type="phone_number", start_position=135, end_position=155),
             EntitySpan(entity_type="location", start_position=168, end_position=206),
         ]
 
@@ -101,41 +99,29 @@ class TestLLMPiiUtils:
             EntitySpan(entity_type="name", start_position=54, end_position=65),
             EntitySpan(entity_type="name", start_position=94, end_position=106),
             EntitySpan(entity_type="email", start_position=94, end_position=118),
-            EntitySpan(
-                entity_type="phone_number", start_position=135, end_position=155
-            ),
+            EntitySpan(entity_type="phone_number", start_position=135, end_position=155),
             EntitySpan(entity_type="location", start_position=168, end_position=206),
         ]
         fixed_spans = fix_overlaps(spans)
         assert fixed_spans == [
             EntitySpan(entity_type="name", start_position=54, end_position=65),
             EntitySpan(entity_type="email", start_position=94, end_position=118),
-            EntitySpan(
-                entity_type="phone_number", start_position=135, end_position=155
-            ),
+            EntitySpan(entity_type="phone_number", start_position=135, end_position=155),
             EntitySpan(entity_type="location", start_position=168, end_position=206),
         ]
 
         spans = [
             EntitySpan(entity_type="date_time", start_position=59, end_position=69),
             EntitySpan(entity_type="employee_id", start_position=78, end_position=87),
-            EntitySpan(
-                entity_type="medical_record_number", start_position=28, end_position=38
-            ),
-            EntitySpan(
-                entity_type="vehicle_identifier", start_position=97, end_position=107
-            ),
+            EntitySpan(entity_type="medical_record_number", start_position=28, end_position=38),
+            EntitySpan(entity_type="vehicle_identifier", start_position=97, end_position=107),
         ]
         fixed_spans = fix_overlaps(spans)
         assert fixed_spans == [
-            EntitySpan(
-                entity_type="medical_record_number", start_position=28, end_position=38
-            ),
+            EntitySpan(entity_type="medical_record_number", start_position=28, end_position=38),
             EntitySpan(entity_type="date_time", start_position=59, end_position=69),
             EntitySpan(entity_type="employee_id", start_position=78, end_position=87),
-            EntitySpan(
-                entity_type="vehicle_identifier", start_position=97, end_position=107
-            ),
+            EntitySpan(entity_type="vehicle_identifier", start_position=97, end_position=107),
         ]
 
 
@@ -150,9 +136,7 @@ class TestLLMPiiModifier:
             UserWarning,
             match="The default system prompt is only available for English text",
         ):
-            modifier = LLMPiiModifier(
-                base_url="https://integrate.api.nvidia.com/v1", language="fr"
-            )
+            modifier = LLMPiiModifier(base_url="https://integrate.api.nvidia.com/v1", language="fr")
             assert modifier.system_prompt == get_system_prompt()
 
         # Custom system prompt, default PII labels, and English
@@ -169,16 +153,12 @@ class TestLLMPiiModifier:
 
         # Custom system prompt, default PII labels, and non-English
         system_prompt = "Vous êtes un assistant utile."
-        modifier = LLMPiiModifier(
-            base_url="https://integrate.api.nvidia.com/v1", system_prompt=system_prompt
-        )
+        modifier = LLMPiiModifier(base_url="https://integrate.api.nvidia.com/v1", system_prompt=system_prompt)
         assert modifier.system_prompt == system_prompt
 
         # Default system prompt and custom PII labels
         pii_labels = ["name", "email", "phone_number", "location"]
-        modifier = LLMPiiModifier(
-            base_url="https://integrate.api.nvidia.com/v1", pii_labels=pii_labels
-        )
+        modifier = LLMPiiModifier(base_url="https://integrate.api.nvidia.com/v1", pii_labels=pii_labels)
         assert modifier.system_prompt == get_system_prompt(pii_labels)
 
         # Custom system prompt and custom PII labels
@@ -207,9 +187,7 @@ class TestAsyncLLMPiiModifier:
             UserWarning,
             match="The default system prompt is only available for English text",
         ):
-            modifier = AsyncLLMPiiModifier(
-                base_url="https://integrate.api.nvidia.com/v1", language="fr"
-            )
+            modifier = AsyncLLMPiiModifier(base_url="https://integrate.api.nvidia.com/v1", language="fr")
             assert modifier.system_prompt == get_system_prompt()
 
         # Custom system prompt, default PII labels, and English
@@ -226,16 +204,12 @@ class TestAsyncLLMPiiModifier:
 
         # Custom system prompt, default PII labels, and non-English
         system_prompt = "Vous êtes un assistant utile."
-        modifier = AsyncLLMPiiModifier(
-            base_url="https://integrate.api.nvidia.com/v1", system_prompt=system_prompt
-        )
+        modifier = AsyncLLMPiiModifier(base_url="https://integrate.api.nvidia.com/v1", system_prompt=system_prompt)
         assert modifier.system_prompt == system_prompt
 
         # Default system prompt and custom PII labels
         pii_labels = ["name", "email", "phone_number", "location"]
-        modifier = AsyncLLMPiiModifier(
-            base_url="https://integrate.api.nvidia.com/v1", pii_labels=pii_labels
-        )
+        modifier = AsyncLLMPiiModifier(base_url="https://integrate.api.nvidia.com/v1", pii_labels=pii_labels)
         assert modifier.system_prompt == get_system_prompt(pii_labels)
 
         # Custom system prompt and custom PII labels

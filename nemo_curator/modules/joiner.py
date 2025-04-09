@@ -83,9 +83,7 @@ class DocumentJoiner(BaseModule):
                 # Calculate what the new length would be if we joined this segment.
                 proposed_length = accumulator_length + row[self.length_field] + 1
                 if proposed_length <= self.max_length:
-                    accumulator_text = (
-                        accumulator_text + self.separator + row[self.text_field]
-                    )
+                    accumulator_text = accumulator_text + self.separator + row[self.text_field]
                     accumulator_length = proposed_length
                 else:
                     # Commit the current accumulation as one joined segment.
@@ -108,15 +106,11 @@ class DocumentJoiner(BaseModule):
             new_row[self.segment_id_field] = current_seg_id
             joined_rows.append(new_row)
         if joined_rows:
-            return pd.concat(
-                [group.iloc[0:0], pd.DataFrame(joined_rows)], ignore_index=True
-            )
+            return pd.concat([group.iloc[0:0], pd.DataFrame(joined_rows)], ignore_index=True)
         else:
             return group.iloc[0:0]
 
-    def _join_partition(
-        self, df: pd.DataFrame, expected_cols: List[str]
-    ) -> pd.DataFrame:
+    def _join_partition(self, df: pd.DataFrame, expected_cols: List[str]) -> pd.DataFrame:
         if df.empty:
             return df
 
@@ -129,19 +123,13 @@ class DocumentJoiner(BaseModule):
             agg_funcs = {}
             for col in df_sorted.columns:
                 if col == self.text_field:
-                    agg_funcs[col] = lambda texts: self.separator.join(
-                        texts.astype(str)
-                    )
+                    agg_funcs[col] = lambda texts: self.separator.join(texts.astype(str))
                 elif col != self.document_id_field:
                     agg_funcs[col] = "first"
             # Group by document_id_field while keeping the key as a column.
-            joined = df_sorted.groupby(self.document_id_field, as_index=False).agg(
-                agg_funcs
-            )
+            joined = df_sorted.groupby(self.document_id_field, as_index=False).agg(agg_funcs)
         else:
-            joined = df.groupby(self.document_id_field, group_keys=False).apply(
-                self._join_segments
-            )
+            joined = df.groupby(self.document_id_field, group_keys=False).apply(self._join_segments)
 
         if self.drop_segment_id_field:
             joined = joined.drop(columns=self.segment_id_field)
@@ -162,7 +150,5 @@ class DocumentJoiner(BaseModule):
             meta = meta.drop(columns=self.segment_id_field)
         expected_cols = list(meta.columns)
         # Apply the join operation partition-wise.
-        dataset.df = dataset.df.map_partitions(
-            self._join_partition, expected_cols=expected_cols, meta=meta
-        )
+        dataset.df = dataset.df.map_partitions(self._join_partition, expected_cols=expected_cols, meta=meta)
         return dataset

@@ -98,8 +98,7 @@ class AestheticClassifier(ImageClassifier):
 
         if not os.path.exists(model_path):
             url = (
-                "https://github.com/christophschuhmann/"
-                f"improved-aesthetic-predictor/blob/main/{weights_name}?raw=true"
+                f"https://github.com/christophschuhmann/improved-aesthetic-predictor/blob/main/{weights_name}?raw=true"
             )
             r = requests.get(url)
 

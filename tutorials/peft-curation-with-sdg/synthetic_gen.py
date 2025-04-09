@@ -97,11 +97,7 @@ class SyntheticGenerator:
         Returns:
             The path to the directory where the synthetic data is saved.
         """
-        return asyncio.run(
-            self._synthesize_from_source(
-                source_df, out_dir, synth_prefix, synth_gen_ratio
-            )
-        )
+        return asyncio.run(self._synthesize_from_source(source_df, out_dir, synth_prefix, synth_gen_ratio))
 
     def _split_sdg_responses(self, sdg_response: str) -> List[str]:
         """
@@ -113,9 +109,7 @@ class SyntheticGenerator:
         Returns:
             A list of individual SDG entries.
         """
-        return [
-            entry.strip("*").strip() for entry in sdg_response[0].split("\n") if entry
-        ]
+        return [entry.strip("*").strip() for entry in sdg_response[0].split("\n") if entry]
 
     def _write_all_to_file(self, gen_entries, out_fp: str):
         """
@@ -151,9 +145,7 @@ class SyntheticGenerator:
                 synth_answers.extend(answers)
                 synth_scores.extend(scores)
                 synth_filenames.extend([row["file_name"] + ".synth"] * self.n_variants)
-                synth_ids.extend(
-                    [f"{row['id']}-synth-{i}" for i in range(self.n_variants)]
-                )
+                synth_ids.extend([f"{row['id']}-synth-{i}" for i in range(self.n_variants)])
                 synth_tags.extend([row["tags"]] * self.n_variants)
 
         if not synth_titles:
@@ -175,9 +167,7 @@ class SyntheticGenerator:
         gen_df = pd.DataFrame(gen_data)
         gen_df.to_json(out_fp, orient="records", lines=True)
 
-    async def _prompt_model(
-        self, row: pd.Series
-    ) -> Tuple[List[str], List[str], List[str]]:
+    async def _prompt_model(self, row: pd.Series) -> Tuple[List[str], List[str], List[str]]:
         """
         Generates synthetic data by prompting a language model with a given question and answer.
 
@@ -213,9 +203,7 @@ class SyntheticGenerator:
             model_kwargs=self.sdg_model_kwargs,
         )
 
-        gen_title, gen_question, gen_answer = await asyncio.gather(
-            gen_title, gen_question, gen_answer
-        )
+        gen_title, gen_question, gen_answer = await asyncio.gather(gen_title, gen_question, gen_answer)
 
         gen_title = self._split_sdg_responses(gen_title)
         gen_question = self._split_sdg_responses(gen_question)
@@ -230,11 +218,7 @@ class SyntheticGenerator:
                     {"role": "user", "content": f"{t}\n\n{q}"},
                     {"role": "assistant", "content": a},
                 ]
-                scores.append(
-                    self.client.query_reward_model(
-                        messages=messages, model=self.reward_model
-                    )
-                )
+                scores.append(self.client.query_reward_model(messages=messages, model=self.reward_model))
 
             scores = await asyncio.gather(*scores)
             # Convert each score to a scale of -2 to 2.
@@ -266,9 +250,7 @@ class SyntheticGenerator:
         """
         os.makedirs(out_dir_path, exist_ok=True)
         # Randomly select a subset of the data to synthesize.
-        source_df = source_df.sample(
-            frac=synth_gen_ratio, random_state=self.random_state
-        )
+        source_df = source_df.sample(frac=synth_gen_ratio, random_state=self.random_state)
         prompt_requests = []
 
         # Generate prompts for each row in the source data and submit them to the LLM.
@@ -287,14 +269,10 @@ class SyntheticGenerator:
             request_slice = prompt_requests[i:slice_end]
 
             try:
-                result = await tqdm.gather(
-                    *request_slice, desc=f"---- Rows {i} to {slice_end}"
-                )
+                result = await tqdm.gather(*request_slice, desc=f"---- Rows {i} to {slice_end}")
                 gen_entries.append((row_slice, result))
             except Exception as _:
-                print(
-                    f"    Generation failed for rows {i} to {slice_end} due to the following exception:"
-                )
+                print(f"    Generation failed for rows {i} to {slice_end} due to the following exception:")
                 print("---------------------------------------------------------")
                 traceback.print_exc()
                 print("---------------------------------------------------------")

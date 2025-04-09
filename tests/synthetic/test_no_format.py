@@ -57,9 +57,7 @@ class TestNoFormat:
 
     def test_format_conversation_with_special_characters(self):
         """Test formatting with special characters and formatting in the content."""
-        conv = [
-            {"role": "user", "content": "# Heading\n* bullet point\n```code block```"}
-        ]
+        conv = [{"role": "user", "content": "# Heading\n* bullet point\n```code block```"}]
 
         expected_output = "# Heading\n* bullet point\n```code block```"
 

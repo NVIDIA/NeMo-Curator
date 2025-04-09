@@ -69,10 +69,7 @@ class TestSlurmJobConfig:
         """Test initializing SlurmJobConfig with custom values"""
         # Check required parameters
         assert custom_config.job_dir == "/path/to/custom/job"
-        assert (
-            custom_config.container_entrypoint
-            == "/path/to/custom/container-entrypoint.sh"
-        )
+        assert custom_config.container_entrypoint == "/path/to/custom/container-entrypoint.sh"
         assert custom_config.script_command == "custom_tool --arg1=val1 --arg2=val2"
 
         # Check custom values

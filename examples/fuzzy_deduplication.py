@@ -82,9 +82,7 @@ def main(args):
         # When perform_removal=False, it will only call .identify_duplicates() and return the list of duplicate IDs.
         # When perform_removal=True, then exact_dup outputs the dataset with the duplicates removed.
         # It will behave by calling .identify_duplicates() and .remove() in sequence.
-        duplicates = fuzzy_dup(
-            dataset=input_dataset
-        )  # or fuzzy_dup.identify_duplicates(input_dataset)
+        duplicates = fuzzy_dup(dataset=input_dataset)  # or fuzzy_dup.identify_duplicates(input_dataset)
 
         if duplicates is None:
             print("No duplicates found")
@@ -97,9 +95,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

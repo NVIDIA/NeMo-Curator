@@ -45,9 +45,7 @@ class NemoDeployClient(LLMClient):
         top_p: Optional[float] = None,
     ) -> List[str]:
         if conversation_formatter is None:
-            raise ValueError(
-                "NemoDeployClient's query_model requires a conversation_formatter"
-            )
+            raise ValueError("NemoDeployClient's query_model requires a conversation_formatter")
 
         prompt = conversation_formatter.format_conversation(messages)
         self.client.model_name = model
@@ -94,6 +92,4 @@ class NemoDeployClient(LLMClient):
         Returns:
             A mapping of score_name -> score
         """
-        raise NotImplementedError(
-            "Reward model inference is not supported in NeMo Deploy Clients"
-        )
+        raise NotImplementedError("Reward model inference is not supported in NeMo Deploy Clients")

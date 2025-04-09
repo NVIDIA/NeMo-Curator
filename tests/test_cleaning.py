@@ -62,9 +62,7 @@ class TestUnicodeReformatter:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert expected_results == actual_results, (
-            f"Expected: {expected_results}, but got: {actual_results}"
-        )
+        assert expected_results == actual_results, f"Expected: {expected_results}, but got: {actual_results}"
 
 
 class TestNewlineNormalizer:
@@ -92,9 +90,7 @@ class TestNewlineNormalizer:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert expected_results == actual_results, (
-            f"Expected: {expected_results}, but got: {actual_results}"
-        )
+        assert expected_results == actual_results, f"Expected: {expected_results}, but got: {actual_results}"
 
     def test_newlines_and_carriage_returns(self):
         dataset = list_to_dataset(
@@ -120,9 +116,7 @@ class TestNewlineNormalizer:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert expected_results == actual_results, (
-            f"Expected: {expected_results}, but got: {actual_results}"
-        )
+        assert expected_results == actual_results, f"Expected: {expected_results}, but got: {actual_results}"
 
 
 class TestUrlRemover:
@@ -154,9 +148,7 @@ class TestUrlRemover:
         actual_results = fixed_dataset.df.compute()["text"].to_list()
         actual_results.sort()
 
-        assert expected_results == actual_results, (
-            f"Expected: {expected_results}, but got: {actual_results}"
-        )
+        assert expected_results == actual_results, f"Expected: {expected_results}, but got: {actual_results}"
 
 
 class TestLineRemover:
@@ -169,9 +161,7 @@ class TestLineRemover:
         assert result == expected
 
     def test_no_removal_when_partial_match(self):
-        text = (
-            "Keep this line\nThis line contains Remove me as a part of it\nAnother line"
-        )
+        text = "Keep this line\nThis line contains Remove me as a part of it\nAnother line"
         patterns = ["Remove me"]
         remover = LineRemover(patterns)
         # Only lines that exactly match "Remove me" are removed.
@@ -323,9 +313,7 @@ class TestSlicer:
 
     def test_both_left_and_right_with_strings(self):
         text = "start middle end"
-        slicer = Slicer(
-            left="start", right="end", include_left=False, include_right=False
-        )
+        slicer = Slicer(left="start", right="end", include_left=False, include_right=False)
         result = slicer.modify_document(text)
         # "start" is removed and "end" is excluded; extra spaces are stripped.
         expected = "middle"

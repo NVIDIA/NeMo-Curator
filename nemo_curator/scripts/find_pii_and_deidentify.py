@@ -37,9 +37,7 @@ def main(args):
     start_time = time.time()
     Path(args.output_data_dir).mkdir(parents=True, exist_ok=True)
 
-    supported_entities = (
-        args.supported_entities.split(",") if args.supported_entities else None
-    )
+    supported_entities = args.supported_entities.split(",") if args.supported_entities else None
 
     modifier = PiiModifier(
         language=args.language,
@@ -76,9 +74,7 @@ def main(args):
         )
 
     end_time = time.time()
-    logging.debug(
-        "Total time taken for PII job: %0.3f seconds" % (end_time - start_time)
-    )
+    logging.debug("Total time taken for PII job: %0.3f seconds" % (end_time - start_time))
 
 
 def attach_args(
@@ -92,15 +88,11 @@ def attach_args(
 ):
     argumentHelper = ArgumentHelper(parser)
 
-    argumentHelper.add_arg_batch_size(
-        default=2000, help="The batch size for processing multiple texts together."
-    )
+    argumentHelper.add_arg_batch_size(default=2000, help="The batch size for processing multiple texts together.")
     argumentHelper.add_arg_input_data_dir(help="Directory containing the input files.")
     argumentHelper.add_arg_input_file_type()
     argumentHelper.add_arg_language(help="Language of input documents.")
-    argumentHelper.add_arg_output_data_dir(
-        help="The output directory to where redacted documents will be written."
-    )
+    argumentHelper.add_arg_output_data_dir(help="The output directory to where redacted documents will be written.")
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_distributed_args()
 

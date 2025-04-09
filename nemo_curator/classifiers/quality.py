@@ -102,9 +102,7 @@ class QualityClassifier(DistributedDataClassifier):
         self.labels.sort(key=lambda x: config.label2id[x])
         self.out_dim = len(self.labels)
 
-        model = QualityModel(
-            config=QualityModelConfig, autocast=autocast, max_mem_gb=max_mem_gb
-        )
+        model = QualityModel(config=QualityModelConfig, autocast=autocast, max_mem_gb=max_mem_gb)
 
         super().__init__(
             model=model,

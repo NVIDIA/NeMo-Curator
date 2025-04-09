@@ -401,9 +401,7 @@ def _read_json_or_parquet(
             dfs = []
 
             for data_path in input_files:
-                files = get_all_files_paths_under(
-                    root=data_path, recurse_subdirectories=False
-                )
+                files = get_all_files_paths_under(root=data_path, recurse_subdirectories=False)
                 df = read_data(
                     files,
                     file_type=file_type,
@@ -426,9 +424,7 @@ def _read_json_or_parquet(
 
         # Directory of jsonl or parquet files
         else:
-            files = get_all_files_paths_under(
-                root=input_files, recurse_subdirectories=False
-            )
+            files = get_all_files_paths_under(root=input_files, recurse_subdirectories=False)
 
         raw_data = read_data(
             input_files=files,

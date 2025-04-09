@@ -30,9 +30,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 def main(args):
     semdedup_config = SemDedupConfig.from_yaml(args.config_file)
     client = get_client(**ArgumentHelper.parse_client_args(args))
-    save_folder = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.clustering_save_loc
-    )
+    save_folder = os.path.join(semdedup_config.cache_dir, semdedup_config.clustering_save_loc)
     expand_outdir_and_mkdir(save_folder)
     # Initialize logger
     log_file = os.path.join(save_folder, "compute_centroids.log")
@@ -49,12 +47,8 @@ def main(args):
     dt1 = datetime.now()
     print("Start time:", dt1)
 
-    embedding_fp = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
-    )
-    clustering_output_dir = os.path.join(
-        semdedup_config.cache_dir, semdedup_config.clustering_save_loc
-    )
+    embedding_fp = os.path.join(semdedup_config.cache_dir, semdedup_config.embeddings_save_loc)
+    clustering_output_dir = os.path.join(semdedup_config.cache_dir, semdedup_config.clustering_save_loc)
 
     # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
     # When we fix that

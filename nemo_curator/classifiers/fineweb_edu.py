@@ -142,12 +142,8 @@ class _FineWebBaseClassifier(DistributedDataClassifier):
         )
         ddf = pipe(ddf)
 
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] >= 0, 0
-        )
-        ddf[self.pred_column] = ddf[self.pred_column].where(
-            ddf[self.pred_column] <= 5, 5
-        )
+        ddf[self.pred_column] = ddf[self.pred_column].where(ddf[self.pred_column] >= 0, 0)
+        ddf[self.pred_column] = ddf[self.pred_column].where(ddf[self.pred_column] <= 5, 5)
         ddf[self.int_column] = ddf[self.pred_column].round().astype(int)
 
         if self.quality_label_column is not None:

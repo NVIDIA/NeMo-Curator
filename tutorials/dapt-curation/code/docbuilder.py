@@ -190,9 +190,7 @@ class GitHubDownloader(DocumentDownloader):
                 break
 
         if not success:
-            print(
-                f"Failed to clone repository '{repo_name}' from '{url}' (error code {response.status_code})."
-            )
+            print(f"Failed to clone repository '{repo_name}' from '{url}' (error code {response.status_code}).")
             return None
 
         return zip_file
@@ -326,9 +324,7 @@ class GitHubIterator(DocumentIterator):
                 filename = file_info.filename
 
                 # Skip directories and hidden files
-                if file_info.is_dir() or any(
-                    part.startswith(".") for part in filename.split(os.sep)
-                ):
+                if file_info.is_dir() or any(part.startswith(".") for part in filename.split(os.sep)):
                     continue
 
                 parsed = self.parse_file(zip_ref, file_info)
@@ -376,19 +372,13 @@ class ArxivDownloader(DocumentDownloader):
             return input_string
 
         # Pattern to match an arXiv URL and extract the ID
-        url_pattern = re.compile(
-            r"https?://(?:www\.)?arxiv\.org/(abs|pdf)/(\d{4}\.\d{4,5})(v\d+)?(\.pdf)?$"
-        )
+        url_pattern = re.compile(r"https?://(?:www\.)?arxiv\.org/(abs|pdf)/(\d{4}\.\d{4,5})(v\d+)?(\.pdf)?$")
         url_match = url_pattern.match(input_string)
         if url_match:
-            return url_match.group(2) + (
-                url_match.group(3) if url_match.group(3) else ""
-            )
+            return url_match.group(2) + (url_match.group(3) if url_match.group(3) else "")
 
         # Raise an error if the input does not match any of the expected formats
-        raise ValueError(
-            f"The provided input '{input_string}' does not match the expected URL or ID format."
-        )
+        raise ValueError(f"The provided input '{input_string}' does not match the expected URL or ID format.")
 
     def download(self, url: str) -> str:
         """
@@ -412,9 +402,7 @@ class ArxivDownloader(DocumentDownloader):
 
         if article := next(search_result):
             print(f'Downloading arXiv article "{url}"...')
-            pdf_path = article.download_pdf(
-                dirpath=self.pdf_root_dir, filename=pdf_name
-            )
+            pdf_path = article.download_pdf(dirpath=self.pdf_root_dir, filename=pdf_name)
         else:
             print(f"Failed to download article '{url}'.")
             return None

@@ -90,15 +90,13 @@ def attach_args(
     parser.add_argument(
         "--output-metadata-distribution",
         type=str,
-        help="Output JSON file containing the frequency of documents "
-        "that occur for a particular metadata.",
+        help="Output JSON file containing the frequency of documents that occur for a particular metadata.",
     )
     ArgumentHelper.attach_bool_arg(
         parser,
         "remove-input-dir",
         default=False,
-        help="Specify --remove-input-dir to remove the original "
-        "input directory. This is false by default.",
+        help="Specify --remove-input-dir to remove the original input directory. This is false by default.",
     )
     ArgumentHelper.attach_bool_arg(
         parser,

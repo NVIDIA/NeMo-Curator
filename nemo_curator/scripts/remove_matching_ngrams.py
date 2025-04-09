@@ -68,9 +68,7 @@ def main(args):
                 add_filename=True,
             )
         )
-        decontaminated_dataset = decontaminator.remove_matching_ngrams(
-            matched_ngrams, ngrams_freq, dataset
-        )
+        decontaminated_dataset = decontaminator.remove_matching_ngrams(matched_ngrams, ngrams_freq, dataset)
         write_to_disk(
             decontaminated_dataset.df,
             output_tdd_dir,
@@ -108,8 +106,7 @@ def attach_args(
         type=str,
         default=None,
         required=True,
-        help="Input dictionary (.pkl file) that contains matched "
-        "n-gram data from the find_matching_ngrams code.",
+        help="Input dictionary (.pkl file) that contains matched n-gram data from the find_matching_ngrams code.",
     )
     parser.add_argument(
         "--match-threshold",
@@ -142,8 +139,7 @@ def attach_args(
         type=str,
         default=None,
         required=True,
-        help="Output directory to where task-deduplicated (split) "
-        "documents will be written.",
+        help="Output directory to where task-deduplicated (split) documents will be written.",
     )
 
     return parser

@@ -111,11 +111,7 @@ def minhash_overlap(minhash1: np.array, minhash2: np.array):
 
 
 def jaccard_index(str1: str, str2: str, char_ngrams):
-    return (
-        cudf.Series([str1])
-        .str.jaccard_index(cudf.Series([str2]), width=char_ngrams)
-        .values_host[0]
-    )
+    return cudf.Series([str1]).str.jaccard_index(cudf.Series([str2]), width=char_ngrams).values_host[0]
 
 
 def generate_all_pairs(item: Iterable):
@@ -126,9 +122,7 @@ def generate_all_pairs(item: Iterable):
 class TestMinhashes:
     @pytest.mark.parametrize("use_64bit_hash", [False, True])
     @pytest.mark.parametrize("seed,char_ngrams,num_hashes", [(128, 3, 260)])
-    def test_identical_minhash(
-        self, fuzzy_dedup_data, use_64bit_hash, seed, char_ngrams, num_hashes
-    ):
+    def test_identical_minhash(self, fuzzy_dedup_data, use_64bit_hash, seed, char_ngrams, num_hashes):
         minhasher1 = MinHash(
             seed=seed,
             num_hashes=num_hashes,
@@ -152,9 +146,7 @@ class TestMinhashes:
         "use_64bit_hash,seed,char_ngrams,num_hashes",
         [(False, 42, 5, 20), (True, 32768, 10, 18)],
     )
-    def test_minhash_approximation(
-        self, fuzzy_dedup_data, use_64bit_hash, seed, char_ngrams, num_hashes
-    ):
+    def test_minhash_approximation(self, fuzzy_dedup_data, use_64bit_hash, seed, char_ngrams, num_hashes):
         THRESHOLD = 0.15
 
         minhasher = MinHash(
@@ -164,13 +156,9 @@ class TestMinhashes:
             use_64bit_hash=use_64bit_hash,
         )
         minhashes = minhasher(fuzzy_dedup_data)
-        minhash_signatures = (
-            minhashes.df["_minhash_signature"].compute().to_pandas().values
-        )
+        minhash_signatures = minhashes.df["_minhash_signature"].compute().to_pandas().values
         strings = fuzzy_dedup_data.df["text"].compute().to_pandas().values
-        for (sig1, str1), (sig2, str2) in generate_all_pairs(
-            tuple(zip(minhash_signatures, strings))
-        ):
+        for (sig1, str1), (sig2, str2) in generate_all_pairs(tuple(zip(minhash_signatures, strings))):
             true_jaccard = jaccard_index(str1, str2, char_ngrams)
             minhash_approximation = minhash_overlap(np.array(sig1), np.array(sig2))
             assert abs(true_jaccard - minhash_approximation) < THRESHOLD
@@ -230,13 +218,9 @@ class TestLSH:
         )
         buckets = lsh(self.dataset)
         buckets_df = buckets.df.compute().to_pandas()
-        buckets_df["new_id"] = list(
-            map(list, zip(buckets_df.dataset_id, buckets_df.id))
-        )
+        buckets_df["new_id"] = list(map(list, zip(buckets_df.dataset_id, buckets_df.id)))
         docs_list = buckets_df.groupby("_bucket_id").new_id.apply(list)
-        expected_df = cudf.Series(
-            [[(1, 1), (1, 2)], [(1, 2), (2, 3)], [(3, 4), (4, 5)]], name="new_id"
-        )
+        expected_df = cudf.Series([[(1, 1), (1, 2)], [(1, 2), (2, 3)], [(3, 4), (4, 5)]], name="new_id")
         assert_eq(expected_df, docs_list, check_index=False)
 
     @pytest.mark.parametrize("false_positive_check", [True, False])
@@ -294,9 +278,7 @@ class TestLSH:
         buckets = lsh(minhash_dataset)
         assert len(buckets) == 4
         assert buckets.df["_bucket_id"].nunique().compute() == 2
-        assert_eq(
-            buckets.df["id"], cudf.Series([1, 2, 1, 3], name="id"), check_index=False
-        )
+        assert_eq(buckets.df["id"], cudf.Series([1, 2, 1, 3], name="id"), check_index=False)
 
 
 @pytest.mark.gpu
@@ -340,9 +322,7 @@ class TestFuzzyDuplicates:
             num_anchors=2,
             jaccard_threshold=jaccard_threshold,
         )
-        fuzzy_duplicates = FuzzyDuplicates(
-            config=config, perform_removal=perform_removal
-        )
+        fuzzy_duplicates = FuzzyDuplicates(config=config, perform_removal=perform_removal)
         result = fuzzy_duplicates(fuzzy_dedup_data)
         result_df = result.df.compute()
         if perform_removal:
@@ -360,9 +340,7 @@ class TestFuzzyDuplicates:
             assert_eq(expected_df, result_df, check_index=False)
 
     def test_different_fields(self, fuzzy_dedup_data, tmpdir):
-        fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True).rename(
-            columns={"id": "col0", "text": "col1"}
-        )
+        fuzzy_dedup_data.df = fuzzy_dedup_data.df.reset_index(drop=True).rename(columns={"id": "col0", "text": "col1"})
         config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="col0",
@@ -482,9 +460,7 @@ class TestFuzzyDuplicates:
         )
         fuzzy_duplicates = FuzzyDuplicates(config=config, perform_removal=False)
         fuzzy_duplicates(large_fuzzy_dedup_data)
-        anchor_docs_df_cols = dask_cudf.read_parquet(
-            tmpdir / "anchor_docs_with_bk.parquet"
-        ).columns
+        anchor_docs_df_cols = dask_cudf.read_parquet(tmpdir / "anchor_docs_with_bk.parquet").columns
         assert all(f"anchor_{i}_id" in anchor_docs_df_cols for i in range(num_anchors))
 
     @pytest.mark.parametrize("use_64_bit_hash", [False, True])
@@ -541,9 +517,7 @@ class TestFuzzyDuplicates:
         gpu_client,
     ):
         # Dedup might fail when indices per partition do not start from 0
-        shuffle_fail_fuzzy_dedup_data.df = shuffle_fail_fuzzy_dedup_data.df.reset_index(
-            drop=True
-        )
+        shuffle_fail_fuzzy_dedup_data.df = shuffle_fail_fuzzy_dedup_data.df.reset_index(drop=True)
         config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
@@ -574,13 +548,9 @@ class TestFuzzyDuplicates:
         assert_eq(expected_df, result_df, check_index=False)
 
     @pytest.mark.parametrize("false_positive_check", [True, False])
-    def test_fuzzy_dedup_no_duplicates(
-        self, no_duplicates_fuzzy_dedup_data, tmpdir, false_positive_check, gpu_client
-    ):
+    def test_fuzzy_dedup_no_duplicates(self, no_duplicates_fuzzy_dedup_data, tmpdir, false_positive_check, gpu_client):
         # Dedup might fail when indices per partition do not start from 0
-        no_duplicates_fuzzy_dedup_data.df = (
-            no_duplicates_fuzzy_dedup_data.df.reset_index(drop=True)
-        )
+        no_duplicates_fuzzy_dedup_data.df = no_duplicates_fuzzy_dedup_data.df.reset_index(drop=True)
         config = FuzzyDuplicatesConfig(
             cache_dir=tmpdir,
             id_field="id",
@@ -603,31 +573,15 @@ class TestFuzzyDuplicates:
 class TestFuzzyDuplicatesConfig:
     def test_bad_inputs(self, tmpdir):
         with pytest.raises(ValueError):
-            FuzzyDuplicatesConfig(
-                cache_dir=tmpdir, num_anchors=0, false_positive_check=True
-            )
-            FuzzyDuplicatesConfig(
-                cache_dir=tmpdir, jaccard_threshold=1.2, false_positive_check=True
-            )
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=0, false_positive_check=True)
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, jaccard_threshold=1.2, false_positive_check=True)
             FuzzyDuplicatesConfig(cache_dir=tmpdir, buckets_per_shuffle=0)
-            FuzzyDuplicatesConfig(
-                cache_dir=tmpdir, buckets_per_shuffle=2, num_buckets=1
-            )
-            FuzzyDuplicatesConfig(
-                cache_dir=None, num_anchors=0, false_positive_check=True
-            )
-        with pytest.warns(
-            UserWarning, match="Using a higher number of anchor docs might"
-        ):
-            FuzzyDuplicatesConfig(
-                cache_dir=tmpdir, num_anchors=3, false_positive_check=True
-            )
-        with pytest.warns(
-            UserWarning, match="Using a small char_ngrams value might lead"
-        ):
-            FuzzyDuplicatesConfig(
-                cache_dir=tmpdir, char_ngrams=10, false_positive_check=False
-            )
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, buckets_per_shuffle=2, num_buckets=1)
+            FuzzyDuplicatesConfig(cache_dir=None, num_anchors=0, false_positive_check=True)
+        with pytest.warns(UserWarning, match="Using a higher number of anchor docs might"):
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, num_anchors=3, false_positive_check=True)
+        with pytest.warns(UserWarning, match="Using a small char_ngrams value might lead"):
+            FuzzyDuplicatesConfig(cache_dir=tmpdir, char_ngrams=10, false_positive_check=False)
         with pytest.warns(
             UserWarning,
             match="Identifying false positives during the Minhash deduplication is computationally expensive",

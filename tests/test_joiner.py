@@ -39,9 +39,7 @@ class TestDocumentJoiner:
         )
         result_dataset = joiner(dataset)
 
-        expected_df = pd.DataFrame(
-            {"id": [1, 2, 3, 4], "text": ["a|b|c", "nosplit", "start|middle", "end|"]}
-        )
+        expected_df = pd.DataFrame({"id": [1, 2, 3, 4], "text": ["a|b|c", "nosplit", "start|middle", "end|"]})
         assert_eq(
             result_dataset.df.compute().reset_index(drop=True),
             expected_df,
@@ -135,14 +133,8 @@ class TestDocumentJoiner:
             ]
         )
         # Sort by id and text to ensure consistent order
-        expected_sorted = expected_df.sort_values(by=["id", "text"]).reset_index(
-            drop=True
-        )
-        result_sorted = (
-            result_dataset.df.compute()
-            .sort_values(by=["id", "text"])
-            .reset_index(drop=True)
-        )
+        expected_sorted = expected_df.sort_values(by=["id", "text"]).reset_index(drop=True)
+        result_sorted = result_dataset.df.compute().sort_values(by=["id", "text"]).reset_index(drop=True)
         assert_eq(result_sorted, expected_sorted, check_index=False)
 
     def test_join_with_string_ids(self):

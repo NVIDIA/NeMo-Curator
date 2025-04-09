@@ -264,9 +264,7 @@ class TestAsyncNemotronCCGenerator:
         )
 
         # Check if the extra parameter was used in formatting
-        user_content = mock_llm_client.query_model.call_args[1]["messages"][1][
-            "content"
-        ]
+        user_content = mock_llm_client.query_model.call_args[1]["messages"][1]["content"]
         assert "extra value" in user_content
 
         # Check that the result is returned properly

@@ -31,9 +31,7 @@ def convert_json_gz_to_jsonl(input_dir, output_dir, partition_size=2):
     for filename in os.listdir(input_dir):
         if filename.endswith(".json.gz"):
             input_path = os.path.join(input_dir, filename)
-            output_filename = (
-                os.path.splitext(os.path.splitext(filename)[0])[0] + ".jsonl"
-            )
+            output_filename = os.path.splitext(os.path.splitext(filename)[0])[0] + ".jsonl"
             output_path = os.path.join(output_dir, output_filename)
             file_paths.append((input_path, output_path))
 

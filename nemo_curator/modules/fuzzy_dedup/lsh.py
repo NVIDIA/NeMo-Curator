@@ -71,15 +71,11 @@ class LSH:
         self.id_fields = [id_fields] if isinstance(id_fields, str) else id_fields
         self.minhash_field = minhash_field
         self.buckets_per_shuffle = buckets_per_shuffle
-        self.bucket_ranges = self._generate_bucket_ranges(
-            self.num_buckets, self.num_hashes
-        )
+        self.bucket_ranges = self._generate_bucket_ranges(self.num_buckets, self.num_hashes)
         self.buckets_as_int = false_positive_check
 
         if cache_dir is None:
-            raise ValueError(
-                "cache_dir for intermediate outputs is required for this stage"
-            )
+            raise ValueError("cache_dir for intermediate outputs is required for this stage")
         self.cache_dir = cache_dir
         self.profile_dir = profile_dir
 
@@ -92,9 +88,7 @@ class LSH:
         else:
             self._logger = logger
 
-    def _generate_bucket_ranges(
-        self, num_buckets: int, num_hashes: int
-    ) -> List[List[int]]:
+    def _generate_bucket_ranges(self, num_buckets: int, num_hashes: int) -> List[List[int]]:
         """
         Generates a list of indices for the minhash ranges given num_bands &
         num_hashes.
@@ -104,11 +98,7 @@ class LSH:
         minhashes_per_bucket = num_hashes // num_buckets
 
         bucket_ranges = [
-            list(
-                range(
-                    bucket * minhashes_per_bucket, (bucket + 1) * minhashes_per_bucket
-                )
-            )
+            list(range(bucket * minhashes_per_bucket, (bucket + 1) * minhashes_per_bucket))
             for bucket in range(num_buckets)
         ]
         return bucket_ranges
@@ -121,9 +111,7 @@ class LSH:
         df2 = df[self.id_fields]
         for i, h in enumerate(bucket_ranges):
             indices = cudf.Series([h]).repeat(len(df2))
-            df2[f"_bucket_{i}"] = f"b{i}_" + df[self.minhash_field].list.take(
-                indices
-            ).hash_values(method="md5")
+            df2[f"_bucket_{i}"] = f"b{i}_" + df[self.minhash_field].list.take(indices).hash_values(method="md5")
         return df2
 
     def bucket_id_to_int(
@@ -136,25 +124,19 @@ class LSH:
         Maps bucket ids to a contigious integer range from starting from start_id.
         """
         unique_bucket_df = (
-            bucket_ddf[[bucket_col_name]]
-            .map_partitions(lambda x: x.drop_duplicates(ignore_index=True))
-            .persist()
+            bucket_ddf[[bucket_col_name]].map_partitions(lambda x: x.drop_duplicates(ignore_index=True)).persist()
         )
         end_bucket_id = len(unique_bucket_df) - 1 + start_id
         unique_bucket_df["bucket_int_id"] = np.uint64(1)
         unique_bucket_df["bucket_int_id"] = unique_bucket_df["bucket_int_id"].cumsum()
-        unique_bucket_df["bucket_int_id"] = (
-            unique_bucket_df["bucket_int_id"] - 1 + start_id
-        )
+        unique_bucket_df["bucket_int_id"] = unique_bucket_df["bucket_int_id"] - 1 + start_id
         bucket_ddf = bucket_ddf.merge(unique_bucket_df, on=[bucket_col_name])
         bucket_ddf = bucket_ddf.drop(columns=[bucket_col_name])
         bucket_ddf = bucket_ddf.rename(columns={"bucket_int_id": "_bucket_id"})
         bucket_ddf["_bucket_id"] = bucket_ddf["_bucket_id"].astype(np.uint64)
         return (bucket_ddf, end_bucket_id)
 
-    def _minhash_to_bucket_meta(
-        self, df: dask_cudf.DataFrame
-    ) -> Tuple[cudf.DataFrame, int]:
+    def _minhash_to_bucket_meta(self, df: dask_cudf.DataFrame) -> Tuple[cudf.DataFrame, int]:
         meta = df._meta_nonempty[self.id_fields]
         meta[self.minhash_field] = [np.ones(self.num_hashes)] * len(meta)
         return self.minhash_to_buckets(meta, self.bucket_ranges)
@@ -184,10 +166,7 @@ class LSH:
         )
         bucket_start_id = 0
         for i in range(0, self.num_buckets, self.buckets_per_shuffle):
-            bucket_columns = [
-                f"_bucket_{i}"
-                for i in range(i, min(self.num_buckets, i + self.buckets_per_shuffle))
-            ]
+            bucket_columns = [f"_bucket_{i}" for i in range(i, min(self.num_buckets, i + self.buckets_per_shuffle))]
             df2 = df.melt(
                 id_vars=self.id_fields,
                 value_name="_bucket_id",
@@ -203,14 +182,10 @@ class LSH:
             df2 = df2.reset_index(drop=True)
             # Buckets to Int
             if self.buckets_as_int:
-                df2, end_id = self.bucket_id_to_int(
-                    df2, bucket_col_name="_bucket_id", start_id=bucket_start_id
-                )
+                df2, end_id = self.bucket_id_to_int(df2, bucket_col_name="_bucket_id", start_id=bucket_start_id)
                 # If bucketing return empty dataframe
                 if end_id < bucket_start_id:
-                    self._logger.info(
-                        f"No duplicate documents found for buckets: {bucket_columns}"
-                    )
+                    self._logger.info(f"No duplicate documents found for buckets: {bucket_columns}")
                     continue
                 bucket_start_id = end_id + 1
                 are_buckets_empty = False
@@ -246,9 +221,7 @@ class LSH:
         """
         if not wrote_buckets:
             if os.path.exists(write_path):
-                warnings.warn(
-                    f"Output path {write_path} already exists and will be overwritten"
-                )
+                warnings.warn(f"Output path {write_path} already exists and will be overwritten")
             df.to_parquet(write_path, write_index=False, overwrite=True)
         else:
             df.to_parquet(
@@ -264,9 +237,7 @@ class LSH:
         wrote_buckets = True
 
         if are_buckets_empty:
-            self._logger.info(
-                f"No duplicate documents found for buckets: {buckets_to_write}"
-            )
+            self._logger.info(f"No duplicate documents found for buckets: {buckets_to_write}")
         else:
             self._logger.info(f"Wrote data for buckets: {buckets_to_write}")
         return wrote_buckets, are_buckets_empty
@@ -278,9 +249,7 @@ class LSH:
         t0 = time.time()
         with performance_report_if_with_ts_suffix(self.profile_dir, "lsh-profile"):
             empty_result = self.lsh(write_path=write_path, df=df)
-        self._logger.info(
-            f"Time taken for LSH = {time.time() - t0}s and output written at {write_path}"
-        )
+        self._logger.info(f"Time taken for LSH = {time.time() - t0}s and output written at {write_path}")
 
         if empty_result:
             return None

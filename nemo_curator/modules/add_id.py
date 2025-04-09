@@ -24,9 +24,7 @@ from nemo_curator.utils.module_utils import count_digits
 
 
 class AddId(BaseModule):
-    def __init__(
-        self, id_field, id_prefix: str = "doc_id", start_index: Optional[int] = None
-    ) -> None:
+    def __init__(self, id_field, id_prefix: str = "doc_id", start_index: Optional[int] = None) -> None:
         super().__init__(input_backend="any")
         self.id_field = id_field
         self.id_prefix = id_prefix
@@ -79,13 +77,9 @@ class AddId(BaseModule):
         lower_id_bounds = delayed(np.cumsum)(parition_lengths)
         delayed_id_dataset = []
         for i, partition in enumerate(delayed_dataset):
-            delayed_id_dataset.append(
-                delayed(self._add_id_ordered_partition)(partition, lower_id_bounds[i])
-            )
+            delayed_id_dataset.append(delayed(self._add_id_ordered_partition)(partition, lower_id_bounds[i]))
 
-        id_dataset = DocumentDataset(
-            dataset_df=dd.from_delayed(delayed_id_dataset, meta=original_meta)
-        )
+        id_dataset = DocumentDataset(dataset_df=dd.from_delayed(delayed_id_dataset, meta=original_meta))
 
         return id_dataset
 

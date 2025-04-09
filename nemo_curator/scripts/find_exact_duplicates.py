@@ -32,9 +32,7 @@ def pre_imports():
 
 
 def main(args):
-    logger = create_logger(
-        rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="exact_dedup"
-    )
+    logger = create_logger(rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="exact_dedup")
     logger.info(f"Starting workflow with args:\n {args}")
 
     assert args.hash_method == "md5", "Currently only md5 hash is supported"
@@ -55,9 +53,7 @@ def main(args):
         if num_files is not None and num_files <= 0:
             logger.info(f"Processed {num_files}... quitting")
             break
-        files = get_all_files_paths_under(
-            root=data_path, recurse_subdirectories=False, keep_extensions="jsonl"
-        )
+        files = get_all_files_paths_under(root=data_path, recurse_subdirectories=False, keep_extensions="jsonl")
         df = read_data(
             files[:num_files] if num_files else files,
             file_type="jsonl",

@@ -34,9 +34,7 @@ def main(args):
     )
 
     files = get_all_files_paths_under(args.input_data_dir)
-    dataset = DocumentDataset(
-        read_data(files, file_type=args.input_file_type, backend="pandas")
-    )
+    dataset = DocumentDataset(read_data(files, file_type=args.input_file_type, backend="pandas"))
 
     result = decontaminator.find_matching_ngrams(task_ngrams, dataset).compute()
     print(f"Found a total of {len(result['matched-ngrams'])} matching n-grams")

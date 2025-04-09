@@ -79,22 +79,16 @@ class BucketsToEdges:
             self._logger = logger
 
     @staticmethod
-    def _combine_multiple_ids(
-        input_df: cudf.DataFrame, input_id_fields: list, output_id_field: str
-    ) -> cudf.DataFrame:
+    def _combine_multiple_ids(input_df: cudf.DataFrame, input_id_fields: list, output_id_field: str) -> cudf.DataFrame:
         if output_id_field in input_df.columns:
-            raise ValueError(
-                f"Input df already contains column named: {output_id_field}"
-            )
+            raise ValueError(f"Input df already contains column named: {output_id_field}")
 
         output_df = input_df.copy()[input_df.columns.difference(input_id_fields)]
 
         output_df[output_id_field] = input_df[input_id_fields[0]].astype(str)
         for input_field in input_id_fields[1:]:
             output_df[output_id_field] = output_df[output_id_field] = (
-                input_df[input_id_fields[0]].astype(str)
-                + "-"
-                + input_df[input_field].astype(str)
+                input_df[input_id_fields[0]].astype(str) + "-" + input_df[input_field].astype(str)
             )
 
         return output_df
@@ -103,11 +97,7 @@ class BucketsToEdges:
         self,
         buckets_df: cudf.DataFrame,
     ) -> cudf.DataFrame:
-        grouped_buckets = (
-            buckets_df.groupby(self.bucket_field)[self.str_id_name]
-            .agg(list)
-            .list.sort_values()
-        )
+        grouped_buckets = buckets_df.groupby(self.bucket_field)[self.str_id_name].agg(list).list.sort_values()
         bucket_docs = grouped_buckets.to_arrow().to_pylist()
         edges = []
         # Create pairs of all documents within a bucket since they are near duplicates
@@ -141,9 +131,7 @@ class BucketsToEdges:
 
         write_path = os.path.join(self.cache_dir, "_edges.parquet")
         if os.path.exists(write_path):
-            warnings.warn(
-                f"Output path {write_path} already exists and will be overwritten"
-            )
+            warnings.warn(f"Output path {write_path} already exists and will be overwritten")
         t0 = time.time()
         with performance_report_if_with_ts_suffix(
             self.profile_dir,
@@ -154,6 +142,4 @@ class BucketsToEdges:
             f"Time taken for Converted Buckets To Edgelist = {time.time() - t0}s and output written at {write_path}"
         )
 
-        return DocumentDataset(
-            dask_cudf.read_parquet(write_path, split_row_groups=False)
-        )
+        return DocumentDataset(dask_cudf.read_parquet(write_path, split_row_groups=False))

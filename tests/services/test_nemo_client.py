@@ -55,9 +55,7 @@ class TestNemoDeployClient:
         )
 
         # Check if formatter was called with the right messages
-        mock_conversation_formatter.format_conversation.assert_called_once_with(
-            messages
-        )
+        mock_conversation_formatter.format_conversation.assert_called_once_with(messages)
 
         # Check if NemoQueryLLM client was called with the right parameters
         mock_nemo_deploy.query_llm.assert_called_once()
@@ -68,9 +66,7 @@ class TestNemoDeployClient:
         # Check result
         assert result == ["This is a mock NeMo response"]
 
-    def test_query_model_with_all_parameters(
-        self, mock_nemo_deploy, mock_conversation_formatter
-    ):
+    def test_query_model_with_all_parameters(self, mock_nemo_deploy, mock_conversation_formatter):
         """Test the query_model method with all possible parameters."""
         client = NemoDeployClient(mock_nemo_deploy)
         messages = [{"role": "user", "content": "Hello"}]
@@ -108,9 +104,7 @@ class TestNemoDeployClient:
         # Check result and postprocessing (stop words should be removed)
         assert result == ["Response with"]
 
-    def test_query_model_with_string_stop(
-        self, mock_nemo_deploy, mock_conversation_formatter
-    ):
+    def test_query_model_with_string_stop(self, mock_nemo_deploy, mock_conversation_formatter):
         """Test that query_model properly handles string stop words."""
         client = NemoDeployClient(mock_nemo_deploy)
         messages = [{"role": "user", "content": "Hello"}]
@@ -129,9 +123,7 @@ class TestNemoDeployClient:
         call_args = mock_nemo_deploy.query_llm.call_args[1]
         assert call_args["stop_words_list"] == ["stop_word"]
 
-    def test_query_model_with_none_stop(
-        self, mock_nemo_deploy, mock_conversation_formatter
-    ):
+    def test_query_model_with_none_stop(self, mock_nemo_deploy, mock_conversation_formatter):
         """Test that query_model properly handles None stop words."""
         client = NemoDeployClient(mock_nemo_deploy)
         messages = [{"role": "user", "content": "Hello"}]
@@ -140,9 +132,7 @@ class TestNemoDeployClient:
         mock_nemo_deploy.query_llm.return_value = [["Response text"]]
 
         # Patch the _postprocess_response method to avoid the None error
-        with patch.object(
-            NemoDeployClient, "_postprocess_response", return_value=["Response text"]
-        ):
+        with patch.object(NemoDeployClient, "_postprocess_response", return_value=["Response text"]):
             client.query_model(
                 messages=messages,
                 model="nemo_model",
@@ -210,9 +200,7 @@ class TestNemoDeployClient:
         client = NemoDeployClient(mock_nemo_deploy)
         messages = [{"role": "user", "content": "Hello"}]
 
-        with pytest.raises(
-            NotImplementedError, match="not supported in NeMo Deploy Clients"
-        ):
+        with pytest.raises(NotImplementedError, match="not supported in NeMo Deploy Clients"):
             client.query_reward_model(
                 messages=messages,
                 model="reward_model",

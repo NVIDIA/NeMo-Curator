@@ -12,9 +12,7 @@ def ensure_directory_exists(filename: str):
 def process_data(input_folder, output_folder, prefix, partition_size="512MB"):
     raw_files = get_all_files_paths_under(input_folder)
     raw_data = DocumentDataset.read_parquet(raw_files)
-    raw_data_rep = DocumentDataset(
-        raw_data.df.repartition(partition_size=partition_size)
-    )
+    raw_data_rep = DocumentDataset(raw_data.df.repartition(partition_size=partition_size))
     add_id = AddId(id_field="nemo_id", id_prefix=prefix)
     data_with_id = add_id(raw_data_rep)
     ensure_directory_exists(output_folder)

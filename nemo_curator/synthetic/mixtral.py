@@ -23,15 +23,11 @@ class Mixtral8x7BFormatter(ConversationFormatter):
 
             if user_turn:
                 if turn["role"] != "user":
-                    raise ValueError(
-                        f"Conversation turn {i} is not 'user'. All even number turns should be."
-                    )
+                    raise ValueError(f"Conversation turn {i} is not 'user'. All even number turns should be.")
                 prompt += turn["content"] + " [/INST]"
             else:
                 if turn["role"] != "assistant":
-                    raise ValueError(
-                        f"Conversation turn {i} is not 'assistant'. All odd number turns should be."
-                    )
+                    raise ValueError(f"Conversation turn {i} is not 'assistant'. All odd number turns should be.")
                 prompt += turn["content"] + "</s>[INST] "
 
         return prompt

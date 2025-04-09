@@ -44,9 +44,7 @@ class CustomNlpEngine(SpacyNlpEngine):
         for model in self.models:
             self._validate_model_params(model)
             self._download_spacy_model_if_needed(model["model_name"])
-            self.nlp[model["lang_code"]] = spacy.load(
-                model["model_name"], enable=["ner"]
-            )
+            self.nlp[model["lang_code"]] = spacy.load(model["model_name"], enable=["ner"])
 
     def process_batch(
         self,
@@ -69,8 +67,6 @@ class CustomNlpEngine(SpacyNlpEngine):
             raise ValueError("NLP engine is not loaded. Consider calling .load()")
 
         texts = [str(text) for text in texts]
-        docs = self.nlp[language].pipe(
-            texts, as_tuples=as_tuples, batch_size=batch_size
-        )
+        docs = self.nlp[language].pipe(texts, as_tuples=as_tuples, batch_size=batch_size)
         for doc in docs:
             yield doc.text, self._doc_to_nlp_artifact(doc, language)

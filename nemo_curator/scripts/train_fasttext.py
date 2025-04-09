@@ -123,8 +123,7 @@ out to disk as a FastText model.
 
     argumentHelper.add_arg_seed(default=1992)
     argumentHelper.add_arg_output_train_file(
-        help="The concatenated, shuffled samples used "
-        "to train the skip-gram classifier.",
+        help="The concatenated, shuffled samples used to train the skip-gram classifier.",
         default="./fasttext_samples.train",
     )
     parser.add_argument(
@@ -132,8 +131,7 @@ out to disk as a FastText model.
         type=str,
         default=None,
         required=True,
-        help="The input directory containing the file(s) "
-        "with the prepared FastText samples.",
+        help="The input directory containing the file(s) with the prepared FastText samples.",
     )
     parser.add_argument(
         "--high-quality-label",
@@ -171,8 +169,7 @@ out to disk as a FastText model.
         "--output-validation-file",
         type=str,
         default="./fasttext_samples.valid",
-        help="The concatenated, shuffled samples used "
-        "for computing validation metrics.",
+        help="The concatenated, shuffled samples used for computing validation metrics.",
     )
     parser.add_argument(
         "--validation-split",
@@ -184,8 +181,7 @@ out to disk as a FastText model.
         "--wordNgrams",
         type=int,
         default=2,
-        help="The size of the word n-gram used to train the classifier. "
-        "Default is bigram.",
+        help="The size of the word n-gram used to train the classifier. Default is bigram.",
     )
     parser.add_argument(
         "--word-vector-dim",

@@ -93,9 +93,7 @@ class EmailsExtractor(DocumentExtractor):
     def __init__(self):
         super().__init__()
         # The regular expression pattern to extract subject/body/label into groups.
-        self._pattern = re.compile(
-            r"Subject:: (.*?)\nBody:: (.*?)\n.*\[/INST\] (.*?) <s>", re.DOTALL
-        )
+        self._pattern = re.compile(r"Subject:: (.*?)\nBody:: (.*?)\n.*\[/INST\] (.*?) <s>", re.DOTALL)
 
     def extract(self, content: str) -> Dict[str, str]:
         matches = self._pattern.findall(content)

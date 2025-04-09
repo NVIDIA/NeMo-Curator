@@ -30,9 +30,7 @@ from nemo_curator.synthetic.generator import SyntheticDataGenerator
 from nemo_curator.utils.distributed_utils import load_object_on_worker
 
 tqdm.pandas()
-config = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
-)
+config = importlib.import_module("tutorials.nemo-retriever-synthetic-data-generation.config.config")
 RetrieverEvalSDGConfig = config.RetrieverEvalSDGConfig
 
 
@@ -178,9 +176,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         # Generates a secure, random string of 16 bytes hex-encoded
 
         # Hash the random string using SHA-256
-        hash_object = hashlib.sha256(
-            random_string.encode()
-        )  # Encode the string to bytes
+        hash_object = hashlib.sha256(random_string.encode())  # Encode the string to bytes
         hex_dig = hash_object.hexdigest()
         return hex_dig
 

@@ -154,9 +154,7 @@ def two_lists_to_parallel_dataset(
 
 @pytest.fixture
 def letter_count_data():
-    return list_to_dataset(
-        ["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"], col_name="documents"
-    )
+    return list_to_dataset(["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"], col_name="documents")
 
 
 @pytest.fixture
@@ -189,9 +187,7 @@ class TestFilterModule:
 
         expected_indices = [2, 3]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_score(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -205,9 +201,7 @@ class TestFilterModule:
 
         expected_scores = pd.Series([2, 3, 5, 7])
         scores = scored_data.df[score_field]
-        assert all(expected_scores == scores.compute()), (
-            f"Expected {expected_scores} but got {scores}"
-        )
+        assert all(expected_scores == scores.compute()), f"Expected {expected_scores} but got {scores}"
 
     def test_score_document(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -228,9 +222,7 @@ class TestFilterModule:
     def test_retain_score_filter(self, letter_count_data):
         letter_filter = LetterCountFilter()
         score_field = "count_a"
-        filter_step = ScoreFilter(
-            letter_filter, text_field="documents", score_field=score_field
-        )
+        filter_step = ScoreFilter(letter_filter, text_field="documents", score_field=score_field)
         filtered_data = filter_step(letter_count_data)
 
         expected_indices = [2, 3]
@@ -238,9 +230,7 @@ class TestFilterModule:
         expected_data = letter_count_data.df.compute().loc[expected_indices]
         expected_data = DocumentDataset(dd.from_pandas(expected_data, 2))
         expected_data.df[score_field] = pd.Series([5, 7], index=expected_data.df.index)
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_filter(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -260,9 +250,7 @@ class TestFilterModule:
         expected_data = dd.from_pandas(expected_data, 2)
         expected_data[score_field] = pd.Series([5, 7], index=expected_data.index)
         expected_data = DocumentDataset(expected_data)
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_filter_document(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -293,9 +281,7 @@ class TestFilterModule:
 
         expected_indices = [0, 1]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_sequential_filter(self, letter_count_data):
         filters = Sequential(
@@ -308,9 +294,7 @@ class TestFilterModule:
 
         expected_indices = [3]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_batch_score_filter(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
@@ -319,9 +303,7 @@ class TestFilterModule:
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_batch_score(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
@@ -335,9 +317,7 @@ class TestFilterModule:
 
         expected_scores = pd.Series([6, 11, 11, 13])
         scores = scored_data.df[score_field]
-        assert all(expected_scores == scores.compute()), (
-            f"Expected {expected_scores} but got {scores}"
-        )
+        assert all(expected_scores == scores.compute()), f"Expected {expected_scores} but got {scores}"
 
     def test_batch_score_document(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
@@ -371,9 +351,7 @@ class TestFilterModule:
         expected_data = letter_count_data.df.loc[expected_indices]
         expected_data[score_field] = pd.Series([11, 11], index=expected_data.index)
         expected_data = DocumentDataset(expected_data)
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_batch_filter_document(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
@@ -402,9 +380,7 @@ class TestFilterModule:
 
         expected_indices = [2, 3]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_score_type(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -419,9 +395,7 @@ class TestFilterModule:
 
         expected_scores = pd.Series([2, 3, 5, 7])
         scores = scored_data.df[score_field]
-        assert all(expected_scores == scores.compute()), (
-            f"Expected {expected_scores} but got {scores}"
-        )
+        assert all(expected_scores == scores.compute()), f"Expected {expected_scores} but got {scores}"
 
     def test_score_type_document(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -453,25 +427,17 @@ class TestFilterModule:
 
         expected_indices = [2]
         expected_data = DocumentDataset(letter_count_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_parallel_score_filter(self, parallel_letter_count_data):
         src_letter_count_filter = LetterCountFilter(min_count=2)
         tgt_letter_count_filter = LetterCountFilter(min_count=3)
-        filter_step = ParallelScoreFilter(
-            src_letter_count_filter, tgt_letter_count_filter
-        )
+        filter_step = ParallelScoreFilter(src_letter_count_filter, tgt_letter_count_filter)
         filtered_data = filter_step(parallel_letter_count_data)
 
         expected_indices = [2, 3, 4]
-        expected_data = ParallelDataset(
-            parallel_letter_count_data.df.loc[expected_indices]
-        )
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        expected_data = ParallelDataset(parallel_letter_count_data.df.loc[expected_indices])
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_joint_score_filter(self, length_ratio_data):
         filter_ = LengthRatioFilter(
@@ -485,24 +451,18 @@ class TestFilterModule:
 
         expected_indices = [0, 2]
         expected_data = ParallelDataset(length_ratio_data.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
 
 class TestHeuristicFilters:
     def test_nonalpha(self):
-        dataset = list_to_dataset(
-            ["", "This is a test case.", "%$^%$^%$&^$()))))", "$aaa"]
-        )
+        dataset = list_to_dataset(["", "This is a test case.", "%$^%$^%$&^$()))))", "$aaa"])
         filters = ScoreFilter(NonAlphaNumericFilter())
         filtered_data = filters(dataset)
 
         expected_indices = [1, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_symbolswords(self):
         dataset = list_to_dataset(
@@ -518,22 +478,16 @@ class TestHeuristicFilters:
 
         expected_indices = [1, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_numbers(self):
-        dataset = list_to_dataset(
-            ["purely letters", "34134543", "$!@$@!$!@", "abcdefghi1"]
-        )
+        dataset = list_to_dataset(["purely letters", "34134543", "$!@$@!$!@", "abcdefghi1"])
         filters = ScoreFilter(NumbersFilter(max_number_to_text_ratio=0.1))
         filtered_data = filters(dataset)
 
         expected_indices = [0, 2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_urls(self):
         dataset = list_to_dataset(
@@ -550,9 +504,7 @@ class TestHeuristicFilters:
 
         expected_indices = [1, 2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_bullets(self):
         dataset = list_to_dataset(
@@ -568,9 +520,7 @@ class TestHeuristicFilters:
 
         expected_indices = [1, 2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_whitespace(self):
         dataset = list_to_dataset(["\t\n\r", "good", "50%\n\n\n", "123\b"])
@@ -579,22 +529,16 @@ class TestHeuristicFilters:
 
         expected_indices = [1, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_parentheses(self):
-        dataset = list_to_dataset(
-            ["()", "(not good)", "this is completely absolutely fine", "123456789("]
-        )
+        dataset = list_to_dataset(["()", "(not good)", "this is completely absolutely fine", "123456789("])
         filters = ScoreFilter(ParenthesesFilter())
         filtered_data = filters(dataset)
 
         expected_indices = [2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_longword(self):
         dataset = list_to_dataset(["tiny", "large"])
@@ -603,22 +547,16 @@ class TestHeuristicFilters:
 
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_wordcount(self):
-        dataset = list_to_dataset(
-            ["", "one", "two words", "$#@$ %$@$#@ !#@!", "one two three four five"]
-        )
+        dataset = list_to_dataset(["", "one", "two words", "$#@$ %$@$#@ !#@!", "one two three four five"])
         filters = ScoreFilter(WordCountFilter(min_words=2, max_words=4))
         filtered_data = filters(dataset)
 
         expected_indices = [2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_wordcount_zh(self):
         dataset = list_to_dataset(["", "你好。", "我喜欢学习中文。"])
@@ -627,22 +565,16 @@ class TestHeuristicFilters:
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_wordcount_ja(self):
-        dataset = list_to_dataset(
-            ["", "猫が寝ます。", "私は日本語のテキストを分割します。"]
-        )
+        dataset = list_to_dataset(["", "猫が寝ます。", "私は日本語のテキストを分割します。"])
         filters = ScoreFilter(WordCountFilter(min_words=5, max_words=11, lang="ja"))
         filtered_data = filters(dataset)
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_boilerplate(self):
         dataset = list_to_dataset(
@@ -657,9 +589,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0, 1]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_meanwordlength(self):
         dataset = list_to_dataset(
@@ -676,9 +606,7 @@ class TestHeuristicFilters:
 
         expected_indices = [2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_repeatedlines(self):
         dataset = list_to_dataset(["totally unique", "half.\nhalf."])
@@ -687,9 +615,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_repeatedparagraphs(self):
         dataset = list_to_dataset(["totally unique", "half.\n\nhalf."])
@@ -698,9 +624,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_repeatedlineschar(self):
         dataset = list_to_dataset(
@@ -716,9 +640,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0, 1]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_repeatedparagraphschar(self):
         dataset = list_to_dataset(
@@ -734,9 +656,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0, 1]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_repeatingtopngrams(self):
         dataset = list_to_dataset(
@@ -752,52 +672,34 @@ class TestHeuristicFilters:
 
         expected_indices = [0, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_repeatingduplicatengrams(self):
-        dataset = list_to_dataset(
-            ["a a b b a a b b", "totally fine", "a a a a this should be fine as well"]
-        )
+        dataset = list_to_dataset(["a a b b a a b b", "totally fine", "a a a a this should be fine as well"])
         filters = ScoreFilter(RepeatingDuplicateNGramsFilter())
         filtered_data = filters(dataset)
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_punctuation(self):
-        dataset = list_to_dataset(
-            ["not good", "good.", "just\n barely\n fine\n ok\n yep."]
-        )
-        filters = ScoreFilter(
-            PunctuationFilter(max_num_sentences_without_endmark_ratio=0.8)
-        )
+        dataset = list_to_dataset(["not good", "good.", "just\n barely\n fine\n ok\n yep."])
+        filters = ScoreFilter(PunctuationFilter(max_num_sentences_without_endmark_ratio=0.8))
         filtered_data = filters(dataset)
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_ellipsis(self):
-        dataset = list_to_dataset(
-            ["not good...", "good.", "just...\n barely...\n fine...\n ok...\n yep."]
-        )
-        filters = ScoreFilter(
-            EllipsisFilter(max_num_lines_ending_with_ellipsis_ratio=0.8)
-        )
+        dataset = list_to_dataset(["not good...", "good.", "just...\n barely...\n fine...\n ok...\n yep."])
+        filters = ScoreFilter(EllipsisFilter(max_num_lines_ending_with_ellipsis_ratio=0.8))
         filtered_data = filters(dataset)
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_commonenglishwords(self):
         dataset = list_to_dataset(["uncommon", "the and", "the and and of to"])
@@ -806,9 +708,7 @@ class TestHeuristicFilters:
 
         expected_indices = [1, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_wordswithoutalphabets(self):
         dataset = list_to_dataset(["totally fine", "good good good good !", "@"])
@@ -817,9 +717,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0, 1]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_pornographicurls(self):
         dataset = list_to_dataset(
@@ -834,9 +732,7 @@ class TestHeuristicFilters:
 
         expected_indices = [0, 1]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_histogram(self):
         dataset = list_to_dataset(
@@ -859,12 +755,8 @@ class TestHeuristicFilters:
 
         filtered_data1 = filter1(dataset)
         filtered_data2 = filter2(dataset)
-        assert all_equal(expected_data1, filtered_data1), (
-            f"Expected {expected_data1} but got {filtered_data1}"
-        )
-        assert all_equal(expected_data2, filtered_data2), (
-            f"Expected {expected_data2} but got {filtered_data2}"
-        )
+        assert all_equal(expected_data1, filtered_data1), f"Expected {expected_data1} but got {filtered_data1}"
+        assert all_equal(expected_data2, filtered_data2), f"Expected {expected_data2} but got {filtered_data2}"
 
 
 class TestTokenCountFilter:
@@ -1049,9 +941,7 @@ class TestCodeFilters:
 
         expected_indices = [0, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_general_commment_to_code(self):
         doc_1 = '// Good code\nprintf("hello world\\n")'
@@ -1064,9 +954,7 @@ class TestCodeFilters:
 
         expected_indices = [0, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_number_lines_code(self):
         doc_1 = """print("too short")"""
@@ -1082,22 +970,16 @@ class TestCodeFilters:
 
         expected_indices = [1]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_xml_header(self):
-        dataset = list_to_dataset(
-            ["no header", "<?xml version=1.0>", "slightly offset <?xml version="]
-        )
+        dataset = list_to_dataset(["no header", "<?xml version=1.0>", "slightly offset <?xml version="])
         filters = ScoreFilter(XMLHeaderFilter())
         filtered_data = filters(dataset)
 
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_alpha(self):
         dataset = list_to_dataset(["full of alphabet", "<>?$#@!", "mixed <>"])
@@ -1106,9 +988,7 @@ class TestCodeFilters:
 
         expected_indices = [0, 2]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_html_boilerplate(self):
         good_doc = """
@@ -1152,9 +1032,7 @@ class TestCodeFilters:
 
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     @pytest.fixture
     def per_extension_filter(self):
@@ -1185,9 +1063,7 @@ class TestCodeFilters:
         expected_indices = [0]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
 
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     @pytest.mark.parametrize(
         "content,expected",
@@ -1200,9 +1076,7 @@ class TestCodeFilters:
     )
     def test_line_statistics(self, per_extension_filter, content, expected):
         line_statistics = per_extension_filter._line_statistics(content)
-        assert line_statistics == expected, (
-            f"Expected {expected} but got {line_statistics}"
-        )
+        assert line_statistics == expected, f"Expected {expected} but got {line_statistics}"
 
 
 class FakeQualityFilter(DocumentFilter):
@@ -1257,9 +1131,7 @@ class TestClassifierFilters:
 
         expected_indices = [1, 2, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_fake_langid_filter(self):
         dataset = list_to_dataset(["a", "b", "c", "d"], npartitions=1)
@@ -1268,13 +1140,9 @@ class TestClassifierFilters:
 
         expected_indices = [0, 1, 3]
         expected_data = DocumentDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
-    @pytest.mark.skipif(
-        is_unavailable(comet), reason="Test depends on COMET but it's not installed."
-    )
+    @pytest.mark.skipif(is_unavailable(comet), reason="Test depends on COMET but it's not installed.")
     def test_comet_qe_filter(self):
         dataset = two_lists_to_parallel_dataset(
             [
@@ -1304,9 +1172,7 @@ class TestClassifierFilters:
 
         expected_indices = [0]
         expected_data = ParallelDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
         client.close()
 
     @pytest.mark.skipif(
@@ -1342,7 +1208,5 @@ class TestClassifierFilters:
 
         expected_indices = [0]
         expected_data = ParallelDataset(dataset.df.loc[expected_indices])
-        assert all_equal(expected_data, filtered_data), (
-            f"Expected {expected_data} but got {filtered_data}"
-        )
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
         client.close()

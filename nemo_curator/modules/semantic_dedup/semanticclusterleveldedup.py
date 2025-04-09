@@ -81,9 +81,7 @@ class SemanticClusterLevelDedup:
         self.which_to_keep = which_to_keep
         self.sim_metric = sim_metric
         self.output_dir = output_dir
-        self.semdedup_pruning_tables_dir = os.path.join(
-            output_dir, "semdedup_pruning_tables"
-        )
+        self.semdedup_pruning_tables_dir = os.path.join(output_dir, "semdedup_pruning_tables")
         self.computed_semantic_match_dfs = False
         self.embedding_column = embedding_column
         self.batched_cosine_similarity = batched_cosine_similarity
@@ -113,19 +111,13 @@ class SemanticClusterLevelDedup:
 
     def compute_semantic_match_dfs(self) -> None:
         if os.path.exists(self.semdedup_pruning_tables_dir):
-            self.logger.info(
-                f"Removing existing directory {self.semdedup_pruning_tables_dir}"
-            )
+            self.logger.info(f"Removing existing directory {self.semdedup_pruning_tables_dir}")
             shutil.rmtree(self.semdedup_pruning_tables_dir)
         expand_outdir_and_mkdir(self.semdedup_pruning_tables_dir)
         t0 = time.time()
 
-        with performance_report_if_with_ts_suffix(
-            self.profile_dir, "semantic-match-compute"
-        ):
-            tasks = db.from_sequence(
-                list(range(self.n_clusters)), npartitions=self.n_clusters
-            ).map(
+        with performance_report_if_with_ts_suffix(self.profile_dir, "semantic-match-compute"):
+            tasks = db.from_sequence(list(range(self.n_clusters)), npartitions=self.n_clusters).map(
                 lambda cluster_id: get_semantic_matches_per_cluster(
                     cluster_id=cluster_id,
                     emb_by_clust_dir=self.emb_by_clust_dir,
@@ -138,9 +130,7 @@ class SemanticClusterLevelDedup:
                 )
             )
             tasks.compute()
-        self.logger.info(
-            f"Time taken for Computing Semantic Matches : {time.time() - t0}"
-        )
+        self.logger.info(f"Time taken for Computing Semantic Matches : {time.time() - t0}")
         self.computed_semantic_match_dfs = True
 
     def extract_dedup_data(self, eps_to_extract: float) -> DocumentDataset:
@@ -152,13 +142,9 @@ class SemanticClusterLevelDedup:
             DocumentDataset: Dataset containing list of ids that are can be removed.
         """
         if not self.computed_semantic_match_dfs:
-            raise ValueError(
-                "Run compute_semantic_match_dfs before calling extract_dedup_data"
-            )
+            raise ValueError("Run compute_semantic_match_dfs before calling extract_dedup_data")
         assert isinstance(eps_to_extract, float), "eps_to_extract must be a float"
-        output_parquet_path = os.path.join(
-            self.output_dir, f"unique_ids_{eps_to_extract}.parquet"
-        )
+        output_parquet_path = os.path.join(self.output_dir, f"unique_ids_{eps_to_extract}.parquet")
 
         t0 = time.time()
         with performance_report_if_with_ts_suffix(
@@ -179,9 +165,7 @@ class SemanticClusterLevelDedup:
             )
 
         # Write out summary file
-        output_summary_file = os.path.join(
-            self.output_dir, f"dedup_summary_{eps_to_extract}.csv"
-        )
+        output_summary_file = os.path.join(self.output_dir, f"dedup_summary_{eps_to_extract}.csv")
         write_pruned_summary_file(
             eps=eps_to_extract,
             emb_by_clust_dir=self.emb_by_clust_dir,
@@ -189,6 +173,4 @@ class SemanticClusterLevelDedup:
             output_summary_file=output_summary_file,
             logger=self.logger,
         )
-        return DocumentDataset.read_parquet(
-            output_parquet_path, blocksize="1gb", backend="cudf"
-        )
+        return DocumentDataset.read_parquet(output_parquet_path, blocksize="1gb", backend="cudf")

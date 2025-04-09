@@ -53,9 +53,7 @@ class ImageTextPairDataset:
     (00042.tar -> 00042.idx).
     """
 
-    def __init__(
-        self, path: str, metadata: dd.DataFrame, tar_files: List[str], id_col: str
-    ) -> None:
+    def __init__(self, path: str, metadata: dd.DataFrame, tar_files: List[str], id_col: str) -> None:
         """
         Constructs an image-text pair dataset.
 
@@ -113,9 +111,7 @@ class ImageTextPairDataset:
 
         return f"{prefix}{partition_index:0{max_shards}d}.{ext}"
 
-    def save_metadata(
-        self, path: Optional[str] = None, columns: Optional[List[str]] = None
-    ) -> None:
+    def save_metadata(self, path: Optional[str] = None, columns: Optional[List[str]] = None) -> None:
         """
         Saves the metadata of the dataset to the specified path as a collection
         of Parquet files.
@@ -162,13 +158,9 @@ class ImageTextPairDataset:
             valid_member_ids = set(map(int, shard_df[self.id_col]))
             with tar_file as f:
                 tar = tarfile.open(fileobj=f)
-                valid_members = self._filter_valid_members(
-                    tar.getmembers(), valid_member_ids
-                )
+                valid_members = self._filter_valid_members(tar.getmembers(), valid_member_ids)
                 valid_members.sort(key=lambda x: x.name)
-                tar_samples = [
-                    (member, tar.extractfile(member).read()) for member in valid_members
-                ]
+                tar_samples = [(member, tar.extractfile(member).read()) for member in valid_members]
 
             if len(tar_samples) % len(shard_df) != 0:
                 raise RuntimeError(
@@ -194,9 +186,7 @@ class ImageTextPairDataset:
                     total_tar_samples[: samples_per_shard * entries_per_sample],
                 )
                 curr_df = curr_df.iloc[samples_per_shard:]
-                total_tar_samples = total_tar_samples[
-                    samples_per_shard * entries_per_sample :
-                ]
+                total_tar_samples = total_tar_samples[samples_per_shard * entries_per_sample :]
 
         # Return the remaining df and samples if it's not empty
         if len(curr_df) > 0:
@@ -240,13 +230,9 @@ class ImageTextPairDataset:
         temp_name_fn = partial(self._name_partition, temp=True, max_shards=max_shards)
         filtered_metadata.to_parquet(path, name_function=temp_name_fn)
 
-        for shard_id, (shard_df, shard_tar) in enumerate(
-            self._get_eligible_samples(path, samples_per_shard)
-        ):
+        for shard_id, (shard_df, shard_tar) in enumerate(self._get_eligible_samples(path, samples_per_shard)):
             output_parquet_base = self._name_partition(shard_id, max_shards=max_shards)
-            output_tar_base = self._name_partition(
-                shard_id, max_shards=max_shards, ext="tar"
-            )
+            output_tar_base = self._name_partition(shard_id, max_shards=max_shards, ext="tar")
             output_parquet_path = os.path.join(path, output_parquet_base)
             output_tar_path = os.path.join(path, output_tar_base)
             output_parquet_file = fsspec.open(output_parquet_path, mode="wb")

@@ -25,9 +25,7 @@ from nemo_curator import ClusteringModel
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import load_object_on_worker
 
-config = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
-)
+config = importlib.import_module("tutorials.nemo-retriever-synthetic-data-generation.config.config")
 RetrieverHardNegativeMiningConfig = config.RetrieverHardNegativeMiningConfig
 
 
@@ -67,9 +65,7 @@ class HardNegativeMiner:
         if cfg.hard_neg_mining_algorithm:
             self.hard_neg_mining_algorithm = cfg.hard_neg_mining_algorithm
         else:
-            print(
-                "hard negative mining algorithm not mentioned in config, using default"
-            )
+            print("hard negative mining algorithm not mentioned in config, using default")
             self.hard_neg_mining_algorithm = "topk_percpos"
         if self.hard_neg_mining_algorithm == "topk_percpos":
             if cfg.percpos:
@@ -99,9 +95,7 @@ class HardNegativeMiner:
     def assign_ids(self, partition):
         return partition.assign(doc_id=np.arange(len(partition)) + partition.index[0])
 
-    def repartition_semantic_similarity(
-        self, dataset: DocumentDataset
-    ) -> DocumentDataset:
+    def repartition_semantic_similarity(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
         n_data = df.shape[0].compute()  # number of row items
         print(f"number of documents in the datasets = {n_data}")
@@ -142,9 +136,7 @@ class HardNegativeMiner:
                 load_object_kwargs={"base_url": self.base_url, "api_key": self.api_key},
             )
 
-            p_df["embeddings"] = p_df["documents"].map(
-                lambda t: self._get_nim_embedding(t, "passage")
-            )
+            p_df["embeddings"] = p_df["documents"].map(lambda t: self._get_nim_embedding(t, "passage"))
         elif self.model_type == "hf":
             self.hf_model = load_object_on_worker(
                 attr="hf_embedding_model",
@@ -152,9 +144,7 @@ class HardNegativeMiner:
                 load_object_kwargs={"model_name_or_path": self.model_name},
             )
 
-            p_df["embeddings"] = p_df["documents"].map(
-                lambda t: self._get_hf_embedding(t, self.passage_prefix)
-            )
+            p_df["embeddings"] = p_df["documents"].map(lambda t: self._get_hf_embedding(t, self.passage_prefix))
         return p_df
 
     def _groupby_question(self, pdf):
@@ -189,12 +179,8 @@ class HardNegativeMiner:
                 load_object_function=create_nim_client,
                 load_object_kwargs={"base_url": self.base_url, "api_key": self.api_key},
             )
-            df_p["doc_embed"] = df_p["documents"].map(
-                lambda pgs: [self._get_nim_embedding(t, "passage") for t in pgs]
-            )
-            df_p["query_embed"] = df_p["question"].map(
-                lambda x: self._get_nim_embedding(x, "query")
-            )
+            df_p["doc_embed"] = df_p["documents"].map(lambda pgs: [self._get_nim_embedding(t, "passage") for t in pgs])
+            df_p["query_embed"] = df_p["question"].map(lambda x: self._get_nim_embedding(x, "query"))
         elif self.model_type == "hf":
             self.hf_model = load_object_on_worker(
                 attr="hf_embedding_model",
@@ -202,22 +188,16 @@ class HardNegativeMiner:
                 load_object_kwargs={"model_name_or_path": self.model_name},
             )
             df_p["doc_embed"] = df_p["documents"].map(
-                lambda pgs: [
-                    self._get_hf_embedding(t, self.passage_prefix) for t in pgs
-                ]
+                lambda pgs: [self._get_hf_embedding(t, self.passage_prefix) for t in pgs]
             )
-            df_p["query_embed"] = df_p["question"].map(
-                lambda x: self._get_hf_embedding(x, self.query_prefix)
-            )
+            df_p["query_embed"] = df_p["question"].map(lambda x: self._get_hf_embedding(x, self.query_prefix))
 
         doc_embeds = list(itertools.chain(*df_p["doc_embed"].to_list()))
         docs = list(itertools.chain(*df_p["documents"].to_list()))
 
         if self.hard_neg_mining_algorithm == "topk_abs":
             df_p["neg_doc_scores"] = df_p[["query_embed", "documents"]].apply(
-                lambda row: self._get_scores_topk_abs(
-                    row["query_embed"], doc_embeds, docs, row["documents"]
-                ),
+                lambda row: self._get_scores_topk_abs(row["query_embed"], doc_embeds, docs, row["documents"]),
                 axis=1,
             )
 
@@ -229,9 +209,7 @@ class HardNegativeMiner:
                 lambda row: self._get_scores_topk_percpos(row, doc_embeds, docs), axis=1
             )
 
-        df_p["neg_doc"] = df_p["neg_doc_scores"].map(
-            lambda x: [doc for doc, score in x]
-        )
+        df_p["neg_doc"] = df_p["neg_doc_scores"].map(lambda x: [doc for doc, score in x])
         return df_p
 
     def _get_min_pos_score(self, row):
@@ -253,9 +231,7 @@ class HardNegativeMiner:
                     neg_docs.append(docs[idx])
                     neg_docs_scores.append((docs[idx], s))
         del neg_docs, scores
-        return sorted(neg_docs_scores, reverse=True, key=lambda x: x[1])[
-            : self.n_hard_negatives
-        ]
+        return sorted(neg_docs_scores, reverse=True, key=lambda x: x[1])[: self.n_hard_negatives]
 
     def _get_scores_topk_abs(self, x, docs_embed, docs, pos_docs):
         x_ = np.array(x)
@@ -270,9 +246,7 @@ class HardNegativeMiner:
                         neg_docs.append(docs[idx])
                         neg_docs_scores.append((docs[idx], s))
         del neg_docs, scores
-        return sorted(neg_docs_scores, reverse=True, key=lambda x: x[1])[
-            : self.n_hard_negatives
-        ]
+        return sorted(neg_docs_scores, reverse=True, key=lambda x: x[1])[: self.n_hard_negatives]
 
     def _get_hf_embedding(self, text, prefix="query"):
         embeddings = self.hf_model.encode(prefix + text)

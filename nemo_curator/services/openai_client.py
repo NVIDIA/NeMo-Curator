@@ -79,13 +79,9 @@ class OpenAIClient(LLMClient):
         response = self.client.chat.completions.create(messages=messages, model=model)
 
         if response.choices[0].logprobs is None:
-            raise ValueError(
-                f"Logprobs not found. {model} is likely not a reward model."
-            )
+            raise ValueError(f"Logprobs not found. {model} is likely not a reward model.")
 
-        scores = {
-            score.token: score.logprob for score in response.choices[0].logprobs.content
-        }
+        scores = {score.token: score.logprob for score in response.choices[0].logprobs.content}
 
         return scores
 
@@ -144,17 +140,11 @@ class AsyncOpenAIClient(AsyncLLMClient):
         Returns:
             A mapping of score_name -> score
         """
-        response = await self.client.chat.completions.create(
-            messages=messages, model=model
-        )
+        response = await self.client.chat.completions.create(messages=messages, model=model)
 
         if response.choices[0].logprobs is None:
-            raise ValueError(
-                f"Logprobs not found. {model} is likely not a reward model."
-            )
+            raise ValueError(f"Logprobs not found. {model} is likely not a reward model.")
 
-        scores = {
-            score.token: score.logprob for score in response.choices[0].logprobs.content
-        }
+        scores = {score.token: score.logprob for score in response.choices[0].logprobs.content}
 
         return scores

@@ -93,9 +93,7 @@ class PiiDeidentifier(object):
         )
 
         self.language = language
-        ner_model_configuration = NerModelConfiguration(
-            labels_to_ignore=LABELS_TO_IGNORE
-        )
+        ner_model_configuration = NerModelConfiguration(labels_to_ignore=LABELS_TO_IGNORE)
         self.analyzer = AnalyzerEngine(
             registry=recognizer_registry,
             nlp_engine=CustomNlpEngine(ner_model_configuration=ner_model_configuration),
@@ -109,9 +107,7 @@ class PiiDeidentifier(object):
             self.operators["DEFAULT"] = OperatorConfig("redact", {})
 
         elif anonymize_action == "hash":
-            self.operators["DEFAULT"] = OperatorConfig(
-                "hash", {"hash_type": kwargs.get("hash_type")}
-            )
+            self.operators["DEFAULT"] = OperatorConfig("hash", {"hash_type": kwargs.get("hash_type")})
 
         elif anonymize_action == "mask":
             self.operators["DEFAULT"] = OperatorConfig(
@@ -124,21 +120,15 @@ class PiiDeidentifier(object):
             )
 
         elif anonymize_action == "lambda":
-            self.operators["DEFAULT"] = OperatorConfig(
-                "custom", {"lambda": kwargs.get("lambda")}
-            )
+            self.operators["DEFAULT"] = OperatorConfig("custom", {"lambda": kwargs.get("lambda")})
 
         else:
-            self.operators["DEFAULT"] = OperatorConfig(
-                "replace", {"new_value": kwargs.get("new_value")}
-            )
+            self.operators["DEFAULT"] = OperatorConfig("replace", {"new_value": kwargs.get("new_value")})
 
         self.supported_entities = supported_entities or SUPPORTED_ENTITIES
 
         if "ADDRESS" in self.supported_entities:
-            self.add_custom_recognizer(
-                AddressRecognizer(supported_entities=["ADDRESS"])
-            )
+            self.add_custom_recognizer(AddressRecognizer(supported_entities=["ADDRESS"]))
 
     @staticmethod
     def from_config(config: Mapping[str, Any]):
@@ -213,9 +203,7 @@ class PiiDeidentifier(object):
         if not entities:
             entities = self.supported_entities
 
-        return self.batch_analyzer.analyze_iterator(
-            texts, language, entities=entities, batch_size=batch_size
-        )
+        return self.batch_analyzer.analyze_iterator(texts, language, entities=entities, batch_size=batch_size)
 
     def deidentify_text_batch(self, texts: List[str], batch_size: int = 32):
         """
@@ -251,9 +239,7 @@ class PiiDeidentifier(object):
         Returns:
         str: Returns anonymized text
         """
-        analyzer_results = self.analyzer.analyze(
-            text=text, entities=self.supported_entities, language=self.language
-        )
+        analyzer_results = self.analyzer.analyze(text=text, entities=self.supported_entities, language=self.language)
         anonymized_results = self.anonymizer.anonymize(
             text=text, analyzer_results=analyzer_results, operators=self.operators
         )

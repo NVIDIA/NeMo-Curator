@@ -106,8 +106,7 @@ class ArgumentHelper:
             "--log-dir",
             type=str,
             default=default,
-            help="The output log directory where node and local"
-            " ranks will write their respective log files.",
+            help="The output log directory where node and local ranks will write their respective log files.",
         )
 
     def add_arg_input_data_dir(
@@ -174,8 +173,7 @@ class ArgumentHelper:
             "--input-text-field",
             type=str,
             default="text",
-            help="The name of the field within each datapoint object of the input "
-            "file that contains the text.",
+            help="The name of the field within each datapoint object of the input file that contains the text.",
         )
 
     def add_arg_id_column(self):
@@ -183,8 +181,7 @@ class ArgumentHelper:
             "--id-column",
             type=str,
             default="id",
-            help="The name of the field within each datapoint object of the input "
-            "file that contains the ID.",
+            help="The name of the field within each datapoint object of the input file that contains the ID.",
         )
 
     def add_arg_id_column_type(self):
@@ -219,9 +216,7 @@ class ArgumentHelper:
             help=help,
         )
 
-    def add_arg_output_dir(
-        self, required=False, help: str = "The output directory to write results."
-    ):
+    def add_arg_output_dir(self, required=False, help: str = "The output directory to write results."):
         self.parser.add_argument(
             "--output-dir",
             type=str,
@@ -496,9 +491,7 @@ class ArgumentHelper:
         argumentHelper.add_arg_input_file_extension()
         argumentHelper.add_arg_output_file_type()
         argumentHelper.add_arg_input_text_field()
-        argumentHelper.add_arg_batch_size(
-            help="The batch size to be used for inference."
-        )
+        argumentHelper.add_arg_batch_size(help="The batch size to be used for inference.")
         argumentHelper.add_arg_model_path()
         argumentHelper.add_arg_autocast()
         argumentHelper.add_arg_max_chars(default=max_chars_default)

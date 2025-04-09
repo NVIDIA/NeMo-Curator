@@ -79,9 +79,7 @@ def attach_args(
 
     argumentHelper.add_arg_input_data_dir(help="Directory containing the input files.")
     argumentHelper.add_arg_input_file_type()
-    argumentHelper.add_arg_output_data_dir(
-        help="The output directory to where redacted documents will be written."
-    )
+    argumentHelper.add_arg_output_data_dir(help="The output directory to where redacted documents will be written.")
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_distributed_args()
 

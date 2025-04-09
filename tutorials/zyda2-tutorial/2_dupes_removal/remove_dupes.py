@@ -17,21 +17,13 @@ if __name__ == "__main__":
         required=True,
         help="Path to the folder with dupes indices",
     )
-    parser.add_argument(
-        "--input", type=str, required=True, help="Path to the folder with input dataset"
-    )
-    parser.add_argument(
-        "--output", type=str, required=True, help="Path to where write the result"
-    )
-    parser.add_argument(
-        "--n-workers", type=int, default=64, help="Number of CPU Dask workers"
-    )
+    parser.add_argument("--input", type=str, required=True, help="Path to the folder with input dataset")
+    parser.add_argument("--output", type=str, required=True, help="Path to where write the result")
+    parser.add_argument("--n-workers", type=int, default=64, help="Number of CPU Dask workers")
     args = parser.parse_args()
 
     t0 = time.time()
-    cluster = LocalCluster(
-        n_workers=args.n_workers, threads_per_worker=2, processes=True
-    )
+    cluster = LocalCluster(n_workers=args.n_workers, threads_per_worker=2, processes=True)
     client = Client(cluster)
     logging.info(f"Dask client: {client}")
     logging.info(f"Dashboard link: {client.dashboard_link}")

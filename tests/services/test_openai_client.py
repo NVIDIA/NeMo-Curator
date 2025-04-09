@@ -160,9 +160,7 @@ class TestOpenAIClient:
         )
 
         # Check if OpenAI client was called with the right parameters
-        mock_openai_client.chat.completions.create.assert_called_once_with(
-            messages=messages, model="reward-model"
-        )
+        mock_openai_client.chat.completions.create.assert_called_once_with(messages=messages, model="reward-model")
 
         # Check return value
         assert result == {"GOOD": -0.5}
@@ -305,9 +303,7 @@ class TestAsyncOpenAIClient:
         choice.logprobs.content = [logprob_token]
         completion_response = MagicMock()
         completion_response.choices = [choice]
-        mock_async_openai_client.chat.completions.create.return_value = (
-            completion_response
-        )
+        mock_async_openai_client.chat.completions.create.return_value = completion_response
 
         result = await client.query_reward_model(
             messages=messages,
@@ -336,9 +332,7 @@ class TestAsyncOpenAIClient:
         choice.logprobs = None
         completion_response = MagicMock()
         completion_response.choices = [choice]
-        mock_async_openai_client.chat.completions.create.return_value = (
-            completion_response
-        )
+        mock_async_openai_client.chat.completions.create.return_value = completion_response
 
         with pytest.raises(ValueError, match="Logprobs not found"):
             await client.query_reward_model(

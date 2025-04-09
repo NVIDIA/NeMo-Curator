@@ -22,9 +22,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import AnswerabilityFilter, EasinessFilter
 from nemo_curator.modules import ScoreFilter
 
-config_module = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
-)
+config_module = importlib.import_module("tutorials.nemo-retriever-synthetic-data-generation.config.config")
 
 
 @pytest.fixture
@@ -94,9 +92,7 @@ class TestSDGFilterModule:
             get_config.truncate,
             get_config.batch_size,
         )
-        easiness_filter = ScoreFilter(
-            ef, text_field=["text", "question"], score_field="easiness_scores"
-        )
+        easiness_filter = ScoreFilter(ef, text_field=["text", "question"], score_field="easiness_scores")
 
         org_df = get_generated_data.df.compute()
         filtered_dataset = easiness_filter(get_generated_data)
@@ -113,9 +109,7 @@ class TestSDGFilterModule:
             get_config.answerability_user_prompt_template,
             get_config.num_criteria,
         )
-        answerability_filter = ScoreFilter(
-            af, text_field=["text", "question"], score_field="answerability_scores"
-        )
+        answerability_filter = ScoreFilter(af, text_field=["text", "question"], score_field="answerability_scores")
         org_df = get_generated_data.df.compute()
         filtered_dataset = answerability_filter(get_generated_data)
         filtered_df = filtered_dataset.df.compute()

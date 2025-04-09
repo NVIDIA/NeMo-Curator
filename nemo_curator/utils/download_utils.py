@@ -36,9 +36,7 @@ def get_main_warc_paths(
     end_date = datetime.fromisocalendar(end_year, end_week, 1)
 
     if start_date > end_date:
-        raise ValueError(
-            f"Start snapshot '{start_snapshot}' is after end snapshot '{end_snapshot}'"
-        )
+        raise ValueError(f"Start snapshot '{start_snapshot}' is after end snapshot '{end_snapshot}'")
 
     if beg_year < 2013 or end_year < 2013:
         print("Warning: Only snapshots after 2013 are supported by this script")
@@ -75,14 +73,10 @@ def get_news_warc_paths(
     today = datetime.now()
 
     if start_date > end_date:
-        raise ValueError(
-            f"Start snapshot '{start_date}' is after end snapshot '{end_date}'"
-        )
+        raise ValueError(f"Start snapshot '{start_date}' is after end snapshot '{end_date}'")
 
     if beg.year < 2016 or end.year > today.year:
-        print(
-            f"Warning: WARC paths exist only from 2016-8 to {today.year}-{today.month}"
-        )
+        print(f"Warning: WARC paths exist only from 2016-8 to {today.year}-{today.month}")
     total_prefix = urljoin(prefix, "crawl-data/CC-NEWS")
 
     # Generate all valid YYYY-MM strings in range
@@ -130,14 +124,10 @@ def get_common_crawl_urls(
         Also assumes that the format for the start and end snapshots is 'YYYY-MM' (Year-Month).
     """
     if news:
-        warc_paths = get_news_warc_paths(
-            starting_snapshot, ending_snapshot, prefix=data_domain_prefix
-        )
+        warc_paths = get_news_warc_paths(starting_snapshot, ending_snapshot, prefix=data_domain_prefix)
     else:
         index = get_common_crawl_snapshot_index(index_prefix)
-        warc_paths = get_main_warc_paths(
-            index, starting_snapshot, ending_snapshot, prefix=data_domain_prefix
-        )
+        warc_paths = get_main_warc_paths(index, starting_snapshot, ending_snapshot, prefix=data_domain_prefix)
 
     common_crawl_urls = []
     for path in warc_paths:

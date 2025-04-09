@@ -188,9 +188,7 @@ def filter_code_dataset(dataset: DocumentDataset) -> DocumentDataset:
             # if the comment to code ratio is not within the specified range,
             # discard the document
             ScoreFilter(
-                PythonCommentToCodeFilter(
-                    min_comment_to_code_ratio=0.001, max_comment_to_code_ratio=0.80
-                ),
+                PythonCommentToCodeFilter(min_comment_to_code_ratio=0.001, max_comment_to_code_ratio=0.80),
                 text_field="text",
                 score_type=float,
             ),
@@ -252,9 +250,7 @@ def redact_code(dataset: DocumentDataset) -> DocumentDataset:
 
     dataset.df["extracted_comment"] = dataset.df.apply(func, axis=1, meta=(None, str))
     redacted_dataset = redact_pii(dataset)
-    redacted_dataset.df["text"] = redacted_dataset.df.apply(
-        func2, axis=1, meta=(None, str)
-    )
+    redacted_dataset.df["text"] = redacted_dataset.df.apply(func2, axis=1, meta=(None, str))
     redacted_dataset.df = redacted_dataset.df.drop(["extracted_comment"], axis=1)
 
     return redacted_dataset
@@ -273,9 +269,7 @@ def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     deduplicator = ExactDuplicates(id_field="id", text_field="text", hash_method="md5")
     # Find the duplicates
     duplicates = deduplicator(dataset)
-    docs_to_remove = duplicates.df.map_partitions(
-        lambda x: x[x._hashes.duplicated(keep="first")]
-    )
+    docs_to_remove = duplicates.df.map_partitions(lambda x: x[x._hashes.duplicated(keep="first")])
     # Remove the duplicates using their IDs.
     duplicate_ids = list(docs_to_remove.compute().id)
     dataset_df = dataset.df
@@ -311,9 +305,7 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache_dir: str) -> DocumentDataset:
     if duplicates is None:
         return dataset
     else:
-        docs_to_remove = duplicates.df.map_partitions(
-            lambda x: x[x.group.duplicated(keep="first")]
-        )
+        docs_to_remove = duplicates.df.map_partitions(lambda x: x[x.group.duplicated(keep="first")])
 
         # When there are few duplicates we can compute the results to a list and use `isin`.
         duplicate_ids = docs_to_remove.compute().id.to_arrow().to_pylist()
@@ -337,9 +329,7 @@ def semantic_dedupe(
         The deduplicated DocumentDataset.
     """
     partition_lengths = dataset.df.map_partitions(len).compute()
-    non_empty_partitions = [
-        i for i, length in enumerate(partition_lengths) if length > 0
-    ]
+    non_empty_partitions = [i for i, length in enumerate(partition_lengths) if length > 0]
     dataset.df = dataset.df.partitions[non_empty_partitions]
 
     semdedup_config = SemDedupConfig.from_yaml(sem_dedupe_config_yaml_path)
@@ -381,9 +371,7 @@ class CodeLineCountFilter(DocumentFilter):
 
     def score_document(self, text: str) -> bool:
         words = text.split()
-        if words[0] == "code" and (
-            int(words[2]) < self._min_lines or int(words[2]) > self._max_lines
-        ):
+        if words[0] == "code" and (int(words[2]) < self._min_lines or int(words[2]) > self._max_lines):
             return False
         else:
             return True

@@ -57,11 +57,7 @@ class Slicer(DocumentModifier):
             left_index_found = text.find(self._left)
             if left_index_found == -1:
                 return ""
-            left_index = (
-                left_index_found
-                if self._include_left
-                else left_index_found + len(self._left)
-            )
+            left_index = left_index_found if self._include_left else left_index_found + len(self._left)
         else:
             left_index = 0  # default if neither int nor str
 
@@ -72,11 +68,7 @@ class Slicer(DocumentModifier):
             right_index_found = text.rfind(self._right)
             if right_index_found == -1:
                 return ""
-            right_index = (
-                right_index_found + len(self._right)
-                if self._include_right
-                else right_index_found
-            )
+            right_index = right_index_found + len(self._right) if self._include_right else right_index_found
         else:
             right_index = len(text)  # default if neither int nor str
 

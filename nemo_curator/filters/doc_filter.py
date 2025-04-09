@@ -54,9 +54,7 @@ class DocumentFilter(ABC):
         Raises:
             NotImplementedError: If the method is not implemented in a subclass.
         """
-        raise NotImplementedError(
-            "score_document method must be implemented by subclasses"
-        )
+        raise NotImplementedError("score_document method must be implemented by subclasses")
 
     @abstractmethod
     def keep_document(self, scores: Any) -> bool:
@@ -77,9 +75,7 @@ class DocumentFilter(ABC):
         Raises:
             NotImplementedError: If the method is not implemented in a subclass.
         """
-        raise NotImplementedError(
-            "keep_document method must be implemented by subclasses"
-        )
+        raise NotImplementedError("keep_document method must be implemented by subclasses")
 
     @property
     def backend(self) -> Literal["pandas", "cudf", "any"]:
@@ -136,9 +132,7 @@ def import_filter(filter_path: str) -> Union[DocumentFilter, BitextFilter]:
     module_path, filter_name = filter_path.rsplit(".", 1)
     filter_module = importlib.import_module(module_path)
     filter_class = getattr(filter_module, filter_name)
-    if not issubclass(filter_class, DocumentFilter) and not issubclass(
-        filter_class, BitextFilter
-    ):
+    if not issubclass(filter_class, DocumentFilter) and not issubclass(filter_class, BitextFilter):
         raise ValueError(
             f"Input filter {filter_class.__name__} must be derived "
             "from DocumentFilter defined in nemo_curator.filters.doc_filter or"

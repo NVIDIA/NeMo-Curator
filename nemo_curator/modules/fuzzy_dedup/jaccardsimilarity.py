@@ -41,11 +41,7 @@ class JaccardSimilarity:
         raise NotImplementedError
 
     def jaccard_compute(self, shuffled_docs_path):
-        paths = [
-            entry.path
-            for entry in os.scandir(shuffled_docs_path)
-            if not entry.path.endswith(".txt")
-        ]
+        paths = [entry.path for entry in os.scandir(shuffled_docs_path) if not entry.path.endswith(".txt")]
         meta_df = cudf.DataFrame(
             {
                 self.left_id: ["x"],
@@ -53,9 +49,7 @@ class JaccardSimilarity:
                 "jaccard": np.float32([0.0]),
             }
         )
-        result_df = dd.from_map(
-            self._compute_jaccard_on_1_partition, paths, meta=meta_df
-        ).reset_index(drop=True)
+        result_df = dd.from_map(self._compute_jaccard_on_1_partition, paths, meta=meta_df).reset_index(drop=True)
         return result_df
 
     def _compute_jaccard_on_1_partition(self, path):
@@ -64,17 +58,13 @@ class JaccardSimilarity:
             pair_df = self._compute_jaccard_and_create_pair_df(df)
         except OverflowError:
             paths = [entry.path for entry in os.scandir(os.path.join(path))]
-            anchor_df_str_size_ls = [
-                self._get_anchor_docs_and_string_size(path) for path in paths
-            ]
+            anchor_df_str_size_ls = [self._get_anchor_docs_and_string_size(path) for path in paths]
             anchor_df = cudf.concat(
                 [anchor_doc for anchor_doc, _ in anchor_df_str_size_ls],
                 ignore_index=True,
             ).drop_duplicates()
             df_str_size = [str_size for _, str_size in anchor_df_str_size_ls]
-            paths = JaccardSimilarity._create_bins(
-                df_str_size, np.iinfo(np.int32).max // 10
-            )
+            paths = JaccardSimilarity._create_bins(df_str_size, np.iinfo(np.int32).max // 10)
             pair_dfs = []
             for path in paths:
                 print(path)
@@ -112,9 +102,7 @@ class JaccardSimilarity:
         return bins
 
     def _compute_jaccard_and_create_pair_df(self, df):
-        df = df.drop_duplicates(
-            subset=[self.id_field] + self.anchor_id_fields, ignore_index=True
-        )
+        df = df.drop_duplicates(subset=[self.id_field] + self.anchor_id_fields, ignore_index=True)
         anchor_columns = self.anchor_id_fields
         id_field = self.id_field
         result_ls = []
@@ -147,16 +135,12 @@ class JaccardSimilarity:
         return anchor_df
 
     def _compute_jaccard_pair(self, docs_df, anchor_df):
-        nrows_at_once = JaccardSimilarity._get_max_num_rows_to_process_once(
-            df=docs_df, text_field=self.text_field
-        )
+        nrows_at_once = JaccardSimilarity._get_max_num_rows_to_process_once(df=docs_df, text_field=self.text_field)
         result_ls = []
         for i in range(0, docs_df.shape[0], nrows_at_once):
             pair_df = docs_df[i : i + nrows_at_once]
             pair_df = pair_df.merge(anchor_df, on=self.anchor_id)
-            pair_df = pair_df.rename(
-                columns={self.id_field: self.left_id, self.anchor_id: self.right_id}
-            )
+            pair_df = pair_df.rename(columns={self.id_field: self.left_id, self.anchor_id: self.right_id})
             mask = pair_df[self.left_id] != pair_df[self.right_id]
             pair_df = pair_df[mask].reset_index(drop=True)
             if len(pair_df) == 0:

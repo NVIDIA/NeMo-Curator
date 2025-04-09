@@ -23,6 +23,4 @@ class ConversationFormatter(ABC):
 
     @abstractmethod
     def format_conversation(self, conv: List[dict]) -> str:
-        raise NotImplementedError(
-            "format_converstaion must be implemented by subclasses"
-        )
+        raise NotImplementedError("format_converstaion must be implemented by subclasses")

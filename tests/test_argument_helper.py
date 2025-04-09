@@ -26,9 +26,7 @@ class TestArgumentHelper:
     def test_attach_bool_arg(self):
         parser = argparse.ArgumentParser()
         argument_helper = ArgumentHelper(parser)
-        argument_helper.attach_bool_arg(
-            argument_helper.parser, "test", default=False, help="test help"
-        )
+        argument_helper.attach_bool_arg(argument_helper.parser, "test", default=False, help="test help")
         assert "--test" in parser.format_help()
         assert "test help" in parser.format_help()
         assert "--no-test" in parser.format_help()

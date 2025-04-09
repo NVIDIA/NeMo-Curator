@@ -677,12 +677,8 @@ class WikipediaExtractor(DocumentExtractor):
         re_rm_magic = re.compile("__[A-Z]*__", flags=re.UNICODE)
 
         # Filters for file/image links.
-        media_prefixes = "|".join(
-            ["File", "Image", "Media"] + MEDIA_ALIASES.get(self._language, [])
-        )
-        re_rm_wikilink = re.compile(
-            f"^(?:{media_prefixes}):", flags=re.IGNORECASE | re.UNICODE
-        )
+        media_prefixes = "|".join(["File", "Image", "Media"] + MEDIA_ALIASES.get(self._language, []))
+        re_rm_wikilink = re.compile(f"^(?:{media_prefixes}):", flags=re.IGNORECASE | re.UNICODE)
 
         def rm_wikilink(obj):
             return bool(re_rm_wikilink.match(str(obj.title)))
@@ -693,9 +689,7 @@ class WikipediaExtractor(DocumentExtractor):
 
         # Leave category links in-place but remove the category prefixes
         cat_prefixes = "|".join(["Category"] + CAT_ALIASES.get(self._language, []))
-        re_clean_wikilink = re.compile(
-            f"^(?:{cat_prefixes}):", flags=re.IGNORECASE | re.UNICODE
-        )
+        re_clean_wikilink = re.compile(f"^(?:{cat_prefixes}):", flags=re.IGNORECASE | re.UNICODE)
 
         def is_category(obj):
             return bool(re_clean_wikilink.match(str(obj.title)))
@@ -792,9 +786,7 @@ def download_wikipedia(
         wikipedia_urls = wikipedia_urls[:url_limit]
     output_paths = list(
         map(
-            lambda url: os.path.join(
-                output_path, url.split("/")[-1] + f".{output_type}"
-            ),
+            lambda url: os.path.join(output_path, url.split("/")[-1] + f".{output_type}"),
             wikipedia_urls,
         )
     )

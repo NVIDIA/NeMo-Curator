@@ -28,9 +28,7 @@ from nemo_curator.filters import (
 )
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 
-config = importlib.import_module(
-    "tutorials.nemo-retriever-synthetic-data-generation.config.config"
-)
+config = importlib.import_module("tutorials.nemo-retriever-synthetic-data-generation.config.config")
 RetrieverEvalSDGConfig = config.RetrieverEvalSDGConfig
 
 
@@ -101,21 +99,19 @@ def write_to_beir(args: Any, dataset: DocumentDataset, input_dataset: DocumentDa
 
     corpus_save_path = os.path.join(args.output_dir, "beir", "corpus.jsonl")
     queries_save_path = os.path.join(args.output_dir, "beir", "queries.jsonl")
-    df[["question-id", "question"]].rename(
-        columns={"question-id": "_id", "question": "text"}
-    ).to_json(queries_save_path, lines=True, orient="records")
+    df[["question-id", "question"]].rename(columns={"question-id": "_id", "question": "text"}).to_json(
+        queries_save_path, lines=True, orient="records"
+    )
 
-    df[["question-id", "_id", "score"]].rename(
-        columns={"question-id": "query-id", "_id": "corpus-id"}
-    ).to_csv(os.path.join(qrels_save_dir, "test.tsv"), sep="\t", index=False)
+    df[["question-id", "_id", "score"]].rename(columns={"question-id": "query-id", "_id": "corpus-id"}).to_csv(
+        os.path.join(qrels_save_dir, "test.tsv"), sep="\t", index=False
+    )
 
     if args.pipeline_type == "filter":
         input_df = input_dataset.df.compute()
         input_df = input_df.groupby("_id").agg({"text": set}).reset_index()
         input_df["text"] = input_df["text"].map(lambda x: x.pop())
-        input_df[["_id", "text"]].to_json(
-            corpus_save_path, lines=True, orient="records"
-        )
+        input_df[["_id", "text"]].to_json(corpus_save_path, lines=True, orient="records")
     elif args.pipeline_type == "generate":
         df = df.groupby("_id").agg({"text": set}).reset_index()
         df["text"] = df["text"].map(lambda x: x.pop())
@@ -190,17 +186,11 @@ def main():
 
     if args.input_format == "jsonl":
         if args.pipeline_type == "filter":
-            input_files = get_all_files_paths_under(
-                args.input_dir, keep_extensions="part"
-            )
+            input_files = get_all_files_paths_under(args.input_dir, keep_extensions="part")
         elif args.pipeline_type == "generate":
-            input_files = get_all_files_paths_under(
-                args.input_dir, keep_extensions="jsonl"
-            )
+            input_files = get_all_files_paths_under(args.input_dir, keep_extensions="jsonl")
         else:
-            raise ValueError(
-                "Error only two pipelines supported: 'generate' & 'filter'"
-            )
+            raise ValueError("Error only two pipelines supported: 'generate' & 'filter'")
 
         input_dataset = DocumentDataset.read_json(input_files)
     else:

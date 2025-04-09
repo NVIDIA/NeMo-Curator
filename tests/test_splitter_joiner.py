@@ -45,12 +45,6 @@ class TestSplitJoinReconstruction:
         reconstructed_dataset = joiner(split_dataset)
 
         # The reconstructed "text" column should match the original.
-        original_sorted = (
-            original_dataset.df.compute().sort_values(by="id").reset_index(drop=True)
-        )
-        reconstructed_sorted = (
-            reconstructed_dataset.df.compute()
-            .sort_values(by="id")
-            .reset_index(drop=True)
-        )
+        original_sorted = original_dataset.df.compute().sort_values(by="id").reset_index(drop=True)
+        reconstructed_sorted = reconstructed_dataset.df.compute().sort_values(by="id").reset_index(drop=True)
         assert_eq(reconstructed_sorted, original_sorted, check_index=False)

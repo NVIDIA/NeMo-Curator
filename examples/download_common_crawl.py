@@ -32,9 +32,7 @@ def main(args):
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Download and sample data
-    common_crawl = download_common_crawl(
-        output_directory, start_snapshot, end_snapshot, url_limit=url_limit
-    )
+    common_crawl = download_common_crawl(output_directory, start_snapshot, end_snapshot, url_limit=url_limit)
     sample = common_crawl.df.sample(frac=10 / len(common_crawl))
 
     # Inspect the samples
@@ -42,9 +40,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

@@ -29,8 +29,7 @@ class FastTextQualityFilter(DocumentFilter):
     def __init__(self, model_path=None, label="__label__hq", alpha=3, seed=42):
         if model_path is None:
             raise ValueError(
-                "Must provide a valid path to a FastText model "
-                "to compute document scores with this filter"
+                "Must provide a valid path to a FastText model to compute document scores with this filter"
             )
         self._model_path = model_path
         self._label = label
@@ -68,10 +67,7 @@ class FastTextQualityFilter(DocumentFilter):
 class FastTextLangId(DocumentFilter):
     def __init__(self, model_path=None, min_langid_score=0.3):
         if model_path is None:
-            raise ValueError(
-                "Must provide a valid path to a FastText model "
-                "to identify languages with this filter"
-            )
+            raise ValueError("Must provide a valid path to a FastText model to identify languages with this filter")
         self._model_path = model_path
         self._lang_code = None
         self._cutoff = min_langid_score
@@ -186,21 +182,15 @@ class QualityEstimationFilter(BitextFilter):
             # if English is included but it's on the target side, flip to make sure we are scoring with en-x
             # this strategy was proposed in: https://aclanthology.org/2023.wmt-1.50.pdf
             input = [
-                model_class.wrap_qe_input(
-                    s, t, reverse=(_has_en(sl, tl) and not _is_en_x(sl, tl))
-                )
+                model_class.wrap_qe_input(s, t, reverse=(_has_en(sl, tl) and not _is_en_x(sl, tl)))
                 for s, t, sl, tl in zip(src, tgt, src_lang, tgt_lang)
             ]
             return model.predict(input)
         elif mode == "bidi":
             # score twice -- once forward and once backward
             fwd_input = [model_class.wrap_qe_input(s, t) for s, t in zip(src, tgt)]
-            rev_input = [
-                model_class.wrap_qe_input(s, t, reverse=True) for s, t in zip(src, tgt)
-            ]
-            scores = model.predict(
-                fwd_input + rev_input
-            )  # making one call to take advantage of batching
+            rev_input = [model_class.wrap_qe_input(s, t, reverse=True) for s, t in zip(src, tgt)]
+            scores = model.predict(fwd_input + rev_input)  # making one call to take advantage of batching
             # first half is forward score, second half is reverse score -- now we unpack and average
             fwd_scores = scores[: len(src)]
             rev_scores = scores[len(src) :]
@@ -209,9 +199,7 @@ class QualityEstimationFilter(BitextFilter):
             raise NotImplementedError
 
     @batched
-    def score_bitext(
-        self, src: pd.Series, tgt: pd.Series, src_lang: pd.Series, tgt_lang: pd.Series
-    ) -> pd.Series:
+    def score_bitext(self, src: pd.Series, tgt: pd.Series, src_lang: pd.Series, tgt_lang: pd.Series) -> pd.Series:
         """Wrapper function that scores documents in a data frame. Most work is done in `_score_document_with_qe`.
 
         Args:
@@ -225,9 +213,7 @@ class QualityEstimationFilter(BitextFilter):
         """
 
         if not len(src) == len(tgt) == len(src_lang) == len(tgt_lang):
-            raise RuntimeError(
-                "Different fields of the data frame should have the same length"
-            )
+            raise RuntimeError("Different fields of the data frame should have the same length")
 
         model_attr = f"{self._name}_{self._model_path}"
         try:
@@ -239,9 +225,7 @@ class QualityEstimationFilter(BitextFilter):
         except NoWorkerError:
             return pd.Series([-1.0 for _ in range(len(src))])
 
-        scores = self._score_bitext_with_qe(
-            model, src, tgt, src_lang, tgt_lang, self._mode
-        )
+        scores = self._score_bitext_with_qe(model, src, tgt, src_lang, tgt_lang, self._mode)
 
         return pd.Series(scores, index=src.index)
 

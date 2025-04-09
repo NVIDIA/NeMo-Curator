@@ -85,9 +85,7 @@ class SlurmJobConfig:
         env_vars = self._build_env_vars()
 
         if add_scheduler_file:
-            env_vars["SCRIPT_COMMAND"] += (
-                f" --scheduler-file={env_vars['SCHEDULER_FILE']}"
-            )
+            env_vars["SCRIPT_COMMAND"] += f" --scheduler-file={env_vars['SCHEDULER_FILE']}"
         if add_device:
             env_vars["SCRIPT_COMMAND"] += f" --device={env_vars['DEVICE']}"
 

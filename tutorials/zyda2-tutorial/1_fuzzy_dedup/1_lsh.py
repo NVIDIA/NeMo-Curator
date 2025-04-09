@@ -47,9 +47,7 @@ if __name__ == "__main__":
     df = df.map_partitions(
         convert_str_id_to_int,
         id_column=lsh_id_field,
-        meta=cudf.DataFrame(
-            {minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}
-        ),
+        meta=cudf.DataFrame({minhash_field: [[1, 2, 3]], "doc_id": [1], "dataset_id": np.uint32(1)}),
     )
     # Run LSH()
     lsh = LSH(

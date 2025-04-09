@@ -39,9 +39,7 @@ def get_agg_text_bytes_df(
         # `split_out>1`
         shuffle_arg = {}
     else:
-        shuffle_arg = {
-            "shuffle_method" if DASK_SHUFFLE_METHOD_ARG else "shuffle": shuffle
-        }
+        shuffle_arg = {"shuffle_method" if DASK_SHUFFLE_METHOD_ARG else "shuffle": shuffle}
     agg_df = (
         df[[agg_column, bytes_column]]
         .groupby([agg_column])

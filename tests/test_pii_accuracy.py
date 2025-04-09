@@ -35,14 +35,9 @@ def load_test_cases(filename):
     with open(filepath) as fp:
         data = fp.readlines()
 
-    raw_data = [
-        (re.sub(r"<[^>]*>([^<]*)</[^>]*>", r"\1", line)).strip() for line in data
-    ]
+    raw_data = [(re.sub(r"<[^>]*>([^<]*)</[^>]*>", r"\1", line)).strip() for line in data]
     masked_data = [
-        (
-            re.sub(r"(<[^>]*>([^<]*)</[^>]*>)", lambda x: "*" * len(x.group(2)), line)
-        ).strip()
-        for line in data
+        (re.sub(r"(<[^>]*>([^<]*)</[^>]*>)", lambda x: "*" * len(x.group(2)), line)).strip() for line in data
     ]
 
     return list(zip(raw_data, masked_data))
@@ -170,14 +165,8 @@ class TestPIIModule:
                 input_dataset = DocumentDataset(dd.from_pandas(input_df, npartitions=1))
                 pipeline = nc.Sequential(
                     [
-                        nc.ScoreFilter(
-                            BatchedLengthFilter(min_length=0, max_length=25)
-                        ),
-                        nc.Modify(
-                            PiiModifier(
-                                language="en", anonymize_action="mask", device="cpu"
-                            )
-                        ),
+                        nc.ScoreFilter(BatchedLengthFilter(min_length=0, max_length=25)),
+                        nc.Modify(PiiModifier(language="en", anonymize_action="mask", device="cpu")),
                     ]
                 )
                 output_dataset = pipeline(input_dataset)

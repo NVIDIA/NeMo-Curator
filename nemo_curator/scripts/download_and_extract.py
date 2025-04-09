@@ -37,17 +37,13 @@ def main(args):
     if args.input_url_file:
         urls = read_urls(args.input_url_file)
         outdir = os.path.abspath(os.path.expanduser(args.output_json_dir))
-        output_paths = list(
-            map(lambda url: os.path.join(outdir, url.split("/")[-1] + ".jsonl"), urls)
-        )
+        output_paths = list(map(lambda url: os.path.join(outdir, url.split("/")[-1] + ".jsonl"), urls))
     elif args.input_data_dir:
         # If input_data_dir is specified, we operate in extraction only mode.
         urls = get_all_files_paths_under(args.input_data_dir)
         output_paths = urls
     else:
-        raise ValueError(
-            "One of --input-url-file or --input-data-dir must be specified"
-        )
+        raise ValueError("One of --input-url-file or --input-data-dir must be specified")
 
     expand_outdir_and_mkdir(args.output_json_dir)
     if args.output_download_dir:

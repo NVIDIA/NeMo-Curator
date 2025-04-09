@@ -60,15 +60,9 @@ class ConnectedComponents:
 
     def cc_workflow(self, output_path):
         deduped_parsed_id_path = self._write_dedup_parsed_id()
-        encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(
-            deduped_parsed_id_path
-        )
-        deduped_encoded_jaccard_path = self._write_dedup_encoded_jaccard_pair(
-            encoded_jaccard_pair_path
-        )
-        cc_path = self._run_connected_components(
-            deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path
-        )
+        encoded_jaccard_pair_path = self._write_encoded_jaccard_pair(deduped_parsed_id_path)
+        deduped_encoded_jaccard_path = self._write_dedup_encoded_jaccard_pair(encoded_jaccard_pair_path)
+        cc_path = self._run_connected_components(deduped_encoded_jaccard_path, deduped_parsed_id_path, output_path)
         return cc_path
 
     def _run_connected_components(
@@ -78,13 +72,9 @@ class ConnectedComponents:
         output_path,
     ):
         t0 = time.time()
-        with performance_report_if_with_ts_suffix(
-            self.profile_dir, "connected-components-run"
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, "connected-components-run"):
             Comms.initialize(p2p=False)
-            df = dask_cudf.read_parquet(
-                deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True
-            )
+            df = dask_cudf.read_parquet(deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True)
             df = df[df["jaccard"] == 1].reset_index(drop=True)
 
             labels_df = dask_cudf.read_parquet(deduped_parsed_id_path)
@@ -96,19 +86,13 @@ class ConnectedComponents:
             df = dask_cudf.concat([df, self_edge_df])
 
             G = MultiGraph(directed=False)
-            G.from_dask_cudf_edgelist(
-                df, source=self.left_id, destination=self.right_id, renumber=False
-            )
+            G.from_dask_cudf_edgelist(df, source=self.left_id, destination=self.right_id, renumber=False)
             result = dcg.weakly_connected_components(G)
             del G
             max_partitions = min(32, result.npartitions)
-            n_components = len(
-                result[["labels"]].drop_duplicates(split_out=max_partitions)
-            )
+            n_components = len(result[["labels"]].drop_duplicates(split_out=max_partitions))
             num_labels = len(result)
-            labels_df = labels_df.merge(
-                result, left_on=["uid"], right_on=["vertex"], how="inner"
-            )
+            labels_df = labels_df.merge(result, left_on=["uid"], right_on=["vertex"], how="inner")
             id_columns = [self.id_column]
             labels_df = labels_df[id_columns + ["labels"]]
             labels_df = labels_df.rename(columns={"labels": "group"})
@@ -151,12 +135,8 @@ class ConnectedComponents:
     def _write_dedup_encoded_jaccard_pair(self, encoded_jaccard_pair_path):
         output_path = f"{self.cache_dir}/final_dedup_encoded_jaccard_pair.parquet"
         t0 = time.time()
-        with performance_report_if_with_ts_suffix(
-            self.profile_dir, "connected-components-dedup-encoded-jaccard-pair"
-        ):
-            ddf = dask_cudf.read_parquet(
-                encoded_jaccard_pair_path, blocksize="512MB", aggregate_files=True
-            )
+        with performance_report_if_with_ts_suffix(self.profile_dir, "connected-components-dedup-encoded-jaccard-pair"):
+            ddf = dask_cudf.read_parquet(encoded_jaccard_pair_path, blocksize="512MB", aggregate_files=True)
             meta = {
                 self.left_id: "uint64",
                 self.right_id: "uint64",
@@ -202,9 +182,7 @@ class ConnectedComponents:
     def _write_dedup_parsed_id(self):
         dedup_parsed_id_path = f"{self.cache_dir}/dedup_parsed_id.parquet"
         t0 = time.time()
-        with performance_report_if_with_ts_suffix(
-            self.profile_dir, "connected-components-dedup-parsed-id"
-        ):
+        with performance_report_if_with_ts_suffix(self.profile_dir, "connected-components-dedup-parsed-id"):
             ddf = dask_cudf.read_parquet(
                 self.jaccard_pairs_path,
                 columns=[self.left_id, self.right_id],
@@ -212,9 +190,7 @@ class ConnectedComponents:
                 aggregate_files=True,
             )
             id_columns = [self.id_column]
-            unique_docs = ddf.map_partitions(
-                ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns
-            )
+            unique_docs = ddf.map_partitions(ConnectedComponents._get_unique_ids_per_partition, id_columns=id_columns)
             unique_docs = unique_docs.drop_duplicates(
                 # Dask does not guard against split_out=0
                 split_out=max(ddf.npartitions // 4, 1)
@@ -222,9 +198,7 @@ class ConnectedComponents:
             unique_docs["uid"] = np.uint64(1)
             unique_docs["uid"] = unique_docs["uid"].cumsum()
             unique_docs["uid"] = unique_docs["uid"] - 1
-            unique_docs.to_parquet(
-                dedup_parsed_id_path, write_index=False, overwrite=True
-            )
+            unique_docs.to_parquet(dedup_parsed_id_path, write_index=False, overwrite=True)
         self._logger.info(
             f"Time taken for Dedup Parsed Id = {time.time() - t0}s and output written at {dedup_parsed_id_path}"
         )
@@ -233,12 +207,8 @@ class ConnectedComponents:
     def _write_encoded_jaccard_pair(self, dedup_parsed_id_path):
         output_path = f"{self.cache_dir}/encoded_jaccard_pair/"
         t0 = time.time()
-        with performance_report_if_with_ts_suffix(
-            self.profile_dir, "connected-components-encoded-jaccard-pair"
-        ):
-            ddf_id = dask_cudf.read_parquet(
-                dedup_parsed_id_path, blocksize="2GB", aggregate_files=True
-            )
+        with performance_report_if_with_ts_suffix(self.profile_dir, "connected-components-encoded-jaccard-pair"):
+            ddf_id = dask_cudf.read_parquet(dedup_parsed_id_path, blocksize="2GB", aggregate_files=True)
             ddf = dask_cudf.read_parquet(
                 self.jaccard_pairs_path,
                 blocksize="1GB",
@@ -281,9 +251,7 @@ class ConnectedComponents:
         ddf.to_parquet(output_path, write_index=False, overwrite=True)
 
         et = time.time()
-        self._logger.info(
-            f"Time taken for merge and write = {et - st}s and output written at {output_path}"
-        )
+        self._logger.info(f"Time taken for merge and write = {et - st}s and output written at {output_path}")
 
     @staticmethod
     def _get_unique_ids_per_partition(df, id_columns):
@@ -294,9 +262,7 @@ class ConnectedComponents:
                 cols_to_drop.append(f"{id_col}_{tag}")
 
             subset_df = df[cols_to_drop].drop_duplicates(ignore_index=True)
-            subset_df = subset_df.rename(
-                columns={f"{id_col}_{tag}": f"{id_col}" for id_col in id_columns}
-            )
+            subset_df = subset_df.rename(columns={f"{id_col}_{tag}": f"{id_col}" for id_col in id_columns})
             unique_df_ls.append(subset_df)
         unique_df = cudf.concat(unique_df_ls, ignore_index=True)
         unique_df = unique_df.drop_duplicates(ignore_index=True)

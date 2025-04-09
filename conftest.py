@@ -9,9 +9,7 @@ LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--cpu", action="store_true", default=False, help="Run tests without gpu marker"
-    )
+    parser.addoption("--cpu", action="store_true", default=False, help="Run tests without gpu marker")
 
 
 def pytest_collection_modifyitems(config, items):

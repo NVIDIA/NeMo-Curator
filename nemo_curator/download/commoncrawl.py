@@ -69,9 +69,7 @@ def lang_detect(decoded_html):
         details = cld2.detect(decoded_html)[2]
     except Exception:
         # Remove control characters
-        cleaned_html = "".join(
-            i for i in decoded_html if unicodedata.category(i)[0] != "C"
-        )
+        cleaned_html = "".join(i for i in decoded_html if unicodedata.category(i)[0] != "C")
         details = cld2.detect(cleaned_html)[2]
 
     return details[0][0].upper()
@@ -236,16 +234,12 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         self.alt_texts = alt_texts
 
     def extract_text(self, html, stop_words, language):
-        text = extract_plain_text(
-            html, main_content=self.main_content, alt_texts=self.alt_texts
-        )
+        text = extract_plain_text(html, main_content=self.main_content, alt_texts=self.alt_texts)
 
         paragraphs = list(filter(None, text.split("\n")))
 
         if language in NON_SPACED_LANGUAGES:
-            warnings.warn(
-                "stopword_density is ignored for non-space-separated languages."
-            )
+            warnings.warn("stopword_density is ignored for non-space-separated languages.")
             result = paragraphs
         else:
             result = []
@@ -333,37 +327,25 @@ class TrafilaturaExtractor(HTMLExtractorAlgorithm):
 
     def extract_text(self, html, stop_words, language):
         trafilatura_config = deepcopy(TRAFILATURA_DEFAULT_CONFIG)
-        trafilatura_config["DEFAULT"]["MIN_EXTRACTED_SIZE"] = str(
-            self.min_extracted_size
-        )
-        trafilatura_config["DEFAULT"]["MIN_EXTRACTED_COMM_SIZE"] = str(
-            self.min_extracted_comm_size
-        )
+        trafilatura_config["DEFAULT"]["MIN_EXTRACTED_SIZE"] = str(self.min_extracted_size)
+        trafilatura_config["DEFAULT"]["MIN_EXTRACTED_COMM_SIZE"] = str(self.min_extracted_comm_size)
         trafilatura_config["DEFAULT"]["MIN_OUTPUT_SIZE"] = str(self.min_output_size)
-        trafilatura_config["DEFAULT"]["MIN_OUTPUT_COMM_SIZE"] = str(
-            self.min_output_comm_size
-        )
+        trafilatura_config["DEFAULT"]["MIN_OUTPUT_COMM_SIZE"] = str(self.min_output_comm_size)
         if self.max_tree_size:
             trafilatura_config["DEFAULT"]["MAX_TREE_SIZE"] = str(self.max_tree_size)
-        trafilatura_config["DEFAULT"]["MIN_DUPLCHECK_SIZE"] = str(
-            self.min_duplcheck_size
-        )
+        trafilatura_config["DEFAULT"]["MIN_DUPLCHECK_SIZE"] = str(self.min_duplcheck_size)
         trafilatura_config["DEFAULT"]["MAX_REPETITIONS"] = str(self.max_repetitions)
 
         # Recommended to set deduplicate=True
         self.extract_kwargs.setdefault("deduplicate", True)
 
-        text = extract_with_trafilatura(
-            html, config=trafilatura_config, **self.extract_kwargs
-        )
+        text = extract_with_trafilatura(html, config=trafilatura_config, **self.extract_kwargs)
 
         if text is not None:
             paragraphs = list(filter(None, text.split("\n")))
 
             if language in NON_SPACED_LANGUAGES:
-                warnings.warn(
-                    "stopword_density is ignored for non-space-separated languages."
-                )
+                warnings.warn("stopword_density is ignored for non-space-separated languages.")
                 result = paragraphs
 
             else:
@@ -636,9 +618,7 @@ def download_common_crawl(
         common_crawl_urls = common_crawl_urls[:url_limit]
     output_paths = list(
         map(
-            lambda url: os.path.join(
-                output_path, url.split("/")[-1] + f".{output_type}"
-            ),
+            lambda url: os.path.join(output_path, url.split("/")[-1] + f".{output_type}"),
             common_crawl_urls,
         )
     )

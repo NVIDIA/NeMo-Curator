@@ -18,9 +18,7 @@ class Generator:
         self.llm = LLaMa_405B()
 
     def extract_points_of_interest(self, persona, file_name, passage):
-        prompt = extract_user_interest_prompt.format(
-            persona=persona, file_name=file_name, passage=passage
-        )
+        prompt = extract_user_interest_prompt.format(persona=persona, file_name=file_name, passage=passage)
 
         schema = {
             "guided_json": {
@@ -66,9 +64,7 @@ class Generator:
         return answer
 
     def generate_questions(self, file_name, passage, interest, types):
-        prompt = extract_questions_prompt.format(
-            file_name=file_name, passage=passage, interest=interest, types=types
-        )
+        prompt = extract_questions_prompt.format(file_name=file_name, passage=passage, interest=interest, types=types)
 
         schema = {
             "guided_json": {
@@ -89,15 +85,11 @@ class Generator:
             return []
 
     def conversational_re_write(self, question, file_name, passage):
-        prompt = conversational_re_write_prompt.format(
-            question=question, file_name=file_name, passage=passage
-        )
+        prompt = conversational_re_write_prompt.format(question=question, file_name=file_name, passage=passage)
         schema = {
             "guided_json": {
                 "type": "object",
-                "properties": {
-                    "re_written_question": {"description": "<fill>", "type": "string"}
-                },
+                "properties": {"re_written_question": {"description": "<fill>", "type": "string"}},
                 "required": ["re_written_question"],
             }
         }
@@ -150,9 +142,7 @@ class Relevance_Filter:
         self.llm = LLaMa_405B()
 
     def execute(self, question, file_name, passage):
-        prompt = filter_relevance_prompt.format(
-            question=question, file_name=file_name, passage=passage
-        )
+        prompt = filter_relevance_prompt.format(question=question, file_name=file_name, passage=passage)
 
         schema = {
             "guided_json": {
@@ -181,9 +171,7 @@ class Intelligent_Question_Filter:
         self.llm = LLaMa_405B()
 
     def execute(self, question, file_name, passage):
-        prompt = intelligent_question_filter_prompt.format(
-            question=question, file_name=file_name, passage=passage
-        )
+        prompt = intelligent_question_filter_prompt.format(question=question, file_name=file_name, passage=passage)
 
         schema = {
             "guided_json": {

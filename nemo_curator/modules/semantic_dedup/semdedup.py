@@ -61,12 +61,8 @@ class SemDedup(BaseDeduplicationModule):
             cache_dir=config.cache_dir,
         )
         self.config = config
-        embedding_output_dir = os.path.join(
-            self.config.cache_dir, config.embeddings_save_loc
-        )
-        clustering_output_dir = os.path.join(
-            self.config.cache_dir, config.clustering_save_loc
-        )
+        embedding_output_dir = os.path.join(self.config.cache_dir, config.embeddings_save_loc)
+        clustering_output_dir = os.path.join(self.config.cache_dir, config.clustering_save_loc)
 
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,
@@ -93,9 +89,7 @@ class SemDedup(BaseDeduplicationModule):
         )
         self.semantic_cluster_dedup = SemanticClusterLevelDedup(
             n_clusters=config.n_clusters,
-            emb_by_clust_dir=os.path.join(
-                clustering_output_dir, "embs_by_nearest_center"
-            ),
+            emb_by_clust_dir=os.path.join(clustering_output_dir, "embs_by_nearest_center"),
             id_column=id_column,
             which_to_keep=config.which_to_keep,
             sim_metric=config.sim_metric,
@@ -114,13 +108,9 @@ class SemDedup(BaseDeduplicationModule):
         embeddings_dataset = self.embedding_creator(dataset)
         self.clustering_model(embeddings_dataset)
         self.semantic_cluster_dedup.compute_semantic_match_dfs()
-        return self.semantic_cluster_dedup.extract_dedup_data(
-            eps_to_extract=self.eps_to_extract
-        )
+        return self.semantic_cluster_dedup.extract_dedup_data(eps_to_extract=self.eps_to_extract)
 
-    def remove(
-        self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset
-    ) -> DocumentDataset:
+    def remove(self, dataset: DocumentDataset, duplicates_to_remove: DocumentDataset) -> DocumentDataset:
         """
         Remove duplicates from the dataset.
         """

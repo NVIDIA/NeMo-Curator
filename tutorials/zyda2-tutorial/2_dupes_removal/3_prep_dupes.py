@@ -15,14 +15,10 @@ DATA_BASE = os.environ.get("DATA_BASE")
 RAW_DATA_BASE = os.path.join(DATA_BASE, "processed")
 CC_BASE = os.path.join(DATA_BASE, "fuzzy/cc/")
 CC_FOLDER = os.path.join(CC_BASE, "connected_components.parquet")
-CC_GROUPED_COUNTS_FOLDER = os.path.join(
-    CC_BASE, "connected_components_grouped_counts.parquet"
-)
+CC_GROUPED_COUNTS_FOLDER = os.path.join(CC_BASE, "connected_components_grouped_counts.parquet")
 
 DUPES_BASE = os.path.join(CC_BASE, "dupes")
-DUPES_IDS_GROUPED_IN_COLUMNS = os.path.join(
-    DUPES_BASE, "dupes_ids_grouped_in_columns.parquet"
-)
+DUPES_IDS_GROUPED_IN_COLUMNS = os.path.join(DUPES_BASE, "dupes_ids_grouped_in_columns.parquet")
 
 CPU_WORKERS = os.environ.get("CPU_WORKERS")
 
@@ -59,35 +55,23 @@ if __name__ == "__main__":
     # Counting digits
     dclm_digits = {}
     for dir in sorted(os.listdir(paths["dclm"])):
-        files = [
-            x for x in os.listdir(os.path.join(paths["dclm"], dir)) if ".parquet" in x
-        ]
+        files = [x for x in os.listdir(os.path.join(paths["dclm"], dir)) if ".parquet" in x]
         dclm_digits[dclm_dir2id[dir]] = count_digits(len(files))
 
-    dolma_digits = count_digits(
-        len([x for x in os.listdir(paths["dolma-cc"]) if ".parquet" in x])
-    )
+    dolma_digits = count_digits(len([x for x in os.listdir(paths["dolma-cc"]) if ".parquet" in x]))
 
     zyda_digits = {}
     for dir in sorted(os.listdir(paths["zyda"])):
-        files = [
-            x for x in os.listdir(os.path.join(paths["zyda"], dir)) if ".parquet" in x
-        ]
+        files = [x for x in os.listdir(os.path.join(paths["zyda"], dir)) if ".parquet" in x]
         zyda_digits[dir] = count_digits(len(files))
 
     fwe2_digits = {}
     for dir in sorted(os.listdir(paths["fwe2"])):
-        files = [
-            x for x in os.listdir(os.path.join(paths["fwe2"], dir)) if ".parquet" in x
-        ]
+        files = [x for x in os.listdir(os.path.join(paths["fwe2"], dir)) if ".parquet" in x]
         fwe2_digits[dir] = count_digits(len(files))
 
-    cc_grouped_counts_df = dd.read_parquet(
-        CC_GROUPED_COUNTS_FOLDER, split_row_groups=False
-    )
-    cc_grouped_counts_filtered_df = cc_grouped_counts_df[
-        cc_grouped_counts_df["size"] > 1
-    ]
+    cc_grouped_counts_df = dd.read_parquet(CC_GROUPED_COUNTS_FOLDER, split_row_groups=False)
+    cc_grouped_counts_filtered_df = cc_grouped_counts_df[cc_grouped_counts_df["size"] > 1]
 
     cc_groups_counts_inter_df = cc_grouped_counts_filtered_df[
         cc_grouped_counts_filtered_df["size"] != cc_grouped_counts_filtered_df["dclm"]
@@ -178,6 +162,4 @@ if __name__ == "__main__":
     }
 
     grouped_dupes_df = dupes_df.map_partitions(group_dupes, meta=meta)
-    grouped_dupes_df.to_parquet(
-        DUPES_IDS_GROUPED_IN_COLUMNS, write_index=False, overwrite=True
-    )
+    grouped_dupes_df.to_parquet(DUPES_IDS_GROUPED_IN_COLUMNS, write_index=False, overwrite=True)

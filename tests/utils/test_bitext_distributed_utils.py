@@ -195,9 +195,7 @@ class TestBitextWritingFunctions:
             "nemo_curator.utils.distributed_utils._single_partition_write_to_simple_bitext",
             simple_write_function,
         ):
-            with patch(
-                "nemo_curator.utils.distributed_utils._merge_tmp_simple_bitext_partitions"
-            ) as mock_merge:
+            with patch("nemo_curator.utils.distributed_utils._merge_tmp_simple_bitext_partitions") as mock_merge:
                 with patch("shutil.rmtree") as mock_rmtree:
                     # Path for normal bitext write without filename
                     output_path = os.path.join(temp_dir, "output.bitext")
@@ -239,17 +237,13 @@ class TestBitextWritingFunctions:
             "nemo_curator.utils.distributed_utils._single_partition_write_to_simple_bitext",
             simple_write_to_bitext,
         ):
-            with patch(
-                "nemo_curator.utils.distributed_utils._merge_tmp_simple_bitext_partitions"
-            ) as mock_merge:
+            with patch("nemo_curator.utils.distributed_utils._merge_tmp_simple_bitext_partitions") as mock_merge:
                 with patch("shutil.rmtree") as mock_rmtree:
                     # Path for bitext write with filename
                     output_dir = os.path.join(temp_dir, "output_dir")
 
                     # Call the function
-                    write_to_disk(
-                        ddf, output_dir, write_to_filename=True, output_type="bitext"
-                    )
+                    write_to_disk(ddf, output_dir, write_to_filename=True, output_type="bitext")
 
                     # Verify the function was called with the correct parameters
                     mock_merge.assert_called_once()

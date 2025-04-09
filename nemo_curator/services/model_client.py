@@ -49,9 +49,7 @@ class LLMClient(ABC):
         model: str,
         conversation_formatter: Optional[ConversationFormatter] = None,
     ) -> dict:
-        raise NotImplementedError(
-            "Subclass of LLMClient must implement 'query_reward_model'"
-        )
+        raise NotImplementedError("Subclass of LLMClient must implement 'query_reward_model'")
 
 
 class AsyncLLMClient(ABC):
@@ -76,9 +74,7 @@ class AsyncLLMClient(ABC):
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> List[str]:
-        raise NotImplementedError(
-            "Subclass of AsyncLLMClient must implement 'query_model'"
-        )
+        raise NotImplementedError("Subclass of AsyncLLMClient must implement 'query_model'")
 
     @abstractmethod
     async def query_reward_model(
@@ -88,6 +84,4 @@ class AsyncLLMClient(ABC):
         model: str,
         conversation_formatter: Optional[ConversationFormatter] = None,
     ) -> dict:
-        raise NotImplementedError(
-            "Subclass of LLMClient must implement 'query_reward_model'"
-        )
+        raise NotImplementedError("Subclass of LLMClient must implement 'query_reward_model'")

@@ -35,14 +35,8 @@ def main(args):
         random.seed(args.seed)
         random.shuffle(files)
 
-    dataset = DocumentDataset(
-        read_data(
-            files, file_type=args.input_file_type, backend=backend, add_filename=True
-        )
-    )
-    add_id = nemo_curator.AddId(
-        args.id_field_name, id_prefix=args.id_prefix, start_index=args.starting_index
-    )
+    dataset = DocumentDataset(read_data(files, file_type=args.input_file_type, backend=backend, add_filename=True))
+    add_id = nemo_curator.AddId(args.id_field_name, id_prefix=args.id_prefix, start_index=args.starting_index)
     id_dataset = add_id(dataset)
 
     write_to_disk(
@@ -80,8 +74,7 @@ these IDs must be added prior to performing fuzzy and/or exact deduplication.
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_arg_seed()
     argumentHelper.add_arg_shuffle(
-        help="Shuffle the order of files before assigning IDs. "
-        "Useful for creating a copy dataset with different IDs."
+        help="Shuffle the order of files before assigning IDs. Useful for creating a copy dataset with different IDs."
     )
     argumentHelper.add_distributed_args()
     argumentHelper.set_default_n_workers(2.5)
@@ -89,8 +82,7 @@ these IDs must be added prior to performing fuzzy and/or exact deduplication.
         "--id-field-name",
         type=str,
         required=True,
-        help="The name of the field that will contain the id value. "
-        "This is a required argument.",
+        help="The name of the field that will contain the id value. This is a required argument.",
     )
     parser.add_argument(
         "--id-prefix",

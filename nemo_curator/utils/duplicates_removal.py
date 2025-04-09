@@ -18,9 +18,7 @@ from typing import List, Optional, Union
 import dask.dataframe as dd
 
 
-def deduplicate_groups(
-    duplicates: dd.DataFrame, group_field: Optional[str], perform_shuffle: bool
-) -> dd.DataFrame:
+def deduplicate_groups(duplicates: dd.DataFrame, group_field: Optional[str], perform_shuffle: bool) -> dd.DataFrame:
     if group_field is None:
         return duplicates
 
@@ -33,9 +31,7 @@ def deduplicate_groups(
     duplicates_to_remove = (
         duplicates_shuffled
         # For each partition, keep only the duplicated rows (excluding first occurrence)
-        .map_partitions(lambda x: x[x[group_field].duplicated(keep="first")]).drop(
-            columns=group_field
-        )
+        .map_partitions(lambda x: x[x[group_field].duplicated(keep="first")]).drop(columns=group_field)
     )
     return duplicates_to_remove
 

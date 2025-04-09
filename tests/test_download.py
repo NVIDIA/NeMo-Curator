@@ -422,9 +422,7 @@ class TestCommonCrawl:
         with open(file_path, "w") as f:
             f.write("existing content")
 
-        downloader = CommonCrawlWARCDownloader(
-            str(download_dir), aws=False, verbose=False
-        )
+        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
 
         # Monkey-patch subprocess.run to track if it gets called.
         called_run = False
@@ -452,9 +450,7 @@ class TestCommonCrawl:
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        downloader = CommonCrawlWARCDownloader(
-            str(download_dir), aws=False, verbose=False
-        )
+        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
 
         called_run = False
 
@@ -531,9 +527,7 @@ class TestCommonCrawl:
         result = extractor.extract(content)
         print(result)
         assert result is not None
-        assert (
-            "Common Crawl test paragraph for resiliparse extractor." in result["text"]
-        )
+        assert "Common Crawl test paragraph for resiliparse extractor." in result["text"]
         assert "language" in result
 
 
@@ -566,9 +560,7 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "extraction_algorithm", ["justext", "resiliparse", "trafilatura"]
-    )
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_thai_text(self, extraction_algorithm):
         thai_html = """<!doctype html>
             <head>
@@ -615,9 +607,7 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "extraction_algorithm", ["justext", "resiliparse", "trafilatura"]
-    )
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_chinese_text(self, extraction_algorithm):
         chinese_html = """<!doctype html>
             <head>
@@ -662,9 +652,7 @@ class TestExtractor:
 
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "extraction_algorithm", ["justext", "resiliparse", "trafilatura"]
-    )
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_japanese_text(self, extraction_algorithm):
         japanese_html = """<!doctype html>
             <head>
@@ -706,15 +694,11 @@ class TestExtractor:
             ]
 
         stop_words = get_stop_list_dict()
-        result = algorithm.extract_text(
-            japanese_html, stop_words["JAPANESE"], "JAPANESE"
-        )
+        result = algorithm.extract_text(japanese_html, stop_words["JAPANESE"], "JAPANESE")
 
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "extraction_algorithm", ["justext", "resiliparse", "trafilatura"]
-    )
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_korean_text(self, extraction_algorithm):
         korean_html = """<!doctype html>
             <head>

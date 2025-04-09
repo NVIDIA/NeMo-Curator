@@ -84,13 +84,9 @@ class Score(BaseModule):
             meta = no_default
 
         if is_batched(self.score_fn):
-            dataset.df[self.score_field] = dataset.df[self.text_field].map_partitions(
-                self.score_fn, meta=meta
-            )
+            dataset.df[self.score_field] = dataset.df[self.text_field].map_partitions(self.score_fn, meta=meta)
         else:
-            dataset.df[self.score_field] = dataset.df[self.text_field].apply(
-                self.score_fn, meta=meta
-            )
+            dataset.df[self.score_field] = dataset.df[self.text_field].apply(self.score_fn, meta=meta)
 
         return dataset
 
@@ -137,13 +133,9 @@ class Filter(BaseModule):
             Series or DataFrame: A mask corresponding to each data instance indicating whether it will be retained.
         """
         if is_batched(self.filter_fn):
-            bool_mask = dataset.df[self.filter_field].map_partitions(
-                self.filter_fn, meta=(None, bool)
-            )
+            bool_mask = dataset.df[self.filter_field].map_partitions(self.filter_fn, meta=(None, bool))
         else:
-            bool_mask = dataset.df[self.filter_field].apply(
-                self.filter_fn, meta=(None, bool)
-            )
+            bool_mask = dataset.df[self.filter_field].apply(self.filter_fn, meta=(None, bool))
 
         if self.invert:
             bool_mask = ~bool_mask
@@ -214,21 +206,15 @@ class ScoreFilter(BaseModule):
             meta = no_default
 
         if is_batched(self.filter_obj.score_document):
-            scores = dataset.df[self.text_field].map_partitions(
-                self.filter_obj.score_document, meta=meta
-            )
+            scores = dataset.df[self.text_field].map_partitions(self.filter_obj.score_document, meta=meta)
         else:
-            scores = dataset.df[self.text_field].apply(
-                self.filter_obj.score_document, meta=meta
-            )
+            scores = dataset.df[self.text_field].apply(self.filter_obj.score_document, meta=meta)
 
         if self.score_field is not None:
             dataset.df[self.score_field] = scores
 
         if is_batched(self.filter_obj.keep_document):
-            bool_mask = scores.map_partitions(
-                self.filter_obj.keep_document, meta=(None, bool)
-            )
+            bool_mask = scores.map_partitions(self.filter_obj.keep_document, meta=(None, bool))
         else:
             bool_mask = scores.apply(self.filter_obj.keep_document, meta=(None, bool))
         if self.invert:
@@ -281,12 +267,8 @@ class ParallelScoreFilter(BaseModule):
             invert (bool, optional): If True, will keep all documents that are normally discarded. Defaults to False.
         """
         super().__init__(input_backend=src_filter_obj.backend)
-        self.source_score_filter = ScoreFilter(
-            src_filter_obj, src_field, src_score, score_type, invert
-        )
-        self.target_score_filter = ScoreFilter(
-            tgt_filter_obj, tgt_field, tgt_score, score_type, invert
-        )
+        self.source_score_filter = ScoreFilter(src_filter_obj, src_field, src_score, score_type, invert)
+        self.target_score_filter = ScoreFilter(tgt_filter_obj, tgt_field, tgt_score, score_type, invert)
 
     def call(self, dataset: ParallelDataset):
         src_bool_mask = self.source_score_filter.compute_filter_mask(dataset)

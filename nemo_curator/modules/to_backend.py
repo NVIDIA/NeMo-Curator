@@ -31,9 +31,7 @@ class ToBackend(BaseModule):
         """
         super().__init__(input_backend="any")
         if backend not in BaseModule.SUPPORTED_BACKENDS:
-            raise ValueError(
-                f"Backend must be either 'pandas' or 'cudf', but got {backend}"
-            )
+            raise ValueError(f"Backend must be either 'pandas' or 'cudf', but got {backend}")
         self.backend = backend
 
     def call(self, dataset: DocumentDataset) -> DocumentDataset:

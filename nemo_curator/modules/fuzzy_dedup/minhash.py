@@ -79,9 +79,7 @@ class MinHash:
         self.text_field = text_field
 
         if cache_dir is None and profile_dir is not None:
-            warnings.warn(
-                "cache_dir for intermediate outputs is required to generate profiles"
-            )
+            warnings.warn("cache_dir for intermediate outputs is required to generate profiles")
         self.cache_dir = cache_dir
         self.profile_dir = profile_dir
 
@@ -101,9 +99,7 @@ class MinHash:
         gen = np.random.RandomState(seed)
         return gen.randint(0, 1e6, size=n_seeds)
 
-    def generate_hash_permutation_seeds(
-        self, bit_width: int, n_permutations: int = 260, seed: int = 0
-    ) -> np.ndarray:
+    def generate_hash_permutation_seeds(self, bit_width: int, n_permutations: int = 260, seed: int = 0) -> np.ndarray:
         """
         Generate seeds for all minhash permutations based on the given seed.
         """
@@ -130,9 +126,7 @@ class MinHash:
             dtype=dtype,
         )
 
-    def minhash32(
-        self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
-    ) -> cudf.Series:
+    def minhash32(self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int) -> cudf.Series:
         """
         Compute 32bit minhashes based on the MurmurHash3 algorithm
         """
@@ -153,17 +147,11 @@ class MinHash:
             seeds_b = cudf.Series(seeds[:, 1], dtype="uint32")
 
             if MINHASH_PERMUTED_AVAILABLE:
-                return ser.str.minhash_permuted(
-                    a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-                )
+                return ser.str.minhash_permuted(a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram)
             else:
-                return ser.str.minhash(
-                    a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-                )
+                return ser.str.minhash(a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram)
 
-    def minhash64(
-        self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int
-    ) -> cudf.Series:
+    def minhash64(self, ser: cudf.Series, seeds: np.ndarray, char_ngram: int) -> cudf.Series:
         """
         Compute 64bit minhashes based on the MurmurHash3 algorithm
         """
@@ -183,13 +171,9 @@ class MinHash:
             seeds_b = cudf.Series(seeds[:, 1], dtype="uint64")
 
             if MINHASH_PERMUTED_AVAILABLE:
-                return ser.str.minhash64_permuted(
-                    a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-                )
+                return ser.str.minhash64_permuted(a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram)
             else:
-                return ser.str.minhash64(
-                    a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram
-                )
+                return ser.str.minhash64(a=seeds_a, b=seeds_b, seed=seeds[0][0], width=char_ngram)
 
     def __call__(self, dataset: DocumentDataset) -> Union[str, DocumentDataset]:
         """
@@ -216,14 +200,10 @@ class MinHash:
         self._logger.info("Starting execution for Minhashes")
         write_path = os.path.join(self.cache_dir, "_minhashes.parquet")
         if os.path.exists(write_path):
-            warnings.warn(
-                f"Output path {write_path} already exists and will be overwritten"
-            )
+            warnings.warn(f"Output path {write_path} already exists and will be overwritten")
         with performance_report_if_with_ts_suffix(self.profile_dir, "minhash-profile"):
             result.to_parquet(write_path, write_index=False, overwrite=True)
         self._logger.info(
             f"Time taken for Minhash signature computation = {time.time() - t0}s and output written at {write_path}"
         )
-        return DocumentDataset(
-            dask_cudf.read_parquet(write_path, blocksize="2GB", aggregate_files=True)
-        )
+        return DocumentDataset(dask_cudf.read_parquet(write_path, blocksize="2GB", aggregate_files=True))

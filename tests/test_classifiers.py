@@ -73,9 +73,7 @@ def test_domain_classifier(gpu_client, domain_dataset, keep_prob):
 def test_quality_classifier(gpu_client):
     from nemo_curator.classifiers import QualityClassifier
 
-    text = [
-        "Traveling to Europe during the off-season can be a more budget-friendly option."
-    ]
+    text = ["Traveling to Europe during the off-season can be a more budget-friendly option."]
     df = cudf.DataFrame({"text": text})
     input_dataset = DocumentDataset(dask_cudf.from_cudf(df, npartitions=1))
 
@@ -178,14 +176,10 @@ def test_instruction_data_guard_classifier(gpu_client):
     if not hf_token:
         pytest.skip("HF_TOKEN environment variable not set")
 
-    instruction = (
-        "Find a route between San Diego and Phoenix which passes through Nevada"
-    )
+    instruction = "Find a route between San Diego and Phoenix which passes through Nevada"
     input_ = ""
     response = "Drive to Las Vegas with highway 15 and from there drive to Phoenix with highway 93"
-    benign_sample_text = (
-        f"Instruction: {instruction}. Input: {input_}. Response: {response}."
-    )
+    benign_sample_text = f"Instruction: {instruction}. Input: {input_}. Response: {response}."
     text = [benign_sample_text]
     df = cudf.DataFrame({"text": text})
     input_dataset = DocumentDataset(dask_cudf.from_cudf(df, npartitions=1))
@@ -288,17 +282,11 @@ def test_prompt_task_complexity_classifier(gpu_client):
     result_pred["constraint_ct"] = round(result_pred["constraint_ct"], 2)
     expected_pred["constraint_ct"] = round(expected_pred["constraint_ct"], 2)
     result_pred["contextual_knowledge"] = round(result_pred["contextual_knowledge"], 3)
-    expected_pred["contextual_knowledge"] = round(
-        expected_pred["contextual_knowledge"], 3
-    )
+    expected_pred["contextual_knowledge"] = round(expected_pred["contextual_knowledge"], 3)
     result_pred["creativity_scope"] = round(result_pred["creativity_scope"], 2)
     expected_pred["creativity_scope"] = round(expected_pred["creativity_scope"], 2)
-    result_pred["prompt_complexity_score"] = round(
-        result_pred["prompt_complexity_score"], 3
-    )
-    expected_pred["prompt_complexity_score"] = round(
-        expected_pred["prompt_complexity_score"], 3
-    )
+    result_pred["prompt_complexity_score"] = round(result_pred["prompt_complexity_score"], 3)
+    expected_pred["prompt_complexity_score"] = round(expected_pred["prompt_complexity_score"], 3)
     result_pred["task_type_prob"] = round(result_pred["task_type_prob"], 2)
     expected_pred["task_type_prob"] = round(expected_pred["task_type_prob"], 2)
 

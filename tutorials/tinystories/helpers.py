@@ -29,9 +29,7 @@ def write_jsonl(input_filename: str, output_dir: str, dump_every_n: int = 10000)
     """
     if os.path.isdir(output_dir):
         if len(os.listdir(output_dir)) > 0:
-            print(
-                f"Output directory '{output_dir}' is not empty. Skipping conversion to JSONL."
-            )
+            print(f"Output directory '{output_dir}' is not empty. Skipping conversion to JSONL.")
             return
     else:
         os.makedirs(output_dir)

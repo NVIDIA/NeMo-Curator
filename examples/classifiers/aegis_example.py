@@ -33,9 +33,7 @@ def main(args):
     client_args["cluster_type"] = "gpu"
     client = get_client(**client_args)
 
-    input_dataset = DocumentDataset.read_json(
-        input_file_path, backend="cudf", add_filename=True
-    )
+    input_dataset = DocumentDataset.read_json(input_file_path, backend="cudf", add_filename=True)
 
     safety_classifier = AegisClassifier(
         aegis_variant="nvidia/Aegis-AI-Content-Safety-LlamaGuard-Permissive-1.0",
@@ -56,9 +54,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     argumentHelper = ArgumentHelper(parser)
     argumentHelper.add_distributed_classifier_cluster_args()

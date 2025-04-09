@@ -49,9 +49,7 @@ def main(args):
 
     # Filter data
     multilingual_dataset = load_dataset(multilingual_data_path)
-    language_id_pipeline = nc.ScoreFilter(
-        FastTextLangId(model_path), score_field=language_field, score_type="object"
-    )
+    language_id_pipeline = nc.ScoreFilter(FastTextLangId(model_path), score_field=language_field, score_type="object")
     filtered_dataset = language_id_pipeline(multilingual_dataset)
 
     # Remove the language score
@@ -68,9 +66,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

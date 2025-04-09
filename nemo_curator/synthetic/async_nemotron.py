@@ -67,15 +67,11 @@ class AsyncNemotronGenerator:
         else:
             self.logger = logger
 
-    async def _prompt(
-        self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict
-    ) -> List[str]:
+    async def _prompt(self, model: str, prompt_template: str, prompt_kwargs: dict, model_kwargs: dict) -> List[str]:
         prompt = prompt_template.format(**prompt_kwargs)
         messages = [{"role": "user", "content": prompt}]
 
-        return await self.client.query_model(
-            messages=messages, model=model, **model_kwargs
-        )
+        return await self.client.query_model(messages=messages, model=model, **model_kwargs)
 
     async def convert_response_to_yaml_list(
         self,
@@ -110,14 +106,10 @@ class AsyncNemotronGenerator:
         try:
             parsed_response = yaml.safe_load(yaml_response[0])
         except yaml.error.YAMLError as _:
-            raise YamlConversionError(
-                f"Error parsing yaml response: {yaml_response[0]}"
-            )
+            raise YamlConversionError(f"Error parsing yaml response: {yaml_response[0]}")
 
         if not isinstance(parsed_response, list):
-            raise YamlConversionError(
-                f"Error: Parsed response was not a list: {parsed_response}"
-            )
+            raise YamlConversionError(f"Error: Parsed response was not a list: {parsed_response}")
 
         for elem in parsed_response:
             if not isinstance(elem, str):
@@ -159,9 +151,7 @@ class AsyncNemotronGenerator:
 
         return parsed_list
 
-    async def _gather(
-        self, requests: List[Coroutine[Any, Any, List[str]]]
-    ) -> List[str]:
+    async def _gather(self, requests: List[Coroutine[Any, Any, List[str]]]) -> List[str]:
         max_requests = self.max_concurrent_requests
         if max_requests is None:
             max_requests = len(requests)
@@ -758,9 +748,7 @@ class AsyncNemotronGenerator:
             **assistant_model_kwargs,
         )
         first_assistant_response = first_assistant_response[0]
-        conversation_history.append(
-            {"role": "assistant", "content": first_assistant_response}
-        )
+        conversation_history.append({"role": "assistant", "content": first_assistant_response})
         for _ in range(n_user_turns - 1):
             user_response = await self._impersonate_user(
                 conversation_history=conversation_history,
@@ -776,9 +764,7 @@ class AsyncNemotronGenerator:
                 **assistant_model_kwargs,
             )
             assistant_response = assistant_response[0]
-            conversation_history.append(
-                {"role": "assistant", "content": assistant_response}
-            )
+            conversation_history.append({"role": "assistant", "content": assistant_response})
 
         return conversation_history
 
@@ -824,9 +810,7 @@ class AsyncNemotronGenerator:
             **assistant_model_kwargs,
         )
         first_assistant_response = first_assistant_response[0]
-        conversation_history.append(
-            {"role": "assistant", "content": first_assistant_response}
-        )
+        conversation_history.append({"role": "assistant", "content": first_assistant_response})
 
         user_response = await self._impersonate_user(
             conversation_history=conversation_history,

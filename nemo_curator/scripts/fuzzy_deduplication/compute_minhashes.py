@@ -34,9 +34,7 @@ def pre_imports():
 
 
 def main(args):
-    logger = create_logger(
-        rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="minhash_log"
-    )
+    logger = create_logger(rank=0, log_file=os.path.join(args.log_dir, "rank_000.log"), name="minhash_log")
     logger.info(f"Starting workflow with args:\n {args}")
 
     assert args.hash_bytes in {4, 8}, "Currently only 32bit/64bit hashes are supported"
@@ -70,9 +68,7 @@ def main(args):
             print(f"Processed {args.num_files}... quitting")
             break
 
-        files = get_all_files_paths_under(
-            root=data_path, recurse_subdirectories=False, keep_extensions="jsonl"
-        )
+        files = get_all_files_paths_under(root=data_path, recurse_subdirectories=False, keep_extensions="jsonl")
         df = read_data(
             files[:num_files] if num_files else files,
             file_type="jsonl",
@@ -86,18 +82,12 @@ def main(args):
             num_files -= len(files)
 
         res = minhasher(DocumentDataset(df)).df
-        logger.info(
-            f"Lazy minhash generation complete for {res.npartitions} partitions"
-        )
+        logger.info(f"Lazy minhash generation complete for {res.npartitions} partitions")
         logger.info(f"Starting execution for {data_path}")
-        write_path = os.path.join(
-            args.output_minhash_dir, os.path.basename(data_path), "minhashes.parquet"
-        )
+        write_path = os.path.join(args.output_minhash_dir, os.path.basename(data_path), "minhashes.parquet")
 
         t1 = time.time()
-        with performance_report_if(
-            args.profile_path, f"{os.path.basename(data_path)}-minhash-profile.html"
-        ):
+        with performance_report_if(args.profile_path, f"{os.path.basename(data_path)}-minhash-profile.html"):
             res.to_parquet(write_path, write_index=False)
         logger.info(
             f"Minhash computation for f{data_path} took {time.time() - t1}s complete at {write_path}"  # noqa:E501
@@ -123,8 +113,7 @@ def attach_args():
 
     argumentHelper.add_arg_minhash_length()
     argumentHelper.add_arg_seed(
-        help="Random seed used for intializing the hash "
-        "functions used to compute the minhashes."
+        help="Random seed used for intializing the hash functions used to compute the minhashes."
     )
     argumentHelper.add_arg_input_meta()
     parser.add_argument(
@@ -139,8 +128,7 @@ def attach_args():
         "--hash-bytes",
         type=int,
         default=4,
-        help="Number of bytes per computed minhash. "
-        "Default is an unsigned 32-bit integer.",
+        help="Number of bytes per computed minhash. Default is an unsigned 32-bit integer.",
     )
     parser.add_argument(
         "--output-minhash-dir",

@@ -47,9 +47,7 @@ class TestNemotronFormatter:
         """Test formatting with just a single user turn."""
         conv = [{"role": "user", "content": "Hello"}]
 
-        expected_output = (
-            "<extra_id_0>System\n\n<extra_id_1>User\nHello\n<extra_id_1>Assistant\n"
-        )
+        expected_output = "<extra_id_0>System\n\n<extra_id_1>User\nHello\n<extra_id_1>Assistant\n"
 
         result = NemotronFormatter.format_conversation(conv)
         assert result == expected_output
@@ -164,9 +162,7 @@ class TestNemotronGenerator:
         generator = NemotronGenerator(mock_llm_client)
 
         # Return a list containing an item not in the original text
-        mock_llm_client.query_model.return_value = [
-            yaml.dump(["Item in text", "Hallucinated item"])
-        ]
+        mock_llm_client.query_model.return_value = [yaml.dump(["Item in text", "Hallucinated item"])]
 
         with pytest.raises(YamlConversionError) as excinfo:
             generator.convert_response_to_yaml_list(
@@ -190,9 +186,7 @@ class TestNemotronGenerator:
         # Check the parameters sent to _prompt
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert messages[0]["content"].find("3") != -1, (
-            "Number of topics wasn't passed to the prompt"
-        )
+        assert messages[0]["content"].find("3") != -1, "Number of topics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["Topic 1\nTopic 2\nTopic 3"]
@@ -210,12 +204,8 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Science" in messages[0]["content"], (
-            "Macro topic wasn't passed to the prompt"
-        )
-        assert "5" in messages[0]["content"], (
-            "Number of subtopics wasn't passed to the prompt"
-        )
+        assert "Science" in messages[0]["content"], "Macro topic wasn't passed to the prompt"
+        assert "5" in messages[0]["content"], "Number of subtopics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -233,12 +223,8 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Artificial Intelligence" in messages[0]["content"], (
-            "Topic wasn't passed to the prompt"
-        )
-        assert "3" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert "Artificial Intelligence" in messages[0]["content"], "Topic wasn't passed to the prompt"
+        assert "3" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -256,12 +242,8 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "What is machine learning?" in messages[0]["content"], (
-            "Openline wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of revisions wasn't passed to the prompt"
-        )
+        assert "What is machine learning?" in messages[0]["content"], "Openline wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of revisions wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -280,15 +262,9 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Environment" in messages[0]["content"], (
-            "Topic wasn't passed to the prompt"
-        )
-        assert "Essay" in messages[0]["content"], (
-            "Text material type wasn't passed to the prompt"
-        )
-        assert "4" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert "Environment" in messages[0]["content"], "Topic wasn't passed to the prompt"
+        assert "Essay" in messages[0]["content"], "Text material type wasn't passed to the prompt"
+        assert "4" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -307,12 +283,8 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert document in messages[0]["content"], (
-            "Document wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert document in messages[0]["content"], "Document wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -331,9 +303,7 @@ class TestNemotronGenerator:
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
         assert "Calculus" in messages[0]["content"], "Topic wasn't passed to the prompt"
-        assert "3" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
+        assert "3" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -352,15 +322,9 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Lists and Dictionaries" in messages[0]["content"], (
-            "Topic wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of openlines wasn't passed to the prompt"
-        )
-        assert "Python" in messages[0]["content"], (
-            "Language wasn't passed to the prompt"
-        )
+        assert "Lists and Dictionaries" in messages[0]["content"], "Topic wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of openlines wasn't passed to the prompt"
+        assert "Python" in messages[0]["content"], "Language wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -543,9 +507,7 @@ class TestNemotronGenerator:
 
     @patch.object(NemotronGenerator, "convert_response_to_yaml_list")
     @patch.object(NemotronGenerator, "generate_closed_qa_instructions")
-    def test_run_closed_qa_pipeline(
-        self, mock_qa_instructions, mock_convert, mock_llm_client
-    ):
+    def test_run_closed_qa_pipeline(self, mock_qa_instructions, mock_convert, mock_llm_client):
         """Test run_closed_qa_pipeline pipeline method."""
         generator = NemotronGenerator(mock_llm_client)
 
@@ -571,18 +533,14 @@ class TestNemotronGenerator:
                     n_openlines=2,
                     model="test_model",
                     model_kwargs={},
-                    prompt_template=mock_qa_instructions.call_args[1][
-                        "prompt_template"
-                    ],
+                    prompt_template=mock_qa_instructions.call_args[1]["prompt_template"],
                 ),
                 call(
                     document="Document 2",
                     n_openlines=2,
                     model="test_model",
                     model_kwargs={},
-                    prompt_template=mock_qa_instructions.call_args[1][
-                        "prompt_template"
-                    ],
+                    prompt_template=mock_qa_instructions.call_args[1]["prompt_template"],
                 ),
             ]
         )
@@ -599,9 +557,7 @@ class TestNemotronGenerator:
     @patch.object(NemotronGenerator, "convert_response_to_yaml_list")
     @patch.object(NemotronGenerator, "generate_writing_tasks")
     @patch.object(NemotronGenerator, "revise_writing_tasks")
-    def test_run_writing_pipeline(
-        self, mock_revise, mock_generate_tasks, mock_convert, mock_llm_client
-    ):
+    def test_run_writing_pipeline(self, mock_revise, mock_generate_tasks, mock_convert, mock_llm_client):
         """Test run_writing_pipeline pipeline method."""
         generator = NemotronGenerator(mock_llm_client)
 
@@ -749,9 +705,7 @@ class TestNemotronGenerator:
         assert "Problem" in result[0]
 
     @patch.object(NemotronGenerator, "convert_response_to_yaml_list")
-    def test_run_pipeline_with_yaml_conversion_error(
-        self, mock_convert, mock_llm_client
-    ):
+    def test_run_pipeline_with_yaml_conversion_error(self, mock_convert, mock_llm_client):
         """Test pipeline error handling when YamlConversionError occurs."""
         generator = NemotronGenerator(mock_llm_client)
 
@@ -778,15 +732,9 @@ class TestNemotronGenerator:
         mock_convert.side_effect = cycle(
             [
                 ["Topic 1", "Topic 2"],  # Successful macro topics conversion
-                YamlConversionError(
-                    "Subtopics conversion error"
-                ),  # Failure in subtopics
-                [
-                    "Openline 1"
-                ],  # Successful openlines conversion (fewer than requested)
-                YamlConversionError(
-                    "Revisions conversion error"
-                ),  # Failure in revisions
+                YamlConversionError("Subtopics conversion error"),  # Failure in subtopics
+                ["Openline 1"],  # Successful openlines conversion (fewer than requested)
+                YamlConversionError("Revisions conversion error"),  # Failure in revisions
             ]
         )
 
@@ -800,9 +748,7 @@ class TestNemotronGenerator:
             n_revisions=2,
             model="test_model",
             ignore_conversion_failure=True,
-            additional_subtopics=[
-                "Extra subtopic"
-            ],  # Added to ensure we have something to process
+            additional_subtopics=["Extra subtopic"],  # Added to ensure we have something to process
         )
 
     def test_revise_writing_tasks(self, mock_llm_client):
@@ -818,12 +764,8 @@ class TestNemotronGenerator:
         # Check the right parameters were passed to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Write an essay about climate change." in messages[0]["content"], (
-            "Openline wasn't passed to the prompt"
-        )
-        assert "2" in messages[0]["content"], (
-            "Number of revisions wasn't passed to the prompt"
-        )
+        assert "Write an essay about climate change." in messages[0]["content"], "Openline wasn't passed to the prompt"
+        assert "2" in messages[0]["content"], "Number of revisions wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -841,12 +783,8 @@ class TestNemotronGenerator:
         # Check the parameters sent to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "3" in messages[0]["content"], (
-            "Number of topics wasn't passed to the prompt"
-        )
-        assert "Middle School" in messages[0]["content"], (
-            "School level wasn't passed to the prompt"
-        )
+        assert "3" in messages[0]["content"], "Number of topics wasn't passed to the prompt"
+        assert "Middle School" in messages[0]["content"], "School level wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -864,12 +802,8 @@ class TestNemotronGenerator:
         # Check the parameters sent to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Algebra" in messages[0]["content"], (
-            "Macro topic wasn't passed to the prompt"
-        )
-        assert "4" in messages[0]["content"], (
-            "Number of subtopics wasn't passed to the prompt"
-        )
+        assert "Algebra" in messages[0]["content"], "Macro topic wasn't passed to the prompt"
+        assert "4" in messages[0]["content"], "Number of subtopics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -886,9 +820,7 @@ class TestNemotronGenerator:
         # Check the parameters sent to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Quadratic Equations" in messages[0]["content"], (
-            "Entity wasn't passed to the prompt"
-        )
+        assert "Quadratic Equations" in messages[0]["content"], "Entity wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -905,9 +837,7 @@ class TestNemotronGenerator:
         # Check the parameters sent to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "3" in messages[0]["content"], (
-            "Number of topics wasn't passed to the prompt"
-        )
+        assert "3" in messages[0]["content"], "Number of topics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -925,12 +855,8 @@ class TestNemotronGenerator:
         # Check the parameters sent to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Web Development" in messages[0]["content"], (
-            "Macro topic wasn't passed to the prompt"
-        )
-        assert "4" in messages[0]["content"], (
-            "Number of subtopics wasn't passed to the prompt"
-        )
+        assert "Web Development" in messages[0]["content"], "Macro topic wasn't passed to the prompt"
+        assert "4" in messages[0]["content"], "Number of subtopics wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -947,9 +873,7 @@ class TestNemotronGenerator:
         # Check the parameters sent to query_model
         mock_llm_client.query_model.assert_called_once()
         messages = mock_llm_client.query_model.call_args[1]["messages"]
-        assert "Object-Oriented Programming" in messages[0]["content"], (
-            "Entity wasn't passed to the prompt"
-        )
+        assert "Object-Oriented Programming" in messages[0]["content"], "Entity wasn't passed to the prompt"
 
         # Check the result
         assert result == ["This is a mock response"]
@@ -977,9 +901,7 @@ class TestNemotronGenerator:
         assert "not a list" in str(excinfo.value)
 
         # Test with list containing items not in the source text (hallucination)
-        mock_llm_client.query_model.return_value = [
-            yaml.dump(["Item in source", "Hallucinated item"])
-        ]
+        mock_llm_client.query_model.return_value = [yaml.dump(["Item in source", "Hallucinated item"])]
         with pytest.raises(YamlConversionError) as excinfo:
             generator.convert_response_to_yaml_list(
                 llm_response="Source text with Item in source",
@@ -988,9 +910,7 @@ class TestNemotronGenerator:
         assert "hallucination" in str(excinfo.value).lower()
 
         # Test with list containing non-string elements
-        mock_llm_client.query_model.return_value = [
-            yaml.dump(["Valid string", 123, True, {"nested": "dict"}])
-        ]
+        mock_llm_client.query_model.return_value = [yaml.dump(["Valid string", 123, True, {"nested": "dict"}])]
         with pytest.raises(YamlConversionError) as excinfo:
             generator.convert_response_to_yaml_list(
                 llm_response="Valid string",
@@ -1009,9 +929,7 @@ class TestNemotronGenerator:
         with patch.object(generator, "generate_macro_topics") as mock_macro_topics:
             mock_macro_topics.return_value = ["Macro topics response"]
 
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 # Make the convert method raise an exception
                 mock_convert.side_effect = YamlConversionError("Test conversion error")
 
@@ -1037,17 +955,13 @@ class TestNemotronGenerator:
         with patch.object(generator, "generate_macro_topics") as mock_macro_topics:
             mock_macro_topics.return_value = ["Macro topics response"]
 
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 # Setup the side effect to first fail with error, then return valid results
                 # This simulates the pipeline continuing after an error
                 # Use cycle to create an infinite iterator that won't run out of values
                 mock_convert.side_effect = cycle(
                     [
-                        YamlConversionError(
-                            "Test conversion error"
-                        ),  # First call: macro topics - fail
+                        YamlConversionError("Test conversion error"),  # First call: macro topics - fail
                         ["Topic 1", "Topic 2"],  # Second call: subtopics - succeed
                         ["Question 1", "Question 2"],  # Third call: openlines - succeed
                         [
@@ -1065,9 +979,7 @@ class TestNemotronGenerator:
                     n_revisions=2,
                     model="test_model",
                     ignore_conversion_failure=True,
-                    additional_macro_topics=[
-                        "Backup Topic"
-                    ],  # To ensure we have something to process
+                    additional_macro_topics=["Backup Topic"],  # To ensure we have something to process
                 )
 
                 # Verify that the mock was called and pipeline continued execution
@@ -1124,9 +1036,7 @@ class TestNemotronGenerator:
             mock_macro_topics.return_value = ["Math topics response"]
 
             # For testing ignore_conversion_failure=False
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 mock_convert.side_effect = YamlConversionError("Test conversion error")
 
                 # Should raise exception with ignore_conversion_failure=False
@@ -1141,16 +1051,12 @@ class TestNemotronGenerator:
                     )
 
             # For testing ignore_conversion_failure=True, we'll make the mock handle this case correctly
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 # First call will be for macro_topics, which we want to simulate as failing
                 # If additional_macro_topics is provided, the pipeline should still continue
                 mock_convert.side_effect = cycle(
                     [
-                        YamlConversionError(
-                            "Test conversion error"
-                        ),  # First call fails
+                        YamlConversionError("Test conversion error"),  # First call fails
                         ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
                     ]
                 )
@@ -1171,9 +1077,7 @@ class TestNemotronGenerator:
             mock_gen_qa.return_value = ["QA instructions response"]
 
             # For testing ignore_conversion_failure=False
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 mock_convert.side_effect = YamlConversionError("Test conversion error")
 
                 # Should raise exception with ignore_conversion_failure=False
@@ -1186,9 +1090,7 @@ class TestNemotronGenerator:
                     )
 
             # For testing ignore_conversion_failure=True
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 # Setup to return empty list when ignore_conversion_failure=True
                 mock_convert.return_value = []
 
@@ -1201,15 +1103,11 @@ class TestNemotronGenerator:
                 assert isinstance(result, list)
 
         # Test python pipeline
-        with patch.object(
-            generator, "generate_python_macro_topics"
-        ) as mock_macro_topics:
+        with patch.object(generator, "generate_python_macro_topics") as mock_macro_topics:
             mock_macro_topics.return_value = ["Python topics response"]
 
             # For testing ignore_conversion_failure=False
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 mock_convert.side_effect = YamlConversionError("Test conversion error")
 
                 # Should raise exception with ignore_conversion_failure=False
@@ -1223,16 +1121,12 @@ class TestNemotronGenerator:
                     )
 
             # For testing ignore_conversion_failure=True
-            with patch.object(
-                generator, "convert_response_to_yaml_list"
-            ) as mock_convert:
+            with patch.object(generator, "convert_response_to_yaml_list") as mock_convert:
                 # First call will be for macro_topics, which we want to simulate as failing
                 # If additional_macro_topics is provided, the pipeline should still continue
                 mock_convert.side_effect = cycle(
                     [
-                        YamlConversionError(
-                            "Test conversion error"
-                        ),  # First call fails
+                        YamlConversionError("Test conversion error"),  # First call fails
                         ["Subtopic 1", "Subtopic 2"],  # Subsequent calls succeed
                     ]
                 )

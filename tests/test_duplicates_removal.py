@@ -99,9 +99,7 @@ def test_remove_duplicates_all_duplicates(
     ids: list[str],
     sample_data: dd.DataFrame,
 ):
-    duplicates = dd.from_pandas(
-        pd.DataFrame({"id": ids, "group": [1] * len(ids)}), npartitions=2
-    )
+    duplicates = dd.from_pandas(pd.DataFrame({"id": ids, "group": [1] * len(ids)}), npartitions=2)
     sample_data = sample_data.to_backend(backend)
     duplicates = duplicates.to_backend(backend)
 
@@ -201,9 +199,7 @@ def test_remove_duplicates_repartition(
     )  # dataset with 2 partitions
 
     duplicates = dd.from_pandas(
-        pd.DataFrame(
-            {"id": ["a1", "a2", "a3"], "group": ["group1", "group1", "group1"]}
-        ),
+        pd.DataFrame({"id": ["a1", "a2", "a3"], "group": ["group1", "group1", "group1"]}),
         npartitions=right_npartitions,
     )  # duplicates dataset with 3 partitions
     df1 = df1.to_backend(backend)
@@ -216,9 +212,7 @@ def test_remove_duplicates_repartition(
         id_field="id",
         group_field="group",
     )
-    output_dask_graph_keys = set(
-        k[0].rsplit("-", 1)[0] for k in output.optimize().__dask_graph__().keys()
-    )
+    output_dask_graph_keys = set(k[0].rsplit("-", 1)[0] for k in output.optimize().__dask_graph__().keys())
     assert "broadcastjoin" in output_dask_graph_keys
     if left_npartitions < right_npartitions:
         assert "repartitiontofewer" in output_dask_graph_keys

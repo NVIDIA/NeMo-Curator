@@ -57,9 +57,7 @@ def mock_dataset():
         {"question": "This is a test question for metrics testing"},
         {"question": "Here is another question with more words for ngram generation"},
         {"question": "Very short"},
-        {
-            "question": "This contains enough words to create multiple different ngrams for testing purposes"
-        },
+        {"question": "This contains enough words to create multiple different ngrams for testing purposes"},
     ]
 
 
@@ -67,9 +65,7 @@ def mock_dataset():
 def mock_question_stem_dataset():
     return [
         {"question_stem": "This is a test question stem for metrics testing"},
-        {
-            "question_stem": "Here is another question stem with more words for ngram generation"
-        },
+        {"question_stem": "Here is another question stem with more words for ngram generation"},
         {"question_stem": "Very short stem"},
         {
             "question_stem": "This question stem contains enough words to create multiple different ngrams for testing purposes"
@@ -83,9 +79,7 @@ def mock_premises_dataset():
         {"premise": "This is a test premise for metrics testing"},
         {"premise": "Here is another premise with more words for ngram generation"},
         {"premise": "Very short premise"},
-        {
-            "premise": "This premise contains enough words to create multiple different ngrams for testing purposes"
-        },
+        {"premise": "This premise contains enough words to create multiple different ngrams for testing purposes"},
     ]
 
 
@@ -112,9 +106,7 @@ def mock_coqa_data():
             {
                 "questions": [
                     {"input_text": "This is a test question for COQA?"},
-                    {
-                        "input_text": "Another question with more words for testing COQA?"
-                    },
+                    {"input_text": "Another question with more words for testing COQA?"},
                 ],
                 "story": "This is a test story for COQA that has enough words for ngram generation.",
             },
@@ -168,9 +160,7 @@ def mock_query_dataset():
         {"query": "This is a test query for Record testing"},
         {"query": "Here is another query with more words for ngram generation"},
         {"query": "Very short query"},
-        {
-            "query": "This query contains enough words to create multiple different ngrams for testing purposes"
-        },
+        {"query": "This query contains enough words to create multiple different ngrams for testing purposes"},
     ]
 
 
@@ -223,9 +213,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_arcchallenge_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_dataset
-    ):
+    def test_arcchallenge_init_and_generate_ngrams(self, mock_load_dataset, mock_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_dataset)
 
         arcchallenge_task = ArcChallenge(min_ngram_size=5, max_ngram_size=10)
@@ -237,9 +225,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_openbookqa_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_question_stem_dataset
-    ):
+    def test_openbookqa_init_and_generate_ngrams(self, mock_load_dataset, mock_question_stem_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_question_stem_dataset)
 
         openbookqa_task = OpenBookQA(min_ngram_size=5, max_ngram_size=10)
@@ -263,9 +249,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_copa_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_premises_dataset
-    ):
+    def test_copa_init_and_generate_ngrams(self, mock_load_dataset, mock_premises_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_premises_dataset)
 
         copa_task = Copa(min_ngram_size=5, max_ngram_size=10)
@@ -277,9 +261,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_rte_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_sentences_dataset
-    ):
+    def test_rte_init_and_generate_ngrams(self, mock_load_dataset, mock_sentences_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_sentences_dataset)
 
         rte_task = RTE(min_ngram_size=5, max_ngram_size=10)
@@ -315,9 +297,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_cb_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_premises_dataset
-    ):
+    def test_cb_init_and_generate_ngrams(self, mock_load_dataset, mock_premises_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_premises_dataset)
 
         cb_task = CB(min_ngram_size=5, max_ngram_size=10)
@@ -329,9 +309,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_anli_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_premises_dataset
-    ):
+    def test_anli_init_and_generate_ngrams(self, mock_load_dataset, mock_premises_dataset):
         mock_dataset_dict = {
             "test_r1": Dataset.from_list(mock_premises_dataset),
             "test_r2": Dataset.from_list(mock_premises_dataset),
@@ -348,9 +326,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_record_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_query_dataset
-    ):
+    def test_record_init_and_generate_ngrams(self, mock_load_dataset, mock_query_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_query_dataset)
 
         record_task = Record(min_ngram_size=5, max_ngram_size=10)
@@ -376,9 +352,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     def test_coqa_raises_exception_without_file_path(self):
-        with pytest.raises(
-            Exception, match="Must provide a path to the coqa.json file"
-        ):
+        with pytest.raises(Exception, match="Must provide a path to the coqa.json file"):
             COQA(file_path=None)
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
@@ -403,11 +377,7 @@ class TestMetricsTasks:
                     "Question two with more words for quac testing?",
                 ]
             },
-            {
-                "questions": [
-                    "Another quac question with sufficient words for ngram generation?"
-                ]
-            },
+            {"questions": ["Another quac question with sufficient words for ngram generation?"]},
         ]
         mock_load_dataset.return_value = Dataset.from_list(mock_dataset_list)
 
@@ -444,9 +414,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.tasks.metrics.load_dataset")
-    def test_wic_init_and_generate_ngrams(
-        self, mock_load_dataset, mock_sentences_dataset
-    ):
+    def test_wic_init_and_generate_ngrams(self, mock_load_dataset, mock_sentences_dataset):
         mock_load_dataset.return_value = Dataset.from_list(mock_sentences_dataset)
 
         wic_task = WiC(min_ngram_size=5, max_ngram_size=10)
@@ -458,9 +426,7 @@ class TestMetricsTasks:
         assert len(ngrams) > 0
 
     @mock.patch("nemo_curator.utils.file_utils.get_all_files_paths_under")
-    def test_mmlu_init_and_generate_ngrams(
-        self, mock_get_paths, mock_jsonl_data, tmp_path
-    ):
+    def test_mmlu_init_and_generate_ngrams(self, mock_get_paths, mock_jsonl_data, tmp_path):
         # Create a temporary file with mock JSONL data
         mmlu_dir = tmp_path / "mmlu"
         mmlu_dir.mkdir()
@@ -483,9 +449,7 @@ class TestMetricsTasks:
             MMLU(path=None)
 
     @mock.patch("nemo_curator.utils.file_utils.get_all_files_paths_under")
-    def test_bigbenchhard_init_and_generate_ngrams(
-        self, mock_get_paths, mock_jsonl_data, tmp_path
-    ):
+    def test_bigbenchhard_init_and_generate_ngrams(self, mock_get_paths, mock_jsonl_data, tmp_path):
         bbh_dir = tmp_path / "bbh"
         bbh_dir.mkdir()
         bbh_file = bbh_dir / "data.jsonl"
@@ -507,9 +471,7 @@ class TestMetricsTasks:
             BigBenchHard(path=None)
 
     @mock.patch("nemo_curator.utils.file_utils.get_all_files_paths_under")
-    def test_bigbenchlight_init_and_generate_ngrams(
-        self, mock_get_paths, mock_jsonl_data, tmp_path
-    ):
+    def test_bigbenchlight_init_and_generate_ngrams(self, mock_get_paths, mock_jsonl_data, tmp_path):
         bbl_dir = tmp_path / "bbl"
         bbl_dir.mkdir()
         bbl_file = bbl_dir / "data.jsonl"
@@ -531,9 +493,7 @@ class TestMetricsTasks:
             BigBenchLight(path=None)
 
     @mock.patch("nemo_curator.utils.file_utils.get_all_files_paths_under")
-    def test_multilingual_init_and_generate_ngrams(
-        self, mock_get_paths, mock_jsonl_data, tmp_path
-    ):
+    def test_multilingual_init_and_generate_ngrams(self, mock_get_paths, mock_jsonl_data, tmp_path):
         ml_dir = tmp_path / "multilingual"
         ml_dir.mkdir()
         ml_file = ml_dir / "data.jsonl"
@@ -558,9 +518,7 @@ class TestMetricsTasks:
     def test_piqa_init_and_generate_ngrams(self, mock_load_dataset):
         # For PIQA, setup a specific dataset structure
         mock_piqa_dataset = [
-            {
-                "goal": "This is a goal for PIQA with enough words to test ngram generation."
-            },
+            {"goal": "This is a goal for PIQA with enough words to test ngram generation."},
             {"goal": "Another goal with sufficient length for PIQA testing."},
             {"goal": "Short goal."},
         ]
@@ -578,12 +536,8 @@ class TestMetricsTasks:
     def test_winogrande_init_and_generate_ngrams(self, mock_load_dataset):
         # For Winogrande, setup a specific dataset structure
         mock_winogrande_dataset = [
-            {
-                "sentence": "This is a Winogrande sentence with enough words to test ngram generation."
-            },
-            {
-                "sentence": "Another sentence with sufficient length for Winogrande testing."
-            },
+            {"sentence": "This is a Winogrande sentence with enough words to test ngram generation."},
+            {"sentence": "Another sentence with sufficient length for Winogrande testing."},
             {"sentence": "Short sentence."},
         ]
         mock_load_dataset.return_value = Dataset.from_list(mock_winogrande_dataset)
@@ -602,9 +556,7 @@ class TestMetricsTasks:
         with open(lambada_file, "w") as f:
             f.writelines(mock_lambada_data)
 
-        lambada_task = Lambada(
-            file_path=str(lambada_file), min_ngram_size=5, max_ngram_size=10
-        )
+        lambada_task = Lambada(file_path=str(lambada_file), min_ngram_size=5, max_ngram_size=10)
         assert lambada_task._task_name == "lambada"
         assert lambada_task._min_ngram_size == 5
         assert lambada_task._max_ngram_size == 10
@@ -618,9 +570,7 @@ class TestMetricsTasks:
         with open(numdasc_file, "w") as f:
             f.writelines(mock_numdasc_data)
 
-        numdasc_task = NumDasc(
-            n=2, file_path=str(numdasc_file), min_ngram_size=5, max_ngram_size=10
-        )
+        numdasc_task = NumDasc(n=2, file_path=str(numdasc_file), min_ngram_size=5, max_ngram_size=10)
         assert numdasc_task._task_name == "{n}dasc"
         assert numdasc_task._min_ngram_size == 5
         assert numdasc_task._max_ngram_size == 10
@@ -635,9 +585,7 @@ class TestMetricsTasks:
         with open(storycloze_file, "w") as f:
             f.writelines(mock_storycloze_data)
 
-        storycloze_task = StoryCloze(
-            file_path=str(storycloze_file), min_ngram_size=5, max_ngram_size=10
-        )
+        storycloze_task = StoryCloze(file_path=str(storycloze_file), min_ngram_size=5, max_ngram_size=10)
         assert storycloze_task._task_name == "story_cloze"
         assert storycloze_task._min_ngram_size == 5
         assert storycloze_task._max_ngram_size == 10
@@ -656,9 +604,7 @@ class TestMetricsTasks:
             f.write("Invalid JSON line that will cause an exception\n")
             f.write('{"incomplete": "Missing text field"}\n')
 
-        lambada_task = Lambada(
-            file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10
-        )
+        lambada_task = Lambada(file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10)
 
         # Mock stdout to capture printed error messages
         with mock.patch("builtins.print") as mock_print:
@@ -679,9 +625,7 @@ class TestMetricsTasks:
             f.write("Invalid JSON line\n")
             f.write('{"context": "Missing completion field"}\n')
 
-        numdasc_task = NumDasc(
-            n=2, file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10
-        )
+        numdasc_task = NumDasc(n=2, file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10)
 
         # Mock stdout to capture printed error messages
         with mock.patch("builtins.print") as mock_print:
@@ -704,9 +648,7 @@ class TestMetricsTasks:
             f.write("Invalid JSON line\n")
             f.write('{"InputSentence1": "Missing other required fields"}\n')
 
-        storycloze_task = StoryCloze(
-            file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10
-        )
+        storycloze_task = StoryCloze(file_path=str(invalid_file), min_ngram_size=5, max_ngram_size=10)
 
         # Mock stdout to capture printed error messages
         with mock.patch("builtins.print") as mock_print:
@@ -729,9 +671,7 @@ class TestMetricsTasks:
             f.write('{"text": "Too short."}\n')
 
         # Mock the file paths function
-        with mock.patch(
-            "nemo_curator.utils.file_utils.get_all_files_paths_under"
-        ) as mock_get_paths:
+        with mock.patch("nemo_curator.utils.file_utils.get_all_files_paths_under") as mock_get_paths:
             mock_get_paths.return_value = [str(short_texts_file)]
 
             # Test with a high min_ngram_size

@@ -154,9 +154,7 @@ class PyMarianQEModel(QEModel):
         """
         scores = []
         for start_idx in range(0, len(input), self.SHARD_SIZE):
-            scores.extend(
-                self._model.evaluate(input[start_idx : start_idx + self.SHARD_SIZE])
-            )
+            scores.extend(self._model.evaluate(input[start_idx : start_idx + self.SHARD_SIZE]))
 
         if not self._name.endswith("mqm"):
             # using DA+SQM score by default

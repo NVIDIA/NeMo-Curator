@@ -31,9 +31,7 @@ from nemo_curator.utils.distributed_utils import (
     single_partition_write_with_filename,
 )
 
-NEMO_CURATOR_HOME = os.environ.get(
-    "NEMO_CURATOR_HOME", os.path.join(os.path.expanduser("~"), ".nemo_curator")
-)
+NEMO_CURATOR_HOME = os.environ.get("NEMO_CURATOR_HOME", os.path.join(os.path.expanduser("~"), ".nemo_curator"))
 
 
 def mkdir(d):
@@ -95,11 +93,7 @@ def get_all_files_paths_under(
                    "jsonl" or ["jsonl", "parquet"].
     """
     if recurse_subdirectories:
-        file_ls = [
-            os.path.join(r, f)
-            for r, subdirs, files in os.walk(root, followlinks=followlinks)
-            for f in files
-        ]
+        file_ls = [os.path.join(r, f) for r, subdirs, files in os.walk(root, followlinks=followlinks) for f in files]
     else:
         # Only include files, not directories
         file_ls = [entry.path for entry in os.scandir(root) if entry.is_file()]
@@ -141,16 +135,13 @@ def get_remaining_files(
 
     if not os.path.exists(output_file_path):
         expand_outdir_and_mkdir(output_file_path)
-    completed_files = [
-        os.path.basename(entry.path) for entry in os.scandir(output_file_path)
-    ]
+    completed_files = [os.path.basename(entry.path) for entry in os.scandir(output_file_path)]
     completed_files = set(completed_files)
 
     input_files = [
         entry.path
         for entry in os.scandir(input_file_path)
-        if os.path.basename(entry.path)
-        not in _update_filetype(completed_files, output_file_type, input_file_type)
+        if os.path.basename(entry.path) not in _update_filetype(completed_files, output_file_type, input_file_type)
     ]
     # Guard against non extension files if present in the input directory
     input_files = [f for f in input_files if f.endswith(input_file_type)]
@@ -179,12 +170,7 @@ def _update_filetype(file_set, old_file_type, new_file_type):
         return file_set
 
     updated_file_set = {
-        (
-            f"{os.path.splitext(file)[0]}{new_file_type}"
-            if file.endswith(old_file_type)
-            else file
-        )
-        for file in file_set
+        (f"{os.path.splitext(file)[0]}{new_file_type}" if file.endswith(old_file_type) else file) for file in file_set
     }
     return updated_file_set
 
@@ -206,9 +192,7 @@ def get_batched_files(
     Returns:
         A batch of files that are not in the output directory.
     """
-    remaining_files = get_remaining_files(
-        input_file_path, output_file_path, input_file_type
-    )
+    remaining_files = get_remaining_files(input_file_path, output_file_path, input_file_type)
     for i in range(0, len(remaining_files), batch_size):
         yield remaining_files[i : i + batch_size]
 
@@ -270,15 +254,11 @@ def write_record(
         # Select category value
         category = line[field]
 
-        if (exclude_values and category in exclude_values) or (
-            include_values and category not in include_values
-        ):
+        if (exclude_values and category in exclude_values) or (include_values and category not in include_values):
             return None
 
         # Obtain the relative path
-        rel_path, file_name = os.path.split(
-            os.path.relpath(file_name, start=os.path.abspath(input_dir))
-        )
+        rel_path, file_name = os.path.split(os.path.relpath(file_name, start=os.path.abspath(input_dir)))
 
         output_dir = os.path.join(output_dir, category, rel_path)
         os.makedirs(output_dir, exist_ok=True)

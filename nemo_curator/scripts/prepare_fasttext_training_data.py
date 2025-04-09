@@ -32,9 +32,7 @@ def sample_rows(df, n, seed):
 def main(args):
     client = get_client(**ArgumentHelper.parse_client_args(args))
     # Get local path
-    files = list(
-        get_all_files_paths_under(args.input_data_dir, keep_extensions="jsonl")
-    )
+    files = list(get_all_files_paths_under(args.input_data_dir, keep_extensions="jsonl"))
     raw_data = read_data(files, file_type="jsonl", backend="pandas")
     dataset = DocumentDataset(raw_data)
     text_field = args.input_json_field
@@ -74,12 +72,9 @@ with FastText.
     argumentHelper.add_arg_input_data_dir()
     argumentHelper.add_arg_log_dir(default="./log/prepare_filter_data")
     argumentHelper.add_arg_output_train_file(
-        help="The output file containing prepared samples to train a "
-        "skip-gram classifier with FastText."
+        help="The output file containing prepared samples to train a skip-gram classifier with FastText."
     )
-    argumentHelper.add_arg_seed(
-        help="The random seed to use for sampling from the dataset."
-    )
+    argumentHelper.add_arg_seed(help="The random seed to use for sampling from the dataset.")
     argumentHelper.add_distributed_args()
     parser.add_argument(
         "--input-json-field",

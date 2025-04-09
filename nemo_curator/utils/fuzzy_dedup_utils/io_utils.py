@@ -27,9 +27,7 @@ from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import convert_str_id_to_in
 # TODO:
 # Combine this with
 # nemo_curator.distributed_utils.read_cudf_jsonl
-def _read_json_func(
-    files, engine="cudf", include_path_column=False, columns=None, input_meta=None
-):
+def _read_json_func(files, engine="cudf", include_path_column=False, columns=None, input_meta=None):
     """
     Reads multiple Json Lines files into a cuDF
     dataframe with an additional `path` column denoting the path
@@ -40,18 +38,14 @@ def _read_json_func(
 
     if not include_path_column:
         if columns:
-            return cudf.read_json(files, engine="cudf", lines=True, dtype=input_meta)[
-                columns
-            ]
+            return cudf.read_json(files, engine="cudf", lines=True, dtype=input_meta)[columns]
         else:
             return cudf.read_json(files, engine="cudf", lines=True, dtype=input_meta)
 
     dfs = []
     for file in files:
         if columns:
-            df = cudf.read_json(file, engine=engine, lines=True, dtype=input_meta)[
-                columns
-            ]
+            df = cudf.read_json(file, engine=engine, lines=True, dtype=input_meta)[columns]
         else:
             df = cudf.read_json(file, engine=engine, lines=True, dtype=input_meta)
         df["path"] = file
@@ -62,9 +56,7 @@ def _read_json_func(
 def get_text_ddf_from_json_path_with_blocksize(
     input_data_paths, num_files, blocksize, id_column, text_column, input_meta=None
 ):
-    data_paths = [
-        entry.path for data_path in input_data_paths for entry in os.scandir(data_path)
-    ]
+    data_paths = [entry.path for data_path in input_data_paths for entry in os.scandir(data_path)]
     data_paths = [f for f in data_paths if f.endswith(".jsonl")]
     data_paths.sort()
     if num_files != -1:
@@ -90,9 +82,7 @@ def get_text_ddf_from_json_path_with_blocksize(
     text_ddf = text_ddf.map_partitions(
         convert_str_id_to_int,
         id_column=id_column,
-        meta=cudf.DataFrame(
-            {text_column: ["a"], "doc_id": [0], "dataset_id": np.uint32(1)}
-        ),
+        meta=cudf.DataFrame({text_column: ["a"], "doc_id": [0], "dataset_id": np.uint32(1)}),
     )
     return text_ddf
 

@@ -105,8 +105,7 @@ def is_paragraph_indices_in_top_or_bottom_only(
     if len(boilerplate_paragraph_indices) == num_paragraphs:
         return False
     return _is_contiguous(boilerplate_paragraph_indices) and (
-        boilerplate_paragraph_indices[0] == 0
-        or boilerplate_paragraph_indices[-1] == num_paragraphs - 1
+        boilerplate_paragraph_indices[0] == 0 or boilerplate_paragraph_indices[-1] == num_paragraphs - 1
     )
 
 
@@ -134,10 +133,7 @@ def get_comments_and_docstring(source, comments=True, clean_comments=False):
         docstrings = "\n".join(get_docstrings(source))
     except Exception:
         docstrings = None
-        warnings.warn(
-            "code couldn't be parsed due to compilation failure, "
-            "no docstring is extracted"
-        )
+        warnings.warn("code couldn't be parsed due to compilation failure, no docstring is extracted")
 
     if comments:
         try:
@@ -172,9 +168,7 @@ def get_docstrings(source, module="<string>"):
         module = os.path.splitext(os.path.basename(filename))[0]
         source = source.read()
 
-    docstrings = sorted(
-        parse_docstrings(source), key=lambda x: (NODE_TYPES.get(type(x[0])), x[1])
-    )
+    docstrings = sorted(parse_docstrings(source), key=lambda x: (NODE_TYPES.get(type(x[0])), x[1]))
 
     grouped = groupby(docstrings, key=lambda x: NODE_TYPES.get(type(x[0])))
     results = []

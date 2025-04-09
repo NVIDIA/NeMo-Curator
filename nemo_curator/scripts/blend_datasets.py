@@ -74,9 +74,7 @@ Optionally, the user can choose to shuffle this dataset as well.
     argumentHelper = ArgumentHelper(parser)
 
     argumentHelper.add_arg_input_file_type()
-    argumentHelper.add_arg_output_data_dir(
-        help="The output directory to where the blended dataset will be written."
-    )
+    argumentHelper.add_arg_output_data_dir(help="The output directory to where the blended dataset will be written.")
     argumentHelper.add_arg_output_file_type()
     argumentHelper.add_arg_seed()
     argumentHelper.add_arg_shuffle(help="Shuffles the dataset after blending.")
@@ -85,8 +83,7 @@ Optionally, the user can choose to shuffle this dataset as well.
         "--input-data-dirs",
         type=str,
         default=None,
-        help="Comma-separated list of directories consisting of dataset "
-        "files that are accessible to all nodes.",
+        help="Comma-separated list of directories consisting of dataset files that are accessible to all nodes.",
     )
     parser.add_argument(
         "--target-samples",

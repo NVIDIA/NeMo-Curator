@@ -26,9 +26,7 @@ class TedTalksDownloader(DocumentDownloader):
         output_files = {"src": src_out, "tgt": tgt_out}
         for side, url, out_file_key in zip(sides, urls, output_files):
             if os.path.exists(output_files[out_file_key]) and force is False:
-                print(
-                    f"File '{output_files[out_file_key]}' already exists, skipping download."
-                )
+                print(f"File '{output_files[out_file_key]}' already exists, skipping download.")
             else:
                 print(f"Downloading TED Talks dataset from '{url}'...")
                 response = requests.get(url)

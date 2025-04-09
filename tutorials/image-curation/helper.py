@@ -100,9 +100,7 @@ def process_parquet_chunk(chunk, output_dir):
     asyncio.run(process_batch(batch, output_dir, batch_num))
 
 
-def download_webdataset(
-    parquet_path, output_dir, entries_per_tar=10000, num_processes=2
-):
+def download_webdataset(parquet_path, output_dir, entries_per_tar=10000, num_processes=2):
     os.makedirs(output_dir, exist_ok=True)
 
     # Read the parquet file
@@ -110,8 +108,7 @@ def download_webdataset(
 
     # Split the dataframe into chunks for multiprocessing
     chunks = [
-        (batch_num, df[i : i + entries_per_tar])
-        for batch_num, i in enumerate(range(0, len(df), entries_per_tar))
+        (batch_num, df[i : i + entries_per_tar]) for batch_num, i in enumerate(range(0, len(df), entries_per_tar))
     ]
 
     # Use multiprocessing to process chunks in parallel

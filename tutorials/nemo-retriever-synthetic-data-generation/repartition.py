@@ -74,9 +74,7 @@ def main():
     else:
         raise ValueError("provide input file path")
     if args.hard_negative_mining_config:
-        cfg = RetrieverHardNegativeMiningConfig.from_yaml(
-            args.hard_negative_mining_config
-        )
+        cfg = RetrieverHardNegativeMiningConfig.from_yaml(args.hard_negative_mining_config)
     else:
         raise ValueError("provide config for hard negative mining")
     if args.api_key:

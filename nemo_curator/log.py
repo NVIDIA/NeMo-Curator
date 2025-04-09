@@ -27,9 +27,7 @@ def create_logger(rank, log_file, name="logger", log_level=logging.INFO, stdout=
     myhost = socket.gethostname()
 
     extra = {"host": myhost, "rank": rank}
-    formatter = logging.Formatter(
-        "%(asctime)s | %(host)s | Rank %(rank)s | %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s | %(host)s | Rank %(rank)s | %(message)s")
 
     # File handler for output
     file_handler = logging.FileHandler(log_file, mode="a")
@@ -80,10 +78,7 @@ def create_local_logger(
 
     myhost = socket.gethostname()
     extra = {"host": myhost, "node": rank_tag, "local": local_id_tag}
-    formatter = logging.Formatter(
-        "%(asctime)s | %(host)s | Node rank %(node)s "
-        "| Local rank %(local)s | %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s | %(host)s | Node rank %(node)s | Local rank %(local)s | %(message)s")
 
     # Output log file
     rank_dir = os.path.join(log_dir, f"rank_{rank_tag}")

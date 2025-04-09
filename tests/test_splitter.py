@@ -20,9 +20,7 @@ from nemo_curator.datasets import DocumentDataset
 
 
 class TestDocumentSplitter:
-    @pytest.mark.parametrize(
-        "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
-    )
+    @pytest.mark.parametrize("backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)])
     def test_basic_split_default(self, backend):
         # Use default text_field "text" and segment_id_field "segment_id"
         # Four examples:
@@ -56,9 +54,7 @@ class TestDocumentSplitter:
             check_index=False,
         )
 
-    @pytest.mark.parametrize(
-        "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
-    )
+    @pytest.mark.parametrize("backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)])
     def test_split_custom_fields(self, backend):
         # Use a custom text field name ("content") and segment id field ("seg_id")
         # with a different separator.
@@ -73,9 +69,7 @@ class TestDocumentSplitter:
         to_backend = ToBackend(backend)
         dataset = to_backend(dataset)
 
-        splitter = DocumentSplitter(
-            separator=";", text_field="content", segment_id_field="seg_id"
-        )
+        splitter = DocumentSplitter(separator=";", text_field="content", segment_id_field="seg_id")
         result_dataset = splitter(dataset)
 
         result_df = result_dataset.df.compute()

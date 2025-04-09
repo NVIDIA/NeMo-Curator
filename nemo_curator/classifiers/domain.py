@@ -108,9 +108,7 @@ class _DomainClassifier(DistributedDataClassifier):
         self.labels.sort(key=lambda x: config.label2id[x])
         self.out_dim = len(self.labels)
 
-        model = DomainModel(
-            config=model_config, autocast=autocast, max_mem_gb=max_mem_gb
-        )
+        model = DomainModel(config=model_config, autocast=autocast, max_mem_gb=max_mem_gb)
 
         super().__init__(
             model=model,

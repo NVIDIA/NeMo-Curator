@@ -88,15 +88,11 @@ def main(args):
     decontaminated_dataset = decontaminator(target_dataset)
 
     # Write filtered dataset
-    write_to_disk(
-        decontaminated_dataset.df, decontaminated_output_path, write_to_filename=True
-    )
+    write_to_disk(decontaminated_dataset.df, decontaminated_output_path, write_to_filename=True)
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     return ArgumentHelper(parser).add_distributed_args()
 

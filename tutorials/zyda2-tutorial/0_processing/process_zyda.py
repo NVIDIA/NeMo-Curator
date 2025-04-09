@@ -33,9 +33,7 @@ if __name__ == "__main__":
             continue
         output_path = os.path.join(OUTPUT_BASE, component)
         logging.info(f"Processing {component}")
-        process_data(
-            input_folder=input_path, output_folder=output_path, prefix=component
-        )
+        process_data(input_folder=input_path, output_folder=output_path, prefix=component)
         logging.info("Done!")
 
     client.cluster.close()

@@ -22,13 +22,9 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
 
 
-@pytest.fixture(
-    params=[False, pytest.param(True, marks=pytest.mark.gpu)], ids=["no gpu", "gpu"]
-)
+@pytest.fixture(params=[False, pytest.param(True, marks=pytest.mark.gpu)], ids=["no gpu", "gpu"])
 def exact_dedup_data(request):
-    df = pd.DataFrame(
-        {"id": [1, 2, 300, 4, -1], "text": ["abc", "aba", "abb", "aba", "abc"]}
-    )
+    df = pd.DataFrame({"id": [1, 2, 300, 4, -1], "text": ["abc", "aba", "abb", "aba", "abc"]})
     df = dd.from_pandas(df, 2)
     if request.param:
         df = df.to_backend("cudf")
@@ -58,9 +54,7 @@ class TestExactDuplicates:
         )
         duplicates = exact_dups.identify_duplicates(exact_dedup_data)
         deduplicated_ds = exact_dups.remove(exact_dedup_data, duplicates)
-        deduplicated_ids_series = deduplicated_ds.df.to_backend("pandas").compute()[
-            "id"
-        ]
+        deduplicated_ids_series = deduplicated_ds.df.to_backend("pandas").compute()["id"]
         output_deduplicated_ids = set(deduplicated_ids_series.tolist())
         assert (
             len(output_deduplicated_ids) == 3
@@ -69,16 +63,11 @@ class TestExactDuplicates:
             and len({2, 4}.intersection(output_deduplicated_ids)) == 1
         )
 
-        duplicates_df = (
-            duplicates.df.to_backend("pandas")
-            .compute()
-            .sort_values(by="id", ignore_index=True)
-        )
+        duplicates_df = duplicates.df.to_backend("pandas").compute().sort_values(by="id", ignore_index=True)
         expected_df = pd.DataFrame(
             {
                 "id": [1, -1] + [2, 4],
-                "_hashes": [md5(b"abc").hexdigest()] * 2
-                + [md5(b"aba").hexdigest()] * 2,
+                "_hashes": [md5(b"abc").hexdigest()] * 2 + [md5(b"aba").hexdigest()] * 2,
             }
         ).sort_values(by="id", ignore_index=True)
         pd.testing.assert_frame_equal(duplicates_df, expected_df, check_like=True)

@@ -140,9 +140,7 @@ def redact(
 
         # Replace the entity value with its type
         replacement = "{{" + entity_type + "}}"
-        redacted_text = (
-            redacted_text[:start_position] + replacement + redacted_text[end_position:]
-        )
+        redacted_text = redacted_text[:start_position] + replacement + redacted_text[end_position:]
 
         # Update the offset
         offset += len(replacement) - (end_position - start_position)
@@ -174,12 +172,7 @@ def find_entity_spans(text: str, entities: List[Dict[str, str]]) -> List[EntityS
 
         matches = re.finditer(re.escape(entity_text), text, re.IGNORECASE)
         if matches:
-            result.extend(
-                [
-                    EntitySpan(entity_type, match.start(), match.end())
-                    for match in matches
-                ]
-            )
+            result.extend([EntitySpan(entity_type, match.start(), match.end()) for match in matches])
             seen[(entity_text, entity_type)] += 1
 
     return result

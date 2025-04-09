@@ -28,14 +28,10 @@ L2_DIST_TO_CENT_COL = "l2_dist_to_cent"
 COSINE_DIST_TO_CENT_COL = "cosine_dist_to_cent"
 
 
-def normalize_embeddings_col_in_df(
-    df: cudf.DataFrame, embedding_col: str
-) -> cudf.DataFrame:
+def normalize_embeddings_col_in_df(df: cudf.DataFrame, embedding_col: str) -> cudf.DataFrame:
     tensor = torch.Tensor(get_array_from_df(df, embedding_col))
     normalized_tensor = tensor / torch.norm(tensor, dim=1, keepdim=True)
-    df[embedding_col] = create_list_series_from_1d_or_2d_ar(
-        cp.asarray(normalized_tensor), index=df.index
-    )
+    df[embedding_col] = create_list_series_from_1d_or_2d_ar(cp.asarray(normalized_tensor), index=df.index)
     return df
 
 
@@ -43,9 +39,7 @@ def get_array_from_df(df: cudf.DataFrame, embedding_col: str) -> cp.ndarray:
     return df[embedding_col].list.leaves.values.reshape(len(df), -1)
 
 
-def add_l2_cosine_dist_to_centroid(
-    df: cudf.DataFrame, embedding_col: str, centroids: cp.ndarray
-) -> cudf.DataFrame:
+def add_l2_cosine_dist_to_centroid(df: cudf.DataFrame, embedding_col: str, centroids: cp.ndarray) -> cudf.DataFrame:
     """
     Computes the L2 distance to nearest centroid to each embedding in the DataFrame.
     Embeddings are normalized. For cosine we'll need to normalize the centroids as well.
@@ -102,9 +96,7 @@ def pairwise_cosine_similarity_batched(
     instead of O(N^2) for the full matrix.
     """
     cluster_reps = cluster_reps.to(device)
-    max_similarity = torch.zeros(
-        cluster_reps.shape[0], dtype=torch.float32, device=device
-    )
+    max_similarity = torch.zeros(cluster_reps.shape[0], dtype=torch.float32, device=device)
     max_indices = torch.zeros(cluster_reps.shape[0], dtype=torch.int64, device=device)
     for start_idx in range(0, cluster_reps.shape[0], batch_size):
         end_idx = min(start_idx + batch_size, cluster_reps.shape[0])
@@ -155,19 +147,13 @@ def get_semantic_matches_per_cluster(
         return
 
     if which_to_keep == "hard":
-        cluster_df = cluster_df.sort_values(
-            by=[distance_col, id_col], ascending=False, ignore_index=True
-        )
+        cluster_df = cluster_df.sort_values(by=[distance_col, id_col], ascending=False, ignore_index=True)
     elif which_to_keep == "easy":
-        cluster_df = cluster_df.sort_values(
-            by=[distance_col, id_col], ascending=True, ignore_index=True
-        )
+        cluster_df = cluster_df.sort_values(by=[distance_col, id_col], ascending=True, ignore_index=True)
     elif which_to_keep == "random":
         cluster_df = cluster_df.sample(frac=1, random_state=42, ignore_index=True)
 
-    cluster_embeddings = torch.as_tensor(
-        get_array_from_df(cluster_df, embedding_col), device="cuda"
-    )
+    cluster_embeddings = torch.as_tensor(get_array_from_df(cluster_df, embedding_col), device="cuda")
     ids = cluster_df[id_col]
     assert cluster_embeddings.shape[0] == len(ids)
 
@@ -176,9 +162,7 @@ def get_semantic_matches_per_cluster(
             cluster_embeddings, "cuda", batched_cosine_similarity
         )
     else:
-        max_similarity, max_indices = pairwise_cosine_similarity(
-            cluster_embeddings, "cuda"
-        )
+        max_similarity, max_indices = pairwise_cosine_similarity(cluster_embeddings, "cuda")
     max_indices_id = ids.iloc[max_indices].reset_index(drop=True)
     points_to_remove_df = cudf.DataFrame(
         {
@@ -212,17 +196,11 @@ def prune_single_cluster(
     """
     cluster_dir = os.path.join(emb_by_clust_dir, f"nearest_cent={cluster_id}")
     # For the output we only return id, cosine_dist_to_cent, and cluster
-    df_cluster = cudf.read_parquet(
-        cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]
-    ).assign(cluster=cluster_id)
+    df_cluster = cudf.read_parquet(cluster_dir, columns=[id_col, COSINE_DIST_TO_CENT_COL]).assign(cluster=cluster_id)
 
-    pruning_table_fname = os.path.join(
-        semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet"
-    )
+    pruning_table_fname = os.path.join(semdedup_pruning_tables_dir, f"cluster_{cluster_id}.parquet")
     # In future we can add more columns to the pruning table like max_id etc.
-    pruning_table = cudf.read_parquet(
-        pruning_table_fname, columns=["id", "cosine_sim_score"]
-    )
+    pruning_table = cudf.read_parquet(pruning_table_fname, columns=["id", "cosine_sim_score"])
     # If the pruning table only has one row, we don't need to remove any records
     if len(pruning_table) == 1:
         # Create empty dataframe with same schema / dtypes as df_cluster
@@ -232,9 +210,7 @@ def prune_single_cluster(
     pruning_table = pruning_table[pruning_table["cosine_sim_score"] >= 1 - eps][["id"]]
     # In future we can avoid this merge if we add more columns to the pruning table
     # However that might increase memory consumption at that stage, keeping it as is for now
-    return df_cluster.merge(
-        pruning_table.rename(columns={"id": id_col}), on=id_col, how="inner"
-    )
+    return df_cluster.merge(pruning_table.rename(columns={"id": id_col}), on=id_col, how="inner")
 
 
 def write_pruned_summary_file(
@@ -251,9 +227,7 @@ def write_pruned_summary_file(
     total = len(dd.read_parquet(emb_by_clust_dir))
     kept = total - removed
 
-    logger.info(
-        f"DONE saving {kept} out of {total}. Removed: {removed}. Epsilon: {eps:.4f}"
-    )
+    logger.info(f"DONE saving {kept} out of {total}. Removed: {removed}. Epsilon: {eps:.4f}")
     result_dict = {
         "eps": [eps],
         "kept": [kept],

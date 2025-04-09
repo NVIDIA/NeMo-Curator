@@ -27,9 +27,7 @@ def mock_multiple_jsonl_files(tmp_path):
         with open(jsonl_file, "w") as f:
             for record_id in range(NUM_RECORDS):
                 # 100 rows are ~5kb
-                f.write(
-                    f'{{"id": "id_{file_id}_{record_id}", "text": "A longish string {file_id}_{record_id}"}}\n'
-                )
+                f.write(f'{{"id": "id_{file_id}_{record_id}", "text": "A longish string {file_id}_{record_id}"}}\n')
         file_paths.append(str(jsonl_file))
     return file_paths
 
@@ -150,11 +148,7 @@ def test_cudf_read_data_blocksize_partitioning(
 ):
     import cudf
 
-    input_files = (
-        mock_multiple_jsonl_files
-        if file_type == "jsonl"
-        else mock_multiple_parquet_files
-    )
+    input_files = mock_multiple_jsonl_files if file_type == "jsonl" else mock_multiple_parquet_files
 
     df = read_data_blocksize(
         input_files=input_files,
@@ -170,23 +164,15 @@ def test_cudf_read_data_blocksize_partitioning(
     num_partitions = df.optimize().npartitions
     # Assert that we have two partitions (since we have ~15KB total data and a blocksize of 10KB)
     if blocksize == "1kb":
-        assert num_partitions > NUM_FILES, (
-            f"Expected > {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions > NUM_FILES, f"Expected > {NUM_FILES} partitions but got {num_partitions}"
     elif blocksize == "5kb":
-        assert num_partitions == NUM_FILES, (
-            f"Expected {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions == NUM_FILES, f"Expected {NUM_FILES} partitions but got {num_partitions}"
     elif blocksize == "10kb":
-        assert num_partitions < NUM_FILES, (
-            f"Expected < {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions < NUM_FILES, f"Expected < {NUM_FILES} partitions but got {num_partitions}"
     else:
         raise ValueError(f"Invalid blocksize: {blocksize}")
     total_rows = len(df)
-    assert total_rows == NUM_FILES * NUM_RECORDS, (
-        f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
-    )
+    assert total_rows == NUM_FILES * NUM_RECORDS, f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
 
     assert isinstance(df["id"].compute(), cudf.Series)
 
@@ -196,11 +182,7 @@ def test_cudf_read_data_blocksize_partitioning(
 def test_pandas_read_data_blocksize_partitioning(
     mock_multiple_jsonl_files, mock_multiple_parquet_files, file_type, blocksize
 ):
-    input_files = (
-        mock_multiple_jsonl_files
-        if file_type == "jsonl"
-        else mock_multiple_parquet_files
-    )
+    input_files = mock_multiple_jsonl_files if file_type == "jsonl" else mock_multiple_parquet_files
 
     df = read_data_blocksize(
         input_files=input_files,
@@ -216,30 +198,20 @@ def test_pandas_read_data_blocksize_partitioning(
     num_partitions = df.npartitions
     # Our total data is ~25kb where each file is 5kb
     if blocksize == "1kb":
-        assert num_partitions > NUM_FILES, (
-            f"Expected > {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions > NUM_FILES, f"Expected > {NUM_FILES} partitions but got {num_partitions}"
     elif blocksize == "5kb":
-        assert num_partitions == NUM_FILES, (
-            f"Expected {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions == NUM_FILES, f"Expected {NUM_FILES} partitions but got {num_partitions}"
     elif blocksize == "10kb":
         # Because pandas doesn't suppport reading json files together, a partition will only be as big as a single file
         if file_type == "jsonl":
-            assert num_partitions == NUM_FILES, (
-                f"Expected {NUM_FILES} partitions but got {num_partitions}"
-            )
+            assert num_partitions == NUM_FILES, f"Expected {NUM_FILES} partitions but got {num_partitions}"
         # Parquet files can be read together
         elif file_type == "parquet":
-            assert num_partitions < NUM_FILES, (
-                f"Expected > {NUM_FILES} partitions but got {num_partitions}"
-            )
+            assert num_partitions < NUM_FILES, f"Expected > {NUM_FILES} partitions but got {num_partitions}"
     else:
         raise ValueError(f"Invalid blocksize: {blocksize}")
     total_rows = len(df)
-    assert total_rows == NUM_FILES * NUM_RECORDS, (
-        f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
-    )
+    assert total_rows == NUM_FILES * NUM_RECORDS, f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
 
     assert isinstance(df["id"].compute(), pd.Series)
 
@@ -250,14 +222,8 @@ def test_pandas_read_data_blocksize_partitioning(
 )
 @pytest.mark.parametrize("file_type", ["jsonl", "parquet"])
 @pytest.mark.parametrize("fpp", [1, NUM_FILES // 2, NUM_FILES, NUM_FILES * 2])
-def test_read_data_fpp_partitioning(
-    mock_multiple_jsonl_files, mock_multiple_parquet_files, backend, file_type, fpp
-):
-    input_files = (
-        mock_multiple_jsonl_files
-        if file_type == "jsonl"
-        else mock_multiple_parquet_files
-    )
+def test_read_data_fpp_partitioning(mock_multiple_jsonl_files, mock_multiple_parquet_files, backend, file_type, fpp):
+    input_files = mock_multiple_jsonl_files if file_type == "jsonl" else mock_multiple_parquet_files
 
     df = read_data_files_per_partition(
         input_files=input_files,
@@ -273,21 +239,15 @@ def test_read_data_fpp_partitioning(
     num_partitions = df.npartitions
     # Assert that we have two partitions (since we have ~15KB total data and a blocksize of 10KB)
     if fpp == 1:
-        assert num_partitions == NUM_FILES, (
-            f"Expected {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions == NUM_FILES, f"Expected {NUM_FILES} partitions but got {num_partitions}"
     elif fpp == NUM_FILES // 2:
-        assert num_partitions < NUM_FILES, (
-            f"Expected {NUM_FILES} partitions but got {num_partitions}"
-        )
+        assert num_partitions < NUM_FILES, f"Expected {NUM_FILES} partitions but got {num_partitions}"
     elif fpp >= NUM_FILES:
         assert num_partitions == 1, f"Expected 1 partition but got {num_partitions}"
     else:
         raise ValueError(f"Invalid fpp: {fpp}")
     total_rows = len(df)
-    assert total_rows == NUM_FILES * NUM_RECORDS, (
-        f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
-    )
+    assert total_rows == NUM_FILES * NUM_RECORDS, f"Expected {NUM_FILES * NUM_RECORDS} rows but got {total_rows}"
     if backend == "cudf":
         import cudf
 
@@ -304,9 +264,7 @@ def test_read_data_fpp_partitioning(
     ],
 )
 @pytest.mark.parametrize("filename_arg", [True, "some_filename"])
-def test_read_data_blocksize_add_filename_jsonl(
-    mock_multiple_jsonl_files, backend, filename_arg
-):
+def test_read_data_blocksize_add_filename_jsonl(mock_multiple_jsonl_files, backend, filename_arg):
     df = read_data_blocksize(
         input_files=mock_multiple_jsonl_files,
         backend=backend,
@@ -324,9 +282,7 @@ def test_read_data_blocksize_add_filename_jsonl(
         file_names = file_names.to_pandas()
 
     assert len(file_names) == NUM_FILES
-    assert set(file_names.values) == {
-        f"test_{file_id}.jsonl" for file_id in range(NUM_FILES)
-    }
+    assert set(file_names.values) == {f"test_{file_id}.jsonl" for file_id in range(NUM_FILES)}
 
 
 @pytest.mark.parametrize(
@@ -337,9 +293,7 @@ def test_read_data_blocksize_add_filename_jsonl(
     ],
 )
 @pytest.mark.parametrize("filename_arg", [True, "some_filename"])
-def test_read_data_blocksize_add_filename_parquet(
-    mock_multiple_parquet_files, backend, filename_arg
-):
+def test_read_data_blocksize_add_filename_parquet(mock_multiple_parquet_files, backend, filename_arg):
     with pytest.raises(
         ValueError,
         match="add_filename and blocksize cannot be set at the same time for Parquet files",
@@ -372,11 +326,7 @@ def test_read_data_fpp_add_filename(
     file_type,
     filename_arg,
 ):
-    input_files = (
-        mock_multiple_jsonl_files
-        if file_type == "jsonl"
-        else mock_multiple_parquet_files
-    )
+    input_files = mock_multiple_jsonl_files if file_type == "jsonl" else mock_multiple_parquet_files
 
     df = read_data_files_per_partition(
         input_files=input_files,
@@ -397,9 +347,7 @@ def test_read_data_fpp_add_filename(
         file_names = file_names.to_pandas()
 
     assert len(file_names) == NUM_FILES
-    assert set(file_names.values) == {
-        f"test_{file_id}.{file_type}" for file_id in range(NUM_FILES)
-    }
+    assert set(file_names.values) == {f"test_{file_id}.{file_type}" for file_id in range(NUM_FILES)}
 
 
 @pytest.mark.parametrize(
@@ -412,24 +360,13 @@ def test_read_data_fpp_add_filename(
 @pytest.mark.parametrize(
     "file_type,add_filename,function_name",
     [
-        *[
-            ("jsonl", True, func)
-            for func in ["read_data_blocksize", "read_data_files_per_partition"]
-        ],
-        *[
-            ("jsonl", False, func)
-            for func in ["read_data_blocksize", "read_data_files_per_partition"]
-        ],
-        *[
-            ("parquet", False, func)
-            for func in ["read_data_blocksize", "read_data_files_per_partition"]
-        ],
+        *[("jsonl", True, func) for func in ["read_data_blocksize", "read_data_files_per_partition"]],
+        *[("jsonl", False, func) for func in ["read_data_blocksize", "read_data_files_per_partition"]],
+        *[("parquet", False, func) for func in ["read_data_blocksize", "read_data_files_per_partition"]],
         *[("parquet", True, "read_data_files_per_partition")],
     ],
 )
-@pytest.mark.parametrize(
-    "cols_to_select", [None, ["id"], ["text", "id"], ["id", "text"]]
-)
+@pytest.mark.parametrize("cols_to_select", [None, ["id"], ["text", "id"], ["id", "text"]])
 def test_read_data_select_columns(
     mock_multiple_jsonl_files,
     mock_multiple_parquet_files,
@@ -439,11 +376,7 @@ def test_read_data_select_columns(
     function_name,
     cols_to_select,
 ):
-    input_files = (
-        mock_multiple_jsonl_files
-        if file_type == "jsonl"
-        else mock_multiple_parquet_files
-    )
+    input_files = mock_multiple_jsonl_files if file_type == "jsonl" else mock_multiple_parquet_files
     if function_name == "read_data_files_per_partition":
         func = read_data_files_per_partition
         read_kwargs = {"files_per_partition": 1}
@@ -477,15 +410,9 @@ def test_read_data_select_columns(
         pytest.param("cudf", marks=pytest.mark.gpu),
     ],
 )
-@pytest.mark.parametrize(
-    "function_name", ["read_data_blocksize", "read_data_files_per_partition"]
-)
-@pytest.mark.parametrize(
-    "input_meta", [{"id": "str"}, {"text": "str"}, {"id": "str", "text": "str"}]
-)
-def test_read_data_input_meta(
-    mock_multiple_jsonl_files, backend, function_name, input_meta
-):
+@pytest.mark.parametrize("function_name", ["read_data_blocksize", "read_data_files_per_partition"])
+@pytest.mark.parametrize("input_meta", [{"id": "str"}, {"text": "str"}, {"id": "str", "text": "str"}])
+def test_read_data_input_meta(mock_multiple_jsonl_files, backend, function_name, input_meta):
     if function_name == "read_data_files_per_partition":
         func = read_data_files_per_partition
         read_kwargs = {"files_per_partition": 1}
@@ -509,9 +436,7 @@ def test_read_data_input_meta(
 """ Tests below this test for custom read functions """
 
 
-@pytest.mark.parametrize(
-    "backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)]
-)
+@pytest.mark.parametrize("backend", ["pandas", pytest.param("cudf", marks=pytest.mark.gpu)])
 def test_read_data_custom_read_function(mock_npy_files, backend):
     # This function ignores file_type, add_filename, columns, and input_meta
     def read_npy_file(files: List[str], backend: Literal["cudf", "pandas"], **kwargs):
@@ -529,10 +454,7 @@ def test_read_data_custom_read_function(mock_npy_files, backend):
         return df
 
     expected_df = pd.DataFrame(
-        [
-            {"id": f"test_{file_id}.npy", "embedding": np.asarray([file_id])}
-            for file_id in range(NUM_FILES)
-        ],
+        [{"id": f"test_{file_id}.npy", "embedding": np.asarray([file_id])} for file_id in range(NUM_FILES)],
     )
 
     # Test that we can read the file without specifying columns
@@ -570,8 +492,7 @@ def test_read_data_custom_read_function(mock_npy_files, backend):
 
 def xfail_inconsistent_schema_jsonl():
     return pytest.mark.xfail(
-        reason="inconsistent schemas are not supported with jsonl files, "
-        "see https://github.com/dask/dask/issues/11595"
+        reason="inconsistent schemas are not supported with jsonl files, see https://github.com/dask/dask/issues/11595"
     )
 
 
@@ -620,19 +541,13 @@ def test_read_data_different_columns_files_per_partition(
 @pytest.mark.parametrize(
     "backend,file_type",
     [
-        pytest.param(
-            "cudf", "jsonl", marks=[pytest.mark.gpu, xfail_inconsistent_schema_jsonl()]
-        ),
+        pytest.param("cudf", "jsonl", marks=[pytest.mark.gpu, xfail_inconsistent_schema_jsonl()]),
         pytest.param("pandas", "jsonl", marks=[xfail_inconsistent_schema_jsonl()]),
         pytest.param(
             "cudf",
             "parquet",
             marks=[pytest.mark.gpu]
-            + (
-                [xfail_inconsistent_schema_jsonl()]
-                if not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA
-                else []
-            ),
+            + ([xfail_inconsistent_schema_jsonl()] if not DASK_CUDF_PARQUET_READ_INCONSISTENT_SCHEMA else []),
         ),
         pytest.param("pandas", "parquet"),
     ],

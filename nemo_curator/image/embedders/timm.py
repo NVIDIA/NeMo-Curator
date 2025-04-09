@@ -86,9 +86,7 @@ class TimmImageEmbedder(ImageEmbedder):
 
         # Load the model to get the transforms
         model = timm.create_model(self.model_name, pretrained=self.pretrained)
-        torch_transforms = timm.data.create_transform(
-            **timm.data.resolve_data_config(model.pretrained_cfg)
-        )
+        torch_transforms = timm.data.create_transform(**timm.data.resolve_data_config(model.pretrained_cfg))
         self.dali_transforms = convert_transforms_to_dali(torch_transforms)
 
     def load_dataset_shard(self, tar_path: str):
@@ -148,10 +146,7 @@ class TimmImageEmbedder(ImageEmbedder):
             image = image_torch
 
             captions = [text.at(i).tostring().decode("utf-8") for i in range(len(text))]
-            metadata = [
-                json.loads(meta.at(i).tostring().decode("utf-8"))
-                for i in range(len(meta))
-            ]
+            metadata = [json.loads(meta.at(i).tostring().decode("utf-8")) for i in range(len(meta))]
 
             remaining_samples = total_samples - samples_completed
             if image.shape[0] >= remaining_samples:

@@ -73,8 +73,7 @@ def attach_args():
         "--jaccard-threshold",
         type=float,
         default=0.8,
-        help="Jaccard threshold below which we do not consider documents"
-        " to be duplicates.",
+        help="Jaccard threshold below which we do not consider documents to be duplicates.",
     )
 
     return parser

@@ -45,24 +45,18 @@ def main(args):
 
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=semdedup_config.n_clusters,
-        emb_by_clust_dir=os.path.join(
-            cache_dir, semdedup_config.clustering_save_loc, "embs_by_nearest_center"
-        ),
+        emb_by_clust_dir=os.path.join(cache_dir, semdedup_config.clustering_save_loc, "embs_by_nearest_center"),
         id_column=args.id_column,
         which_to_keep=semdedup_config.which_to_keep,
         sim_metric=semdedup_config.sim_metric,
         batched_cosine_similarity=semdedup_config.batched_cosine_similarity,
-        output_dir=os.path.join(
-            semdedup_config.cache_dir, semdedup_config.clustering_save_loc
-        ),
+        output_dir=os.path.join(semdedup_config.cache_dir, semdedup_config.clustering_save_loc),
         embedding_column=semdedup_config.embedding_column,
         logger=logger,
     )
 
     semantic_dedup.compute_semantic_match_dfs()
-    dedup_id_dataset = semantic_dedup.extract_dedup_data(
-        eps_to_extract=semdedup_config.eps_to_extract
-    )
+    dedup_id_dataset = semantic_dedup.extract_dedup_data(eps_to_extract=semdedup_config.eps_to_extract)
     print(dedup_id_dataset.df.head(10))
 
     dt2 = datetime.now()

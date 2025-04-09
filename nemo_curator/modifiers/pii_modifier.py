@@ -78,13 +78,9 @@ class PiiModifier(DocumentModifier):
 
         deidentifier = load_object_on_worker("deidentifier", self.load_deidentifier, {})
         try:
-            output: List[str] = deidentifier.deidentify_text_batch(
-                text.tolist(), self.batch_size
-            )
+            output: List[str] = deidentifier.deidentify_text_batch(text.tolist(), self.batch_size)
         except Exception as e:
-            logging.error(
-                f"Encountered error {str(e)} in partition {partition_info['number']}"
-            )
+            logging.error(f"Encountered error {str(e)} in partition {partition_info['number']}")
             return pd.Series([True], index=text.index)
         output: pd.Series = pd.Series(output, text.index)
         return output
@@ -105,8 +101,6 @@ class PiiModifier(DocumentModifier):
             anonymize_action=self.anonymize_action,
             **self.kwargs,
         )
-        deidentifier.analyzer.nlp_engine.nlp[
-            deidentifier.language
-        ].max_length = DEFAULT_MAX_DOC_SIZE
+        deidentifier.analyzer.nlp_engine.nlp[deidentifier.language].max_length = DEFAULT_MAX_DOC_SIZE
 
         return deidentifier

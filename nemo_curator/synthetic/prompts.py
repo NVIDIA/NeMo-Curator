@@ -37,11 +37,11 @@ MATH_PROBLEM_GENERAL_PROMPT_TEMPLATE = 'Generate {n_openlines} mathematics probl
 
 MATH_PROBLEM_BEGINNER_PROMPT_TEMPLATE = 'Generate {n_openlines} mathematics problems which are related to "{topic}" or can be addressed using "{topic}". These problems should be suitable for beginners who just learnt "{topic}". Your answer should be a list of problems. Make them as diverse as possible.'
 
-DEFAULT_PYTHON_MACRO_TOPICS_PROMPT_TEMPLATE = (
-    "List {n_macro_topics} important concepts in the python language."
-)
+DEFAULT_PYTHON_MACRO_TOPICS_PROMPT_TEMPLATE = "List {n_macro_topics} important concepts in the python language."
 
-DEFAULT_PYTHON_SUBTOPICS_PROMPT_TEMPLATE = 'List {n_subtopics} important concepts related to "{macro_topic}" in the python language.'
+DEFAULT_PYTHON_SUBTOPICS_PROMPT_TEMPLATE = (
+    'List {n_subtopics} important concepts related to "{macro_topic}" in the python language.'
+)
 
 DEFAULT_PYTHON_CLASSIFICATION_PROMPT_TEMPLATE = 'Does the concept "{entity}" belong to one of the following categories?\n- Programming concepts like loops, functions, and data structures in python.\n- Important functions, objects, or libraries in python.\n- Mathematical concepts like linear algebra which can be implemented in python.\n- Basic algorithms or problems in computer science likes Greedy Search and Dynamics programming which can be addressed in python.\n\nYour answer should start with "Yes" or "No".'
 

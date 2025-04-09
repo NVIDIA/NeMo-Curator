@@ -35,13 +35,9 @@ def main(args):
 
     # The model expects instruction-response style text data. For example:
     # "Instruction: {instruction}. Input: {input_}. Response: {response}."
-    input_dataset = DocumentDataset.read_json(
-        input_file_path, backend="cudf", add_filename=True
-    )
+    input_dataset = DocumentDataset.read_json(input_file_path, backend="cudf", add_filename=True)
 
-    instruction_data_guard_classifier = InstructionDataGuardClassifier(
-        token=huggingface_token
-    )
+    instruction_data_guard_classifier = InstructionDataGuardClassifier(token=huggingface_token)
     result_dataset = instruction_data_guard_classifier(dataset=input_dataset)
 
     result_dataset.to_json(output_path=output_file_path, write_to_filename=True)
@@ -56,9 +52,7 @@ def main(args):
 
 
 def attach_args(
-    parser=argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    ),
+    parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
 ):
     argumentHelper = ArgumentHelper(parser)
     argumentHelper.add_distributed_classifier_cluster_args()
