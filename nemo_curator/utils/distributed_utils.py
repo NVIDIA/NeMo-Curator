@@ -41,9 +41,7 @@ from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_fro
 
 cudf = gpu_only_import("cudf")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
-get_device_total_memory = gpu_only_import_from(
-    "dask_cuda.utils", "get_device_total_memory"
-)
+get_device_total_memory = gpu_only_import_from("dask_cuda.utils", "get_device_total_memory")
 
 SUPPORTED_JSONL_COMPRESSIONS = {"gzip", None}
 
@@ -772,19 +770,14 @@ def single_partition_write_with_filename(
             if not keep_filename_column:
                 out_df = out_df.drop(filename_col, axis=1)
 
-            filename = (
-                get_filepath_without_extension(filename)
-                if output_type != "bitext"
-                else Path(filename).name
-            )
+            filename = get_filepath_without_extension(filename) if output_type != "bitext" else Path(filename).name
             output_file_path = os.path.join(output_file_dir, filename)
 
             if output_type == "jsonl":
                 output_file_path = output_file_path + ".jsonl"
                 if compression not in SUPPORTED_JSONL_COMPRESSIONS:
                     raise ValueError(
-                        f"Unsupported compression type: {compression}. "
-                        f"Supported types: {SUPPORTED_JSONL_COMPRESSIONS}"
+                        f"Unsupported compression type: {compression}. Supported types: {SUPPORTED_JSONL_COMPRESSIONS}"
                     )
                 if compression == "gzip":
                     output_file_path = output_file_path + ".gz"
@@ -1016,18 +1009,11 @@ def _write_to_jsonl_or_parquet(
     if output_type == "jsonl":
         if compression not in SUPPORTED_JSONL_COMPRESSIONS:
             raise ValueError(
-                f"Unsupported compression type: {compression}. "
-                f"Supported types: {SUPPORTED_JSONL_COMPRESSIONS}"
+                f"Unsupported compression type: {compression}. Supported types: {SUPPORTED_JSONL_COMPRESSIONS}"
             )
 
         if partition_on is not None:
-            unique_values = (
-                df[partition_on]
-                .unique()
-                .to_backend(backend="pandas")
-                .compute()
-                .to_list()
-            )
+            unique_values = df[partition_on].unique().to_backend(backend="pandas").compute().to_list()
             for value in unique_values:
                 os.makedirs(output_path, exist_ok=True)
                 partition_output_path = os.path.join(output_path, f"{partition_on}={value}")
@@ -1062,9 +1048,7 @@ def _write_to_jsonl_or_parquet(
                 )  # Only index=False is supported for orient="records"
     elif output_type == "parquet":
         if compression is not None:
-            raise ValueError(
-                "Setting a custom compression type is not supported for Parquet files at this time."
-            )
+            raise ValueError("Setting a custom compression type is not supported for Parquet files at this time.")
         df.to_parquet(output_path, write_index=False, partition_on=partition_on)
     else:
         raise ValueError(f"Unknown output type: {output_type}")

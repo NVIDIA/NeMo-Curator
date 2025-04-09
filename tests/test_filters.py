@@ -215,9 +215,7 @@ class TestFilterModule:
 
         expected_scores = pd.Series([2, 3, 5, 7])
         scores = scored_data.df[score_field]
-        assert all(
-            expected_scores == scores.compute()
-        ), f"Expected {expected_scores} but got {scores}"
+        assert all(expected_scores == scores.compute()), f"Expected {expected_scores} but got {scores}"
 
     def test_retain_score_filter(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -270,9 +268,7 @@ class TestFilterModule:
         expected_data = dd.from_pandas(expected_data, 2)
         expected_data[score_field] = pd.Series([5, 7], index=expected_data.index)
         expected_data = DocumentDataset(expected_data)
-        assert all_equal(
-            expected_data, filtered_data
-        ), f"Expected {expected_data} but got {filtered_data}"
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_invert(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -331,9 +327,7 @@ class TestFilterModule:
 
         expected_scores = pd.Series([6, 11, 11, 13])
         scores = scored_data.df[score_field]
-        assert all(
-            expected_scores == scores.compute()
-        ), f"Expected {expected_scores} but got {scores}"
+        assert all(expected_scores == scores.compute()), f"Expected {expected_scores} but got {scores}"
 
     def test_batch_filter(self, letter_count_data):
         length_filter = BatchedLengthFilter(min_length=8, max_length=11)
@@ -369,9 +363,7 @@ class TestFilterModule:
         expected_data = letter_count_data.df.loc[expected_indices]
         expected_data[score_field] = pd.Series([11, 11], index=expected_data.index)
         expected_data = DocumentDataset(expected_data)
-        assert all_equal(
-            expected_data, filtered_data
-        ), f"Expected {expected_data} but got {filtered_data}"
+        assert all_equal(expected_data, filtered_data), f"Expected {expected_data} but got {filtered_data}"
 
     def test_score_filter_type(self, letter_count_data):
         letter_filter = LetterCountFilter()
@@ -410,9 +402,7 @@ class TestFilterModule:
 
         expected_scores = pd.Series([2, 3, 5, 7])
         scores = scored_data.df[score_field]
-        assert all(
-            expected_scores == scores.compute()
-        ), f"Expected {expected_scores} but got {scores}"
+        assert all(expected_scores == scores.compute()), f"Expected {expected_scores} but got {scores}"
 
     def test_chain_filter(self, letter_count_data):
         letter_count_filter = LetterCountFilter(min_count=4)

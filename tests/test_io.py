@@ -179,9 +179,7 @@ class TestWriteWithFilename:
     @pytest.mark.parametrize("keep_filename_column", [True, False])
     @pytest.mark.parametrize("file_ext", ["jsonl", "parquet", "jsonl.gz"])
     @pytest.mark.parametrize("filename_col", ["file_name", "filename"])
-    def test_multifile_single_partition(
-        self, tmp_path, keep_filename_column, file_ext, filename_col
-    ):
+    def test_multifile_single_partition(self, tmp_path, keep_filename_column, file_ext, filename_col):
         if file_ext == "jsonl.gz":
             compression = "gzip"
             file_type = "jsonl"
@@ -382,9 +380,7 @@ class TestPartitionOn:
         ],
     )
     @pytest.mark.parametrize("compression", [None, "gzip"])
-    def test_write_to_disk_with_partition_on_jsonl(
-        self, tmp_path, backend, category_values, compression
-    ):
+    def test_write_to_disk_with_partition_on_jsonl(self, tmp_path, backend, category_values, compression):
         """
         Test writing a partitioned JSONL dataset.
 
@@ -416,9 +412,7 @@ class TestPartitionOn:
             jsonl_files = list(part_dir.glob("*.part"))
             assert jsonl_files, f"No JSONL files found in partition directory {part_dir}"
             for file in jsonl_files:
-                with (
-                    gzip.open(file, "rt") if compression == "gzip" else open(file, "r")
-                ) as f:
+                with gzip.open(file, "rt") if compression == "gzip" else open(file, "r") as f:
                     for line in f:
                         record = json.loads(line)
                         if "category" in record:

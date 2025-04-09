@@ -614,9 +614,7 @@ class TestDataWritingFunctions:
         output_path = os.path.join(temp_dir, "partitioned_jsonl_gzip")
         os.makedirs(output_path, exist_ok=True)
 
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False):
             _write_to_jsonl_or_parquet(
                 pandas_ddf,
                 output_path=output_path,
@@ -645,9 +643,7 @@ class TestDataWritingFunctions:
         output_path = os.path.join(temp_dir, "pandas_jsonl_gzip")
         os.makedirs(output_path, exist_ok=True)
 
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=False):
             _write_to_jsonl_or_parquet(
                 pandas_ddf,
                 output_path=os.path.join(output_path, "output.jsonl.gz"),
@@ -674,9 +670,7 @@ class TestDataWritingFunctions:
         output_path = os.path.join(temp_dir, "cudf_jsonl_gzip")
         os.makedirs(output_path, exist_ok=True)
 
-        with patch(
-            "nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True
-        ):
+        with patch("nemo_curator.utils.distributed_utils.is_cudf_type", return_value=True):
             _write_to_jsonl_or_parquet(
                 pandas_ddf,
                 output_path=os.path.join(output_path, "output.jsonl.gz"),
