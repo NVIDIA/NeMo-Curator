@@ -76,6 +76,11 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "ruff==0.11.4",
+    "pytest"
+]
 # Installs CPU + GPU text curation modules
 cuda12x = [
     "cudf-cu12==25.02",
@@ -168,14 +173,6 @@ llm_pii_redaction = "nemo_curator.scripts.llm_pii_redaction:console_script"
 
 [project.urls]
 Homepage = "https://github.com/NVIDIA/NeMo-Curator"
-
-[tool.black]
-line-length = 88
-
-[tool.isort]
-profile = "black"  # black-compatible
-line_length = 88  # should match black parameters
-py_version = 310
 
 [tool.pytest.ini_options]
 markers = [
