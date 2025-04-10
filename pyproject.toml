@@ -197,7 +197,6 @@ ignore = [
     "FBT",  # allow booleans in function / class arguments
     "T20",  # allow printing
     "E501",  # Allow line length violations, leave it to Black
-    "ANN001", # don't annotate self
     "ANN204",  # don't annotate self/cls/special methods (__new__)
     "ANN003",  # don't annotate **kwargs
     "PT013",  # how to import pytest
