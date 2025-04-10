@@ -58,7 +58,7 @@ def download_and_convert_to_jsonl() -> str:
     return output_path
 
 
-def redact_pii(dataset: DocumentDataset, text_field) -> DocumentDataset:
+def redact_pii(dataset: DocumentDataset, text_field: str) -> DocumentDataset:
     """
     Redacts personally identifiable information (PII) from a given dataset.
 

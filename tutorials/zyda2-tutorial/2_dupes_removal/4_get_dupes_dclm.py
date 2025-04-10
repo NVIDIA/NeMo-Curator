@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     dclm_exploded_df = dd.read_parquet(DCLM_EXPLODED, split_row_groups=False)
 
-    def write_group_to_jsonl(group) -> None:
+    def write_group_to_jsonl(group: pd.DataFrame) -> None:
         folder_id, partition = group.name
 
         zipped = zip(list(group["row"]), list(group["group"]), list(group["id"]), strict=False)

@@ -9,7 +9,7 @@ def ensure_directory_exists(filename: str) -> None:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
 
-def process_data(input_folder, output_folder, prefix, partition_size="512MB") -> None:
+def process_data(input_folder: str, output_folder: str, prefix: str, partition_size: str = "512MB") -> None:
     raw_files = get_all_files_paths_under(input_folder)
     raw_data = DocumentDataset.read_parquet(raw_files)
     raw_data_rep = DocumentDataset(

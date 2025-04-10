@@ -85,7 +85,7 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
         client = OpenAIClient(openai_client)
         return NemotronGenerator(client)
 
-    def _get_partition_id(self, df: pd.DataFrame, partition_info=None) -> pd.DataFrame:
+    def _get_partition_id(self, df: pd.DataFrame, partition_info: dict | None = None) -> pd.DataFrame:
         df["partition-id"] = partition_info["number"]
         return df
 

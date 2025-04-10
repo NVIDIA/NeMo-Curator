@@ -37,5 +37,5 @@ class IncompleteStoryFilter(DocumentFilter):
         """
         return text.strip()[-1] in self._story_terminators
 
-    def keep_document(self, score) -> bool:
+    def keep_document(self, score: bool) -> bool:
         return score

@@ -118,7 +118,7 @@ def download_and_convert_to_jsonl() -> str:
     )
 
 
-def semantic_dedupe(dataset) -> DocumentDataset:
+def semantic_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     """
     Perform semantic deduplication on the given dataset.
 

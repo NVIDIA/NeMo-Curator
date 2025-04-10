@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     ddf = dd.read_parquet(args.input, split_row_groups=False)
 
-    def drop_dupes(partition: pd.DataFrame, partition_info=None) -> pd.DataFrame:
+    def drop_dupes(partition: pd.DataFrame, partition_info: dict | None = None) -> pd.DataFrame:
         ind = partition_info["number"]
 
         dupes_file_path = ind_2_fullpath.get(ind)

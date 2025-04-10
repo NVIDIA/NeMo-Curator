@@ -117,7 +117,7 @@ class SyntheticGenerator:
         """
         return [entry.strip("*").strip() for entry in sdg_response[0].split("\n") if entry]
 
-    def _write_all_to_file(self, gen_entries, out_fp: str) -> None:
+    def _write_all_to_file(self, gen_entries, out_fp: str) -> None:  # noqa: ANN001
         """
         Write all generated synthetic data to a JSON file. If nothing was generated, skip writing to the file.
 
