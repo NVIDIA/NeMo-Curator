@@ -1,23 +1,57 @@
 Stop Words in Text Processing
 =============================
 
-Stop words are common words that are often filtered out in natural language processing (NLP) tasks because they typically don't carry significant meaning. Examples in English include "the," "is," "at," "which," and "on." These words appear so frequently in language that they can distort text processing tasks if not properly managed. NVIDIA NeMo Curator provides built-in stop word lists for several languages to support text analysis and extraction processes.
+Stop words are common words that are filtered out in natural language processing (NLP) tasks because they don't carry significant meaning. These words appear so frequently in language that they can distort text processing tasks. Examples in English include "the," "is," "at," "which," and "on."
 
-Key characteristics of stop words:
+.. note::
+   Studies on stopword lists and their distribution in various text corpora have shown that typical English text contains 30–40% stop words.
 
-* They appear with high frequency in text
-* They typically serve grammatical rather than semantic functions
-* They're language-specific (each language has its own set of stop words)
-* Removing them can improve efficiency in many NLP tasks
 
-Why Stop Words Matter in NeMo Curator
-------------------------------------
-
-In NeMo Curator, stop words play several important roles:
+NVIDIA NeMo Curator provides built-in stop word lists for several languages to support text analysis and extraction processes. You can use these lists for:
 
 * **Text Extraction and Boilerplate Removal**: The text extraction process (especially for Common Crawl data) uses stop word density as a key metric to identify meaningful content and differentiate between main content and boilerplate in web pages
 * **Language Detection**: Stop words help in language detection and processing
 * **Efficient Processing**: Filtering stop words reduces the amount of data that needs to be processed
+
+How it Works
+-----------------------------------------
+
+JusText Extractor
+~~~~~~~~~~~~~~~~
+
+The JusText algorithm uses stop word density to classify text blocks as main content or boilerplate:
+
+1. **Context-Free Classification**: Text blocks with a high density of stop words are classified as "good" (likely main content)
+2. **Parameter Customization**: You can customize the stop word density thresholds via ``stopwords_low`` and ``stopwords_high`` parameters
+
+.. code-block:: python
+
+   from nemo_curator.download import JusTextExtractor
+   
+   # Customize stop word thresholds
+   extractor = JusTextExtractor(
+       stopwords_low=0.30,   # Minimum stop word density
+       stopwords_high=0.32,  # Maximum stop word density
+   )
+
+Resiliparse and Trafilatura Extractors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These extractors also use stop word density to filter extracted content:
+
+.. code-block:: python
+
+   from nemo_curator.download import ResiliparseExtractor, TrafilaturaExtractor
+   
+   # Resiliparse with custom stop word density
+   resiliparse = ResiliparseExtractor(
+       required_stopword_density=0.32  # Only keep paragraphs with >= 32% stop words
+   )
+   
+   # Trafilatura with custom stop word density
+   trafilatura = TrafilaturaExtractor(
+       required_stopword_density=0.35  # Higher threshold for more selective extraction
+   )
 
 Available Stop Word Lists
 ------------------------
@@ -85,47 +119,6 @@ Thai stop words are available in ``th_stopwords.py``. The file contains around 1
    ])
 
 
-How Stop Words Are Used in Text Extraction
------------------------------------------
-
-Stop words are a critical component in NeMo Curator's text extraction algorithms. Here's how they're used in different extractors:
-
-JusText Extractor
-~~~~~~~~~~~~~~~~
-
-The JusText algorithm uses stop word density to classify text blocks as main content or boilerplate:
-
-1. **Context-Free Classification**: Text blocks with a high density of stop words are classified as "good" (likely main content)
-2. **Parameter Customization**: You can customize the stop word density thresholds via ``stopwords_low`` and ``stopwords_high`` parameters
-
-.. code-block:: python
-
-   from nemo_curator.download import JusTextExtractor
-   
-   # Customize stop word thresholds
-   extractor = JusTextExtractor(
-       stopwords_low=0.30,   # Minimum stop word density
-       stopwords_high=0.32,  # Maximum stop word density
-   )
-
-Resiliparse and Trafilatura Extractors
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-These extractors also use stop word density to filter extracted content:
-
-.. code-block:: python
-
-   from nemo_curator.download import ResiliparseExtractor, TrafilaturaExtractor
-   
-   # Resiliparse with custom stop word density
-   resiliparse = ResiliparseExtractor(
-       required_stopword_density=0.32  # Only keep paragraphs with >= 32% stop words
-   )
-   
-   # Trafilatura with custom stop word density
-   trafilatura = TrafilaturaExtractor(
-       required_stopword_density=0.35  # Higher threshold for more selective extraction
-   )
 
 Special Handling for Non-Spaced Languages
 ----------------------------------------
