@@ -15,7 +15,7 @@
 from collections import defaultdict
 from collections.abc import Iterable
 from functools import partial, reduce
-from typing import Any
+from typing import Any, Union
 
 import dask.dataframe as dd
 import pandas as pd
@@ -122,7 +122,7 @@ class TaskDecontamination(BaseModule):
 
     def _find_ngrams_partition(
         self,
-        dataset_partition: pd.DataFrame | cudf.DataFrame,
+        dataset_partition: Union[pd.DataFrame, "cudf.DataFrame"],
         task_ngrams: dict[str, int],
         ngrams_freq_sorted: list[tuple[int, int]],
     ) -> dict[str, int]:
@@ -293,10 +293,10 @@ class TaskDecontamination(BaseModule):
 
     def _remove_ngrams_partition(
         self,
-        partition: pd.DataFrame | cudf.DataFrame,
+        partition: Union[pd.DataFrame, "cudf.DataFrame"],
         task_ngrams: dict[str, int],
         ngrams_freq_sorted: list[tuple[int, int]],
-    ) -> pd.DataFrame | cudf.DataFrame:
+    ) -> Union[pd.DataFrame, "cudf.DataFrame"]:
         text_type = partition[self.text_field].dtype
 
         document_fn = partial(
