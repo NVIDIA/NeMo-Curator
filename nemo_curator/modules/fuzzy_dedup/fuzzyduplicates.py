@@ -14,14 +14,19 @@
 
 from __future__ import annotations
 
-import logging  # noqa: TC003
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import logging
+
+    from nemo_curator.modules.config import FuzzyDuplicatesConfig
+
 import os
 import time
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.log import create_logger
 from nemo_curator.modules.base import BaseDeduplicationModule
-from nemo_curator.modules.config import FuzzyDuplicatesConfig  # noqa: TC001
 from nemo_curator.modules.fuzzy_dedup._mapbuckets import _MapBuckets
 from nemo_curator.modules.fuzzy_dedup._shuffle import _Shuffle
 from nemo_curator.modules.fuzzy_dedup.bucketstoedges import BucketsToEdges

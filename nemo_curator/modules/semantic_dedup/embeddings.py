@@ -23,7 +23,7 @@ import torch
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
 from torch import nn
-from torch.nn import functional as F  # noqa: N812
+from torch.nn import functional
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from nemo_curator.classifiers.base import _get_suggest_memory_for_classifier
@@ -77,7 +77,7 @@ class EmbeddingPytorchModel(nn.Module):
         input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, dim=1)
         sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
-        return F.normalize(sum_embeddings / sum_mask, dim=1)
+        return functional.normalize(sum_embeddings / sum_mask, dim=1)
 
     def _get_last_token(self, model_output: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         token_embeddings = model_output[0]
@@ -88,7 +88,7 @@ class EmbeddingPytorchModel(nn.Module):
         batch_indices = torch.arange(batch_size, device=attention_mask.device)
         # Get embeddings of last non-padded tokens
         last_token_embeddings = token_embeddings[batch_indices, last_token_indices]
-        return F.normalize(last_token_embeddings, dim=1)
+        return functional.normalize(last_token_embeddings, dim=1)
 
 
 class EmbeddingCrossFitModel(HFModel):

@@ -14,13 +14,17 @@
 
 from __future__ import annotations
 
-import logging  # noqa: TC003
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import logging
+
 import os
 import time
 
 import cudf
 import cugraph.dask as dcg
-import cugraph.dask.comms.comms as Comms  # noqa: N812
+import cugraph.dask.comms.comms as cugraph_comms
 import cupy as cp
 import dask_cudf
 import numpy as np
@@ -71,7 +75,7 @@ class ConnectedComponents:
     ) -> None:
         t0 = time.time()
         with performance_report_if_with_ts_suffix(self.profile_dir, "connected-components-run"):
-            Comms.initialize(p2p=False)
+            cugraph_comms.initialize(p2p=False)
             df = dask_cudf.read_parquet(deduped_encoded_jaccard_path, blocksize="1GB", aggregate_files=True)
             df = df[df["jaccard"] == 1].reset_index(drop=True)
 
@@ -112,7 +116,7 @@ class ConnectedComponents:
             # Ensure all docs in the same group are in the same partition
             labels_df = labels_df.shuffle(on=["group"], ignore_index=True)
             labels_df.to_parquet(output_path, write_index=False, overwrite=True)
-            Comms.destroy()
+            cugraph_comms.destroy()
         self._logger.info(
             f"Time taken for Connected Components Run = {time.time() - t0}s and output written at {output_path}"
         )

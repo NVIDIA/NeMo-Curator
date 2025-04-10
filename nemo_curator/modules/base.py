@@ -30,7 +30,7 @@ class BaseModule(ABC):
     Handles validating that data lives on the correct device for each module
     """
 
-    SUPPORTED_BACKENDS = ["pandas", "cudf", "any"]  # noqa: RUF012
+    SUPPORTED_BACKENDS = ("pandas", "cudf", "any")
 
     def __init__(
         self,

@@ -14,7 +14,11 @@
 
 from __future__ import annotations
 
-import logging  # noqa: TC003
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import logging
+
 import math
 import os
 import time

@@ -36,7 +36,7 @@ from nemo_curator.utils.gpu_utils import is_cudf_type
 class ExactDuplicates(BaseDeduplicationModule):
     """Find exact duplicates in a document corpus"""
 
-    SUPPORTED_HASHES = {"md5"}  # noqa: RUF012
+    SUPPORTED_HASHES = frozenset({"md5"})
 
     def __init__(  # noqa: PLR0913
         self,

@@ -14,12 +14,17 @@
 
 from __future__ import annotations
 
-import logging  # noqa: TC003
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import logging
+
+    import dask_cudf
+
 import os
 import time
 
 import cudf
-import dask_cudf  # noqa: TC002
 from tqdm import tqdm
 
 from nemo_curator.log import create_logger
