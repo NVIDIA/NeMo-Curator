@@ -8,7 +8,7 @@ NeMo Curator is a Python library providing scalable data-mining modules for cura
 
 The notebook walks through the multi-stage Nemotron-CC data curation pipeline, which involves:
 
-1.  **Environment Setup**: Initializing the environment, importing necessary libraries (including NeMo Curator modules, Dask, pandas, cuDF), and defining paths.
+1.  **Environment Setup**: Initializing the environment, importing necessary libraries (including NeMo Curator modules, Dask, Pandas, and cuDF), and defining paths.
 2.  **Data Extraction and Preprocessing**:
     *   Downloading specified Common Crawl snapshots using `download_common_crawl`.
     *   Extracting text content from WARC files using `JusTextExtractor`.
