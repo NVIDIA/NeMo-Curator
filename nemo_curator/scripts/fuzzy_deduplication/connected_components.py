@@ -33,7 +33,7 @@ def main(args: argparse.Namespace) -> None:
     st = time.time()
     output_path = os.path.join(args.output_dir, "connected_components.parquet")
     args.enable_spilling = True
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     components_stage = ConnectedComponents(
         cache_dir=args.cache_dir,

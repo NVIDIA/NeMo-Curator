@@ -23,7 +23,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args: argparse.Namespace) -> None:
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Make the output directories
     output_clean_dir = expand_outdir_and_mkdir(args.output_clean_dir)

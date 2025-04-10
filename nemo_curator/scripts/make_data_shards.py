@@ -20,7 +20,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args: argparse.Namespace) -> None:
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     reshard_jsonl(
         args.input_data_dir,

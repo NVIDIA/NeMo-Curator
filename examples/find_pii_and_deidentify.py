@@ -26,7 +26,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 def console_script() -> None:
     parser = argparse.ArgumentParser()
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
-    _ = get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     dataframe = pd.DataFrame({"text": ["Sarah and Ryan went out to play", "Jensen is the CEO of NVIDIA"]})
     dataset = DocumentDataset.from_pandas(dataframe, npartitions=1)

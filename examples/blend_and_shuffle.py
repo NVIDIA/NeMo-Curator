@@ -28,7 +28,7 @@ def main(args: argparse.Namespace) -> None:
     output_path = "/path/to/output"
 
     # Set up Dask client
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Blend the datasets
     datasets = [DocumentDataset.read_json(path) for path in dataset_paths]

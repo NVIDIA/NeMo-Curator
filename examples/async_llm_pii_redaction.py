@@ -21,7 +21,7 @@ from nemo_curator.utils.distributed_utils import get_client
 
 
 def console_script() -> None:
-    _ = get_client()
+    client = get_client()  # noqa: F841
 
     dataframe = pd.DataFrame(
         {

@@ -43,7 +43,7 @@ def main(args: argparse.Namespace) -> None:
     language_field = "language"
 
     # Prepare samples for the classifier
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Filter data
     multilingual_dataset = load_dataset(multilingual_data_path)

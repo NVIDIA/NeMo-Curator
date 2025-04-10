@@ -29,7 +29,7 @@ def main(args: argparse.Namespace) -> None:
     url_limit = 10
 
     # Set up Dask client
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Download and sample data
     common_crawl = download_common_crawl(output_directory, start_snapshot, end_snapshot, url_limit=url_limit)

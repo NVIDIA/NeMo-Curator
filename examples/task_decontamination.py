@@ -78,7 +78,7 @@ def main(args: argparse.Namespace) -> None:
     ]
 
     # Prepare samples for the classifier
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Filter data
     target_dataset = load_dataset(contaminated_dataset_path)
