@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask.dataframe
 import pandas as pd
 
 from nemo_curator.datasets import DocumentDataset
@@ -21,7 +20,7 @@ from nemo_curator.modules.modify import Modify
 from nemo_curator.utils.distributed_utils import get_client
 
 
-def console_script():
+def console_script() -> None:
     _ = get_client()
 
     dataframe = pd.DataFrame(
