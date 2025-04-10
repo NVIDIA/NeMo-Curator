@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Tuple
-
 import numba
 import numpy as np
 
@@ -28,7 +26,7 @@ def get_agg_text_bytes_df(
     bytes_column: str,
     n_partitions: int,
     shuffle: bool = False,
-) -> Tuple[dask_cudf.DataFrame, int]:
+) -> tuple[dask_cudf.DataFrame, int]:
     """
     Groupby bucket and calculate total bytes for a bucket.
     """
@@ -39,9 +37,7 @@ def get_agg_text_bytes_df(
         # `split_out>1`
         shuffle_arg = {}
     else:
-        shuffle_arg = {
-            "shuffle_method" if DASK_SHUFFLE_METHOD_ARG else "shuffle": shuffle
-        }
+        shuffle_arg = {"shuffle_method" if DASK_SHUFFLE_METHOD_ARG else "shuffle": shuffle}
     agg_df = (
         df[[agg_column, bytes_column]]
         .groupby([agg_column])
