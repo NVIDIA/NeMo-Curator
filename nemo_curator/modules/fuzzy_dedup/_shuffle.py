@@ -108,7 +108,6 @@ class _Shuffle:
                 parts_per_text_batch=parts_per_batch,
                 parts_per_bucket_batch=parts_per_bucket_batch,
                 bk_mapping=bk_mapping,
-                num_workers=num_workers,
             )
         self._logger.info(
             f"Time taken for Shuffle = {time.time() - st}s and output written at {output_shuffled_docs_path}"
