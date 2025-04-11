@@ -6,7 +6,6 @@ Stop words are common words that are filtered out in natural language processing
 .. note::
    Studies on stopword lists and their distribution in various text corpora have shown that typical English text contains 30–40% stop words.
 
-
 NVIDIA NeMo Curator provides built-in stop word lists for several languages to support text analysis and extraction processes. You can use these lists for:
 
 * **Text Extraction and Boilerplate Removal**: The text extraction process (especially for Common Crawl data) uses stop word density as a key metric to identify meaningful content and differentiate between main content and boilerplate in web pages
@@ -74,6 +73,7 @@ NeMo Curator leverages the extensive stop word collection from `JusText <https:/
    * - Thai
      - ``th_stopwords.py``
      - ~120
+
 These stop word lists are implemented as Python frozen sets for efficient lookup and immutability.
 
 Chinese Stop Words
@@ -103,7 +103,6 @@ Japanese stop words in ``ja_stopwords.py`` include approximately 140 common Japa
        "私", "私達", "貴方", "貴方方",
    ])
 
-
 Thai Stop Words
 ~~~~~~~~~~~~~~
 
@@ -117,8 +116,6 @@ Thai stop words are available in ``th_stopwords.py``. The file contains around 1
        # ... more words
        "ไป", "ไม่", "ไว้",
    ])
-
-
 
 Special Handling for Non-Spaced Languages
 ----------------------------------------
