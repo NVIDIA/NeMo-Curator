@@ -45,11 +45,17 @@ class CustomBatchAnalyzerEngine(BatchAnalyzerEngine):
     def __init__(self, analyzer_engine: AnalyzerEngine | None = None):
         super().__init__(analyzer_engine)
 
-    def analyze_batch(
+    def analyze_batch(  # noqa: PLR0913
         self,
+        texts: Iterable[str],  # noqa: ARG002
         language: str,
         entities: list[str] | None = None,
+        correlation_id: str | None = None,  # noqa: ARG002
+        score_threshold: float | None = None,  # noqa: ARG002
+        return_decision_process: bool | None = False,  # noqa: ARG002
         ad_hoc_recognizers: list[EntityRecognizer] | None = None,
+        context: list[str] | None = None,  # noqa: ARG002
+        allow_list: list[str] | None = None,  # noqa: ARG002
         nlp_artifacts_batch: Iterable[NlpArtifacts] | None = None,
     ) -> list[list[RecognizerResult]]:
         all_fields = not entities
