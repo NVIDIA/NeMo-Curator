@@ -377,7 +377,7 @@ def parse_str_of_num_bytes(s: str, return_str: bool = False) -> str | int:
 
 
 def _save_jsonl(
-    documents: dd.Bag,
+    documents: db.Bag,
     output_path: str,
     start_index: int = 0,
     max_index: int = 10000,
