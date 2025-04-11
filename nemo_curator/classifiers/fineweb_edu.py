@@ -53,7 +53,7 @@ class FinewebEduModel(HFModel):
     def configure_forward(model: torch.nn.Module, autocast: bool = True) -> torch.nn.Module:
         original_forward = model.forward
 
-        def custom_forward(*args, **kwargs) -> torch.Tensor:  # noqa: ANN002
+        def custom_forward(*args, **kwargs) -> torch.Tensor:
             if autocast:
                 with torch.autocast(device_type="cuda"):
                     output = original_forward(*args, **kwargs)

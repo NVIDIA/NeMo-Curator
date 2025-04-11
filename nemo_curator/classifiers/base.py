@@ -14,6 +14,11 @@
 
 import os
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import dask_cudf
+    from crossfit.backend.torch.hf.model import HFModel
 
 os.environ["RAPIDS_NO_INITIALIZE"] = "1"
 from abc import abstractmethod
