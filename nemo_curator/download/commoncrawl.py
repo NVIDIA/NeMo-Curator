@@ -17,7 +17,8 @@ import os
 import subprocess
 import unicodedata
 import warnings
-from abc import ABC, Iterator, abstractmethod
+from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from copy import deepcopy
 from logging import Logger
 from typing import Literal
