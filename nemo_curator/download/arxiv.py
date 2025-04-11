@@ -18,7 +18,7 @@ import re
 import subprocess
 import tarfile
 import tempfile
-from abc import Iterator
+from collections.abc import Iterator
 from typing import Literal
 
 from nemo_curator.datasets import DocumentDataset
