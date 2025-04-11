@@ -47,7 +47,7 @@ class DocumentDataset:
     def repartition(self, *args, **kwargs) -> "DocumentDataset":
         return self.__class__(self.df.repartition(*args, **kwargs))
 
-    def head(self, n: int = 5) -> pd.DataFrame | cudf.DataFrame:
+    def head(self, n: int = 5) -> Union["cudf.DataFrame", "pd.DataFrame"]:
         return self.df.head(n)
 
     @classmethod
