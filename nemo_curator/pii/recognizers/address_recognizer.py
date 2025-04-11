@@ -31,7 +31,7 @@ class AddressRecognizer(LocalRecognizer):
     def load(self) -> None:
         pass
 
-    def analyze(self, text: str) -> list[RecognizerResult]:
+    def analyze(self, text: str, entities, nlp_artifacts) -> list[RecognizerResult]:  # noqa: ANN001, ARG002
         output = usaddress.parse(text)
         curr_pos = 0
         results = []
