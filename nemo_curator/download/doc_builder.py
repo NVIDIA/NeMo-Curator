@@ -14,7 +14,8 @@
 
 import importlib
 import os
-from abc import ABC, Iterator, abstractmethod
+from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from typing import Literal
 
 import dask.dataframe as dd
