@@ -103,7 +103,7 @@ NeMo Curator also supports reading gzip compressed JSONL files. Simply point to 
     compressed_books = DocumentDataset.read_json("books_dataset/*.jsonl.gz")
 
     # You can also mix compressed and uncompressed files
-    all_books = DocumentDataset.read_json(["books_dataset/books_00.jsonl.gz", 
+    all_books = DocumentDataset.read_json(["books_dataset/books_00.jsonl.gz",
                                          "books_dataset/books_01.jsonl"])
 
 .. note::

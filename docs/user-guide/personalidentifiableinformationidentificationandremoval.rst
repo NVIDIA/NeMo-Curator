@@ -306,12 +306,12 @@ For reference, the default system prompt is:
 
 .. code-block:: text
 
-    "You are an expert redactor. The user is going to provide you with some text. 
-    Please find all personally identifying information from this text. 
+    "You are an expert redactor. The user is going to provide you with some text.
+    Please find all personally identifying information from this text.
     Return results according to this JSON schema: {JSON_SCHEMA}
-    Only return results for entities which actually appear in the text. 
-    It is very important that you return the entity_text by copying it exactly from the input. 
-    Do not perform any modification or normalization of the text. 
+    Only return results for entities which actually appear in the text.
+    It is very important that you return the entity_text by copying it exactly from the input.
+    Do not perform any modification or normalization of the text.
     The entity_type should be one of these: {PII_LABELS}"
 
 ``{PII_LABELS}`` represents a comma-separated list of strings corresponding to the PII entity types you want to identify (for example, "name", "email", "ip_address", etc.).

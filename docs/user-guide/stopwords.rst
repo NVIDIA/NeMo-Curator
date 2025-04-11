@@ -26,7 +26,7 @@ The JusText algorithm uses stop word density to classify text blocks as main con
 .. code-block:: python
 
    from nemo_curator.download import JusTextExtractor
-   
+
    # Customize stop word thresholds
    extractor = JusTextExtractor(
        stopwords_low=0.30,   # Minimum stop word density
@@ -41,12 +41,12 @@ These extractors also use stop word density to filter extracted content:
 .. code-block:: python
 
    from nemo_curator.download import ResiliparseExtractor, TrafilaturaExtractor
-   
+
    # Resiliparse with custom stop word density
    resiliparse = ResiliparseExtractor(
        required_stopword_density=0.32  # Only keep paragraphs with >= 32% stop words
    )
-   
+
    # Trafilatura with custom stop word density
    trafilatura = TrafilaturaExtractor(
        required_stopword_density=0.35  # Higher threshold for more selective extraction
@@ -139,13 +139,13 @@ You can create and use your own stop word lists when processing text with NeMo C
 .. code-block:: python
 
    from nemo_curator.download import download_common_crawl
-   
+
    # Define custom stop words for multiple languages
    custom_stop_lists = {
        "ENGLISH": frozenset(["the", "and", "is", "in", "for", "where", "when", "to", "at"]),
        "SPANISH": frozenset(["el", "la", "los", "las", "un", "una", "y", "o", "de", "en", "que"]),
    }
-   
+
    # Use custom stop lists in download process
    dataset = download_common_crawl(
        "/output/folder",
@@ -166,4 +166,4 @@ Additional Resources
 
 * `JusText Algorithm Overview <https://corpus.tools/wiki/Justext/Algorithm>`_
 * `Resiliparse Documentation <https://resiliparse.chatnoir.eu/en/latest/man/extract/html2text.html>`_
-* `Trafilatura Documentation <https://trafilatura.readthedocs.io/en/latest/>`_ 
+* `Trafilatura Documentation <https://trafilatura.readthedocs.io/en/latest/>`_
