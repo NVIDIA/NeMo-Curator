@@ -475,11 +475,10 @@ class CommonCrawlWARCDownloader(DocumentDownloader):
                 stdout, stderr = None, None
             else:
                 stdout, stderr = subprocess.DEVNULL, subprocess.DEVNULL
-            p = subprocess.run(  # noqa: S603
+            p = subprocess.run(  # noqa: S603, PLW1510
                 cmd,
                 stdout=stdout,
                 stderr=stderr,
-                check=False,
             )
             if p.returncode != 0:
                 print(f"Failed to download {url} to {output_file}")
