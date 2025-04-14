@@ -532,7 +532,7 @@ class CommonCrawlWARCIterator(DocumentIterator):
 class CommonCrawlWARCExtractor(DocumentExtractor):
     def __init__(
         self,
-        algorithm: JusTextExtractor | ResiliparseExtractor | TrafilaturaExtractor | None = None,
+        algorithm: HTMLExtractorAlgorithm | None = None,
         stop_lists: dict[str, frozenset[str]] | None = None,
     ):
         if algorithm is None:
@@ -568,7 +568,7 @@ def download_common_crawl(  # noqa: PLR0913
     start_snapshot: str,
     end_snapshot: str,
     output_type: Literal["jsonl", "parquet"] = "jsonl",
-    algorithm: JusTextExtractor | ResiliparseExtractor | TrafilaturaExtractor | None = None,
+    algorithm: HTMLExtractorAlgorithm | None = None,
     stop_lists: dict[str, frozenset[str]] | None = None,
     news: bool = False,
     aws: bool = False,
