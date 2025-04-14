@@ -267,7 +267,7 @@ def run_pipeline(args: argparse.Namespace, jsonl_fp: str) -> str:
     synth_gen_rounds = args.synth_gen_rounds
     synth_n_variants = args.synth_n_variants
 
-    if synth_gen_ratio >= 0 and synth_gen_ratio <= 1:
+    if synth_gen_ratio < 0 or synth_gen_ratio > 1:
         msg = "The synthetic generation ratio must be between 0 and 1."
         raise ValueError(msg)
     if synth_gen_rounds < 0:

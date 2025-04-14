@@ -59,7 +59,7 @@ def compute_thresholds(score_ar: np.ndarray, token_ar: np.ndarray) -> dict[str, 
     # with weights directly via np.percentile (see commented-out equivalent code below).
     # To achieve the same result, we manually implement the weighted percentile computation
     # using NumPy primitives.
-    # thresholds = np.percentile(cc_df_score, percentiles, weights=cc_df_tokens, method='inverted_cdf') #noqa: ERA001
+    # thresholds = np.percentile(cc_df_score, percentiles, weights=cc_df_tokens, method='inverted_cdf') # noqa: ERA001
     thresholds = weighted_percentile(score_ar, percentiles, weights=token_ar)
     return {int(percentile): float(thresh) for percentile, thresh in zip(percentiles, thresholds, strict=False)}
 
