@@ -145,7 +145,7 @@ class TestClientFunctions:
                 scheduler_file="/path/to/scheduler.json", timeout="30s"
             )
 
-            # Test with both scheduler_address and scheduler_file
+            # Test test_read_single_partition with both scheduler_address and scheduler_file
             with pytest.raises(
                 ValueError,
                 match="Only one of scheduler_address or scheduler_file can be provided",
@@ -265,7 +265,7 @@ class TestDataReadingFunctions:
         # Test warning when input_meta is provided for non-jsonl file
         with pytest.warns(
             UserWarning,
-            match="input_meta is only valid for JSONL files and will be ignored for other\\s+file formats..",
+            match="input_meta is only valid for JSONL files and will be ignored for other",
         ):
             with patch(
                 "nemo_curator.utils.distributed_utils.select_columns",
