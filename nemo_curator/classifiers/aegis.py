@@ -19,11 +19,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import torch
+import torch.nn.functional as F  # noqa: N812
 from crossfit import op
 from crossfit.backend.torch.hf.model import HFModel
 from huggingface_hub import PyTorchModelHubMixin
 from torch import nn
-from torch.nn import Dropout, Linear, functional
+from torch.nn import Dropout, Linear
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from nemo_curator.classifiers.base import (
@@ -87,13 +88,13 @@ class InstructionDataGuardNet(torch.nn.Module, PyTorchModelHubMixin):
         self.hidden_layer_2 = Linear(500, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = functional.normalize(x, dim=-1)
+        x = F.normalize(x, dim=-1)
         x = self.dropout(x)
-        x = functional.relu(self.input_layer(x))
+        x = F.relu(self.input_layer(x))
         x = self.dropout(x)
-        x = functional.relu(self.hidden_layer_0(x))
+        x = F.relu(self.hidden_layer_0(x))
         x = self.dropout(x)
-        x = functional.relu(self.hidden_layer_1(x))
+        x = F.relu(self.hidden_layer_1(x))
         x = self.dropout(x)
         x = self.hidden_layer_2(x)
         return self.sigmoid(x)
