@@ -18,15 +18,18 @@ import numba
 import numpy as np
 
 from nemo_curator._compat import DASK_SHUFFLE_METHOD_ARG, query_planning_enabled
+from nemo_curator.utils.import_utils import gpu_only_import
+
+dask_cudf = gpu_only_import("dask_cudf")
 
 
 def get_agg_text_bytes_df(
-    df: dask_cudf.DataFrame,
+    df: "dask_cudf.DataFrame",  # noqa: UP037
     agg_column: str,
     bytes_column: str,
     n_partitions: int,
     shuffle: bool = False,
-) -> tuple[dask_cudf.DataFrame, int]:
+) -> tuple["dask_cudf.DataFrame", int]:  # noqa: UP037
     """
     Groupby bucket and calculate total bytes for a bucket.
     """
