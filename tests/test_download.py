@@ -24,6 +24,7 @@ import pytest
 from pytest import MonkeyPatch
 
 from nemo_curator.download import (
+    JusTextExtractor,
     ResiliparseExtractor,
     TrafilaturaExtractor,
     download_and_extract,
@@ -33,8 +34,6 @@ from nemo_curator.download.commoncrawl import (
     CommonCrawlWARCDownloader,
     CommonCrawlWARCExtractor,
     CommonCrawlWARCIterator,
-    JusTextExtractor,
-    ResiliparseExtractor,  # noqa: F811
     get_common_crawl_urls,
     get_stop_list_dict,
 )
