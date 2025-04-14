@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import random
-from unittest.mock import MagicMock, MonkeyPatch
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from pytest import MonkeyPatch
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.synthetic.nemotron_cc import (
