@@ -145,7 +145,7 @@ class TestClientFunctions:
                 scheduler_file="/path/to/scheduler.json", timeout="30s"
             )
 
-            # Testest_read_single_partitiont with both scheduler_address and scheduler_file
+            # Test test_read_single_partition with both scheduler_address and scheduler_file
             with pytest.raises(
                 ValueError,
                 match="Only one of scheduler_address or scheduler_file can be provided",
