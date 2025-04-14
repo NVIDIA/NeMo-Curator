@@ -17,6 +17,7 @@ from typing import Any
 import pandas as pd
 import pytest
 from dask.dataframe.utils import assert_eq
+from dask.distributed import Client
 
 from nemo_curator import (
     BaseModule,
@@ -102,6 +103,7 @@ class TestBackendSupport:
     def test_pandas_backend(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, gt_lengths = cpu_data
         pipeline = CPUModule()
@@ -112,6 +114,7 @@ class TestBackendSupport:
     def test_cudf_backend(
         self,
         gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, gt_lengths = gpu_data
         pipeline = GPUModule()
@@ -123,6 +126,7 @@ class TestBackendSupport:
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
         gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         cpu_dataset, gt_cpu_lengths = cpu_data
         gt_cpu_lengths = gt_cpu_lengths.rename("any_lengths")
@@ -141,6 +145,7 @@ class TestBackendSupport:
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
         gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, gt_cpu_lengths = cpu_data
         _, gt_gpu_lengths = gpu_data
@@ -160,6 +165,7 @@ class TestBackendSupport:
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
         gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         _, gt_cpu_lengths = cpu_data
         dataset, gt_gpu_lengths = gpu_data
@@ -179,6 +185,7 @@ class TestBackendSupport:
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
         gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, gt_cpu_lengths = cpu_data
         _, gt_gpu_lengths = gpu_data
@@ -211,6 +218,7 @@ class TestBackendSupport:
     def test_wrong_backend_cpu_data(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, _ = cpu_data
         pipeline = GPUModule()
@@ -220,6 +228,7 @@ class TestBackendSupport:
     def test_wrong_backend_gpu_data(
         self,
         gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, _ = gpu_data
         pipeline = CPUModule()
@@ -229,6 +238,7 @@ class TestBackendSupport:
     def test_unsupported_to_backend(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, _ = cpu_data
         with pytest.raises(ValueError):  # noqa: PT011
@@ -271,6 +281,7 @@ class TestRealModules:
     def test_score_filter(
         self,
         real_module_cpu_data: tuple[DocumentDataset, pd.Series],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, gt_results = real_module_cpu_data
         pipeline = ScoreFilter(MeanWordLengthFilter(), score_field="mean_lengths", score_type=float)
@@ -281,6 +292,7 @@ class TestRealModules:
     def test_score_filter_wrong_backend(
         self,
         real_module_gpu_data: tuple[DocumentDataset, "cudf.Series"],
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, _ = real_module_gpu_data
         pipeline = ScoreFilter(MeanWordLengthFilter(), score_field="mean_lengths", score_type=float)
@@ -291,6 +303,7 @@ class TestRealModules:
         self,
         real_module_gpu_data: tuple[DocumentDataset, "cudf.Series"],
         tmpdir: Path,
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, gt_results = real_module_gpu_data
         # Dedup might fail when indices per partition do not start from 0
@@ -327,6 +340,7 @@ class TestRealModules:
         self,
         real_module_cpu_data: tuple[DocumentDataset, pd.Series],
         tmpdir: Path,
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, _ = real_module_cpu_data
         # Dedup might fail when indices per partition do not start from 0
@@ -354,6 +368,7 @@ class TestRealModules:
         real_module_cpu_data: tuple[DocumentDataset, pd.Series],
         real_module_gpu_data: tuple[DocumentDataset, "cudf.Series"],
         tmpdir: Path,
+        gpu_client: Client,  # noqa: ARG002
     ) -> None:
         dataset, _ = real_module_cpu_data
         _, gt_results = real_module_gpu_data
