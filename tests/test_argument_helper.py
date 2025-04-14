@@ -134,7 +134,7 @@ class TestArgumentHelper:
         _help = "Output data directory."
         argument_helper.add_arg_output_data_dir(help=_help)
         assert "--output-data-dir" in argument_helper.parser.format_help()
-        assert help in argument_helper.parser.format_help()
+        assert _help in argument_helper.parser.format_help()
 
     def test_add_arg_output_dir(self) -> None:
         parser = argparse.ArgumentParser()
