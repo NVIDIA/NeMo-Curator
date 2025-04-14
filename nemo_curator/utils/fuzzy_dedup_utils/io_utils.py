@@ -20,7 +20,7 @@ import cudf
 import dask_cudf
 import numpy as np
 from dask import dataframe as dd
-from pyarrow.dataset import dataset
+from pyarrow.dataset import Fragment, dataset
 
 from nemo_curator.utils.fuzzy_dedup_utils.id_mapping import convert_str_id_to_int
 
@@ -115,7 +115,6 @@ def get_bucket_ddf_from_parquet_path(
 
 def aggregated_anchor_docs_with_bk_read(path: str, blocksize: int) -> dd.DataFrame:
     from dask.utils import natural_sort_key
-    from pyarrow.dataset import dataset
 
     ds = dataset(
         sorted(glob(f"{path}/*.parquet"), key=natural_sort_key),
@@ -157,7 +156,7 @@ def update_restart_offsets(output_path: str, bucket_offset: int, text_offset: in
         f.write(f"{bucket_offset},{text_offset}\n")
 
 
-def chunk_files(file_list: list[str | dataset.Fragment], max_size_mb: int) -> list[list[str]]:
+def chunk_files(file_list: list[str | Fragment], max_size_mb: int) -> list[list[str]]:
     """
     Chunk files into lists of files that are less than max_size_mb
     """
@@ -192,7 +191,7 @@ def chunk_files(file_list: list[str | dataset.Fragment], max_size_mb: int) -> li
     return chunks
 
 
-def get_frag_size(frag: dataset.Fragment) -> int:
+def get_frag_size(frag: Fragment) -> int:
     # Pyarrow dataset fragment
     return sum(rg.total_byte_size for rg in frag.row_groups)
 
@@ -212,8 +211,6 @@ def check_empty_buckets(bucket_path: str) -> bool:
     """
     Inspects parquet metadata of the buckets dataset to check if it's an empty dataset.
     """
-    from pyarrow.dataset import dataset
-
     ds = dataset(bucket_path, format="parquet")
     for fragment in ds.get_fragments():  # noqa: SIM110
         if fragment.metadata.num_rows > 0:
