@@ -89,7 +89,7 @@ def cpu_data(raw_data: tuple[dict[str, list[Any]], list[int]]) -> tuple[Document
 
 
 @pytest.fixture
-def gpu_data(raw_data: tuple[dict[str, list[Any]], list[int]]) -> tuple[DocumentDataset, cudf.Series]:
+def gpu_data(raw_data: tuple[dict[str, list[Any]], list[int]]) -> tuple[DocumentDataset, "cudf.Series"]:
     base_data, gt_results = raw_data
     df = cudf.DataFrame(base_data)
     df = dask_cudf.from_cudf(df, 2)
@@ -111,7 +111,7 @@ class TestBackendSupport:
 
     def test_cudf_backend(
         self,
-        gpu_data: tuple[DocumentDataset, cudf.Series],
+        gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         dataset, gt_lengths = gpu_data
         pipeline = GPUModule()
@@ -122,7 +122,7 @@ class TestBackendSupport:
     def test_any_backend(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
-        gpu_data: tuple[DocumentDataset, cudf.Series],
+        gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         cpu_dataset, gt_cpu_lengths = cpu_data
         gt_cpu_lengths = gt_cpu_lengths.rename("any_lengths")
@@ -140,7 +140,7 @@ class TestBackendSupport:
     def test_pandas_to_cudf(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
-        gpu_data: tuple[DocumentDataset, cudf.Series],
+        gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         dataset, gt_cpu_lengths = cpu_data
         _, gt_gpu_lengths = gpu_data
@@ -159,7 +159,7 @@ class TestBackendSupport:
     def test_cudf_to_pandas(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
-        gpu_data: tuple[DocumentDataset, cudf.Series],
+        gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         _, gt_cpu_lengths = cpu_data
         dataset, gt_gpu_lengths = gpu_data
@@ -178,7 +178,7 @@ class TestBackendSupport:
     def test_5x_switch(
         self,
         cpu_data: tuple[DocumentDataset, pd.Series],
-        gpu_data: tuple[DocumentDataset, cudf.Series],
+        gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         dataset, gt_cpu_lengths = cpu_data
         _, gt_gpu_lengths = gpu_data
@@ -219,7 +219,7 @@ class TestBackendSupport:
 
     def test_wrong_backend_gpu_data(
         self,
-        gpu_data: tuple[DocumentDataset, cudf.Series],
+        gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         dataset, _ = gpu_data
         pipeline = CPUModule()
@@ -260,7 +260,7 @@ def real_module_cpu_data(real_module_raw_data: dict[str, list[Any]]) -> tuple[Do
 
 
 @pytest.fixture
-def real_module_gpu_data(real_module_raw_data: dict[str, list[Any]]) -> tuple[DocumentDataset, cudf.Series]:
+def real_module_gpu_data(real_module_raw_data: dict[str, list[Any]]) -> tuple[DocumentDataset, "cudf.Series"]:
     df = cudf.DataFrame(real_module_raw_data)
     df = dask_cudf.from_cudf(df, 2)
     gt_results = cudf.Series([[1, 2, 3, 4], [100, 200]], name="id")
@@ -281,7 +281,7 @@ class TestRealModules:
 
     def test_score_filter_wrong_backend(
         self,
-        real_module_gpu_data: tuple[DocumentDataset, cudf.Series],
+        real_module_gpu_data: tuple[DocumentDataset, "cudf.Series"],
     ) -> None:
         dataset, _ = real_module_gpu_data
         pipeline = ScoreFilter(MeanWordLengthFilter(), score_field="mean_lengths", score_type=float)
@@ -290,7 +290,7 @@ class TestRealModules:
 
     def test_fuzzy_dedup(
         self,
-        real_module_gpu_data: tuple[DocumentDataset, cudf.Series],
+        real_module_gpu_data: tuple[DocumentDataset, "cudf.Series"],
         tmpdir: Path,
     ) -> None:
         dataset, gt_results = real_module_gpu_data
@@ -353,7 +353,7 @@ class TestRealModules:
     def test_score_filter_and_fuzzy(
         self,
         real_module_cpu_data: tuple[DocumentDataset, pd.Series],
-        real_module_gpu_data: tuple[DocumentDataset, cudf.Series],
+        real_module_gpu_data: tuple[DocumentDataset, "cudf.Series"],
         tmpdir: Path,
     ) -> None:
         dataset, _ = real_module_cpu_data
