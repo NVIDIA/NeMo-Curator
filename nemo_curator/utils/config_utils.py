@@ -63,7 +63,7 @@ def build_filter_pipeline(filter_config_file: str) -> nemo_curator.Sequential:
 
 def build_downloader(
     downloader_config_file: str, default_download_dir: str | None = None
-) -> tuple[nemo_curator.Downloader, nemo_curator.Iterator, nemo_curator.Extractor, dict]:
+) -> tuple[nemo_curator.DocumentDownloader, nemo_curator.DocumentIterator, nemo_curator.DocumentExtractor, dict]:
     # Get the downloader config file
     with open(downloader_config_file) as config_file:
         downloader_params = yaml.load(config_file, Loader=yaml.FullLoader)  # noqa: S506

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import cudf
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
@@ -20,6 +19,9 @@ from dask.dataframe.shuffle import partitioning_index
 from dask.utils import M
 
 from nemo_curator._compat import DASK_SHUFFLE_CAST_DTYPE
+from nemo_curator.utils.import_utils import gpu_only_import
+
+cudf = gpu_only_import("cudf")
 
 
 def blockwise_merge(left: dd.DataFrame, right: dd.DataFrame, on: str, how: str = "inner") -> dd.DataFrame:
