@@ -231,9 +231,8 @@ class TestBackendSupport:
         cpu_data: tuple[DocumentDataset, pd.Series],
     ) -> None:
         dataset, _ = cpu_data
-        pipeline = ToBackend("fake_backend")
         with pytest.raises(ValueError):  # noqa: PT011
-            _ = pipeline(dataset).df.compute()
+            ToBackend("fake_backend")
 
 
 @pytest.fixture
