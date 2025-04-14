@@ -113,7 +113,14 @@ def html_string() -> str:
 
 class TestDownload:
     def test_imports(self) -> None:
-        assert True
+        from nemo_curator.download import (
+            JusTextExtractor,  # noqa: F401
+            ResiliparseExtractor,  # noqa: F401
+            TrafilaturaExtractor,  # noqa: F401
+            download_arxiv,  # noqa: F401
+            download_common_crawl,  # noqa: F401
+            download_wikipedia,  # noqa: F401
+        )
 
     @pytest.mark.skip(reason="This test is flaky due to calling out to an external service and should be fixed.")
     def test_incorrect_snapshot_order(self) -> None:
