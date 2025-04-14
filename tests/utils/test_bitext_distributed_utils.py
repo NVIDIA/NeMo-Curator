@@ -187,7 +187,7 @@ class TestBitextWritingFunctions:
         ddf = dd.from_pandas(df, npartitions=1)
 
         # Define a simple deterministic function instead of using MagicMock
-        def simple_write_function(*args, **kwargs):  # noqa: ARG001, ANN002, ANN202
+        def simple_write_function(*args, **kwargs):  # noqa: ARG001, ANN202
             # Return a pandas Series that can be deterministically hashed
             return pd.Series([False], dtype="bool")
 
@@ -231,7 +231,7 @@ class TestBitextWritingFunctions:
         ddf = dd.from_pandas(df, npartitions=1)
 
         # Define a deterministic function for patching instead of using MagicMock
-        def simple_write_to_bitext(*args, **kwargs):  # noqa: ARG001, ANN002, ANN202
+        def simple_write_to_bitext(*args, **kwargs):  # noqa: ARG001, ANN202
             # This is a simplified version that's deterministically hashable
             return pd.Series([False], dtype="bool")
 

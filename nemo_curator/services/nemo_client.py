@@ -29,7 +29,7 @@ class NemoDeployClient(LLMClient):
     A wrapper around NemoQueryLLM for querying models in synthetic data generation
     """
 
-    def __init__(self, nemo_deploy: NemoQueryLLM) -> None:
+    def __init__(self, nemo_deploy: "NemoQueryLLM") -> None:  # noqa: UP037, F821
         self.client = nemo_deploy
 
     def query_model(  # noqa: PLR0913
