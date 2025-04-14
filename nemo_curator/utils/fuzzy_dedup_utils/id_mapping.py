@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING
+from typing import Union
 
-if TYPE_CHECKING:
-    import cudf  # noqa: TC004
-    import pandas as pd  # noqa: TC004
+import pandas as pd
+
+from nemo_curator.utils.import_utils import gpu_only_import
+
+cudf = gpu_only_import("cudf")
 
 
-def convert_str_id_to_int(df: pd.DataFrame | cudf.DataFrame, id_column: str = "id") -> pd.DataFrame | cudf.DataFrame:
+def convert_str_id_to_int(
+    df: Union[pd.DataFrame, "cudf.DataFrame"], id_column: str = "id"
+) -> Union[pd.DataFrame, "cudf.DataFrame"]:
     """
     Converts the legacy id format "dataset_name-0000034"
     type of ID into 2 int based ID's
@@ -31,7 +35,9 @@ def convert_str_id_to_int(df: pd.DataFrame | cudf.DataFrame, id_column: str = "i
     return df
 
 
-def int_ids_to_str(df: pd.DataFrame | cudf.DataFrame, id_column: str = "id") -> pd.DataFrame | cudf.DataFrame:
+def int_ids_to_str(
+    df: Union[pd.DataFrame, "cudf.DataFrame"], id_column: str = "id"
+) -> Union[pd.DataFrame, "cudf.DataFrame"]:
     """
     Converts int id's generated via `convert_str_id_to_int`
     back to a string ID

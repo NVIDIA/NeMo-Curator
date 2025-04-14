@@ -50,7 +50,7 @@ def build_filter(filter_config: dict) -> nemo_curator.Filter | nemo_curator.Scor
 
 def build_filter_pipeline(filter_config_file: str) -> nemo_curator.Sequential:
     # Get the filter config file
-    with open(filter_config_file) as config_file:
+    with open(filter_config_file, "r") as config_file:  # noqa : UP015
         filter_params = yaml.load(config_file, Loader=yaml.FullLoader)  # noqa: S506
 
     filters = []
@@ -68,7 +68,7 @@ def build_downloader(
     downloader_config_file: str, default_download_dir: str | None = None
 ) -> tuple[DocumentDownloader, DocumentIterator, DocumentExtractor, dict]:
     # Get the downloader config file
-    with open(downloader_config_file) as config_file:
+    with open(downloader_config_file, "r") as config_file:  # noqa : UP015
         downloader_params = yaml.load(config_file, Loader=yaml.FullLoader)  # noqa: S506
 
     download_class = import_downloader(downloader_params["download_module"])
