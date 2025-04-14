@@ -81,7 +81,7 @@ def temp_dataset_dir() -> Generator[Path, None, None]:
     shutil.rmtree(temp_dir)
 
 
-def create_mock_metadata(sample_id: str = "0", caption: str = "Sample caption") -> cudf.DataFrame:
+def create_mock_metadata(sample_id: str = "0", caption: str = "Sample caption") -> "cudf.DataFrame":
     """Create a mock metadata DataFrame for testing."""
     return cudf.DataFrame({"id": [sample_id], "caption": [caption]})
 

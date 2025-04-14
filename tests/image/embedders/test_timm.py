@@ -359,7 +359,7 @@ def test_run_inference_with_mock_model(gpu_client) -> None:  # noqa: ANN001, ARG
         def load_model(self, device: torch.device) -> Callable[[torch.Tensor], torch.Tensor]:  # noqa: ARG002
             return lambda x: torch.ones((x.shape[0], 1), device="cuda") * 0.75
 
-        def postprocess(self, series: cudf.Series) -> cudf.Series:
+        def postprocess(self, series: "cudf.Series") -> "cudf.Series":
             return series
 
     # Create a mock TimmImageEmbedder that overrides the methods we need to control
