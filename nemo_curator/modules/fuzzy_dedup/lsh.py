@@ -272,6 +272,12 @@ class LSH:
         return wrote_buckets, are_buckets_empty
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run locality-sensitive hashing. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
+
         df = dataset.df
 
         write_path = os.path.join(self.cache_dir, "_buckets.parquet")

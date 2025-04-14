@@ -169,6 +169,7 @@ class MinHash:
         """
         if not isinstance(ser, cudf.Series):
             raise TypeError("Expected data of type cudf.Series")
+
         if MINHASH_DEPRECATED_API:
             warnings.warn(
                 "Using an outdated minhash implementation, please update to cuDF version 24.12 "
@@ -202,6 +203,12 @@ class MinHash:
         -------
         DocumentDataset containing IDs of all documents and the corresponding MinHash Signature
         """
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run minhashes. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
+
         result = dataset.df[[self.id_field]]
         result["_minhash_signature"] = dataset.df[self.text_field].map_partitions(
             self.minhash_method,

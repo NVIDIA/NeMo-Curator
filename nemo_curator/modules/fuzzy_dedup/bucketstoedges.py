@@ -124,6 +124,12 @@ class BucketsToEdges:
         return result_df
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
+        if "cudf" not in str(type(dataset.df)):
+            raise TypeError(
+                "Dask-cuDF DataFrame is required to run buckets to edges. "
+                'Please convert your DocumentDataset by using .to_backend("gpu").'
+            )
+
         buckets_df = dataset.df
         self._logger.info(f"Starting conversion of LSH Buckets to Graph Edgelist")
         if len(self.id_fields) > 1:

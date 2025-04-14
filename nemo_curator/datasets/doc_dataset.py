@@ -38,6 +38,9 @@ class DocumentDataset:
     def persist(self) -> "DocumentDataset":
         return DocumentDataset(self.df.persist())
 
+    def to_backend(self, backend: Optional[str] = None) -> "DocumentDataset":
+        return DocumentDataset(self.df.to_backend(backend))
+
     @wraps(dd.DataFrame.repartition)
     def repartition(self, *args, **kwargs) -> "DocumentDataset":
         return self.__class__(self.df.repartition(*args, **kwargs))
