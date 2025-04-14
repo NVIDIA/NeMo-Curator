@@ -18,13 +18,14 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from dask import dataframe as dd
+from pytest import SubRequest
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
 
 
 @pytest.fixture(params=[False, pytest.param(True, marks=pytest.mark.gpu)], ids=["no gpu", "gpu"])
-def exact_dedup_data(request: pytest.SubRequest) -> DocumentDataset:
+def exact_dedup_data(request: SubRequest) -> DocumentDataset:
     df = pd.DataFrame({"id": [1, 2, 300, 4, -1], "text": ["abc", "aba", "abb", "aba", "abc"]})
     df = dd.from_pandas(df, 2)
     if request.param:
@@ -33,7 +34,7 @@ def exact_dedup_data(request: pytest.SubRequest) -> DocumentDataset:
 
 
 @pytest.fixture
-def exact_no_dedup_data(request: pytest.SubRequest) -> DocumentDataset:  # noqa: ARG001
+def exact_no_dedup_data(request: SubRequest) -> DocumentDataset:  # noqa: ARG001
     # A dataset with no exact duplicates
     df = pd.DataFrame({"id": [1, 2, 300], "text": ["abc", "aba", "abb"]})
     df = dd.from_pandas(df, 2)
