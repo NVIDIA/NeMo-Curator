@@ -639,7 +639,7 @@ class TestDataFrameUtils:
                 delayed_reduce_mock.return_value = final_result
 
                 # Configure mock_delayed to return delayed_reduce_mock when called with mock_reduce
-                def delayed_side_effect(func, *args, **kwargs):  # noqa: ANN001, ANN002, ANN202, ARG001
+                def delayed_side_effect(func, *args, **kwargs):  # noqa: ANN001, ANN202, ARG001
                     if func is mock_reduce:
                         return delayed_reduce_mock
                     return MagicMock()

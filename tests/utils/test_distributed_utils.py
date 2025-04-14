@@ -251,11 +251,12 @@ class TestDataReadingFunctions:
             assert result.equals(mock_pd.read_parquet.return_value)
 
         # Test warning when input_meta is provided for non-jsonl file
-        with pytest.warns(
-            UserWarning,
-            match="input_meta is only valid for JSONL files and will be ignored for other",
-        ):
-            with patch(
+        with (
+            pytest.warns(
+                UserWarning,
+                match="input_meta is only valid for JSONL files and will be ignored for other",
+            ),
+            patch(
                 "nemo_curator.utils.distributed_utils.select_columns",
                 return_value=mock_pd.read_parquet.return_value,
             ),
@@ -527,7 +528,7 @@ class TestDataWritingFunctions:
 
         # Instead of mocking single_partition_write_with_filename with MagicMock,
         # we'll create a patch that uses a real function
-        def simple_write_with_filename(*args, **kwargs):  # noqa: ANN002, ANN202, ARG001
+        def simple_write_with_filename(*args, **kwargs):  # noqa: ANN202, ARG001
             # This is a simplified version that's deterministically hashable
             return pd.Series([True], dtype="bool")
 
