@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable, Generator, Tuple
+from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -386,7 +386,7 @@ def test_run_inference_with_mock_model(gpu_client) -> None:  # noqa: ANN001, ARG
         def load_dataset_shard(
             self,
             tar_path: str,  # noqa: ARG002
-        ) -> Generator[Tuple[torch.Tensor, list[dict[str, Any]]], None, None]:
+        ) -> Generator[tuple[torch.Tensor, list[dict[str, Any]]], None, None]:
             # Yield only once to avoid infinite loop
             if not self.mock_dataset_yielded:
                 self.mock_dataset_yielded = True

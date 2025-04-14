@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable, Generator, Tuple
+from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -250,7 +250,7 @@ def test_classifier_with_embedder_workflow(gpu_client) -> None:  # noqa: ANN001,
         mock_dataset.metadata = mock_metadata
 
         # Mock the load_dataset_shard to yield known data
-        def mock_load_dataset_shard(tar_path: str) -> Generator[Tuple[torch.Tensor, list[dict[str, Any]]], None, None]:  # noqa: ARG001
+        def mock_load_dataset_shard(tar_path: str) -> Generator[tuple[torch.Tensor, list[dict[str, Any]]], None, None]:  # noqa: ARG001
             # Create a small batch of fake images and metadata
             batch = torch.ones((1, 3, 224, 224), device="cuda")
             metadata = [{"id": "test_id"}]
