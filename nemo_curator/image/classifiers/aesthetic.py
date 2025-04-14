@@ -26,7 +26,7 @@ from nemo_curator.utils.file_utils import NEMO_CURATOR_HOME
 # MLP code taken from LAION Aesthetic V2
 # https://github.com/christophschuhmann/improved-aesthetic-predictor/blob/main/simple_inference.py
 class MLP(nn.Module):
-    def __init__(self, input_size: int, xcol: str = "embedding", ycol: str = "avg_rating"):
+    def __init__(self, input_size: int, xcol: str = "emb", ycol: str = "avg_rating"):
         super().__init__()
         self.input_size = input_size
         self.xcol = xcol
