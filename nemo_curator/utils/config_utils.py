@@ -17,7 +17,10 @@ from pydoc import locate
 import yaml
 
 import nemo_curator
-from nemo_curator.download.doc_builder import (
+from nemo_curator.download import (
+    DocumentDownloader,
+    DocumentExtractor,
+    DocumentIterator,
     import_downloader,
     import_extractor,
     import_iterator,
@@ -63,7 +66,7 @@ def build_filter_pipeline(filter_config_file: str) -> nemo_curator.Sequential:
 
 def build_downloader(
     downloader_config_file: str, default_download_dir: str | None = None
-) -> tuple[nemo_curator.DocumentDownloader, nemo_curator.DocumentIterator, nemo_curator.DocumentExtractor, dict]:
+) -> tuple[DocumentDownloader, DocumentIterator, DocumentExtractor, dict]:
     # Get the downloader config file
     with open(downloader_config_file) as config_file:
         downloader_params = yaml.load(config_file, Loader=yaml.FullLoader)  # noqa: S506

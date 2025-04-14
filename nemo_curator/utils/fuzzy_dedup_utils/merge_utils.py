@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union
+
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
@@ -38,8 +40,8 @@ def blockwise_merge(left: dd.DataFrame, right: dd.DataFrame, on: str, how: str =
 
 
 def apply_bk_mapping(
-    part: cudf.DataFrame | pd.DataFrame, bk_map: cudf.DataFrame | pd.DataFrame
-) -> cudf.Series | pd.Series:
+    part: Union["cudf.DataFrame", pd.DataFrame], bk_map: Union["cudf.DataFrame", pd.DataFrame]
+) -> Union["cudf.Series", pd.Series]:
     # Need "sort" to preserve order after merge
     part["sort"] = range(len(part))
     return part.merge(bk_map, on="file_id", how="left").sort_values("sort", ignore_index=True)["part_id"]
