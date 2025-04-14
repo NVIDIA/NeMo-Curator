@@ -143,7 +143,6 @@ class RetrieverEvalSetGenerator(SyntheticDataGenerator):
                     q = qas[0].split(":")[1].strip()
                     if re.search("Explanation", qas[1]):
                         a = qas[1].split("Explanation")[0].split(":")[1].strip()
-                        qas[1].split("Explanation")[1].strip()
                     else:
                         a = qas[1].split(":")[1].strip()
                     qa_pairs.append({"question": q, "answer": a})
