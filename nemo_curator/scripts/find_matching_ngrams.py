@@ -23,7 +23,7 @@ from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 def main(args: argparse.Namespace) -> None:
-    get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Each rank read in the task data
     with open(args.input_task_ngrams, "rb") as fp:

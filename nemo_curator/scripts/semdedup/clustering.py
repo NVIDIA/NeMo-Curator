@@ -15,7 +15,7 @@
 import argparse
 import logging
 import os
-from datetime import datetime
+import time
 
 import dask_cudf
 
@@ -45,7 +45,7 @@ def main(args: argparse.Namespace) -> None:
     )
 
     client = get_client(**ArgumentHelper.parse_client_args(args))
-    dt1 = datetime.now()  # noqa: DTZ005
+    dt1 = time.perf_counter()
     print("Start time:", dt1)
 
     embedding_fp = os.path.join(semdedup_config.cache_dir, semdedup_config.embeddings_save_loc)
@@ -69,7 +69,7 @@ def main(args: argparse.Namespace) -> None:
 
     clustered_embeddings = clustering_model(embedding_dataset)
     clustered_embeddings.df.head(10)
-    dt2 = datetime.now()  # noqa: DTZ005
+    dt2 = time.perf_counter()
     elapse = dt2 - dt1
     print("End time:", dt2)
     print("elapse:", elapse)
