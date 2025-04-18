@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -28,27 +29,27 @@ def test_to_from_pandas() -> None:
     pd.testing.assert_frame_equal(original_df, converted_df)
 
 
-def test_persist():
+def test_persist() -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
     dataset = DocumentDataset.from_pandas(original_df)
     dataset.persist()
 
 
-def test_repartition():
+def test_repartition() -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
     dataset = DocumentDataset.from_pandas(original_df)
     dataset = dataset.repartition(npartitions=3)
-    assert dataset.df.npartitions == 3
+    assert dataset.df.npartitions == 3  # noqa: PLR2004
 
 
-def test_head():
+def test_head() -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
     dataset = DocumentDataset.from_pandas(original_df)
     expected_df = pd.DataFrame({"first_col": [1, 2], "second_col": ["a", "b"]})
     pd.testing.assert_frame_equal(expected_df, dataset.head(2))
 
 
-def test_read_pickle(tmpdir):
+def test_read_pickle(tmpdir: Path) -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
     output_file = str(tmpdir / "output.pkl")
     original_df.to_pickle(output_file)
@@ -56,7 +57,7 @@ def test_read_pickle(tmpdir):
     pd.testing.assert_frame_equal(original_df, dataset.df.compute())
 
 
-def test_to_pickle(tmpdir):
+def test_to_pickle(tmpdir: Path) -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
     dataset = DocumentDataset.from_pandas(original_df)
 
@@ -65,7 +66,7 @@ def test_to_pickle(tmpdir):
         dataset.to_pickle(output_file)
 
 
-def test_read_json_or_parquet(tmpdir):
+def test_read_json_or_parquet(tmpdir: Path) -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
 
     directory_1 = str(tmpdir / "directory_1")
@@ -85,7 +86,7 @@ def test_read_json_or_parquet(tmpdir):
         backend="pandas",
         files_per_partition=1,
     )
-    assert len(data) == 6
+    assert len(data) == 6  # noqa: PLR2004
 
     file_series = pd.Series([file_1, file_2])
     # Non string or list input
