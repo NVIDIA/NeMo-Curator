@@ -16,7 +16,9 @@ from __future__ import annotations
 import ast
 import os
 import shutil
+import socket
 import subprocess
+from collections import defaultdict
 
 import dask
 
@@ -75,6 +77,59 @@ def get_filepath_without_extension(path: str) -> str:
             # Exit loop if we encounter an unknown suffix
             break
     return filename
+
+
+def _worker_gpu_tuple() -> tuple[str, int]:
+    """
+    Runs on a Dask-CUDA worker.
+    Returns (hostname, gpu_index) where `gpu_index` is the index shown by `nvidia-smi`.
+    """
+    import cupy  # noqa
+    from pynvml import (
+        nvmlDeviceGetHandleByPciBusId,
+        nvmlDeviceGetIndex,
+        NVMLError,
+    )
+
+    dev_id = cupy.cuda.runtime.getDevice()
+    props = cupy.cuda.runtime.getDeviceProperties(dev_id)
+
+    pci_bus_id = (f"{props['pciDomainID']:08x}:{props['pciBusID']:02x}:{props['pciDeviceID']:02x}.0").upper()
+
+    try:
+        handle = nvmlDeviceGetHandleByPciBusId(pci_bus_id)
+        index = nvmlDeviceGetIndex(handle)
+    except NVMLError as e:
+        warnings.warn(f"NVML error occurred: {e} while verifying GPU index", stacklevel=2)
+        index = -1  # fallback - shouldn't happen
+
+    return socket.gethostname(), index
+
+
+def _assert_unique_gpu_per_host(client: Client) -> None:
+    """
+    Raises RuntimeError if two workers on the same host map to the same GPU.
+    """
+    info = client.run(_worker_gpu_tuple)  # {worker_addr: (host, gpu)}
+    per_host = defaultdict(list)
+    for host, gpu in info.values():
+        per_host[host].append(gpu)
+
+    # Find hosts where GPUs are assigned more than once
+    dups = {}
+    for host, gpus in per_host.items():
+        unique_gpus = set(gpus)
+        if len(gpus) != len(unique_gpus):
+            # Find which GPUs are duplicated
+            duplicated = [gpu for gpu in unique_gpus if gpus.count(gpu) > 1]
+            dups[host] = duplicated
+
+    # If any duplicates are found, raise an error with details
+    if dups:
+        duplicate_error = "Duplicate GPU assignment detected on host(s): " + ", ".join(
+            f"{host}: {dups[host]}" for host in dups
+        )
+        raise RuntimeError(duplicate_error)
 
 
 def start_dask_gpu_local_cluster(  # noqa: PLR0913
@@ -245,15 +300,13 @@ def get_client(  # noqa: PLR0913
             if get_num_workers(client) <= 0:
                 msg = "No workers are currently connected."
                 raise NoWorkerError(msg)
-            return client
     elif scheduler_file:
         client = Client(scheduler_file=scheduler_file, timeout="30s")
         if get_num_workers(client) <= 0:
             msg = "No workers are currently connected."
             raise NoWorkerError(msg)
-        return client
     elif cluster_type == "gpu":
-        return start_dask_gpu_local_cluster(
+        client = start_dask_gpu_local_cluster(
             nvlink_only=nvlink_only,
             protocol=protocol,
             rmm_pool_size=rmm_pool_size,
@@ -266,11 +319,14 @@ def get_client(  # noqa: PLR0913
             **cluster_kwargs,
         )
     else:
-        return start_dask_cpu_local_cluster(
+        client = start_dask_cpu_local_cluster(
             n_workers=n_workers,
             threads_per_worker=threads_per_worker,
             **cluster_kwargs,
         )
+    if cluster_type == "gpu":
+        _assert_unique_gpu_per_host(client)
+    return client
 
 
 def _set_torch_to_use_rmm() -> None:
