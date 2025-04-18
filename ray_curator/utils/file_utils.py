@@ -68,11 +68,15 @@ def get_parquet_uncompressed_size(
         )
 
 
+def _get_file_size(file: str, storage_options: dict | None = None) -> tuple[str, int]:
+    return file, get_parquet_uncompressed_size(file, storage_options)
+
+
 def split_parquet_files_into_chunks(files: list[str], n: int, storage_options: dict | None = None) -> list[list[str]]:
     """Split files into N chunks with balanced uncompressed sizes."""
 
     with Pool() as pool:
-        sizes = pool.map(lambda file: (file, get_parquet_uncompressed_size(file, storage_options)), files)
+        sizes = pool.starmap(_get_file_size, [(file, storage_options) for file in files])
 
     chunks = [[] for _ in range(n)]
     chunk_sizes = [0] * n
