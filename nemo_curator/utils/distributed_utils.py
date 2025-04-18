@@ -99,7 +99,8 @@ def _worker_gpu_tuple() -> tuple[str, int]:
     try:
         handle = nvmlDeviceGetHandleByPciBusId(pci_bus_id)
         index = nvmlDeviceGetIndex(handle)
-    except NVMLError:
+    except NVMLError as e:
+        warnings.warn(f"NVML error occurred: {e} while verifying GPU index", stacklevel=2)
         index = -1  # fallback - shouldn't happen
 
     return socket.gethostname(), index
