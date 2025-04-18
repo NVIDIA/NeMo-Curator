@@ -82,7 +82,7 @@ def get_filepath_without_extension(path: str) -> str:
 def _worker_gpu_tuple() -> tuple[str, int]:
     """
     Runs on a Dask-CUDA worker.
-    Returns (hostname, global_gpu_index) where `global_gpu_index` is the index shown by `nvidia-smi`.
+    Returns (hostname, gpu_index) where `gpu_index` is the index shown by `nvidia-smi`.
     """
     import cupy  # noqa
     from pynvml import (
@@ -115,11 +115,21 @@ def _assert_unique_gpu_per_host(client: Client) -> None:
     for host, gpu in info.values():
         per_host[host].append(gpu)
 
-    dups = {h: [g for g in set(gs) if gs.count(g) > 1] for h, gs in per_host.items() if len(gs) != len(set(gs))}
+    # Find hosts where GPUs are assigned more than once
+    dups = {}
+    for host, gpus in per_host.items():
+        unique_gpus = set(gpus)
+        if len(gpus) != len(unique_gpus):
+            # Find which GPUs are duplicated
+            duplicated = [gpu for gpu in unique_gpus if gpus.count(gpu) > 1]
+            dups[host] = duplicated
+
+    # If any duplicates are found, raise an error with details
     if dups:
-        raise RuntimeError(
-            "Duplicate GPU assignment detected on host(s): " + ", ".join(f"{h}: {dups[h]}" for h in dups)
+        duplicate_error = "Duplicate GPU assignment detected on host(s): " + ", ".join(
+            f"{host}: {dups[host]}" for host in dups
         )
+        raise RuntimeError(duplicate_error)
 
 
 def start_dask_gpu_local_cluster(  # noqa: PLR0913
