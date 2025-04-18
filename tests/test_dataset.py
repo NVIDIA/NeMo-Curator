@@ -21,7 +21,7 @@ from nemo_curator.datasets import DocumentDataset
 from nemo_curator.datasets.doc_dataset import _read_json_or_parquet
 
 
-def test_to_from_pandas():
+def test_to_from_pandas() -> None:
     original_df = pd.DataFrame({"first_col": [1, 2, 3], "second_col": ["a", "b", "c"]})
     dataset = DocumentDataset.from_pandas(original_df)
     converted_df = dataset.to_pandas()
