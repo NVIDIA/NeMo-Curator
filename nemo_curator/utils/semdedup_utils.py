@@ -143,7 +143,7 @@ def get_semantic_matches_per_cluster(  # noqa: PLR0913
     if len(cluster_df) == 1:
         cluster_df["id"] = cluster_df[id_col]
         cluster_df["max_id"] = cluster_df[id_col]
-        cluster_df["cosine_sim_score"] = [0]
+        cluster_df["cosine_sim_score"] = cudf.Series([0], dtype="float32")
         cluster_df = cluster_df[["id", "max_id", "cosine_sim_score"]]
         cluster_df.to_parquet(output_df_file_path)
         return
