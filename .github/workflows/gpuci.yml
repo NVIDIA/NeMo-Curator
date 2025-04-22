@@ -211,8 +211,8 @@ jobs:
       - name: Run CLI script tests
         run: |
           docker exec nemo-curator-container bash -c '
-            cd /opt/NeMo-Curator && \
-            bash tests/scripts_tests/run_cli_scripts.sh
+            cd /opt/NeMo-Curator/tests/cli_scripts_tests && \
+            bash run_cli_scripts.sh
           '
 
         # After running `docker stop`, the container remains in an exited state

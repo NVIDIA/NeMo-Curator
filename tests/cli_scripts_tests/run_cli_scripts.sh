@@ -6,7 +6,7 @@ FAILURES=()
 
 # Generate test data
 echo "🛠️ Generating test data..."
-python3 /tests/scripts_tests/generate_input_data.py
+python3 generate_input_data.py
 DOMAIN_DATA_DIR=/tmp/domain_dataset
 
 # Domain classifier inference
