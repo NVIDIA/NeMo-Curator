@@ -3,7 +3,6 @@ import json
 import os
 import re
 import shutil
-import time
 from base64 import b64decode
 from collections import defaultdict
 from io import BytesIO
@@ -37,17 +36,13 @@ def parse_id(input_string):
         return input_string
 
     # Pattern to match an arXiv URL and extract the ID
-    url_pattern = re.compile(
-        r"https?://(?:www\.)?arxiv\.org/(abs|pdf)/(\d{4}\.\d{4,5})(v\d+)?(\.pdf)?$"
-    )
+    url_pattern = re.compile(r"https?://(?:www\.)?arxiv\.org/(abs|pdf)/(\d{4}\.\d{4,5})(v\d+)?(\.pdf)?$")
     url_match = url_pattern.match(input_string)
     if url_match:
         return url_match.group(2) + (url_match.group(3) if url_match.group(3) else "")
 
     # Raise an error if the input does not match any of the expected formats
-    raise ValueError(
-        f"The provided input '{input_string}' does not match the expected URL or ID format."
-    )
+    raise ValueError(f"The provided input '{input_string}' does not match the expected URL or ID format.")
 
 
 def download_arxiv_data():
@@ -79,7 +74,7 @@ def download_arxiv_data():
                 article.download_pdf(dirpath=pdf_root_dir, filename=pdf_name)
             else:
                 print(f"Failed to download article '{url}'.")
-                return None
+                return
 
 
 def separate_extracted_contents():
@@ -95,16 +90,14 @@ def separate_extracted_contents():
 
     for file in os.listdir(RESULT_DIR):
         file_path = os.path.join(RESULT_DIR, file)
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             jsonl_loaded = json.load(f)
             for jsonl_chunk in jsonl_loaded:
                 data_type = jsonl_chunk.get("document_type")
                 if data_type in data_type_map:
                     data_type_map[data_type].append(jsonl_chunk)
                 else:
-                    print(
-                        f"Unknown document type {data_type}. Add code to support this type."
-                    )
+                    print(f"Unknown document type {data_type}. Add code to support this type.")
 
     print(
         f"Processed {len(data_type_map['text'])} text chunks, {len(data_type_map['image'])} image chunks and {len(data_type_map['structured'])} table/chart chunks"
@@ -151,9 +144,7 @@ def extract_contents():
         generated_metadata = ingestor.ingest()[0]
 
         # Save extracted metadata
-        with open(
-            os.path.join(RESULT_DIR, f"generated_metadata_{file}.json"), "w"
-        ) as f:
+        with open(os.path.join(RESULT_DIR, f"generated_metadata_{file}.json"), "w") as f:
             json.dump(generated_metadata, f, indent=4)
 
 
@@ -168,13 +159,11 @@ def analyze_contents():
     # Iterate through the generated metadata files
     for file in os.listdir(RESULT_DIR):
         file_path = os.path.join(RESULT_DIR, file)
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             generated_metadata = json.load(f)
 
         for i in range(len(generated_metadata)):
-            description = generated_metadata[i]["metadata"]["content_metadata"][
-                "description"
-            ]
+            description = generated_metadata[i]["metadata"]["content_metadata"]["description"]
             unique_desc.add(description)
 
             content_type = generated_metadata[i]["metadata"]["content_metadata"]["type"]
@@ -199,7 +188,7 @@ def display_contents():
 
     for file in os.listdir(RESULT_DIR):
         file_path = os.path.join(RESULT_DIR, file)
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             generated_metadata = json.load(f)
 
         for idx, metadata in enumerate(generated_metadata):
@@ -217,15 +206,9 @@ def main():
     """
     Main function to execute the workflow with optional analysis and display.
     """
-    parser = argparse.ArgumentParser(
-        description="Execute workflow with optional analysis and display."
-    )
-    parser.add_argument(
-        "--analyze", action="store_true", help="Enable analysis of contents"
-    )
-    parser.add_argument(
-        "--display", action="store_true", help="Enable displaying of contents"
-    )
+    parser = argparse.ArgumentParser(description="Execute workflow with optional analysis and display.")
+    parser.add_argument("--analyze", action="store_true", help="Enable analysis of contents")
+    parser.add_argument("--display", action="store_true", help="Enable displaying of contents")
 
     args = parser.parse_args()
 
