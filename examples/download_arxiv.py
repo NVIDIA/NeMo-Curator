@@ -30,8 +30,8 @@ def main(args: argparse.Namespace) -> None:
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Download and sample data
-    arxiv = download_arxiv(output_directory, url_limit=url_limit)
-    
+    arxiv = download_arxiv(output_directory, url_limit=url_limit)  # noqa: F841
+
     print(f"Downloaded arXiv data to {output_directory}")
 
 

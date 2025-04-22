@@ -47,7 +47,7 @@ def main(args: argparse.Namespace) -> None:
         extraction_algorithm = JusTextExtractor()
 
     # Download and sample data
-    common_crawl = download_common_crawl(
+    common_crawl = download_common_crawl(  # noqa: F841
         output_directory,
         start_snapshot,
         end_snapshot,
