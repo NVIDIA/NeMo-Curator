@@ -23,7 +23,9 @@ The tutorial follows these steps:
    - Fix Unicode errors using `ftfy`
    - Redact PII
    - Execute GPU-accelerated fuzzy and semantic deduplication
-5. Save the filtered and curated data
+5. Convert images extracted from nv-ingest into webdataset format
+6. Apply semantic deduplication to get rid of duplicate images extracted
+7. Save the filtered and curated data
 
 ## Usage
 After installing the NeMo Curator package, install the required dependencies and run the pipeline using the following command:

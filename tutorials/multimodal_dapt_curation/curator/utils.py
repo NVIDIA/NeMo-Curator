@@ -162,18 +162,12 @@ def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     Returns:
         DocumentDataset: The deduplicated dataset.
     """
+
     deduplicator = ExactDuplicates(id_field="id", text_field="text", hash_method="md5")
     # Find the duplicates
     duplicates = deduplicator(dataset)
-    docs_to_remove = duplicates.df.map_partitions(
-        lambda x: x[x._hashes.duplicated(keep="first")]
-    )
-    # Remove the duplicates using their IDs.
-    duplicate_ids = list(docs_to_remove.compute().id)
-    dataset_df = dataset.df
-    deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
+    deduped = deduplicator.remove(dataset, duplicates)
     return DocumentDataset(deduped)
-
 
 def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
     """
@@ -226,17 +220,13 @@ def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path: str):
         The deduplicated DocumentDataset.
     """
     partition_lengths = dataset.df.map_partitions(len).compute()
-    non_empty_partitions = [
-        i for i, length in enumerate(partition_lengths) if length > 0
-    ]
+    non_empty_partitions = [i for i, length in enumerate(partition_lengths) if length > 0]
     dataset.df = dataset.df.partitions[non_empty_partitions]
 
     semdedup_config = SemDedupConfig.from_yaml(sem_dedupe_config_yaml_path)
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
-    semdup = SemDedup(config=semdedup_config, id_column_type="str")
-    duplicates = semdup(dataset)
-    return duplicates
-
+    semdup = SemDedup(config=semdedup_config, perform_removal=True)
+    return semdup(dataset)
 
 class TextLineCountFilter(DocumentFilter):
     """
