@@ -166,7 +166,6 @@ class HardNegativeMiner:
 
     def __call__(self, dataset: DocumentDataset) -> DocumentDataset:
         df = dataset.df
-        df = df.to_backend("pandas")
         df = df[["question", "documents"]]
         df = df.map_partitions(self._groupby_question).reset_index()
         print(f"Number partitions in dataset = {df.npartitions}")
