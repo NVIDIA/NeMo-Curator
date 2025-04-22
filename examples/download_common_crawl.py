@@ -47,13 +47,14 @@ def main(args: argparse.Namespace) -> None:
         extraction_algorithm = JusTextExtractor()
 
     # Download and sample data
-    common_crawl = download_common_crawl(  # noqa: F841
+    common_crawl = download_common_crawl(
         output_directory,
         start_snapshot,
         end_snapshot,
         url_limit=url_limit,
         algorithm=extraction_algorithm,
     )
+    print(common_crawl.head())
 
     print(f"Downloaded Common Crawl data to {output_directory}")
 

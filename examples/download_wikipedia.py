@@ -31,7 +31,8 @@ def main(args: argparse.Namespace) -> None:
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     # Download and sample data
-    wikipedia = download_wikipedia(output_directory, dump_date=dump_date, url_limit=url_limit)  # noqa: F841
+    wikipedia = download_wikipedia(output_directory, dump_date=dump_date, url_limit=url_limit)
+    print(wikipedia.head())
 
     print(f"Downloaded Wikipedia data to {output_directory}")
 
