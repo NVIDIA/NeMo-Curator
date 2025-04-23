@@ -50,7 +50,7 @@ jobs:
       prune-filter-timerange: 24h
 
   # Then, we run our PyTests in the container we just built
-  run-gpu-tests:
+  run-gpu-pytests:
     needs: build-container
     # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
     # It has 2 A100 GPUs
@@ -150,13 +150,13 @@ jobs:
             ${{ github.run_id }}/.coverage
           include-hidden-files: true
 
-  # This job runs our CLI script tests
-  run-cli-script-tests:
+  # This job runs our CLI scripts tests
+  run-cli-scripts-tests:
     needs: build-container
     # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
     # It has 2 A100 GPUs
     runs-on: self-hosted-azure
-    # CLI script tests should not take longer than 30 minutes
+    # CLI scripts tests should not take longer than 30 minutes
     timeout-minutes: 30
     # This block covers 3 cases when gpuCI should be triggered:
     # 1. The PR has the "gpuCI" label and is opened by a maintainer.
@@ -207,8 +207,8 @@ jobs:
         run: |
           docker exec nemo-curator-container pip list
 
-        # In the virtual environment (called "curator") we created in the container, run our CLI script tests
-      - name: Run CLI script tests
+        # In the virtual environment (called "curator") we created in the container, run our CLI scripts tests
+      - name: Run CLI scripts tests
         run: |
           docker exec nemo-curator-container bash -c '
             cd /opt/NeMo-Curator/tests/cli_scripts_tests && \
