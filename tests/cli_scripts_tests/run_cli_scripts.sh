@@ -20,7 +20,7 @@ for NAME in "${!SCRIPTS[@]}"; do
     echo "▶️ Running $NAME..."
     START_TIME=$(date +%s)
 
-    bash "$SCRIPT_PATH" "$LOG_FILE"  || true
+    bash "$SCRIPT_PATH" "$LOG_FILE"
     EXIT_CODE=$?
 
     END_TIME=$(date +%s)
