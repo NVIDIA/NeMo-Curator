@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import shutil
 
 from nemo_curator import (
     ExactDuplicates,
@@ -247,7 +248,6 @@ class TextLineCountFilter(DocumentFilter):
     def keep_document(self, score) -> bool:
         return score
 
-
 def rm_dir(cache_dir):
     if os.path.isdir(cache_dir):
-        os.system(f"rm -rf {cache_dir}")
+        shutil.rmtree(cache_dir)
