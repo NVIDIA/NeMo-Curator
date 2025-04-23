@@ -247,6 +247,7 @@ class TextLineCountFilter(DocumentFilter):
     def keep_document(self, score) -> bool:
         return score
 
+
 def rm_dir(cache_dir):
     if os.path.isdir(cache_dir):
         shutil.rmtree(cache_dir)
