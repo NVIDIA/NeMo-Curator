@@ -13,16 +13,20 @@
 # limitations under the License.
 
 import argparse
+import base64
+import io
 import json
 import os
 import shutil
+import tarfile
 from pathlib import Path
 from typing import Any
 
 import dask.dataframe as dd
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import pandas as pd
+from PIL import Image
 from utils import (
     TextLineCountFilter,
     clean_and_unify,
@@ -33,20 +37,13 @@ from utils import (
     rm_dir,
     semantic_dedupe,
 )
-import tarfile
-import base64
-from PIL import Image
-import io
-import tqdm
 
-from nemo_curator import ScoreFilter, Sequential
-from nemo_curator.datasets import DocumentDataset
+from nemo_curator import ClusteringModel, ScoreFilter, SemanticClusterLevelDedup, Sequential
+from nemo_curator.datasets import DocumentDataset, ImageTextPairDataset
+from nemo_curator.image.embedders import TimmImageEmbedder
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import separate_by_metadata
 from nemo_curator.utils.script_utils import ArgumentHelper
-from nemo_curator.image.embedders import TimmImageEmbedder
-from nemo_curator.datasets import ImageTextPairDataset
-from nemo_curator import ClusteringModel, SemanticClusterLevelDedup
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR_PATH, "data")
@@ -92,6 +89,7 @@ def process_textual_data(textual_data):
             "path",
         ],
     )
+
 
 def process_structured_data(structured_data):
     struct_data_list = []
@@ -146,7 +144,6 @@ def process_data(data_type_map):
 
 
 def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
-
     """
     Run the curation pipeline on the Wiki+Arxiv+Github datasets.
 
@@ -159,9 +156,7 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     curation_steps_text = Sequential(
         [
             clean_and_unify,
-            ScoreFilter(
-                TextLineCountFilter(), text_field="file_type_count", score_type=bool
-            ),
+            ScoreFilter(TextLineCountFilter(), text_field="file_type_count", score_type=bool),
             filter_text,
             exact_dedupe,
             redact_pii,
@@ -169,13 +164,9 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     )
 
     # create a field combining fields file type and line count
-    text_ddf.df["file_type_count"] = (
-        text_ddf.df["category"] + " : " + text_ddf.df["line_count"].astype(str)
-    )
+    text_ddf.df["file_type_count"] = text_ddf.df["category"] + " : " + text_ddf.df["line_count"].astype(str)
 
-    struct_ddf.df["file_type_count"] = (
-        struct_ddf.df["category"] + " : " + struct_ddf.df["line_count"].astype(str)
-    )
+    struct_ddf.df["file_type_count"] = struct_ddf.df["category"] + " : " + struct_ddf.df["line_count"].astype(str)
 
     print("Executing the curation pipeline...")
     dataset_text = curation_steps_text(text_ddf)
@@ -185,12 +176,8 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     counts = {"person_count": 0, "email_count": 0}
 
     for dataset in datasets:
-        counts["person_count"] += (
-            dataset.df["text"].str.count(r"\bPERSON\b").sum().compute()
-        )
-        counts["email_count"] += (
-            dataset.df["text"].str.count(r"\bEMAIL_ADDRESS\b").sum().compute()
-        )
+        counts["person_count"] += dataset.df["text"].str.count(r"\bPERSON\b").sum().compute()
+        counts["email_count"] += dataset.df["text"].str.count(r"\bEMAIL_ADDRESS\b").sum().compute()
 
     person_count, email_count = counts["person_count"], counts["email_count"]
 
@@ -200,22 +187,15 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     print(f"After preprocessing text data: {len(dataset_text.df)}")
     print(f"After preprocessing tables and charts: {len(dataset_struct.df)}")
 
-    print(
-        f"Redacted names and email address for text, tables and charts: {person_count, email_count}"
-    )
+    print(f"Redacted names and email address for text, tables and charts: {person_count, email_count}")
 
     if args.device == "gpu":
-
         print("Executing the semantic dedupe pipeline...")
         gpu_dataset_text = DocumentDataset(dataset_text.df.to_backend("cudf"))
         gpu_dataset_struct = DocumentDataset(dataset_struct.df.to_backend("cudf"))
 
-        text_sem_dedupe_config_yaml_path = os.path.join(
-            CONFIG_DIR, "text_semantic_dedupe_config.yaml"
-        )
-        struct_sem_dedupe_config_yaml_path = os.path.join(
-            CONFIG_DIR, "struct_semantic_dedupe_config.yaml"
-        )
+        text_sem_dedupe_config_yaml_path = os.path.join(CONFIG_DIR, "text_semantic_dedupe_config.yaml")
+        struct_sem_dedupe_config_yaml_path = os.path.join(CONFIG_DIR, "struct_semantic_dedupe_config.yaml")
 
         cache_dir_txt = os.path.join(SCRIPT_DIR_PATH, "cache", "semdedup_cache", "text")
         cache_dir_struct = os.path.join(SCRIPT_DIR_PATH, "cache", "semdedup_cache", "struct")
@@ -247,26 +227,18 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
 
         print("Executing the fuzzy dedupe pipeline...")
         cache_dir_txt = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "text")
-        cache_dir_struct = os.path.join(
-            SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "struct"
-        )
+        cache_dir_struct = os.path.join(SCRIPT_DIR_PATH, "cache", "fuzzy_dedupe", "struct")
 
         rm_dir(cache_dir_txt)
         rm_dir(cache_dir_struct)
 
-        fuzzy_dataset_text = fuzzy_dedupe(
-            dataset=semantic_dataset_text, cache=cache_dir_txt
-        )
-        fuzzy_dataset_struct = fuzzy_dedupe(
-            dataset=semantic_dataset_struct, cache=cache_dir_struct
-        )
+        fuzzy_dataset_text = fuzzy_dedupe(dataset=semantic_dataset_text, cache=cache_dir_txt)
+        fuzzy_dataset_struct = fuzzy_dedupe(dataset=semantic_dataset_struct, cache=cache_dir_struct)
 
         dataset_text.df = fuzzy_dataset_text.df.to_backend("pandas")
         dataset_struct.df = fuzzy_dataset_struct.df.to_backend("pandas")
         print(f"After fuzzy dedupe for text files: {len(dataset_text.df)}")
-        print(
-            f"After fuzzy dedupe for tables and charts files: {len(dataset_struct.df)}"
-        )
+        print(f"After fuzzy dedupe for tables and charts files: {len(dataset_struct.df)}")
 
     final_dataset_text = dataset_text.persist()
     final_dataset_struct = dataset_struct.persist()
@@ -287,20 +259,18 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     # Split the dataset by file category and save curated files (optional - to create blended datasets)
     print("Split dataset by metadata")
 
-    separated_data_text = separate_by_metadata(
-        final_dataset_text.df, out_path, "category"
-    ).compute()
-    separated_data_struct = separate_by_metadata(
-        final_dataset_struct.df, out_path, "category"
-    ).compute()
+    separated_data_text = separate_by_metadata(final_dataset_text.df, out_path, "category").compute()
+    separated_data_struct = separate_by_metadata(final_dataset_struct.df, out_path, "category").compute()
 
     client.close()
+
 
 def save_image(base64_str, output_path):
     image_data = base64.b64decode(base64_str)
     image = Image.open(io.BytesIO(image_data)).convert("RGB")
-    image.save(output_path, format='JPEG')
-    
+    image.save(output_path, format="JPEG")
+
+
 def process_image_data(data_type_map):
     image_data = data_type_map["image"]
     shard_size = 1000
@@ -308,7 +278,7 @@ def process_image_data(data_type_map):
     os.makedirs(IMG_DIR, exist_ok=True)
 
     # Create tar file path
-    shard_name = '00000'
+    shard_name = "00000"
     tar_path = os.path.join(IMG_DIR, f"{shard_name}.tar")
 
     with tarfile.open(tar_path, "w") as tar:
@@ -324,7 +294,6 @@ def process_image_data(data_type_map):
             caption = img_data["metadata"]["image_metadata"]["caption"]
             unique_key = file_id  # or use any hash or ID here
             url = f"{unique_key}.jpg"
-            
 
             # Prepare in-memory files
             img_buffer = io.BytesIO()
@@ -332,11 +301,7 @@ def process_image_data(data_type_map):
             img_buffer.seek(0)
 
             caption_bytes = caption.encode("utf-8")
-            json_bytes = json.dumps({
-                "url": url,
-                "caption": caption,
-                "key": unique_key
-            }).encode("utf-8")
+            json_bytes = json.dumps({"url": url, "caption": caption, "key": unique_key}).encode("utf-8")
 
             # Add files to tar
             # with tarfile.open(tar_path, "a") as tar:
@@ -353,20 +318,17 @@ def process_image_data(data_type_map):
             tar.addfile(tarinfo, io.BytesIO(json_bytes))
 
             # # Collect row for Parquet
-            parquet_rows.append({
-            "url": f"{file_id}.jpg",
-            "caption": caption,
-            "key": unique_key
-            })
+            parquet_rows.append({"url": f"{file_id}.jpg", "caption": caption, "key": unique_key})
 
             # # Write parquet at shard boundary or end
             if (i + 1) % shard_size == 0 or (i + 1) == len(image_data):
                 table = pa.Table.from_pylist(parquet_rows)
                 pq.write_table(table, os.path.join(IMG_DIR, f"{shard_name}.parquet"))
                 parquet_rows.clear()
-        
+
     image_ddf = ImageTextPairDataset.from_webdataset(path=IMG_DIR, id_col="key")
     return image_ddf
+
 
 def run_image_curation_pipeline(dataset):
     embedding_model = TimmImageEmbedder(
@@ -399,7 +361,7 @@ def run_image_curation_pipeline(dataset):
     emb_by_cluster_output = os.path.join(clustering_output, "embs_by_nearest_center")
     duplicate_output = os.path.join(semantic_dedup_outputs, "duplicates")
 
-    #Error here
+    # Error here
     semantic_dedup = SemanticClusterLevelDedup(
         n_clusters=1,
         emb_by_clust_dir=emb_by_cluster_output,
@@ -417,6 +379,7 @@ def run_image_curation_pipeline(dataset):
     dataset.to_webdataset(deduplicated_dataset_path, "is_unique")
     cluster_path = os.path.join(duplicate_output, "semdedup_pruning_tables", "cluster_0.parquet")
 
+
 def main():
     parser = argparse.ArgumentParser()
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
@@ -426,7 +389,7 @@ def main():
     print("Args: ", args)
 
     nv_ingest_path = "../ingest/sources/separated_extracted_data/data_type_map.json"
-    with open(nv_ingest_path, "r", encoding="utf-8") as f:
+    with open(nv_ingest_path, encoding="utf-8") as f:
         data_type_map = json.load(f)
 
     text_ddf, struct_ddf = process_data(data_type_map)

@@ -139,7 +139,6 @@ def filter_text(dataset: DocumentDataset) -> DocumentDataset:
 
 
 def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
-
     modifier = PiiModifier(
         log_dir="./logs",
         batch_size=2000,
@@ -170,6 +169,7 @@ def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
     deduped = deduplicator.remove(dataset, duplicates)
     return DocumentDataset(deduped)
 
+
 def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
     """
     Removes near-duplicate documents and code lines
@@ -198,9 +198,7 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
     dataset_df = dataset.df
 
     if duplicates is not None:
-        docs_to_remove = duplicates.df.map_partitions(
-            lambda x: x[x.group.duplicated(keep="first")]
-        )
+        docs_to_remove = duplicates.df.map_partitions(lambda x: x[x.group.duplicated(keep="first")])
         # When there are few duplicates we can compute the results to a list and use `isin`.
         duplicate_ids = docs_to_remove.compute().id.to_arrow().to_pylist()
         deduped = dataset_df[~dataset_df.id.isin(duplicate_ids)]
@@ -228,6 +226,7 @@ def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path: str):
     expand_outdir_and_mkdir(semdedup_config.cache_dir)
     semdup = SemDedup(config=semdedup_config, perform_removal=True)
     return semdup(dataset)
+
 
 class TextLineCountFilter(DocumentFilter):
     """
