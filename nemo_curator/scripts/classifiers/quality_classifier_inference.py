@@ -59,6 +59,8 @@ def main() -> None:
         max_chars=args.max_chars,
         batch_size=args.batch_size,
         autocast=args.autocast,
+        # TODO: Fix this
+        # max_mem_gb=args.max_mem_gb_classifier,
         max_mem_gb_classifier=args.max_mem_gb_classifier,
     )
 

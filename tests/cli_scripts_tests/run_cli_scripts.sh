@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 
 TEST_DIR="$(dirname "$0")"
 FAILURES=()
@@ -11,8 +11,11 @@ SCRIPTS["quality_classifier_inference"]="$TEST_DIR/run_quality_classifier_infere
 # Generate test data
 echo "🛠️ Generating test data..."
 bash generate_input_data.sh
+echo ""
 
 # Loop through each script and run it, logging the output and duration
+echo "🔍 Running CLI scripts..."
+echo ""
 for NAME in "${!SCRIPTS[@]}"; do
     SCRIPT_PATH="${SCRIPTS[$NAME]}"
     LOG_FILE="/tmp/${NAME}.log"
@@ -26,7 +29,6 @@ for NAME in "${!SCRIPTS[@]}"; do
     END_TIME=$(date +%s)
     DURATION=$((END_TIME - START_TIME))
 
-    echo ""
     echo "📄 Log output for $NAME:"
     echo "------------------------"
     cat "$LOG_FILE"
