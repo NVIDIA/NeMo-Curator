@@ -48,7 +48,7 @@ if [ ${#FAILURES[@]} -ne 0 ]; then
     echo ""
     echo "🚨 Some CLI scripts failed:"
     for f in "${FAILURES[@]}"; do
-        echo "- $f"
+        echo "❌ $f"
     done
     exit 1
 else

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,9 +59,7 @@ def main() -> None:
         max_chars=args.max_chars,
         batch_size=args.batch_size,
         autocast=args.autocast,
-        # TODO: Fix this
-        # max_mem_gb=args.max_mem_gb_classifier,
-        max_mem_gb_classifier=args.max_mem_gb_classifier,
+        max_mem_gb=args.max_mem_gb_classifier,
     )
 
     for file_batch_id, i in enumerate(range(0, len(input_files), files_per_run)):
