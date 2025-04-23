@@ -114,9 +114,7 @@ class HardNegativeMiner:
             n_clusters = self.min_number_clusters
 
         print(f"Number of clusters used = {n_clusters}")
-        if "doc_id" not in df.columns:
-            msg = "doc_id column is required"
-            raise ValueError(msg)
+
         df["embeddings"] = ""  # refers to document embeddings
         df = df.explode("documents")
         df = df.map_partitions(self._get_doc_embeddings, meta=df)
