@@ -14,12 +14,12 @@
 
 import importlib
 import itertools
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 from dask.base import normalize_token
 from openai import OpenAI
-from sentence_transformers import SentenceTransformer
 
 from nemo_curator import ClusteringModel
 from nemo_curator.datasets import DocumentDataset
@@ -30,12 +30,17 @@ config = importlib.import_module(
 )
 RetrieverHardNegativeMiningConfig = config.RetrieverHardNegativeMiningConfig
 
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
+
 
 def create_nim_client(base_url: str, api_key: str) -> OpenAI:
     return OpenAI(base_url=base_url, api_key=api_key)
 
 
-def create_hf_model(model_name_or_path: str) -> SentenceTransformer:
+def create_hf_model(model_name_or_path: str) -> "SentenceTransformer":
+    from sentence_transformers import SentenceTransformer
+
     return SentenceTransformer(model_name_or_path, trust_remote_code=True)
 
 
