@@ -7,6 +7,7 @@ mkdir -p "$(dirname "$OUTPUT_FILE")"
 texts=(
     "Quantum computing is set to revolutionize the field of cryptography."
     "Investing in index funds is a popular strategy for long-term financial growth."
+    "Recent advancements in gene therapy offer new hope for treating genetic disorders."
 )
 for text in "${texts[@]}"; do
     echo "{\"text\": \"$text\"}" >> "$OUTPUT_FILE"

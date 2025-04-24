@@ -4,22 +4,22 @@ set -uo pipefail
 LOG_FILE="$1"
 
 # Create a JSONL file with a single text
-INPUT_FILE="/tmp/quality_dataset/data.jsonl"
+INPUT_FILE="/tmp/prompt_task_complexity_dataset/data.jsonl"
 mkdir -p "$(dirname "$INPUT_FILE")"
 > "$INPUT_FILE"
 texts=(
-    "Traveling to Europe during the off-season can be a more budget-friendly option."
+    "Prompt: Write a Python script that uses a for loop."
 )
 for text in "${texts[@]}"; do
     echo "{\"text\": \"$text\"}" >> "$INPUT_FILE"
 done
 echo "✅ JSONL file '$INPUT_FILE' successfully created."
 
-INPUT_DIR="/tmp/quality_dataset"
-OUTPUT_DIR="/tmp/quality_classifier_inference_output"
+INPUT_DIR="/tmp/prompt_task_complexity_dataset"
+OUTPUT_DIR="/tmp/prompt_task_complexity_classifier_inference_output"
 mkdir -p "$OUTPUT_DIR"
 
-quality_classifier_inference \
+prompt_task_complexity_classifier_inference \
   --input-data-dir "$INPUT_DIR" \
   --input-file-type "jsonl" \
   --input-text-field "text" \
