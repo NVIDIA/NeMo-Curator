@@ -4,7 +4,7 @@ set -uo pipefail
 LOG_FILE="$1"
 
 if [ -z "${HF_TOKEN:-}" ]; then
-  echo "❌ HF_TOKEN is not set. Skipping test."
+  echo "❌ HF_TOKEN is not set. Skipping test." >> "$LOG_FILE"
   exit 0
 else
   echo "✅ HF_TOKEN is set"
