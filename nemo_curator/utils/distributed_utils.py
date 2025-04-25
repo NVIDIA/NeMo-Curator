@@ -18,7 +18,7 @@ import os
 import shutil
 import socket
 import subprocess
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import dask
 
@@ -32,11 +32,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+import cupy as cp
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import psutil
 from dask.distributed import Client, LocalCluster, get_worker, performance_report
+from distributed.diagnostics.nvml import has_cuda_context
 
 from nemo_curator.utils.gpu_utils import is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
@@ -84,52 +86,57 @@ def _worker_gpu_tuple() -> tuple[str, int]:
     Runs on a Dask-CUDA worker.
     Returns (hostname, gpu_index) where `gpu_index` is the index shown by `nvidia-smi`.
     """
-    import cupy  # noqa
-    from pynvml import (
-        nvmlDeviceGetHandleByPciBusId,
-        nvmlDeviceGetIndex,
-        NVMLError,
-    )
 
-    dev_id = cupy.cuda.runtime.getDevice()
-    props = cupy.cuda.runtime.getDeviceProperties(dev_id)
-
-    pci_bus_id = (f"{props['pciDomainID']:08x}:{props['pciBusID']:02x}:{props['pciDeviceID']:02x}.0").upper()
-
-    try:
-        handle = nvmlDeviceGetHandleByPciBusId(pci_bus_id)
-        index = nvmlDeviceGetIndex(handle)
-    except NVMLError as e:
-        warnings.warn(f"NVML error occurred: {e} while verifying GPU index", stacklevel=2)
-        index = -1  # fallback - shouldn't happen
-
-    return socket.gethostname(), index
+    # Touch the GPU so a context is created (idempotent if one already exists)
+    cp.cuda.runtime.getDevice()
+    ctx = has_cuda_context()
+    if ctx.has_context and ctx.device_info is not None:
+        return socket.gethostname(), ctx.device_info.device_index
+    else:
+        # Fallback - context not yet created or NVML unavailable
+        return socket.gethostname(), -1
 
 
 def _assert_unique_gpu_per_host(client: Client) -> None:
     """
-    Raises RuntimeError if two workers on the same host map to the same GPU.
+    Verifies that each Dask worker on a given host is bound to a unique GPU.
+
+    Raises
+    ------
+    RuntimeError
+        If two or more workers on the same host are bound to the same GPU.
+        The error message details:
+        • host name
+        • GPU index with duplicates
+        • number of workers bound to that GPU
+        • total workers detected on the host
     """
-    info = client.run(_worker_gpu_tuple)  # {worker_addr: (host, gpu)}
-    per_host = defaultdict(list)
+    # Returns a dictionary of worker addresses to (hostname, gpu_index)
+    info = client.run(_worker_gpu_tuple)
+
+    # Group GPU indices by host
+    per_host: dict[str, list[int]] = defaultdict(list)
     for host, gpu in info.values():
         per_host[host].append(gpu)
 
-    # Find hosts where GPUs are assigned more than once
-    dups = {}
+    # Build a human-readable report of duplicates
+    duplicate_hosts: list[str] = []
     for host, gpus in per_host.items():
-        unique_gpus = set(gpus)
-        if len(gpus) != len(unique_gpus):
-            # Find which GPUs are duplicated
-            duplicated = [gpu for gpu in unique_gpus if gpus.count(gpu) > 1]
-            dups[host] = duplicated
+        counts = Counter(gpus)
+        # Keep only GPUs bound more than once
+        dup_gpus = {gpu: n for gpu, n in counts.items() if n > 1}
+        if dup_gpus:
+            lines = [f"  GPU {gpu} → {n} workers" for gpu, n in sorted(dup_gpus.items())]
+            summary = f"\nHost: {host}  (total workers: {len(gpus)})\n" + "\n".join(lines)
+            duplicate_hosts.append(summary)
 
-    # If any duplicates are found, raise an error with details
-    if dups:
-        duplicate_error = "Duplicate GPU assignment detected on host(s): " + ", ".join(
-            f"{host}: {dups[host]}" for host in dups
+    if duplicate_hosts:
+        report = (
+            "Duplicate GPU assignment detected!\n"
+            + "\n".join(duplicate_hosts)
+            + "\nEach worker on a host must own a distinct GPU."
         )
-        raise RuntimeError(duplicate_error)
+        raise RuntimeError(report)
 
 
 def start_dask_gpu_local_cluster(  # noqa: PLR0913
