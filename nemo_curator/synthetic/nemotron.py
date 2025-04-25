@@ -63,8 +63,8 @@ class NemotronGenerator:
         prompt_kwargs: dict | None = None,
         model_kwargs: dict | None = None,
     ) -> list[str]:
-        """
-        Converts a response of an LLM to a list of strings by querying an LLM
+        """Converts a response of an LLM to a list of strings by querying an LLM.
+
         Args:
             llm_response: The original unformatted response of the LLM
             model: The name of the model that should be used to generate the response.
@@ -118,8 +118,8 @@ class NemotronGenerator:
         prompt_kwargs: dict | None = None,
         model_kwargs: dict | None = None,
     ) -> list[str]:
-        """
-        Prompts an LLM to generate a list of macro topics about the world
+        """Prompts an LLM to generate a list of macro topics about the world.
+
         Args:
             n_macro_topics: The number of macro topics to generate.
             model: The name of the model that should be used to generate the macro topics.
@@ -360,7 +360,8 @@ class NemotronGenerator:
         model_kwargs: dict | None = None,
     ) -> list[str]:
         """
-        Prompts an LLM to generate a list of closed Q&A questions based on a reference document
+        Prompts an LLM to generate a list of closed Q&A questions based on a reference document.
+
         Args:
             document: The document to use when generating questions
             n_openlines: The number of questions to generate per document.
@@ -633,8 +634,8 @@ class NemotronGenerator:
         prompt_kwargs: dict | None = None,
         model_kwargs: dict | None = None,
     ) -> list[str]:
-        """
-        Prompts an LLM to classify if an entity is related to Python
+        """Prompts an LLM to classify if an entity is related to Python
+
         Args:
             entity: The entity to classify
             model: The name of the model that should be used to generate the response.
@@ -720,9 +721,9 @@ class NemotronGenerator:
         user_model_kwargs: dict | None = None,
         assistant_model_kwargs: dict | None = None,
     ) -> list[dict]:
-        """
-        Prompts an LLM to generate a dialogue based on a given openline.
+        """Prompts an LLM to generate a dialogue based on a given openline.
         The LLM will alternate impersonating the user and the assistant.
+
         Args:
             openline: The openline that will comprise the first user turn.
             user_model: The model that will be impersonating the user.
