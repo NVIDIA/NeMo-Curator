@@ -32,33 +32,21 @@ class BaseConfig:
 class FuzzyDuplicatesConfig(BaseConfig):
     """
     Configuration for MinHash based fuzzy duplicates detection.
-    Parameters
-    ----------
-    seed: Seed for minhash permutations
-    char_ngrams: Size of Char ngram shingles used in minhash computation
-    num_buckets: Number of Bands or buckets to use during Locality Sensitive Hashing
-    hashes_per_bucket: Number of hashes per bucket/band.
-    use_64_bit_hash: Whether to use a 32bit or 64bit hash function for minhashing.
-    buckets_per_shuffle: Number of bands/buckets to shuffle concurrently.
-        Larger values process larger batches by processing multiple bands
-        but might lead to memory pressures and related errors.
-    id_field: Column in the Dataset denoting document ID.
-    text_field: Column in the Dataset denoting document content.
-    perform_removal: Boolean value to specify whether calling the module should remove the duplicates from
-        the original dataset, or return the list of IDs denoting duplicates.
-    profile_dir: str, Default None
-        If specified directory to write dask profile
-    cache_dir: str, Default None
-        Location to store deduplcation intermediates such as minhashes/buckets etc.
-    false_positive_check: bool,
-        Whether to run a check to look for false positives within buckets.
-        Note: This is a computationally expensive step.
-    num_anchors: int
-        Number of documents per bucket to use as reference for computing jaccard
-        pairs within that bucket to identify false positives.
-    jaccard_threshold: float
-        The Jaccard similariy threshold to consider a document a near duplicate
-        during false positive evaluations.
+    Args:
+        seed (int): Seed for minhash permutations.
+        char_ngrams (int): Size of char ngram shingles for minhash computation.
+        num_buckets (int): Number of bands or buckets to use during Locality Sensitive Hashing.
+        hashes_per_bucket (int): Number of hashes per bucket/band.
+        use_64_bit_hash (bool): Whether to use a 32-bit or 64-bit hash function.
+        buckets_per_shuffle (int): Number of bands/buckets to shuffle concurrently.
+        id_field (str): Column name denoting document ID.
+        text_field (str): Column name denoting document content.
+        perform_removal (bool): If True, removes duplicates; otherwise returns duplicate IDs.
+        profile_dir (Optional[str]): Directory to write dask profiling information. Default None.
+        cache_dir (str): Directory to store deduplication intermediates such as minhashes and buckets.
+        false_positive_check (bool): Whether to run a false positive check within buckets.
+        num_anchors (Optional[int]): Number of documents per bucket to use for Jaccard false-positive checks.
+        jaccard_threshold (Optional[float]): Jaccard similarity threshold to consider documents near duplicates.
     """
 
     # General config

@@ -181,8 +181,8 @@ def get_client(  # noqa: PLR0913
     Initializes or connects to a Dask cluster.
     The Dask cluster can be CPU-based or GPU-based (if GPUs are available).
     The intialization ensures maximum memory efficiency for the GPU by:
-        1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool. (If `set_torch_to_use_rmm` is True)
-        2. Enabling spilling for cuDF. (If `enable_spilling` is True)
+    1. Ensuring the PyTorch memory pool is the same as the RAPIDS memory pool. (If `set_torch_to_use_rmm` is True)
+    2. Enabling spilling for cuDF. (If `enable_spilling` is True)
 
     Args:
         cluster_type: If scheduler_address and scheduler_file are None, sets up a local (single node) cluster of the specified type.

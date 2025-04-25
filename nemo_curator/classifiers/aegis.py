@@ -394,7 +394,7 @@ class InstructionDataGuardClassifier(DistributedDataClassifier):
 
     Dataset Format:
     The model expects instruction-response style text data. For example:
-    "Instruction: {instruction}. Input: {input_}. Response: {response}."
+    "Instruction: <instruction>. Input: <input>. Response: <response>."
 
     Usage Recommendations:
     1. Apply to English instruction-response datasets

@@ -17,7 +17,8 @@ from nemo_curator.modifiers import DocumentModifier
 
 class QuotationRemover(DocumentModifier):
     """
-    Removes quotations from a document following a few rules:
+    Removes quotations from a document following a few rules.
+
     - If the document is less than 2 characters, it is returned unchanged.
     - If the document starts and ends with a quotation mark and there are
         no newlines in the document, the quotation marks are removed.

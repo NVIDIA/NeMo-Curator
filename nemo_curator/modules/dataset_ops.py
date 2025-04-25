@@ -134,6 +134,8 @@ def blend_datasets(
             sampling weight for dataset 1 is 0.02, 2% ofthe total samples will be sampled from dataset 1.
             There are guaranteed to be math.ceil(normalized_weight_i * target_size) elements from dataset i in
             the final blend.
+    Returns:
+        A DocumentDataset with the blended dataset.
     """
     if len(datasets) != len(sampling_weights):
         msg = (

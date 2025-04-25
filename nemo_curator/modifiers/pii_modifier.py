@@ -42,7 +42,7 @@ class PiiModifier(DocumentModifier):
 
     modify = Modify(modifier)
     modified_dataset = modify(dataset)
-    modified_dataset.df.to_json('output_files/*.jsonl', lines=True, orient='records')
+    modified_dataset.to_json('output_files')
 
     """
 
