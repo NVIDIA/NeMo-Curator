@@ -32,7 +32,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-import cupy as cp
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
@@ -44,6 +43,7 @@ from nemo_curator.utils.gpu_utils import is_cudf_type
 from nemo_curator.utils.import_utils import gpu_only_import, gpu_only_import_from
 
 cudf = gpu_only_import("cudf")
+cp = gpu_only_import("cupy")
 LocalCUDACluster = gpu_only_import_from("dask_cuda", "LocalCUDACluster")
 get_device_total_memory = gpu_only_import_from("dask_cuda.utils", "get_device_total_memory")
 if TYPE_CHECKING:
