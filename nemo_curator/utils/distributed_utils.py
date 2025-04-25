@@ -90,11 +90,18 @@ def _worker_gpu_tuple() -> tuple[str, int]:
     # Touch the GPU so a context is created (idempotent if one already exists)
     cp.cuda.runtime.getDevice()
     ctx = has_cuda_context()
+    hostname = socket.gethostname()
     if ctx.has_context and ctx.device_info is not None:
-        return socket.gethostname(), ctx.device_info.device_index
+        device_index = ctx.device_info.device_index
     else:
         # Fallback - context not yet created or NVML unavailable
-        return socket.gethostname(), -1
+        warnings.warn(
+            f"Unable to retrieve valid GPU index for host '{hostname}'. "
+            "GPU context may not be initialized or NVML may be unavailable. Returning -1.",
+            stacklevel=2,
+        )
+        device_index = -1
+    return hostname, device_index
 
 
 def _assert_unique_gpu_per_host(client: Client) -> None:
