@@ -122,8 +122,8 @@ class Shuffle(BaseModule):
 def blend_datasets(
     target_size: int, datasets: list[DocumentDataset], sampling_weights: list[float]
 ) -> DocumentDataset:
-    """
-    Combines multiple datasets into one with different amounts of each dataset.
+    """Combines multiple datasets into one with different amounts of each dataset.
+
     Args:
         target_size: The number of documents the resulting dataset should have.
             The actual size of the dataset may be slightly larger if the normalized weights do not allow
@@ -135,7 +135,7 @@ def blend_datasets(
             There are guaranteed to be math.ceil(normalized_weight_i * target_size) elements from dataset i in
             the final blend.
     Returns:
-        A DocumentDataset with the blended dataset.
+        DocumentDataset: The resulting blended dataset.
     """
     if len(datasets) != len(sampling_weights):
         msg = (
