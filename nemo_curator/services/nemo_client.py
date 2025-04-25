@@ -89,7 +89,7 @@ class NemoDeployClient(LLMClient):
         Args:
             messages: The conversation to calculate a score for.
                 Should be formatted like:
-                    [{"role": "user", "content": "Write a sentence"}, {"role": "assistant", "content": "This is a sentence"}, ...]
+                [{"role": "user", "content": "Write a sentence"}, {"role": "assistant", "content": "This is a sentence"}, ...]
             model: The name of the model that should be used to calculate the reward.
                 Must be a reward model, cannot be a regular LLM.
         Returns:
