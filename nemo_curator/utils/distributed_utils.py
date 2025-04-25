@@ -18,6 +18,7 @@ import os
 import shutil
 import socket
 import subprocess
+import uuid
 from collections import Counter, defaultdict
 
 import dask
@@ -90,7 +91,17 @@ def _worker_gpu_tuple() -> tuple[str, int]:
     # Touch the GPU so a context is created (idempotent if one already exists)
     cp.cuda.runtime.getDevice()
     ctx = has_cuda_context()
-    hostname = socket.gethostname()
+
+    # Robust hostname lookup
+    try:
+        hostname = socket.gethostname()
+    except Exception as exc:  # noqa: BLE001  (broad on purpose)
+        placeholder = f"unknown-{uuid.uuid4().hex[:8]}"
+        warnings.warn(
+            f"socket.gethostname() failed: {exc!r}. Using placeholder host name '{placeholder}'.",
+            stacklevel=2,
+        )
+        hostname = placeholder
     if ctx.has_context and ctx.device_info is not None:
         device_index = ctx.device_info.device_index
     else:
