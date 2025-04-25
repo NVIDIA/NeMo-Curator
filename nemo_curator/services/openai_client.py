@@ -65,8 +65,8 @@ class OpenAIClient(LLMClient):
         return [choice.message.content for choice in response.choices]
 
     def query_reward_model(self, *, messages: Iterable, model: str) -> dict:
-        """
-        Prompts an LLM Reward model to score a conversation between a user and assistant
+        """Prompts an LLM Reward model to score a conversation between a user and assistant
+
         Args:
             messages: The conversation to calculate a score for.
                 Should be formatted like:
@@ -128,8 +128,8 @@ class AsyncOpenAIClient(AsyncLLMClient):
         return [choice.message.content for choice in response.choices]
 
     async def query_reward_model(self, *, messages: Iterable, model: str) -> dict:
-        """
-        Prompts an LLM Reward model to score a conversation between a user and assistant
+        """Prompts an LLM Reward model to score a conversation between a user and assistant
+
         Args:
             messages: The conversation to calculate a score for.
                 Should be formatted like:

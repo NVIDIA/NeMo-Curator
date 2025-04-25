@@ -478,8 +478,8 @@ class NemotronGenerator:
         prompt_kwargs: dict | None = None,
         model_kwargs: dict | None = None,
     ) -> list[str]:
-        """
-        Prompts an LLM to classify if an entity is related to math
+        """Prompts an LLM to classify if an entity is related to math
+
         Args:
             entity: The entity to classify
             model: The name of the model that should be used to generate the response.
