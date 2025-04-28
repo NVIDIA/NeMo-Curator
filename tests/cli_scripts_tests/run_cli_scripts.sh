@@ -5,16 +5,21 @@ TEST_DIR="$(dirname "$0")"
 FAILURES=()
 
 declare -A SCRIPTS
-SCRIPTS["aegis_classifier_inference"]="$TEST_DIR/classifiers/run_aegis_classifier_inference.sh"
-SCRIPTS["content_type_classifier_inference"]="$TEST_DIR/classifiers/run_content_type_classifier_inference.sh"
-SCRIPTS["domain_classifier_inference"]="$TEST_DIR/classifiers/run_domain_classifier_inference.sh"
-SCRIPTS["fineweb_edu_classifier_inference"]="$TEST_DIR/classifiers/run_fineweb_edu_classifier_inference.sh"
-SCRIPTS["fineweb_mixtral_edu_classifier_inference"]="$TEST_DIR/classifiers/run_fineweb_mixtral_edu_classifier_inference.sh"
-SCRIPTS["fineweb_nemotron_edu_classifier_inference"]="$TEST_DIR/classifiers/run_fineweb_nemotron_edu_classifier_inference.sh"
-SCRIPTS["instruction_data_guard_classifier_inference"]="$TEST_DIR/classifiers/run_instruction_data_guard_classifier_inference.sh"
-SCRIPTS["multilingual_domain_classifier_inference"]="$TEST_DIR/classifiers/run_multilingual_domain_classifier_inference.sh"
-SCRIPTS["prompt_task_complexity_classifier_inference"]="$TEST_DIR/classifiers/run_prompt_task_complexity_classifier_inference.sh"
-SCRIPTS["quality_classifier_inference"]="$TEST_DIR/classifiers/run_quality_classifier_inference.sh"
+relative_paths=(
+    "classifiers/aegis_classifier_inference"
+    "classifiers/content_type_classifier_inference"
+    "classifiers/domain_classifier_inference"
+    "classifiers/fineweb_edu_classifier_inference"
+    "classifiers/fineweb_mixtral_edu_classifier_inference"
+    "classifiers/fineweb_nemotron_edu_classifier_inference"
+    "classifiers/instruction_data_guard_classifier_inference"
+    "classifiers/multilingual_domain_classifier_inference"
+    "classifiers/prompt_task_complexity_classifier_inference"
+    "classifiers/quality_classifier_inference"
+)
+for relative_path in "${relative_paths[@]}"; do
+    SCRIPTS["$relative_path"]="$TEST_DIR/$relative_path.sh"
+done
 
 # Generate test data
 echo "🛠️ Generating test data..."
@@ -54,8 +59,8 @@ done
 if [ -z "${HF_TOKEN:-}" ]; then
     echo ""
     echo "⚠️ WARNING: HF_TOKEN is not set. The following CLI scripts were skipped:"
-    echo "➖ run_aegis_classifier_inference"
-    echo "➖ run_instruction_data_guard_classifier_inference"
+    echo "➖ classifiers/aegis_classifier_inference"
+    echo "➖ classifiers/instruction_data_guard_classifier_inference"
     echo ""
 fi
 
