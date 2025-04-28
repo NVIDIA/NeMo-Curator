@@ -18,7 +18,8 @@ relative_paths=(
     "classifiers/quality_classifier_inference"
 )
 for relative_path in "${relative_paths[@]}"; do
-    SCRIPTS["$relative_path"]="$TEST_DIR/$relative_path.sh"
+    script_name="$(basename "$relative_path")"
+    SCRIPTS["$script_name"]="$TEST_DIR/$relative_path.sh"
 done
 
 # Generate test data
@@ -59,8 +60,8 @@ done
 if [ -z "${HF_TOKEN:-}" ]; then
     echo ""
     echo "⚠️ WARNING: HF_TOKEN is not set. The following CLI scripts were skipped:"
-    echo "➖ classifiers/aegis_classifier_inference"
-    echo "➖ classifiers/instruction_data_guard_classifier_inference"
+    echo "➖ aegis_classifier_inference"
+    echo "➖ instruction_data_guard_classifier_inference"
     echo ""
 fi
 
