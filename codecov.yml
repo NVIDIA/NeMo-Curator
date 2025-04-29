@@ -13,11 +13,8 @@ coverage:
         threshold: 0%
         base: auto
         if_ci_failed: success
-      branches:
-        main:
-          target: 80%
-          threshold: 0%
-          base: auto
-          if_ci_failed: error
+        only_pulls: false
+        branches:
+          - main
 fixes:
   - "/opt/NeMo-Curator/::"
