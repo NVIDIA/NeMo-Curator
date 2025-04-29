@@ -17,7 +17,6 @@ import base64
 import io
 import json
 import os
-import shutil
 import tarfile
 from pathlib import Path
 from typing import Any
@@ -42,7 +41,6 @@ from nemo_curator import ClusteringModel, ScoreFilter, SemanticClusterLevelDedup
 from nemo_curator.datasets import DocumentDataset, ImageTextPairDataset
 from nemo_curator.image.embedders import TimmImageEmbedder
 from nemo_curator.utils.distributed_utils import get_client
-from nemo_curator.utils.file_utils import separate_by_metadata
 from nemo_curator.utils.script_utils import ArgumentHelper
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -51,23 +49,36 @@ IMG_DIR = os.path.join(SCRIPT_DIR_PATH, "image_dataset")
 CONFIG_DIR = os.path.join(SCRIPT_DIR_PATH, "configs")
 
 
-def process_textual_data(textual_data):
-    textual_data_list = []
+def process_textual_data(textual_data: list[dict[str, Any]]) -> pd.DataFrame:
+    """
+    Process a list of textual data entries and extract structured information
+    into a pandas DataFrame.
+
+    Args:
+        textual_data (List[Dict[str, Any]]): A list of dictionaries containing
+            metadata and content for each text document.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing processed text, metadata, and derived info.
+    """
+    processed_records = []
+
     for text_data in textual_data:
-        encodings = "None"
+        encodings = "None"  # Placeholder, can be updated if encodings are later added
         text = text_data["metadata"]["content"]
         category = text_data["document_type"]
         line_count = len(text.split("\n"))
-        id = text_data["metadata"]["source_metadata"]["source_id"]
-        file_path = text_data["metadata"]["source_metadata"]["source_name"]
+        source_metadata = text_data["metadata"]["source_metadata"]
+        doc_id = source_metadata["source_id"]
+        file_path = source_metadata["source_name"]
         filename = Path(file_path).stem
         file_extension = Path(file_path).suffix
 
-        textual_data_list.append(
+        processed_records.append(
             [
                 encodings,
                 text,
-                id,
+                doc_id,
                 file_extension,
                 filename,
                 category,
@@ -77,7 +88,7 @@ def process_textual_data(textual_data):
         )
 
     return pd.DataFrame(
-        textual_data_list,
+        processed_records,
         columns=[
             "encodings",
             "text",
@@ -91,23 +102,36 @@ def process_textual_data(textual_data):
     )
 
 
-def process_structured_data(structured_data):
-    struct_data_list = []
+def process_structured_data(structured_data: list[dict[str, Any]]) -> pd.DataFrame:
+    """
+    Process a list of structured data entries (e.g., tables) and extract relevant
+    information into a structured pandas DataFrame.
+
+    Args:
+        structured_data (List[Dict[str, Any]]): A list of dictionaries containing
+            metadata and table content for each structured document.
+
+    Returns:
+        pd.DataFrame: A DataFrame with extracted metadata and table-related information.
+    """
+    processed_records = []
+
     for struct_data in structured_data:
         encodings = struct_data["metadata"]["content"]
         text = struct_data["metadata"]["table_metadata"]["table_content"]
         category = struct_data["document_type"]
         line_count = len(text.split("\n"))
-        id = struct_data["metadata"]["source_metadata"]["source_id"]
-        file_path = struct_data["metadata"]["source_metadata"]["source_name"]
+        source_metadata = struct_data["metadata"]["source_metadata"]
+        doc_id = source_metadata["source_id"]
+        file_path = source_metadata["source_name"]
         filename = Path(file_path).stem
         file_extension = Path(file_path).suffix
 
-        struct_data_list.append(
+        processed_records.append(
             [
                 encodings,
                 text,
-                id,
+                doc_id,
                 file_extension,
                 filename,
                 category,
@@ -117,7 +141,7 @@ def process_structured_data(structured_data):
         )
 
     return pd.DataFrame(
-        struct_data_list,
+        processed_records,
         columns=[
             "encodings",
             "text",
@@ -131,7 +155,19 @@ def process_structured_data(structured_data):
     )
 
 
-def process_data(data_type_map):
+def process_data(data_type_map: dict[str, list]) -> tuple[DocumentDataset, DocumentDataset, DocumentDataset]:
+    """
+    Process different types of document data (text, image, structured) and convert them into
+    DocumentDataset-wrapped Dask DataFrames.
+
+    Args:
+        data_type_map (Dict[str, list]): A dictionary with keys "text", "image", and "structured",
+            each mapping to a list of document records.
+
+    Returns:
+        Tuple[DocumentDataset, DocumentDataset, DocumentDataset]: A tuple containing
+            DocumentDatasets for text, image, and structured data respectively.
+    """
     text_df = process_textual_data(data_type_map["text"])
     image_df = process_image_data(data_type_map["image"])
     struct_df = process_structured_data(data_type_map["structured"])
@@ -143,7 +179,7 @@ def process_data(data_type_map):
     return text_ddf, image_ddf, struct_ddf
 
 
-def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
+def run_text_curation_pipeline(args: dict, text_ddf: DocumentDataset, struct_ddf: DocumentDataset) -> None:  # noqa: PLR0915
     """
     Run the curation pipeline on the Wiki+Arxiv+Github datasets.
 
@@ -212,16 +248,6 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
             sem_dedupe_config_yaml_path=struct_sem_dedupe_config_yaml_path,
         )
 
-        # text_unique_ids = text_duplicates.df.to_backend("pandas").compute()["id"]
-        # struct_unique_ids = struct_duplicates.df.to_backend("pandas").compute()["id"]
-
-        # semantic_dataset_text = DocumentDataset(
-        #     gpu_dataset_text.df[gpu_dataset_text.df.id.isin(text_unique_ids)]
-        # )
-        # semantic_dataset_struct = DocumentDataset(
-        #     gpu_dataset_struct.df[gpu_dataset_struct.df.id.isin(struct_unique_ids)]
-        # )
-
         print(f"After semantic dedupe for text: {len(semantic_dataset_text.df)}")
         print(f"After semantic dedupe for tables and charts: {len(semantic_dataset_struct.df)}")
 
@@ -246,32 +272,20 @@ def run_text_curation_pipeline(args: Any, text_ddf, struct_ddf) -> None:
     print("Writing the results to disk...")
     # Overwrite existing files in the curated directory.
     out_path = os.path.join(DATA_DIR, "curated")
-
-    if os.path.isdir(out_path):
-        shutil.rmtree(out_path)
-
+    rm_dir(out_path)
     os.makedirs(out_path)
     final_dataset_text.to_json(out_path, write_to_filename=True)
     final_dataset_struct.to_json(out_path, write_to_filename=True)
-
     print("Writing results to disk completed")
 
-    # Split the dataset by file category and save curated files (optional - to create blended datasets)
-    print("Split dataset by metadata")
 
-    separated_data_text = separate_by_metadata(final_dataset_text.df, out_path, "category").compute()
-    separated_data_struct = separate_by_metadata(final_dataset_struct.df, out_path, "category").compute()
-
-    client.close()
-
-
-def save_image(base64_str, output_path):
+def save_image(base64_str: str, output_path: str) -> None:
     image_data = base64.b64decode(base64_str)
     image = Image.open(io.BytesIO(image_data)).convert("RGB")
     image.save(output_path, format="JPEG")
 
 
-def process_image_data(data_type_map):
+def process_image_data(data_type_map: dict[str, Any]) -> None:
     image_data = data_type_map["image"]
     shard_size = 1000
     parquet_rows = []
@@ -326,11 +340,10 @@ def process_image_data(data_type_map):
                 pq.write_table(table, os.path.join(IMG_DIR, f"{shard_name}.parquet"))
                 parquet_rows.clear()
 
-    image_ddf = ImageTextPairDataset.from_webdataset(path=IMG_DIR, id_col="key")
-    return image_ddf
+    return ImageTextPairDataset.from_webdataset(path=IMG_DIR, id_col="key")
 
 
-def run_image_curation_pipeline(dataset):
+def run_image_curation_pipeline(dataset: DocumentDataset) -> None:
     embedding_model = TimmImageEmbedder(
         "vit_large_patch14_clip_quickgelu_224.openai",
         pretrained=True,
@@ -356,6 +369,8 @@ def run_image_curation_pipeline(dataset):
         clustering_output_dir=clustering_output,
     )
     clustered_dataset = clustering_model(embeddings_dataset)
+    if clustered_dataset:
+        print("Clustering successful")
 
     # Run cluster-level dedup
     emb_by_cluster_output = os.path.join(clustering_output, "embs_by_nearest_center")
@@ -377,26 +392,38 @@ def run_image_curation_pipeline(dataset):
     deduplicated_dataset_path = "./deduplicated_dataset"
     dataset.metadata["is_unique"] = dataset.metadata["key"].isin(deduplicated_dataset_ids.df["key"].compute())
     dataset.to_webdataset(deduplicated_dataset_path, "is_unique")
-    cluster_path = os.path.join(duplicate_output, "semdedup_pruning_tables", "cluster_0.parquet")
 
 
-def main():
+def main() -> None:
+    """
+    Main function to run the data curation pipeline for text and image datasets.
+
+    Args:
+        None
+    """
+    # Parse arguments
     parser = argparse.ArgumentParser()
     args = ArgumentHelper(parser).add_distributed_args().parse_args()
+
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 2)
     args.device = "gpu"
     print("Args: ", args)
 
+    # Load the data type map
     nv_ingest_path = "../ingest/sources/separated_extracted_data/data_type_map.json"
     with open(nv_ingest_path, encoding="utf-8") as f:
         data_type_map = json.load(f)
 
+    # Process the data
     text_ddf, struct_ddf = process_data(data_type_map)
     image_ddf = process_image_data(data_type_map)
+
+    # Initialize the client and run the curation pipelines
     client = get_client(**ArgumentHelper.parse_client_args(args), set_torch_to_use_rmm=True)
     run_text_curation_pipeline(args, text_ddf, struct_ddf)
     run_image_curation_pipeline(image_ddf)
+    client.close()
 
 
 if __name__ == "__main__":
