@@ -55,9 +55,7 @@ class QuotationUnifier(DocumentModifier):
         Returns:
             str: The modified text.
         """
-        text = text.replace("‘", "'").replace("’", "'")
-        text = text.replace("“", '"').replace("”", '"')
-        return text
+        return text.replace("‘", "'").replace("’", "'").replace("“", '"').replace("”", '"')  # noqa: RUF001
 
 
 def clean_and_unify(dataset: DocumentDataset) -> DocumentDataset:
@@ -134,8 +132,7 @@ def filter_text(dataset: DocumentDataset) -> DocumentDataset:
             ),
         ]
     )
-    filtered_dataset = filters(dataset)
-    return filtered_dataset
+    return filters(dataset)
 
 
 def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
@@ -148,8 +145,7 @@ def redact_pii(dataset: DocumentDataset) -> DocumentDataset:
     )
 
     modify = Modify(modifier)
-    redacted_dataset = modify(dataset)
-    return redacted_dataset
+    return modify(dataset)
 
 
 def exact_dedupe(dataset: DocumentDataset) -> DocumentDataset:
@@ -207,7 +203,7 @@ def fuzzy_dedupe(dataset: DocumentDataset, cache: str) -> DocumentDataset:
         return DocumentDataset(dataset_df)
 
 
-def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path: str):
+def semantic_dedupe(dataset: DocumentDataset, sem_dedupe_config_yaml_path: str) -> DocumentDataset:
     """
     Perform semantic deduplication on the given dataset.
 
@@ -239,15 +235,12 @@ class TextLineCountFilter(DocumentFilter):
 
     def score_document(self, text: str) -> bool:
         words = text.split()
-        if words[0] == "text" and int(words[2]) < self._min_lines:
-            return False
-        else:
-            return True
+        return not (words[0] == "text" and int(words[2]) < self._min_lines)
 
-    def keep_document(self, score) -> bool:
+    def keep_document(self, score: bool) -> bool:
         return score
 
 
-def rm_dir(cache_dir):
+def rm_dir(cache_dir: str | os.PathLike) -> None:
     if os.path.isdir(cache_dir):
         shutil.rmtree(cache_dir)

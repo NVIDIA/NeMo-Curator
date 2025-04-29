@@ -7,7 +7,7 @@ from base64 import b64decode
 from collections import defaultdict
 from io import BytesIO
 
-import arxiv as arxiv
+import arxiv as axv
 import pandas as pd
 from nv_ingest_client.client import Ingestor
 from PIL import Image
@@ -26,7 +26,11 @@ RESULT_DIR = os.path.join(DATA_DIR, "extracted_data")
 OUTPUT_DIR = os.path.join(DATA_DIR, "separated_extracted_data")
 
 
-def parse_id(input_string):
+def format_invalid_arxiv_id_error(input_string: str) -> str:
+    return f"The provided input '{input_string}' does not match the expected arXiv URL or ID format."
+
+
+def parse_id(input_string: str) -> str:
     """
     Parse arXiv ID from either a direct ID string or an arXiv URL.
     """
@@ -42,10 +46,14 @@ def parse_id(input_string):
         return url_match.group(2) + (url_match.group(3) if url_match.group(3) else "")
 
     # Raise an error if the input does not match any of the expected formats
-    raise ValueError(f"The provided input '{input_string}' does not match the expected URL or ID format.")
+    raise ValueError(format_invalid_arxiv_id_error(input_string))
 
 
-def download_arxiv_data():
+def format_missing_file_error(file_path: str) -> str:
+    return f"File '{file_path}' not found."
+
+
+def download_arxiv_data() -> None:
     """
     Download arXiv articles from URLs listed in arxiv_urls.jsonl and save them as PDFs.
     """
@@ -54,7 +62,7 @@ def download_arxiv_data():
 
     source_links_file = os.path.join(DATA_DIR, "arxiv_urls.jsonl")
     if not os.path.exists(source_links_file):
-        raise FileNotFoundError(f"File '{source_links_file}' not found.")
+        raise FileNotFoundError(format_missing_file_error(source_links_file))
 
     urls = pd.read_json(path_or_buf=source_links_file, lines=True)
     urls = urls[0].tolist()
@@ -67,7 +75,7 @@ def download_arxiv_data():
             print(f"Article '{url}' already exists, skipping download.")
         else:
             article_id = parse_id(url)
-            search_result = arxiv.Client().results(arxiv.Search(id_list=[article_id]))
+            search_result = axv.Client().results(axv.Search(id_list=[article_id]))
 
             if article := next(search_result):
                 print(f'Downloading arXiv article "{url}"...')
@@ -77,7 +85,7 @@ def download_arxiv_data():
                 return
 
 
-def separate_extracted_contents():
+def separate_extracted_contents() -> None:
     jsonl_text_list = []
     jsonl_image_list = []
     jsonl_structured_list = []
@@ -110,7 +118,7 @@ def separate_extracted_contents():
         json.dump(data_type_map, f, indent=4, ensure_ascii=False)
 
 
-def extract_contents():
+def extract_contents() -> None:
     """
     Extract contents from downloaded PDFs and send them for processing.
     """
@@ -148,7 +156,7 @@ def extract_contents():
             json.dump(generated_metadata, f, indent=4)
 
 
-def analyze_contents():
+def analyze_contents() -> None:
     """
     Analyze the extracted contents for unique types and descriptions.
     """
@@ -176,7 +184,7 @@ def analyze_contents():
         print(f"{content_type}: {len(indices)}")
 
 
-def display_contents():
+def display_contents() -> None:
     """
     Display the extracted image or table contents as base64 decoded files.
     """
@@ -202,7 +210,7 @@ def display_contents():
                 image.save(image_filename, format="PNG")
 
 
-def main():
+def main() -> None:
     """
     Main function to execute the workflow with optional analysis and display.
     """
