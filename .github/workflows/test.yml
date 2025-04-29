@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
-        if: contains(github.event.pull_request.labels.*.name, 'gpuci')
+        if: contains(github.event.pull_request.labels.*.name, 'gpuci') || (github.event.label.name == 'gpuci') || (github.ref == 'refs/heads/main')
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
