@@ -1,4 +1,4 @@
-def world():
+def world() -> None:
     print("Hello, World!")
 
 
