@@ -71,6 +71,10 @@ jobs:
       - name: Run tests
         run: |
           echo "testing"
+      - name: Install Azure CLI
+        uses: azure/setup-azure-cli@v1
+        with:
+          version: latest
       - name: Azure Login
         uses: azure/login@v1
         with:
