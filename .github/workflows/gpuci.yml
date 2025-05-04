@@ -23,36 +23,40 @@ permissions:
   contents: read
 
 jobs:
-  # # First, we build and push a NeMo Curator container
-  # build-container:
-  #   # This block covers 3 cases when gpuCI should be triggered:
-  #   # 1. The PR has the "gpuCI" label and is opened by a maintainer.
-  #   #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
-  #   #    as long as the "gpuCI" label is not removed.
-  #   # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
-  #   #    then subsequent pushes to the PR will not autorun gpuCI
-  #   #    unless the "gpuCI" label is removed and re-added again.
-  #   # 3. PR is merged to main.
-  #   if: >-
-  #     (
-  #       contains(github.event.pull_request.labels.*.name, 'gpuci') &&
-  #       contains(
-  #         '["ayushdg", "ko3n1g", "praateekmahajan", "ryantwolf", "sarahyurick", "VibhuJawa"]',
-  #         github.event.pull_request.user.login
-  #       )
-  #     ) ||
-  #     (github.event.label.name == 'gpuci') ||
-  #     (github.ref == 'refs/heads/main')
-  #   uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.18.0
-  #   with:
-  #     image-name: nemo_curator_container
-  #     dockerfile: Dockerfile
-  #     image-label: nemo-curator
-  #     build-args: |
-  #       IMAGE_LABEL=nemo-curator
-  #       REPO_URL=https://github.com/${{ github.repository }}.git
-  #       CURATOR_COMMIT=${{ github.sha }}
-  #     prune-filter-timerange: 24h
+  # First, we build and push a NeMo Curator container
+  build-container:
+    # This block covers 3 cases when gpuCI should be triggered:
+    # 1. The PR has the "gpuCI" label and is opened by a maintainer.
+    #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
+    #    as long as the "gpuCI" label is not removed.
+    # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
+    #    then subsequent pushes to the PR will not autorun gpuCI
+    #    unless the "gpuCI" label is removed and re-added again.
+    # 3. PR is merged to main.
+    if: >-
+      (
+        contains(github.event.pull_request.labels.*.name, 'gpuci') &&
+        contains(
+          '["ayushdg", "ko3n1g", "praateekmahajan", "ryantwolf", "sarahyurick", "VibhuJawa"]',
+          github.event.pull_request.user.login
+        )
+      ) ||
+      (github.event.label.name == 'gpuci') ||
+      (github.ref == 'refs/heads/main')
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@e833f87461c020e09891141f98102e2837c75f03
+    with:
+      image-name: nemo_curator_container
+      dockerfile: Dockerfile
+      image-label: nemo-curator
+      build-args: |
+        IMAGE_LABEL=nemo-curator
+        REPO_URL=https://github.com/${{ github.repository }}.git
+        CURATOR_COMMIT=${{ github.sha }}
+      prune-filter-timerange: 24h
+      runner: linux-amd64-cpu8
+      azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # Then, we run our PyTests in the container we just built
   run-gpu-tests:
@@ -85,7 +89,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Azure CLI login
+      - name: Azure ACR Login
         run: |
           az acr login --name nemoci
           which docker
