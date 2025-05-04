@@ -33,7 +33,7 @@ jobs:
     #    then subsequent pushes to the PR will not autorun gpuCI
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@e51958ca3fcf7f33a7d8352c432f4b411cde1e22
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@4afe12c7ab7ed7c4c98e5b5939913f00cd916605
     with:
       image-name: nemo_curator_container
       dockerfile: Dockerfile
@@ -44,6 +44,7 @@ jobs:
         CURATOR_COMMIT=${{ github.sha }}
       prune-filter-timerange: 24h
       runner: linux-amd64-cpu8
+      has-azure-credentials: true
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
