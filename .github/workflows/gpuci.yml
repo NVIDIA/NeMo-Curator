@@ -85,12 +85,10 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Azure CLI script
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az acr login --name nemoci
+      - name: Azure CLI login
+        run: |
+          az acr login --name nemoci
+          which docker
       # # If something went wrong during the last cleanup, this step ensures any existing container is removed
       # - name: Remove existing container if it exists
       #   run: |
