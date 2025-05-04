@@ -51,10 +51,10 @@ jobs:
   #     prune-filter-timerange: 24h
 
   # Then, we run our PyTests in the container we just built
-  run-gpu-tests: linux-amd64-cpu8
+  run-gpu-tests:
     # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
     # It has 2 A100 GPUs
-    runs-on: self-hosted-azure
+    runs-on: linux-amd64-cpu8
     # Unit tests should not take longer than 30 minutes
     timeout-minutes: 30
     # This block covers 3 cases when gpuCI should be triggered:
