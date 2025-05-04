@@ -59,6 +59,7 @@ jobs:
     # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
     # It has 2 A100 GPUs
     runs-on: linux-amd64-cpu8
+    environment: test
     # Unit tests should not take longer than 30 minutes
     timeout-minutes: 30
     # This block covers 3 cases when gpuCI should be triggered:
