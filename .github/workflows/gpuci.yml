@@ -71,6 +71,9 @@ jobs:
       - name: Run tests
         run: |
           echo "testing"
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       - name: Azure Login
         uses: azure/login@v2
         with:
