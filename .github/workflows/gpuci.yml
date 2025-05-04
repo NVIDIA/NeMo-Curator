@@ -34,6 +34,7 @@ jobs:
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@4afe12c7ab7ed7c4c98e5b5939913f00cd916605
+    environment: test
     with:
       image-name: nemo_curator_container
       dockerfile: Dockerfile
