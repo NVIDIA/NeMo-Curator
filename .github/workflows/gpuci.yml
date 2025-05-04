@@ -33,8 +33,7 @@ jobs:
     #    then subsequent pushes to the PR will not autorun gpuCI
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@4afe12c7ab7ed7c4c98e5b5939913f00cd916605
-    environment: test
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@170888d4969a3ea4a0ec645654a9b9032887f1c9
     with:
       image-name: nemo_curator_container
       dockerfile: Dockerfile
@@ -56,7 +55,7 @@ jobs:
     # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
     # It has 2 A100 GPUs
     runs-on: linux-amd64-cpu8
-    environment: test
+    environment: nemo-ci
     # Unit tests should not take longer than 30 minutes
     timeout-minutes: 30
     # This block covers 3 cases when gpuCI should be triggered:
