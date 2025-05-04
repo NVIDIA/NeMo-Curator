@@ -84,6 +84,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          subject: repo:NVIDIA/NeMo-Curator:ref:refs/heads/pull-request/*
       - name: Azure CLI script
         uses: azure/cli@v2
         with:
