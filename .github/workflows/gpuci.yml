@@ -71,16 +71,19 @@ jobs:
       - name: Run tests
         run: |
           echo "testing"
-      - name: Install Azure CLI
-        uses: azure/setup-azure-cli@v1
-        with:
-          version: latest
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure CLI script
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az account show
+            az storage -h
       # # If something went wrong during the last cleanup, this step ensures any existing container is removed
       # - name: Remove existing container if it exists
       #   run: |
