@@ -33,16 +33,6 @@ jobs:
     #    then subsequent pushes to the PR will not autorun gpuCI
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
-    if: >-
-      (
-        contains(github.event.pull_request.labels.*.name, 'gpuci') &&
-        contains(
-          '["ayushdg", "ko3n1g", "praateekmahajan", "ryantwolf", "sarahyurick", "VibhuJawa"]',
-          github.event.pull_request.user.login
-        )
-      ) ||
-      (github.event.label.name == 'gpuci') ||
-      (github.ref == 'refs/heads/main')
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@e833f87461c020e09891141f98102e2837c75f03
     with:
       image-name: nemo_curator_container
