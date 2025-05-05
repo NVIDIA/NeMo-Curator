@@ -12,21 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: Remove any unused imports
 import argparse
 import os
 import time
 from itertools import zip_longest
 
 import fasttext
-import pandas as pd
 from transformers import AutoTokenizer
 
-from nemo_curator import Filter, ScoreFilter, Sequential
+from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import DocumentFilter
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import get_all_files_paths_under
+from nemo_curator.utils.script_utils import ArgumentHelper
 
 
 # Skip if not used for Nano training
@@ -47,7 +46,23 @@ class EmptyThinkTagsFilter(DocumentFilter):
         super().__init__()
 
     def score_document(self, text: str) -> bool:
-        return not ("<think>\n\n</think>" in text or "<think>\n</think>" in text or "<think></think>" in text)
+        return not (
+            "<think>\n\n</think>" in text
+            or "<think>\n</think>" in text
+            or "<think></think>" in text
+        )
+
+    def keep_document(self, score: bool) -> bool:
+        return score
+
+
+# Doesn't contain think close tag
+class MissingThinkCloseTagFilter(DocumentFilter):
+    def __init__(self):
+        super().__init__()
+
+    def score_document(self, text: str) -> bool:
+        return not ("<think>" in text and "</think>" not in text)
 
     def keep_document(self, score: bool) -> bool:
         return score
@@ -64,23 +79,16 @@ class CompletionTokenCountFilter(DocumentFilter):
         return len(text)
 
     def keep_document(self, score: int) -> bool:
-        return score <= self.max_token_count
+        return 0 < score <= self.max_token_count
 
 
-if __name__ == "__main__":
-    # TODO: Use ArgumentHelper
-    parser = argparse.ArgumentParser(description="Prepare dataset for curriculum learning.")
-    parser.add_argument("--input", help="Path to the input JSONL file or directory containing JSONL files.", default="./data")
-    parser.add_argument("--output_dir", help="Output directory.", default="./output")
-    parser.add_argument("--tokenizer", help="HuggingFace tokenizer", default="meta-llama/Llama-3.1-8B-Instruct")
-    parser.add_argument("--model_path", help="FastText model", default="./lid.176.ftz")
-    parser.add_argument("--output", help="Filename for the output JSONL file", default="math_v1.1-and-chat-sorted-nano-only-removed-malformed.jsonl")
-    parser.add_argument("--max_token_count", type=int, help="Optional maximum token count. Rows exceeding this count will be filtered out.", default=8192)
-    args = parser.parse_args()
-
+def main(args: argparse.Namespace) -> None:
     os.makedirs(args.output_dir, exist_ok=True)
 
-    client = get_client(cluster_type="cpu")
+    # TODO: Try CPU vs GPU
+    # Limit the total number of workers to ensure we don't run out of memory.
+    args.n_workers = min(args.n_workers, 4)
+    client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     start_time = time.time()
 
@@ -89,35 +97,46 @@ if __name__ == "__main__":
     dataset = DocumentDataset.read_json(input_files)
 
     # Filter out samples based on token count
-    print("Applying template and counting tokens")
-    filter_steps = Sequential([
-        Filter(
-            NanoFilter().keep_document,
-            filter_field="used_in_training",
-        ),
-        Filter(
-            EmptyThinkTagsFilter().keep_document,
-            filter_field="output",
-        ),
-        # TODO: Skip if malformed
-        # Filter(...),
-        # TODO: Doesn't contain think close tag, reasoning off and contains think open tag, reasoning on and doesn't contain think open tag
-        # Filter(...),
-        # TODO: Tokenize and filter out non-English text
-        # Filter(...),
-        ScoreFilter(
-            CompletionTokenCountFilter(args.max_token_count),
-            text_field="output",
-            score_field="completion_token_count",
-            score_type=int,
-        ),
-    ])
-    dataset_ddf = filter_steps(dataset).df
-    
+    print("Applying filters and counting tokens")
+    filter_steps = Sequential(
+        [
+            ScoreFilter(
+                NanoFilter(),
+                text_field="used_in_training",
+                score_type=bool,
+            ),
+            ScoreFilter(
+                EmptyThinkTagsFilter(),
+                text_field="output",
+                score_type=bool,
+            ),
+            # TODO: Skip if malformed
+            # ScoreFilter(...),
+            ScoreFilter(
+                MissingThinkCloseTagFilter(),
+                text_field="output",
+                score_type=bool,
+            ),
+            # TODO: Reasoning off and contains think open tag
+            # ScoreFilter(...),
+            # TODO: Reasoning on and doesn't contain think open tag
+            # ScoreFilter(...),
+            # TODO: Tokenize and filter out non-English text
+            # ScoreFilter(...),
+            ScoreFilter(
+                CompletionTokenCountFilter(args.max_token_count),
+                text_field="output",
+                score_field="completion_token_count",
+                score_type=int,
+            ),
+        ]
+    )
+    dataset_df = filter_steps(dataset).df
+
     # Split into thinking ON and OFF
     print("Splitting dataset")
-    thinking_on = dataset_ddf[dataset_ddf["reasoning"] == "on"]
-    thinking_off = dataset_ddf[dataset_ddf["reasoning"] == "off"]
+    thinking_on = dataset_df[dataset_df["reasoning"] == "on"]
+    thinking_off = dataset_df[dataset_df["reasoning"] == "off"]
 
     # Sort each group by token count
     print("Sorting...")
@@ -137,3 +156,55 @@ if __name__ == "__main__":
 
     end_time = time.time()
     print(f"Total time taken: {end_time - start_time} seconds")
+
+
+def attach_args() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        "Prepare dataset for curriculum learning.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    arg_helper = ArgumentHelper(parser)
+    arg_helper.add_distributed_args()
+
+    parser.add_argument(
+        "--input",
+        type=str,
+        default="./data",
+        help="Path to the input JSONL file or directory containing JSONL files.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        type=str,
+        default="meta-llama/Llama-3.1-8B-Instruct",
+        help="Hugging Face tokenizer",
+    )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default="./lid.176.ftz",
+        help="Path to the FastText model",
+    )
+    parser.add_argument(
+        "--max_token_count",
+        type=int,
+        default=8192,
+        help="Optional maximum token count. Rows exceeding this count will be filtered out.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="./output",
+        help="Path to the output directory.",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="math_v1.1-and-chat-sorted-nano-only-removed-malformed.jsonl",
+        help="Filename for the output JSONL file.",
+    )
+
+    return parser
+
+
+if __name__ == "__main__":
+    main(attach_args().parse_args())
