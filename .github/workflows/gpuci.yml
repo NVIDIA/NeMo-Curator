@@ -5,14 +5,6 @@ on:
     branches:
       - main
       - "pull-request/[0-9]+"
-  # pull_request:
-  #   branches:
-  #     # We can run gpuCI on any PR targeting these branches
-  #     - "main"
-  #     - "[rv][0-9].[0-9].[0-9]"
-  #     - "[rv][0-9].[0-9].[0-9]rc[0-9]"
-  #   # PR has to be labeled with "gpuCI" label
-  #   types: [labeled, synchronize]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -23,20 +15,25 @@ permissions:
   contents: read
 
 jobs:
+  generate-image-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.hash.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate image tag from Dockerfile and pyproject.toml
+        id: hash
+        run: |
+          TAG=$(sha256sum Dockerfile pyproject.toml | sha256sum | cut -c1-16)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
   # First, we build and push a NeMo Curator container
   build-container:
-    # This block covers 3 cases when gpuCI should be triggered:
-    # 1. The PR has the "gpuCI" label and is opened by a maintainer.
-    #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
-    #    as long as the "gpuCI" label is not removed.
-    # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
-    #    then subsequent pushes to the PR will not autorun gpuCI
-    #    unless the "gpuCI" label is removed and re-added again.
-    # 3. PR is merged to main.
+    needs: generate-image-tag
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@d4da54e8c5572b51d6a67cfbae7020d4855e087a
     with:
       image-name: nemo_curator_container
-      image-tag: charlie-test
+      image-tag: ${{ needs.generate-image-tag.outputs.image-tag }}
       skip-build-if-exists: true
       dockerfile: Dockerfile
       image-label: nemo-curator
@@ -55,19 +52,11 @@ jobs:
 
   # Then, we run our PyTests in the container we just built
   run-gpu-tests:
-    needs: build-container
+    needs: [build-container, generate-image-tag]
     runs-on: linux-amd64-gpu-rtxa6000-latest-1
     environment: nemo-ci
     # Unit tests should not take longer than 30 minutes
     timeout-minutes: 30
-    # This block covers 3 cases when gpuCI should be triggered:
-    # 1. The PR has the "gpuCI" label and is opened by a maintainer.
-    #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
-    #    as long as the "gpuCI" label is not removed.
-    # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
-    #    then subsequent pushes to the PR will not autorun gpuCI
-    #    unless the "gpuCI" label is removed and re-added again.
-    # 3. PR is merged to main.
     env:
       DIR: ${{ github.run_id }}
     steps:
@@ -92,12 +81,12 @@ jobs:
           fi
 
         # This runs the container which was pushed by build-container, which we call "nemo-curator-container"
-        # `--gpus all` ensures that all of the GPUs from our self-hosted-azure runner are available in the container
+        # `--gpus all` ensures that all of the GPUs from our runner are available in the container
         # We use "github.run_id" to identify the PR with the commits we want to run the PyTests with
         # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
       - name: Run Docker container
         run: |
-          docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:charlie-test bash -c "sleep infinity"
+          docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ needs.generate-image-tag.outputs.image-tag }} bash -c "sleep infinity"
 
         # Expect `whoami` to be "azureuser"
         # Expect `nvidia-smi` to show our 2 A100 GPUs
