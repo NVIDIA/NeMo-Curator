@@ -33,7 +33,7 @@ jobs:
     #    then subsequent pushes to the PR will not autorun gpuCI
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@821b9d2c9f9f2783097647ff02d53265e4ebb6f7
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@d4da54e8c5572b51d6a67cfbae7020d4855e087a
     with:
       image-name: nemo_curator_container
       image-tag: charlie-test
