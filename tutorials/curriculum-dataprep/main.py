@@ -25,8 +25,8 @@ from transformers import AutoTokenizer
 
 from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
-from nemo_curator.utils.decorators import batched
 from nemo_curator.filters import DocumentFilter
+from nemo_curator.utils.decorators import batched
 from nemo_curator.utils.distributed_utils import (
     NoWorkerError,
     get_client,
@@ -54,11 +54,7 @@ class EmptyThinkTagsFilter(DocumentFilter):
         super().__init__()
 
     def score_document(self, text: str) -> bool:
-        return not (
-            "<think>\n\n</think>" in text
-            or "<think>\n</think>" in text
-            or "<think></think>" in text
-        )
+        return not ("<think>\n\n</think>" in text or "<think>\n</think>" in text or "<think></think>" in text)
 
     def keep_document(self, score: bool) -> bool:
         return score
@@ -159,7 +155,7 @@ class NonEnglishFilter(DocumentFilter):
         else:
             self.text_fields = text_fields
 
-    def is_english(self, system, inpt, outpt):
+    def is_english(self, system: str, inpt: list[dict], outpt: str) -> bool:
         text = self.tokenizer.apply_chat_template(
             [
                 {"role": "system", "content": system},
@@ -178,13 +174,11 @@ class NonEnglishFilter(DocumentFilter):
             self.tokenizer = load_object_on_worker(
                 attr="tokenizer",
                 load_object_function=AutoTokenizer.from_pretrained,
-                load_object_kwargs={
-                    "pretrained_model_name_or_path": self.pretrained_model_name_or_path
-                },
+                load_object_kwargs={"pretrained_model_name_or_path": self.pretrained_model_name_or_path},
             )
         except NoWorkerError as e:
             msg = f"Error loading tokenizer: {e}"
-            raise Exception(msg)
+            raise RuntimeError(msg) from e
 
         try:
             self.model = load_object_on_worker(
@@ -194,7 +188,7 @@ class NonEnglishFilter(DocumentFilter):
             )
         except NoWorkerError as e:
             msg = f"Error loading model: {e}"
-            raise Exception(msg)
+            raise RuntimeError(msg) from e
 
         return df.apply(
             lambda row: self.is_english(
@@ -233,13 +227,11 @@ class CompletionTokenCountFilter(DocumentFilter):
             tokenizer = load_object_on_worker(
                 attr="tokenizer",
                 load_object_function=AutoTokenizer.from_pretrained,
-                load_object_kwargs={
-                    "pretrained_model_name_or_path": self.pretrained_model_name_or_path
-                },
+                load_object_kwargs={"pretrained_model_name_or_path": self.pretrained_model_name_or_path},
             )
         except NoWorkerError as e:
             msg = f"Error loading tokenizer: {e}"
-            raise Exception(msg)
+            raise RuntimeError(msg) from e
 
         outpt = df[self.text_fields[0]]
         return outpt.apply(
@@ -287,12 +279,13 @@ def interleave_rows(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
             interleaved = part2
         interleaved_parts.append(interleaved)
 
-    return dd.from_delayed(interleaved_parts, meta=df1._meta)
+    return dd.from_delayed(interleaved_parts, meta=df1._meta)  # noqa: SLF001
 
 
 def main(args: argparse.Namespace) -> None:
     if args.device == "gpu":
-        raise NotImplementedError("GPU is not supported yet")
+        msg = "GPU is not supported yet"
+        raise NotImplementedError(msg)
 
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 4)
