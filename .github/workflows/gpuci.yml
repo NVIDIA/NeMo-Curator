@@ -33,9 +33,11 @@ jobs:
     #    then subsequent pushes to the PR will not autorun gpuCI
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@261fd810e26eb9e05a28f03cfea2148f80ee93f2
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@821b9d2c9f9f2783097647ff02d53265e4ebb6f7
     with:
       image-name: nemo_curator_container
+      image-tag: charlie-test
+      skip-build-if-exists: true
       dockerfile: Dockerfile
       image-label: nemo-curator
       build-args: |
@@ -95,7 +97,7 @@ jobs:
         # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
       - name: Run Docker container
         run: |
-          docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
+          docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:charlie-test bash -c "sleep infinity"
 
         # Expect `whoami` to be "azureuser"
         # Expect `nvidia-smi` to show our 2 A100 GPUs
@@ -126,7 +128,6 @@ jobs:
             --source=nemo_curator \
             --omit=nemo_curator/scripts/* \
             -m pytest -m gpu --rootdir /opt/NeMo-Curator tests && \
-            python -c "import distributed; distributed.Client().close()" && \
             cp .coverage ../
           '
 
