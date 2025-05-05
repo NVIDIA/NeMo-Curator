@@ -63,8 +63,8 @@ class CompletionTokenCountFilter(DocumentFilter):
         # TODO: Tokenize text
         return len(text)
 
-    def keep_document(self, score: bool) -> bool:
-        return score
+    def keep_document(self, score: int) -> bool:
+        return score <= self.max_token_count
 
 
 if __name__ == "__main__":
