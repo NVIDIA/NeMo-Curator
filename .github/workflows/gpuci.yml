@@ -52,127 +52,124 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # Then, we run our PyTests in the container we just built
-  # run-gpu-tests:
-  #   # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
-  #   # It has 2 A100 GPUs
-  #   runs-on: linux-amd64-cpu8
-  #   environment: nemo-ci
-  #   # Unit tests should not take longer than 30 minutes
-  #   timeout-minutes: 30
-  #   # This block covers 3 cases when gpuCI should be triggered:
-  #   # 1. The PR has the "gpuCI" label and is opened by a maintainer.
-  #   #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
-  #   #    as long as the "gpuCI" label is not removed.
-  #   # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
-  #   #    then subsequent pushes to the PR will not autorun gpuCI
-  #   #    unless the "gpuCI" label is removed and re-added again.
-  #   # 3. PR is merged to main.
-  #   env:
-  #     DIR: ${{ github.run_id }}
-  #   steps:
-  #     - name: Run tests
-  #       run: |
-  #         echo "testing"
-  #     - name: Install Azure CLI
-  #       run: |
-  #         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-  #     - name: Azure Login
-  #       uses: azure/login@v2
-  #       with:
-  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
-  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  #     - name: Azure ACR Login
-  #       run: |
-  #         az acr login --name nemoci
-  #         which docker
-      # # If something went wrong during the last cleanup, this step ensures any existing container is removed
-      # - name: Remove existing container if it exists
-      #   run: |
-      #     if [ "$(docker ps -aq -f name=nemo-curator-container)" ]; then
-      #         docker rm -f nemo-curator-container
-      #     fi
+  run-gpu-tests:
+    # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
+    # It has 2 A100 GPUs
+    runs-on: linux-amd64-gpu-rtxa6000-latest-1
+    environment: nemo-ci
+    # Unit tests should not take longer than 30 minutes
+    timeout-minutes: 30
+    # This block covers 3 cases when gpuCI should be triggered:
+    # 1. The PR has the "gpuCI" label and is opened by a maintainer.
+    #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
+    #    as long as the "gpuCI" label is not removed.
+    # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
+    #    then subsequent pushes to the PR will not autorun gpuCI
+    #    unless the "gpuCI" label is removed and re-added again.
+    # 3. PR is merged to main.
+    env:
+      DIR: ${{ github.run_id }}
+    steps:
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure ACR Login
+        run: |
+          az acr login --name nemoci
+          which docker
+      # If something went wrong during the last cleanup, this step ensures any existing container is removed
+      - name: Remove existing container if it exists
+        run: |
+          if [ "$(docker ps -aq -f name=nemo-curator-container)" ]; then
+              docker rm -f nemo-curator-container
+          fi
 
-      #   # This runs the container which was pushed by build-container, which we call "nemo-curator-container"
-      #   # `--gpus all` ensures that all of the GPUs from our self-hosted-azure runner are available in the container
-      #   # We use "github.run_id" to identify the PR with the commits we want to run the PyTests with
-      #   # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
-      # - name: Run Docker container
-      #   run: |
-      #     docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
+        # This runs the container which was pushed by build-container, which we call "nemo-curator-container"
+        # `--gpus all` ensures that all of the GPUs from our self-hosted-azure runner are available in the container
+        # We use "github.run_id" to identify the PR with the commits we want to run the PyTests with
+        # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
+      - name: Run Docker container
+        run: |
+          docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} bash -c "sleep infinity"
 
-      #   # Expect `whoami` to be "azureuser"
-      #   # Expect `nvidia-smi` to show our 2 A100 GPUs
-      # - name: Check GPUs
-      #   run: |
-      #     whoami
-      #     docker exec nemo-curator-container nvidia-smi
+        # Expect `whoami` to be "azureuser"
+        # Expect `nvidia-smi` to show our 2 A100 GPUs
+      - name: Check GPUs
+        run: |
+          whoami
+          docker exec nemo-curator-container nvidia-smi
 
-      #   # In the virtual environment (called "curator") we created in the container,
-      #   # list all of our packages. Useful for debugging
-      # - name: Verify installations
-      #   run: |
-      #     docker exec nemo-curator-container pip list
+        # In the virtual environment (called "curator") we created in the container,
+        # list all of our packages. Useful for debugging
+      - name: Verify installations
+        run: |
+          docker exec nemo-curator-container pip list
 
-      #   # In the virtual environment (called "curator") we created in the container,
-      #   # run our PyTests marked with `@pytest.mark.gpu`
-      #   # We specify the `rootdir` to help locate the "pyproject.toml" file (which is in the root directory of the repository),
-      #   # and then the directory where the PyTests are located
-      # - name: Run PyTests with GPU mark
-      #   id: coverage
-      #   env:
-      #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      #   run: |
-      #     docker exec -e HF_TOKEN=$HF_TOKEN nemo-curator-container bash -c '
-      #       cd /opt/NeMo-Curator && \
-      #       coverage run \
-      #       --branch \
-      #       --source=nemo_curator \
-      #       --omit=nemo_curator/scripts/* \
-      #       -m pytest -m gpu --rootdir /opt/NeMo-Curator tests && \
-      #       cp .coverage ../
-      #     '
+        # In the virtual environment (called "curator") we created in the container,
+        # run our PyTests marked with `@pytest.mark.gpu`
+        # We specify the `rootdir` to help locate the "pyproject.toml" file (which is in the root directory of the repository),
+        # and then the directory where the PyTests are located
+      - name: Run PyTests with GPU mark
+        id: coverage
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          docker exec -e HF_TOKEN=$HF_TOKEN nemo-curator-container bash -c '
+            cd /opt/NeMo-Curator && \
+            coverage run \
+            --branch \
+            --source=nemo_curator \
+            --omit=nemo_curator/scripts/* \
+            -m pytest -m gpu --rootdir /opt/NeMo-Curator tests && \
+            cp .coverage ../
+          '
 
-      #     docker exec nemo-curator-container coverage xml
+          docker exec nemo-curator-container coverage xml
 
-      #     docker cp nemo-curator-container:/opt/.coverage $DIR/.coverage
-      #     docker cp nemo-curator-container:/opt/coverage.xml $DIR/coverage.xml
-      #     coverage_report="codecov"
-      #     echo "report=$coverage_report" | tee -a "$GITHUB_OUTPUT"
+          docker cp nemo-curator-container:/opt/.coverage $DIR/.coverage
+          docker cp nemo-curator-container:/opt/coverage.xml $DIR/coverage.xml
+          coverage_report="codecov"
+          echo "report=$coverage_report" | tee -a "$GITHUB_OUTPUT"
 
-      #   # After running `docker stop`, the container remains in an exited state
-      #   # It is still present on our system and could be restarted with `docker start`
-      #   # Thus, we use `docker rm` to permanently removed it from the system
-      # - name: Cleanup
-      #   if: always()
-      #   run: |
-      #     docker stop nemo-curator-container && docker rm nemo-curator-container
+        # After running `docker stop`, the container remains in an exited state
+        # It is still present on our system and could be restarted with `docker start`
+        # Thus, we use `docker rm` to permanently removed it from the system
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop nemo-curator-container && docker rm nemo-curator-container
 
-      # - name: Upload artifacts
-      #   uses: actions/upload-artifact@v4
-      #   if: ${{ steps.coverage.outputs.report == 'codecov' }}
-      #   with:
-      #     name: ${{ github.run_id }}
-      #     path: |
-      #       ${{ github.run_id }}/coverage.xml
-      #       ${{ github.run_id }}/.coverage
-      #     include-hidden-files: true
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ steps.coverage.outputs.report == 'codecov' }}
+        with:
+          name: ${{ github.run_id }}
+          path: |
+            ${{ github.run_id }}/coverage.xml
+            ${{ github.run_id }}/.coverage
+          include-hidden-files: true
 
-  # upload-coverage:
-  #   runs-on: ubuntu-latest
-  #   needs: [run-gpu-tests]
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+  upload-coverage:
+    runs-on: ubuntu-latest
+    needs: [run-gpu-tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Download coverage reports of current branch
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: ${{ github.run_id }}
+      - name: Download coverage reports of current branch
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.run_id }}
 
-  #     - name: Upload coverage reports to Codecov
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-  #         verbose: true
-  #         flags: gpu
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          flags: gpu
