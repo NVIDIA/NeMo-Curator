@@ -136,6 +136,7 @@ class MissingThinkOpenTagFilter(DocumentFilter):
         return scores
 
 
+# TODO: Add this to NeMo Curator
 # Tokenize and filter out non-English text
 class NonEnglishFilter(DocumentFilter):
     def __init__(
@@ -201,6 +202,7 @@ class NonEnglishFilter(DocumentFilter):
         return scores
 
 
+# TODO: Add this to NeMo Curator
 # TODO: Speed this up
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
@@ -246,6 +248,20 @@ class CompletionTokenCountFilter(DocumentFilter):
     @batched
     def keep_document(self, scores: pd.Series) -> pd.Series:
         return (scores > 0) & (scores <= self.max_token_count)
+
+
+def interleave_partitions(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
+    parts1 = df1.to_delayed()
+    parts2 = df2.to_delayed()
+
+    merged_parts = []
+    for p1, p2 in zip_longest(parts1, parts2):
+        if p1 is not None:
+            merged_parts.append(dd.from_delayed(p1))
+        if p2 is not None:
+            merged_parts.append(dd.from_delayed(p2))
+
+    return dd.concat(merged_parts)
 
 
 def _interleave_rows(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
@@ -355,14 +371,18 @@ def main(args: argparse.Namespace) -> None:
     sorted_thinking_on = thinking_on.sort_values("completion_token_count")
     sorted_thinking_off = thinking_off.sort_values("completion_token_count")
 
-    # TODO: Speed this up
-    print("Interleaving...")
-    # Interleave the sorted DataFrame rows
-    interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off)
+    if args.approximate_interleave:
+        print("Approximate interleaving...")
+        # Interleave the sorted DataFrame partitions
+        interleaved_df = interleave_partitions(sorted_thinking_on, sorted_thinking_off)
+    else:
+        print("Global interleaving...")
+        # Interleave the sorted DataFrame rows
+        interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off)
 
     # Save dataset
     os.makedirs(args.output_dir, exist_ok=True)
-    output_path = args.output_dir + "/part-*.jsonl"
+    output_path = args.output_dir + "/part_*.jsonl"
     interleaved_df.to_json(output_path, orient="records", lines=True)
     print(f"Saved sorted dataset to {output_path}")
 
@@ -377,6 +397,16 @@ def attach_args() -> argparse.ArgumentParser:
     )
     arg_helper = ArgumentHelper(parser)
     arg_helper.add_distributed_args()
+    arg_helper.attach_bool_arg(
+        parser,
+        "approximate-interleave",
+        default=False,
+        help="""
+        If False, the datasets will be interleaved globally, i.e., row by row.
+        If True, the datasets will be interleaved approximately, i.e., partition by partition.
+        Default is False.
+        """,
+    )
 
     parser.add_argument(
         "--input",
