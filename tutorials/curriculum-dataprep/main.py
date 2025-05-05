@@ -17,7 +17,10 @@ import os
 import time
 from itertools import zip_longest
 
+import dask.dataframe as dd
 import fasttext
+import pandas as pd
+from dask.delayed import delayed
 from transformers import AutoTokenizer
 
 from nemo_curator import ScoreFilter, Sequential
@@ -82,6 +85,38 @@ class CompletionTokenCountFilter(DocumentFilter):
         return 0 < score <= self.max_token_count
 
 
+def _interleave_rows(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    max_len = max(len(df1), len(df2))
+    df1 = df1.reset_index(drop=True)
+    df2 = df2.reset_index(drop=True)
+
+    rows = []
+    for i in range(max_len):
+        if i < len(df1):
+            rows.append(df1.iloc[i])
+        if i < len(df2):
+            rows.append(df2.iloc[i])
+
+    return pd.DataFrame(rows)
+
+
+def interleave_rows(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
+    df1_parts = df1.to_delayed()
+    df2_parts = df2.to_delayed()
+
+    interleaved_parts = []
+    for part1, part2 in zip_longest(df1_parts, df2_parts):
+        if part1 is not None and part2 is not None:
+            interleaved = delayed(_interleave_rows)(part1, part2)
+        elif part1 is not None:
+            interleaved = part1
+        elif part2 is not None:
+            interleaved = part2
+        interleaved_parts.append(interleaved)
+
+    return dd.from_delayed(interleaved_parts, meta=df1._meta)
+
+
 def main(args: argparse.Namespace) -> None:
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -144,14 +179,12 @@ def main(args: argparse.Namespace) -> None:
     sorted_thinking_off = thinking_off.sort_values("completion_token_count")
 
     print("Interleaving...")
-    # Interleave the sorted lists
-    # TODO: Implement this
-    # interleaved_df = ...
+    # Interleave the sorted DataFrame rows
+    interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off)
 
     # Save dataset
     output_path = os.path.join(args.output_dir, args.output)
-    # TODO: Uncomment this
-    # interleaved_df.to_json(output_path, orient="records", lines=True)
+    interleaved_df.to_json(output_path, orient="records", lines=True)
     print(f"Saved sorted dataset to {output_path}")
 
     end_time = time.time()
