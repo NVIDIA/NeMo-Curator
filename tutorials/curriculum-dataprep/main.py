@@ -257,11 +257,11 @@ def interleave_partitions(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
     merged_parts = []
     for p1, p2 in zip_longest(parts1, parts2):
         if p1 is not None:
-            merged_parts.append(dd.from_delayed(p1))
+            merged_parts.append(p1)
         if p2 is not None:
-            merged_parts.append(dd.from_delayed(p2))
+            merged_parts.append(p2)
 
-    return dd.concat(merged_parts)
+    return dd.from_delayed(merged_parts, meta=df1._meta)  # noqa: SLF001
 
 
 def _interleave_rows(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
