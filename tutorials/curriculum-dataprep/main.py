@@ -63,7 +63,6 @@ class EmptyThinkTagsFilter(DocumentFilter):
 # Skip if malformed
 class MalformedFilter(DocumentFilter):
     def __init__(self, text_fields: list[str] | None = None):
-        self._name = "malformed_filter"
         if text_fields is None:
             self.text_fields = ["input", "output"]
         else:
@@ -97,7 +96,6 @@ class MissingThinkCloseTagFilter(DocumentFilter):
 # Reasoning off and contains think open tag
 class ContainsThinkOpenTagFilter(DocumentFilter):
     def __init__(self, text_fields: list[str] | None = None):
-        self._name = "contains_think_open_tag_filter"
         if text_fields is None:
             self.text_fields = ["reasoning", "output"]
         else:
@@ -119,7 +117,6 @@ class ContainsThinkOpenTagFilter(DocumentFilter):
 # Reasoning on and doesn't contain think open tag
 class MissingThinkOpenTagFilter(DocumentFilter):
     def __init__(self, text_fields: list[str] | None = None):
-        self._name = "missing_think_open_tag_filter"
         if text_fields is None:
             self.text_fields = ["reasoning", "output"]
         else:
@@ -172,7 +169,7 @@ class NonEnglishFilter(DocumentFilter):
     def score_document(self, df: pd.DataFrame) -> pd.Series:
         try:
             self.tokenizer = load_object_on_worker(
-                attr="tokenizer",
+                attr=f"{self._name}.tokenizer",
                 load_object_function=AutoTokenizer.from_pretrained,
                 load_object_kwargs={"pretrained_model_name_or_path": self.pretrained_model_name_or_path},
             )
@@ -182,7 +179,7 @@ class NonEnglishFilter(DocumentFilter):
 
         try:
             self.model = load_object_on_worker(
-                attr="model",
+                attr=f"{self._name}.model",
                 load_object_function=fasttext.load_model,
                 load_object_kwargs={"path": self.model_path},
             )
@@ -204,6 +201,7 @@ class NonEnglishFilter(DocumentFilter):
         return scores
 
 
+# TODO: Speed this up
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
     def __init__(
@@ -225,7 +223,7 @@ class CompletionTokenCountFilter(DocumentFilter):
     def score_document(self, df: pd.DataFrame) -> pd.Series:
         try:
             tokenizer = load_object_on_worker(
-                attr="tokenizer",
+                attr=f"{self._name}.tokenizer",
                 load_object_function=AutoTokenizer.from_pretrained,
                 load_object_kwargs={"pretrained_model_name_or_path": self.pretrained_model_name_or_path},
             )
@@ -283,6 +281,7 @@ def interleave_rows(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
 
 
 def main(args: argparse.Namespace) -> None:
+    # TODO: Enable GPU support
     if args.device == "gpu":
         msg = "GPU is not supported yet"
         raise NotImplementedError(msg)
@@ -356,6 +355,7 @@ def main(args: argparse.Namespace) -> None:
     sorted_thinking_on = thinking_on.sort_values("completion_token_count")
     sorted_thinking_off = thinking_off.sort_values("completion_token_count")
 
+    # TODO: Speed this up
     print("Interleaving...")
     # Interleave the sorted DataFrame rows
     interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off)
