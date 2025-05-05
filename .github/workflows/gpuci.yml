@@ -126,11 +126,13 @@ jobs:
             --source=nemo_curator \
             --omit=nemo_curator/scripts/* \
             -m pytest -m gpu --rootdir /opt/NeMo-Curator tests && \
+            python -c "import distributed; distributed.Client().close()" && \
             cp .coverage ../
           '
 
           docker exec nemo-curator-container coverage xml
 
+          mkdir -p $DIR
           docker cp nemo-curator-container:/opt/.coverage $DIR/.coverage
           docker cp nemo-curator-container:/opt/coverage.xml $DIR/coverage.xml
           coverage_report="codecov"
