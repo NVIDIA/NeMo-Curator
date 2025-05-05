@@ -208,8 +208,8 @@ class NonEnglishFilter(DocumentFilter):
 class CompletionTokenCountFilter(DocumentFilter):
     def __init__(
         self,
-        pretrained_model_name_or_path: str,
-        max_token_count: int,
+        pretrained_model_name_or_path: str | None = None,
+        max_token_count: int = 8192,
         text_fields: list[str] | None = None,
     ):
         super().__init__()
@@ -223,6 +223,11 @@ class CompletionTokenCountFilter(DocumentFilter):
 
     @batched
     def score_document(self, df: pd.DataFrame) -> pd.Series:
+        outpt = df[self.text_fields[0]]
+
+        if self.pretrained_model_name_or_path is None:
+            return outpt.str.len()
+
         try:
             tokenizer = load_object_on_worker(
                 attr=f"{self._name}.tokenizer",
@@ -233,7 +238,6 @@ class CompletionTokenCountFilter(DocumentFilter):
             msg = f"Error loading tokenizer: {e}"
             raise RuntimeError(msg) from e
 
-        outpt = df[self.text_fields[0]]
         return outpt.apply(
             lambda text: len(
                 tokenizer.apply_chat_template(
@@ -352,7 +356,7 @@ def main(args: argparse.Namespace) -> None:
                 score_type=bool,
             ),
             ScoreFilter(
-                CompletionTokenCountFilter(args.tokenizer, args.max_token_count),
+                CompletionTokenCountFilter(args.tokenizer if args.tokenize else None, args.max_token_count),
                 text_field=["output"],
                 score_field="completion_token_count",
                 score_type=int,
@@ -397,6 +401,15 @@ def attach_args() -> argparse.ArgumentParser:
     )
     arg_helper = ArgumentHelper(parser)
     arg_helper.add_distributed_args()
+    arg_helper.attach_bool_arg(
+        parser,
+        "tokenize",
+        default=False,
+        help="""
+        Whether or not to tokenize the text before counting number of tokens.
+        If not, we do not tokenize and return the text length.
+        """,
+    )
     arg_helper.attach_bool_arg(
         parser,
         "approximate-interleave",
