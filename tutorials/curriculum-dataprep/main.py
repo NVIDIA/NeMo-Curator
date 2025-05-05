@@ -25,6 +25,7 @@ from transformers import AutoTokenizer
 
 from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
+from nemo_curator.utils.decorators import batched
 from nemo_curator.filters import DocumentFilter
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.file_utils import get_all_files_paths_under
@@ -57,6 +58,28 @@ class EmptyThinkTagsFilter(DocumentFilter):
 
     def keep_document(self, score: bool) -> bool:
         return score
+
+
+# Skip if malformed
+class MalformedFilter(DocumentFilter):
+    def __init__(self, text_fields: list[str] | None = None):
+        self._name = "malformed_filter"
+        if text_fields is None:
+            self.text_fields = ["input", "output"]
+        else:
+            self.text_fields = text_fields
+
+    @batched
+    def score_document(self, df: pd.DataFrame) -> pd.Series:
+        inpt = df[self.text_fields[0]]
+        outpt = df[self.text_fields[1]]
+        has_boxed_in_input = inpt.str.contains(r"\\boxed", na=False)
+        has_boxed_in_output = outpt.str.contains(r"\\boxed", na=False)
+        return ~(has_boxed_in_input & ~has_boxed_in_output)
+
+    @batched
+    def keep_document(self, scores: pd.Series) -> pd.Series:
+        return scores
 
 
 # Doesn't contain think close tag
@@ -145,8 +168,11 @@ def main(args: argparse.Namespace) -> None:
                 text_field="output",
                 score_type=bool,
             ),
-            # TODO: Skip if malformed
-            # ScoreFilter(...),
+            ScoreFilter(
+                MalformedFilter(),
+                text_field=["input", "output"],
+                score_type=bool,
+            ),
             ScoreFilter(
                 MissingThinkCloseTagFilter(),
                 text_field="output",
