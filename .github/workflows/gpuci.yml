@@ -25,6 +25,7 @@ jobs:
         id: hash
         run: |
           TAG=$(sha256sum Dockerfile pyproject.toml | sha256sum | cut -c1-16)
+          echo $TAG
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
   # First, we build and push a NeMo Curator container
