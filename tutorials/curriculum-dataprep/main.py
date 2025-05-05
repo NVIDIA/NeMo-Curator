@@ -94,6 +94,51 @@ class MissingThinkCloseTagFilter(DocumentFilter):
         return score
 
 
+# Reasoning off and contains think open tag
+class ContainsThinkOpenTagFilter(DocumentFilter):
+    def __init__(self, text_fields: list[str] | None = None):
+        self._name = "contains_think_open_tag_filter"
+        if text_fields is None:
+            self.text_fields = ["reasoning", "output"]
+        else:
+            self.text_fields = text_fields
+
+    @batched
+    def score_document(self, df: pd.DataFrame) -> pd.Series:
+        reasoning = df[self.text_fields[0]]
+        outpt = df[self.text_fields[1]]
+        is_off = reasoning == "off"
+        has_think_tags = outpt.str.contains(r"<think>|</think>", na=False)
+        return ~(is_off & has_think_tags)
+
+    @batched
+    def keep_document(self, scores: pd.Series) -> pd.Series:
+        return scores
+
+
+# Reasoning on and doesn't contain think open tag
+class MissingThinkOpenTagFilter(DocumentFilter):
+    def __init__(self, text_fields: list[str] | None = None):
+        self._name = "missing_think_open_tag_filter"
+        if text_fields is None:
+            self.text_fields = ["reasoning", "output"]
+        else:
+            self.text_fields = text_fields
+
+    @batched
+    def score_document(self, df: pd.DataFrame) -> pd.Series:
+        reasoning = df[self.text_fields[0]]
+        outpt = df[self.text_fields[1]]
+        is_on = reasoning == "on"
+        has_think = outpt.str.contains(r"<think>", na=False)
+        has_end_think = outpt.str.contains(r"</think>", na=False)
+        return ~(is_on & (~has_think | ~has_end_think))
+
+    @batched
+    def keep_document(self, scores: pd.Series) -> pd.Series:
+        return scores
+
+
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
     def __init__(self, max_token_count: int):
@@ -178,10 +223,16 @@ def main(args: argparse.Namespace) -> None:
                 text_field="output",
                 score_type=bool,
             ),
-            # TODO: Reasoning off and contains think open tag
-            # ScoreFilter(...),
-            # TODO: Reasoning on and doesn't contain think open tag
-            # ScoreFilter(...),
+            ScoreFilter(
+                ContainsThinkOpenTagFilter(),
+                text_field=["reasoning", "output"],
+                score_type=bool,
+            ),
+            ScoreFilter(
+                MissingThinkOpenTagFilter(),
+                text_field=["reasoning", "output"],
+                score_type=bool,
+            ),
             # TODO: Tokenize and filter out non-English text
             # ScoreFilter(...),
             ScoreFilter(
