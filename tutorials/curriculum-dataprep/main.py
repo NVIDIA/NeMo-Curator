@@ -27,7 +27,11 @@ from nemo_curator import ScoreFilter, Sequential
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.decorators import batched
 from nemo_curator.filters import DocumentFilter
-from nemo_curator.utils.distributed_utils import get_client
+from nemo_curator.utils.distributed_utils import (
+    NoWorkerError,
+    get_client,
+    load_object_on_worker,
+)
 from nemo_curator.utils.file_utils import get_all_files_paths_under
 from nemo_curator.utils.script_utils import ArgumentHelper
 
@@ -139,18 +143,119 @@ class MissingThinkOpenTagFilter(DocumentFilter):
         return scores
 
 
+# Tokenize and filter out non-English text
+class NonEnglishFilter(DocumentFilter):
+    def __init__(
+        self,
+        pretrained_model_name_or_path: str,
+        model_path: str,
+        text_fields: list[str] | None = None,
+    ):
+        self._name = "non_english_filter"
+        self.pretrained_model_name_or_path = pretrained_model_name_or_path
+        self.model_path = model_path
+        if text_fields is None:
+            self.text_fields = ["system_prompt", "input", "output"]
+        else:
+            self.text_fields = text_fields
+
+    def is_english(self, system, inpt, outpt):
+        text = self.tokenizer.apply_chat_template(
+            [
+                {"role": "system", "content": system},
+                *inpt,
+                {"role": "assistant", "content": outpt},
+            ],
+            tokenize=False,
+            add_generation_prompt=False,
+        )
+        text = str(text).replace("\n", " ").strip()
+        return self.model.predict(text)[0][0] == "__label__en"
+
+    @batched
+    def score_document(self, df: pd.DataFrame) -> pd.Series:
+        try:
+            self.tokenizer = load_object_on_worker(
+                attr="tokenizer",
+                load_object_function=AutoTokenizer.from_pretrained,
+                load_object_kwargs={
+                    "pretrained_model_name_or_path": self.pretrained_model_name_or_path
+                },
+            )
+        except NoWorkerError as e:
+            msg = f"Error loading tokenizer: {e}"
+            raise Exception(msg)
+
+        try:
+            self.model = load_object_on_worker(
+                attr="model",
+                load_object_function=fasttext.load_model,
+                load_object_kwargs={"path": self.model_path},
+            )
+        except NoWorkerError as e:
+            msg = f"Error loading model: {e}"
+            raise Exception(msg)
+
+        return df.apply(
+            lambda row: self.is_english(
+                row[self.text_fields[0]],
+                row[self.text_fields[1]],
+                row[self.text_fields[2]],
+            ),
+            axis=1,
+        )
+
+    @batched
+    def keep_document(self, scores: pd.Series) -> pd.Series:
+        return scores
+
+
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
-    def __init__(self, max_token_count: int):
+    def __init__(
+        self,
+        pretrained_model_name_or_path: str,
+        max_token_count: int,
+        text_fields: list[str] | None = None,
+    ):
         super().__init__()
+        self._name = "completion_token_count_filter"
+        self.pretrained_model_name_or_path = pretrained_model_name_or_path
         self.max_token_count = max_token_count
+        if text_fields is None:
+            self.text_fields = ["output"]
+        else:
+            self.text_fields = text_fields
 
-    def score_document(self, text: str) -> int:
-        # TODO: Tokenize text
-        return len(text)
+    @batched
+    def score_document(self, df: pd.DataFrame) -> pd.Series:
+        try:
+            tokenizer = load_object_on_worker(
+                attr="tokenizer",
+                load_object_function=AutoTokenizer.from_pretrained,
+                load_object_kwargs={
+                    "pretrained_model_name_or_path": self.pretrained_model_name_or_path
+                },
+            )
+        except NoWorkerError as e:
+            msg = f"Error loading tokenizer: {e}"
+            raise Exception(msg)
 
-    def keep_document(self, score: int) -> bool:
-        return 0 < score <= self.max_token_count
+        outpt = df[self.text_fields[0]]
+        return outpt.apply(
+            lambda text: len(
+                tokenizer.apply_chat_template(
+                    [{"role": "assistant", "content": text}],
+                    tokenize=True,
+                    add_generation_prompt=False,
+                    truncation=False,
+                )
+            )
+        )
+
+    @batched
+    def keep_document(self, scores: pd.Series) -> pd.Series:
+        return (scores > 0) & (scores <= self.max_token_count)
 
 
 def _interleave_rows(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
@@ -186,9 +291,9 @@ def interleave_rows(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
 
 
 def main(args: argparse.Namespace) -> None:
-    os.makedirs(args.output_dir, exist_ok=True)
+    if args.device == "gpu":
+        raise NotImplementedError("GPU is not supported yet")
 
-    # TODO: Try CPU vs GPU
     # Limit the total number of workers to ensure we don't run out of memory.
     args.n_workers = min(args.n_workers, 4)
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
@@ -233,11 +338,14 @@ def main(args: argparse.Namespace) -> None:
                 text_field=["reasoning", "output"],
                 score_type=bool,
             ),
-            # TODO: Tokenize and filter out non-English text
-            # ScoreFilter(...),
             ScoreFilter(
-                CompletionTokenCountFilter(args.max_token_count),
-                text_field="output",
+                NonEnglishFilter(args.tokenizer, args.model_path),
+                text_field=["system_prompt", "input", "output"],
+                score_type=bool,
+            ),
+            ScoreFilter(
+                CompletionTokenCountFilter(args.tokenizer, args.max_token_count),
+                text_field=["output"],
                 score_field="completion_token_count",
                 score_type=int,
             ),
@@ -260,7 +368,8 @@ def main(args: argparse.Namespace) -> None:
     interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off)
 
     # Save dataset
-    output_path = os.path.join(args.output_dir, args.output)
+    os.makedirs(args.output_dir, exist_ok=True)
+    output_path = args.output_dir + "/part-*.jsonl"
     interleaved_df.to_json(output_path, orient="records", lines=True)
     print(f"Saved sorted dataset to {output_path}")
 
@@ -305,12 +414,6 @@ def attach_args() -> argparse.ArgumentParser:
         type=str,
         default="./output",
         help="Path to the output directory.",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="math_v1.1-and-chat-sorted-nano-only-removed-malformed.jsonl",
-        help="Filename for the output JSONL file.",
     )
 
     return parser
