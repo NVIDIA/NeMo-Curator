@@ -64,16 +64,22 @@ jobs:
       - name: Install Azure CLI
         run: |
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Azure ACR Login
         run: |
           az acr login --name nemoci
           which docker
+
+      - name: Checkout NeMo-Curator
+        uses: actions/checkout@v2
+
       # If something went wrong during the last cleanup, this step ensures any existing container is removed
       - name: Remove existing container if it exists
         run: |
@@ -87,7 +93,13 @@ jobs:
         # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
       - name: Run Docker container
         run: |
-          docker run --gpus all --name nemo-curator-container -d nemoci.azurecr.io/nemo_curator_container:${{ needs.generate-image-tag.outputs.image-tag }} bash -c "sleep infinity"
+          docker run \
+            --gpus all \
+            --name nemo-curator-container \
+            -d \
+            --volume ${{ github.workspace }}:/opt/NeMo-Curator \
+            nemoci.azurecr.io/nemo_curator_container:${{ needs.generate-image-tag.outputs.image-tag }} \
+            bash -c "sleep infinity"
 
         # Expect `whoami` to be "azureuser"
         # Expect `nvidia-smi` to show our 2 A100 GPUs
