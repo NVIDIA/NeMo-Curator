@@ -78,7 +78,7 @@ jobs:
           which docker
 
       - name: Checkout NeMo-Curator
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # If something went wrong during the last cleanup, this step ensures any existing container is removed
       - name: Remove existing container if it exists
