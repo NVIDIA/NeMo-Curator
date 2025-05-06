@@ -31,7 +31,7 @@ jobs:
   # First, we build and push a NeMo Curator container
   build-container:
     needs: generate-image-tag
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@d4da54e8c5572b51d6a67cfbae7020d4855e087a
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@cb39d90591479ce35f0cd0312ca8eb5d861ceb87
     with:
       image-name: nemo_curator_container
       image-tag: ${{ needs.generate-image-tag.outputs.image-tag }}
