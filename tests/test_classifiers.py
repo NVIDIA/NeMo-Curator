@@ -281,5 +281,5 @@ def test_prompt_task_complexity_classifier(gpu_client) -> None:  # noqa: ANN001,
     expected_pred["prompt_complexity_score"] = round(expected_pred["prompt_complexity_score"], 3)
     result_pred["task_type_prob"] = round(result_pred["task_type_prob"], 2)
     expected_pred["task_type_prob"] = round(expected_pred["task_type_prob"], 2)
-
+    print(result_pred)
     assert result_pred.equals(expected_pred)
