@@ -17,7 +17,6 @@ permissions:
 jobs:
   # First, we build and push a NeMo Curator container
   build-container:
-    needs: generate-image-tag
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@cb39d90591479ce35f0cd0312ca8eb5d861ceb87
     with:
       image-name: nemo_curator_container
@@ -39,7 +38,7 @@ jobs:
 
   # Then, we run our PyTests in the container we just built
   run-gpu-tests:
-    needs: [build-container, generate-image-tag]
+    needs: [build-container]
     runs-on: linux-amd64-gpu-rtxa6000-latest-1
     environment: nemo-ci
     # Unit tests should not take longer than 30 minutes
