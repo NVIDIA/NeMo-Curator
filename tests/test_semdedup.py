@@ -109,55 +109,55 @@ def non_dedup_data() -> DocumentDataset:
 
 @pytest.mark.gpu
 class TestSemDuplicates:
-    # @pytest.mark.parametrize("n_clusters", [3, 10])
-    # @pytest.mark.parametrize("id_col_type", ["int", "str"])
-    # @pytest.mark.parametrize("perform_removal", [True, False])
-    # def test_sem_dedup(
-    #     self,
-    #     dedup_data: DocumentDataset,
-    #     tmpdir: Path,
-    #     n_clusters: int,
-    #     id_col_type: Literal["int", "str"],
-    #     perform_removal: bool,
-    # ) -> None:
-    #     cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
-    #     config = SemDedupConfig(
-    #         cache_dir=cache_dir,
-    #         n_clusters=n_clusters,
-    #         eps_to_extract=0.10,
-    #     )
+    @pytest.mark.parametrize("n_clusters", [3, 10])
+    @pytest.mark.parametrize("id_col_type", ["int", "str"])
+    @pytest.mark.parametrize("perform_removal", [True, False])
+    def test_sem_dedup(
+        self,
+        dedup_data: DocumentDataset,
+        tmpdir: Path,
+        n_clusters: int,
+        id_col_type: Literal["int", "str"],
+        perform_removal: bool,
+    ) -> None:
+        cache_dir = os.path.join(tmpdir, "test_sem_dedup_cache")
+        config = SemDedupConfig(
+            cache_dir=cache_dir,
+            n_clusters=n_clusters,
+            eps_to_extract=0.10,
+        )
 
-    #     sem_duplicates = SemDedup(
-    #         config=config,
-    #         input_column="text",
-    #         id_column="id",
-    #         perform_removal=perform_removal,
-    #     )
-    #     # Convert id column to the specified type
-    #     dedup_data.df["id"] = dedup_data.df["id"].astype(id_col_type)
+        sem_duplicates = SemDedup(
+            config=config,
+            input_column="text",
+            id_column="id",
+            perform_removal=perform_removal,
+        )
+        # Convert id column to the specified type
+        dedup_data.df["id"] = dedup_data.df["id"].astype(id_col_type)
 
-    #     dedup_data_len = dedup_data.df.shape[0].compute()
-    #     if n_clusters > dedup_data_len:
-    #         # Number of records in the dataset should never be less than n_clusters
-    #         with pytest.raises(ValueError):  # noqa: PT011
-    #             result = sem_duplicates(dedup_data)
-    #     else:
-    #         # Correctly returns the original dataset with no duplicates removed
-    #         result = sem_duplicates(dedup_data)
-    #         result_df = result.df.compute()
-    #         docs_to_remove = [1, 100]
-    #         if id_col_type == "str":
-    #             docs_to_remove = list(map(str, docs_to_remove))
+        dedup_data_len = dedup_data.df.shape[0].compute()
+        if n_clusters > dedup_data_len:
+            # Number of records in the dataset should never be less than n_clusters
+            with pytest.raises(ValueError):  # noqa: PT011
+                result = sem_duplicates(dedup_data)
+        else:
+            # Correctly returns the original dataset with no duplicates removed
+            result = sem_duplicates(dedup_data)
+            result_df = result.df.compute()
+            docs_to_remove = [1, 100]
+            if id_col_type == "str":
+                docs_to_remove = list(map(str, docs_to_remove))
 
-    #         if not perform_removal:
-    #             expected_df = cudf.Series(docs_to_remove, name="id", dtype=id_col_type)
-    #             assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
-    #         else:
-    #             assert_eq(
-    #                 result_df,
-    #                 dedup_data.df[~dedup_data.df["id"].isin(docs_to_remove)],
-    #                 check_index=False,
-    #             )
+            if not perform_removal:
+                expected_df = cudf.Series(docs_to_remove, name="id", dtype=id_col_type)
+                assert_eq(result_df["id"].sort_values(), expected_df, check_index=False)
+            else:
+                assert_eq(
+                    result_df,
+                    dedup_data.df[~dedup_data.df["id"].isin(docs_to_remove)],
+                    check_index=False,
+                )
 
     @pytest.mark.parametrize("n_clusters", [2, 3])
     @pytest.mark.parametrize("perform_removal", [True, False])
