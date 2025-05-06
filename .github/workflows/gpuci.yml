@@ -24,7 +24,7 @@ jobs:
       - name: Generate image tag from Dockerfile and pyproject.toml
         id: hash
         run: |
-          TAG=$(sha256sum Dockerfile pyproject.toml | sha256sum | cut -c1-16)
+          TAG=$(sha256sum Dockerfile pyproject.toml | sha256sum | cut -c1-12)
           echo $TAG
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
