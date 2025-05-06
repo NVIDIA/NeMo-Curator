@@ -24,6 +24,6 @@ The above script applies basic filtering to the input dataset:
 - Only take samples used for Nemotron Nano training
 - Remove empty and malformed samples
 - Remove non-English samples
-- Remove samples longer than 8k tokens (with chat template applied via the tokenizer). To tokenize the text, the user must specify the boolean flag `--tokenize`. If `--tokenize` is not set, then the text will not be tokenized and the text length (number of characters) will be returned instead.
+- Remove samples longer than 8k tokens (with chat template applied via the tokenizer). For faster performance, the user can specify the boolean flag `--skip-tokenize`, which skips the tokenization step and returns the text length (number of characters) instead.
 
 After filtering, it sorts all samples by completion length, then "interleave" thinking ON/thinking OFF for curriculum learning. For large datasets, we recommend using `--approximate-interleave` which interleaves the data by Dask partition rather than row by row. If you prefer to interleave globally (per row), then you can remove `--approximate-interleave` from the script command.

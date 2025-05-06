@@ -136,7 +136,7 @@ class MissingThinkOpenTagFilter(DocumentFilter):
         return scores
 
 
-# TODO: Add this to NeMo Curator
+# TODO: Add this to NeMo Curator modules
 # Tokenize and filter out non-English text
 class NonEnglishFilter(DocumentFilter):
     def __init__(
@@ -202,8 +202,7 @@ class NonEnglishFilter(DocumentFilter):
         return scores
 
 
-# TODO: Add this to NeMo Curator
-# TODO: Speed this up
+# TODO: Add this to NeMo Curator modules
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
     def __init__(
@@ -238,16 +237,17 @@ class CompletionTokenCountFilter(DocumentFilter):
             msg = f"Error loading tokenizer: {e}"
             raise RuntimeError(msg) from e
 
-        return outpt.apply(
-            lambda text: len(
-                tokenizer.apply_chat_template(
-                    [{"role": "assistant", "content": text}],
-                    tokenize=True,
-                    add_generation_prompt=False,
-                    truncation=False,
-                )
+        outpt_copy = outpt.copy()
+        templates_list = outpt_copy.apply(
+            lambda text: tokenizer.apply_chat_template(
+                [{"role": "assistant", "content": text}],
+                tokenize=False,
+                add_generation_prompt=False,
+                truncation=False,
             )
-        )
+        ).tolist()
+        tokenized = tokenizer(templates_list)
+        return pd.Series([len(tokens) for tokens in tokenized["input_ids"]])
 
     @batched
     def keep_document(self, scores: pd.Series) -> pd.Series:
@@ -356,7 +356,7 @@ def main(args: argparse.Namespace) -> None:
                 score_type=bool,
             ),
             ScoreFilter(
-                CompletionTokenCountFilter(args.tokenizer if args.tokenize else None, args.max_token_count),
+                CompletionTokenCountFilter(args.tokenizer if not args.skip_tokenize else None, args.max_token_count),
                 text_field=["output"],
                 score_field="completion_token_count",
                 score_type=int,
@@ -403,11 +403,11 @@ def attach_args() -> argparse.ArgumentParser:
     arg_helper.add_distributed_args()
     arg_helper.attach_bool_arg(
         parser,
-        "tokenize",
+        "skip-tokenize",
         default=False,
         help="""
-        Whether or not to tokenize the text before counting number of tokens.
-        If not, we do not tokenize and return the text length.
+        Whether or not to skip tokenizing the text before counting number of tokens.
+        If True, we do not tokenize and return the text length.
         """,
     )
     arg_helper.attach_bool_arg(
