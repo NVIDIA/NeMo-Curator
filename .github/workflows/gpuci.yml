@@ -35,7 +35,7 @@ jobs:
     with:
       image-name: nemo_curator_container
       image-tag: ${{ needs.generate-image-tag.outputs.image-tag }}
-      skip-build-if-exists: true
+      skip-build-if-exists: false
       dockerfile: Dockerfile
       image-label: nemo-curator
       build-args: |
