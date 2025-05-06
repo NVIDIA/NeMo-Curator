@@ -89,7 +89,6 @@ jobs:
 
         # This runs the container which was pushed by build-container, which we call "nemo-curator-container"
         # `--gpus all` ensures that all of the GPUs from our runner are available in the container
-        # We use "github.run_id" to identify the PR with the commits we want to run the PyTests with
         # `bash -c "sleep infinity"` keeps the container running indefinitely without exiting
       - name: Run Docker container
         run: |
@@ -101,8 +100,7 @@ jobs:
             nemoci.azurecr.io/nemo_curator_container:${{ needs.generate-image-tag.outputs.image-tag }} \
             bash -c "sleep infinity"
 
-        # Expect `whoami` to be "azureuser"
-        # Expect `nvidia-smi` to show our 2 A100 GPUs
+        # Expect `nvidia-smi` to show available GPUs
       - name: Check GPUs
         run: |
           whoami
