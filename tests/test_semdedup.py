@@ -167,7 +167,7 @@ class TestSemDuplicates:
                     first_doc_to_keep = {"1", "2", "3", "4"}
                     second_doc_to_keep = {"100", "200", "300"}
 
-                result_ids = set(result_df["id"].tolist())
+                result_ids = set(result_df["id"].to_arrow().to_pylist())
 
                 # Intersection of the sets
                 num_kept_from_first = len(result_ids & first_doc_to_keep)
