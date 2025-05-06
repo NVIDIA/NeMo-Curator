@@ -33,7 +33,7 @@ jobs:
     #    then subsequent pushes to the PR will not autorun gpuCI
     #    unless the "gpuCI" label is removed and re-added again.
     # 3. PR is merged to main.
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@170888d4969a3ea4a0ec645654a9b9032887f1c9
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@d5fb0e7c8af89d68bedb10c473144e06c63bf9b8
     with:
       image-name: nemo_curator_container
       dockerfile: Dockerfile
@@ -45,46 +45,47 @@ jobs:
       prune-filter-timerange: 24h
       runner: linux-amd64-cpu8
       has-azure-credentials: true
+      use-inline-cache: false
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # Then, we run our PyTests in the container we just built
-  run-gpu-tests:
-    # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
-    # It has 2 A100 GPUs
-    runs-on: linux-amd64-cpu8
-    environment: nemo-ci
-    # Unit tests should not take longer than 30 minutes
-    timeout-minutes: 30
-    # This block covers 3 cases when gpuCI should be triggered:
-    # 1. The PR has the "gpuCI" label and is opened by a maintainer.
-    #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
-    #    as long as the "gpuCI" label is not removed.
-    # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
-    #    then subsequent pushes to the PR will not autorun gpuCI
-    #    unless the "gpuCI" label is removed and re-added again.
-    # 3. PR is merged to main.
-    env:
-      DIR: ${{ github.run_id }}
-    steps:
-      - name: Run tests
-        run: |
-          echo "testing"
-      - name: Install Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Azure ACR Login
-        run: |
-          az acr login --name nemoci
-          which docker
+  # run-gpu-tests:
+  #   # This is the tag on our Azure runner found in Actions -> Runners -> Self-hosted runners
+  #   # It has 2 A100 GPUs
+  #   runs-on: linux-amd64-cpu8
+  #   environment: nemo-ci
+  #   # Unit tests should not take longer than 30 minutes
+  #   timeout-minutes: 30
+  #   # This block covers 3 cases when gpuCI should be triggered:
+  #   # 1. The PR has the "gpuCI" label and is opened by a maintainer.
+  #   #    In this case, gpuCI will autorun on any subsequent pushes to the PR,
+  #   #    as long as the "gpuCI" label is not removed.
+  #   # 2. The "gpuCI" label is added to the PR. If a non-maintainer opened the PR,
+  #   #    then subsequent pushes to the PR will not autorun gpuCI
+  #   #    unless the "gpuCI" label is removed and re-added again.
+  #   # 3. PR is merged to main.
+  #   env:
+  #     DIR: ${{ github.run_id }}
+  #   steps:
+  #     - name: Run tests
+  #       run: |
+  #         echo "testing"
+  #     - name: Install Azure CLI
+  #       run: |
+  #         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+  #     - name: Azure Login
+  #       uses: azure/login@v2
+  #       with:
+  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
+  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     - name: Azure ACR Login
+  #       run: |
+  #         az acr login --name nemoci
+  #         which docker
       # # If something went wrong during the last cleanup, this step ensures any existing container is removed
       # - name: Remove existing container if it exists
       #   run: |
