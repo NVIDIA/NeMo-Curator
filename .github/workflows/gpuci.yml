@@ -15,26 +15,12 @@ permissions:
   contents: read
 
 jobs:
-  generate-image-tag:
-    runs-on: ubuntu-latest
-    outputs:
-      image-tag: ${{ steps.hash.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate image tag from Dockerfile and pyproject.toml
-        id: hash
-        run: |
-          TAG=$(sha256sum Dockerfile pyproject.toml | sha256sum | cut -c1-12)
-          echo $TAG
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
   # First, we build and push a NeMo Curator container
   build-container:
     needs: generate-image-tag
     uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@cb39d90591479ce35f0cd0312ca8eb5d861ceb87
     with:
       image-name: nemo_curator_container
-      image-tag: ${{ needs.generate-image-tag.outputs.image-tag }}
       skip-build-if-exists: true
       dockerfile: Dockerfile
       image-label: nemo-curator
@@ -97,7 +83,7 @@ jobs:
             --name nemo-curator-container \
             -d \
             --volume ${{ github.workspace }}:/opt/NeMo-Curator \
-            nemoci.azurecr.io/nemo_curator_container:${{ needs.generate-image-tag.outputs.image-tag }} \
+            nemoci.azurecr.io/nemo_curator_container:${{ github.run_id }} \
             bash -c "sleep infinity"
 
         # Expect `nvidia-smi` to show available GPUs
