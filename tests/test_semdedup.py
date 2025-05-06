@@ -173,9 +173,9 @@ class TestSemDuplicates:
                 num_kept_from_first = len(result_ids & first_doc_to_keep)
                 num_kept_from_second = len(result_ids & second_doc_to_keep)
 
-                assert len(result_ids) == 5
-                assert num_kept_from_first == 3
-                assert num_kept_from_second == 2
+                assert len(result_ids) == 5  # noqa: PLR2004
+                assert num_kept_from_first == 3  # noqa: PLR2004
+                assert num_kept_from_second == 2  # noqa: PLR2004
 
     @pytest.mark.parametrize("n_clusters", [2, 3])
     @pytest.mark.parametrize("perform_removal", [True, False])
