@@ -18,6 +18,7 @@ This script can be run with:
 ```bash
 python main.py \
     --input "./data" \
+    --filename-filter "code" "math" \
     --tokenizer "meta-llama/Llama-3.1-8B-Instruct" \
     --lang-id-model-path "./lid.176.ftz" \
     --max-token-count 8192 \
@@ -26,6 +27,8 @@ python main.py \
 ```
 
 By default, the JSONL data is read with a blocksize of 1 GB per Dask partition. To customize the file reading logic, the user may specify `--json-blocksize "1gb"` with any string representation for the partition size (e.g., "1gb", "256mb"). ALternatively, the user may specify `--json-files-per-partition 2` with any integer to represent the number of JSONL files per Dask partition. Please note that either the blocksize or files per partition can be specified, but not both.
+
+To filter files by name, the user may pass `--filename-filter` followed by any number of strings, such as "code" and "math". When reading the input data directory, the list of files will be filtered to only include files with names containing at least 1 of the strings provided by `--filename-filter`. If `--filename-filter` is not specified, then all files within the directory will be used.
 
 The above script applies basic filtering to the input dataset:
 - Only take samples used for Nemotron Nano training

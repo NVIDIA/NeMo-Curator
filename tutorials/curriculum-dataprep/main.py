@@ -329,9 +329,14 @@ def main(args: argparse.Namespace) -> None:
 
     # Handle input path
     input_files = list(get_all_files_paths_under(args.input, keep_extensions="jsonl"))
+    if args.filename_filter:
+        # Filter out files that don't contain any of the provided substrings
+        input_files = [filename for filename in input_files if any(s in filename for s in args.filename_filter)]
+
     # If neither is set, set the default blocksize to 1GB
     if args.json_blocksize is None and args.json_files_per_partition is None:
         args.json_blocksize = "1gb"
+
     dataset = DocumentDataset.read_json(
         input_files, blocksize=args.json_blocksize, files_per_partition=args.json_files_per_partition
     )
@@ -455,6 +460,12 @@ def attach_args() -> argparse.ArgumentParser:
         type=str,
         help="Path to the input JSONL file or directory containing JSONL files.",
         required=True,
+    )
+    parser.add_argument(
+        "--filename-filter",
+        nargs="+",
+        type=str,
+        help="If specified, only files with names containing one or more of the provided substrings will be processed.",
     )
     parser.add_argument(
         "--tokenizer",
