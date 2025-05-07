@@ -116,7 +116,6 @@ class ClusteringModel:
             raise ValueError(msg)
 
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
-            t0 = time.perf_counter()
             if not self.keep_all_columns:
                 embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
 
