@@ -17,7 +17,7 @@ permissions:
 jobs:
   # First, we build and push a NeMo Curator container
   build-container:
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@cb39d90591479ce35f0cd0312ca8eb5d861ceb87
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@c605b821950719110031cfdbb97b5364d21b5d3d
     with:
       image-name: nemo_curator_container
       skip-build-if-exists: true
