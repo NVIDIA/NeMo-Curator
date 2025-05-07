@@ -7,17 +7,25 @@ The following files are needed to run this tutorial:
 - Be sure to request access to the tokenizer via https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
 - The FastText language identification model can be downloaded from here: https://fasttext.cc/docs/en/language-identification.html
 
+The following command can be used to download the FastText language identification model, which is used in the next step as the `--lang-id-model-path`:
+
+```bash
+wget https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz
+```
+
 This script can be run with:
 
 ```bash
 python main.py \
     --input "./data" \
     --tokenizer "meta-llama/Llama-3.1-8B-Instruct" \
-    --model-path "./lid.176.ftz" \
+    --lang-id-model-path "./lid.176.ftz" \
     --max-token-count 8192 \
     --output-dir "./output" \
     --device "gpu"
 ```
+
+By default, the JSONL data is read with a blocksize of 1 GB per Dask partition. To customize the file reading logic, the user may specify `--json-blocksize "1gb"` with any string representation for the partition size (e.g., "1gb", "256mb"). ALternatively, the user may specify `--json-files-per-partition 2` with any integer to represent the number of JSONL files per Dask partition. Please note that either the blocksize or files per partition can be specified, but not both.
 
 The above script applies basic filtering to the input dataset:
 - Only take samples used for Nemotron Nano training

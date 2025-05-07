@@ -145,12 +145,12 @@ class NonEnglishFilter(DocumentFilter):
     def __init__(
         self,
         pretrained_model_name_or_path: str,
-        model_path: str,
+        lang_id_model_path: str,
         text_fields: list[str] | None = None,
     ):
         self._name = "non_english_filter"
         self.pretrained_model_name_or_path = pretrained_model_name_or_path
-        self.model_path = model_path
+        self.lang_id_model_path = lang_id_model_path
         if text_fields is None:
             self.text_fields = ["system_prompt", "input", "output"]
         else:
@@ -185,7 +185,7 @@ class NonEnglishFilter(DocumentFilter):
             self.model = load_object_on_worker(
                 attr=f"{self._name}.model",
                 load_object_function=fasttext.load_model,
-                load_object_kwargs={"path": self.model_path},
+                load_object_kwargs={"path": self.lang_id_model_path},
             )
         except NoWorkerError as e:
             msg = f"Error loading model: {e}"
@@ -329,7 +329,12 @@ def main(args: argparse.Namespace) -> None:
 
     # Handle input path
     input_files = list(get_all_files_paths_under(args.input, keep_extensions="jsonl"))
-    dataset = DocumentDataset.read_json(input_files)
+    # If neither is set, set the default blocksize to 1GB
+    if args.json_blocksize is None and args.json_files_per_partition is None:
+        args.json_blocksize = "1gb"
+    dataset = DocumentDataset.read_json(
+        input_files, blocksize=args.json_blocksize, files_per_partition=args.json_files_per_partition
+    )
 
     # Filter out samples based on token count
     print("Applying filters and counting tokens")
@@ -366,7 +371,7 @@ def main(args: argparse.Namespace) -> None:
                 score_type=bool,
             ),
             ScoreFilter(
-                NonEnglishFilter(args.tokenizer, args.model_path),
+                NonEnglishFilter(args.tokenizer, args.lang_id_model_path),
                 text_field=["system_prompt", "input", "output"],
                 score_type=bool,
             ),
@@ -448,8 +453,8 @@ def attach_args() -> argparse.ArgumentParser:
     parser.add_argument(
         "--input",
         type=str,
-        default="./data",
         help="Path to the input JSONL file or directory containing JSONL files.",
+        required=True,
     )
     parser.add_argument(
         "--tokenizer",
@@ -458,22 +463,35 @@ def attach_args() -> argparse.ArgumentParser:
         help="Hugging Face tokenizer",
     )
     parser.add_argument(
-        "--model_path",
+        "--lang-id-model-path",
         type=str,
-        default="./lid.176.ftz",
         help="Path to the FastText model",
+        required=True,
     )
     parser.add_argument(
-        "--max_token_count",
+        "--max-token-count",
         type=int,
         default=8192,
         help="Optional maximum token count. Rows exceeding this count will be filtered out.",
     )
     parser.add_argument(
-        "--output_dir",
+        "--output-dir",
         type=str,
-        default="./output",
         help="Path to the output directory.",
+        required=True,
+    )
+
+    parser.add_argument(
+        "--json-blocksize",
+        type=str,
+        help="Blocksize to use for reading the JSONL files.",
+        required=False,
+    )
+    parser.add_argument(
+        "--json-files-per-partition",
+        type=int,
+        help="The number of JSONL files for each partition of the DocumentDataset.",
+        required=False,
     )
 
     return parser
