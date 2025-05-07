@@ -135,9 +135,7 @@ class ClusteringModel:
             cupy_normalized_darr = embeddings_df.map_partitions(
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
-            print(f"before persist {type(cupy_normalized_darr)=}", flush=True)
             cupy_normalized_darr.persist()
-            print(f"after persist {type(cupy_normalized_darr)=}", flush=True)
 
             try:
                 cupy_normalized_darr.compute_chunk_sizes()
