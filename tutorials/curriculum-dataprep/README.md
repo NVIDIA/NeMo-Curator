@@ -16,8 +16,7 @@ python main.py \
     --model-path "./lid.176.ftz" \
     --max-token-count 8192 \
     --output-dir "./output" \
-    --tokenize \
-    --approximate-interleave
+    --device "gpu"
 ```
 
 The above script applies basic filtering to the input dataset:
@@ -26,4 +25,4 @@ The above script applies basic filtering to the input dataset:
 - Remove non-English samples
 - Remove samples longer than 8k tokens (with chat template applied via the tokenizer). For faster performance, the user can specify the boolean flag `--skip-tokenize`, which skips the tokenization step and returns the text length (number of characters) instead.
 
-After filtering, it sorts all samples by completion length, then "interleave" thinking ON/thinking OFF for curriculum learning. For large datasets, we recommend using `--approximate-interleave` which interleaves the data by Dask partition rather than row by row. If you prefer to interleave globally (per row), then you can remove `--approximate-interleave` from the script command.
+After filtering, it sorts all samples by completion length, then "interleaves" thinking ON/thinking OFF for curriculum learning. For large datasets, we recommend setting `--device "gpu"` and using an approximate interleaving approach which interleaves the data by Dask partition rather than row by row. If you prefer to interleave globally (per row), then you can specify the boolean flag `--global-interleave` from the script command.

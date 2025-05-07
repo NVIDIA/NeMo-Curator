@@ -13,11 +13,14 @@
 # limitations under the License.
 
 import argparse
+import json
 import os
 import time
 from itertools import zip_longest
 
+import cudf
 import dask.dataframe as dd
+import dask_cudf
 import fasttext
 import pandas as pd
 from dask.delayed import delayed
@@ -247,14 +250,16 @@ class CompletionTokenCountFilter(DocumentFilter):
             )
         ).tolist()
         tokenized = tokenizer(templates_list)
-        return pd.Series([len(tokens) for tokens in tokenized["input_ids"]])
+        return pd.Series([len(tokens) for tokens in tokenized["input_ids"]], index=outpt_copy.index)
 
     @batched
     def keep_document(self, scores: pd.Series) -> pd.Series:
         return (scores > 0) & (scores <= self.max_token_count)
 
 
-def interleave_partitions(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
+def interleave_partitions(
+    df1: dd.DataFrame | dask_cudf.DataFrame, df2: dd.DataFrame | dask_cudf.DataFrame, gpu: bool = False
+) -> dd.DataFrame | dask_cudf.DataFrame:
     parts1 = df1.to_delayed()
     parts2 = df2.to_delayed()
 
@@ -265,10 +270,15 @@ def interleave_partitions(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
         if p2 is not None:
             merged_parts.append(p2)
 
-    return dd.from_delayed(merged_parts, meta=df1._meta)  # noqa: SLF001
+    if gpu:
+        return dask_cudf.from_delayed(merged_parts, meta=df1._meta)  # noqa: SLF001
+    else:
+        return dd.from_delayed(merged_parts, meta=df1._meta)  # noqa: SLF001
 
 
-def _interleave_rows(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+def _interleave_rows(
+    df1: pd.DataFrame | cudf.DataFrame, df2: pd.DataFrame | cudf.DataFrame, gpu: bool = False
+) -> pd.DataFrame | cudf.DataFrame:
     max_len = max(len(df1), len(df2))
     df1 = df1.reset_index(drop=True)
     df2 = df2.reset_index(drop=True)
@@ -280,34 +290,39 @@ def _interleave_rows(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
         if i < len(df2):
             rows.append(df2.iloc[i])
 
-    return pd.DataFrame(rows)
+    if gpu:
+        return cudf.DataFrame(rows)
+    else:
+        return pd.DataFrame(rows)
 
 
-def interleave_rows(df1: dd.DataFrame, df2: dd.DataFrame) -> dd.DataFrame:
+def interleave_rows(
+    df1: dd.DataFrame | dask_cudf.DataFrame, df2: dd.DataFrame | dask_cudf.DataFrame, gpu: bool = False
+) -> dd.DataFrame | dask_cudf.DataFrame:
     df1_parts = df1.to_delayed()
     df2_parts = df2.to_delayed()
 
     interleaved_parts = []
     for part1, part2 in zip_longest(df1_parts, df2_parts):
         if part1 is not None and part2 is not None:
-            interleaved = delayed(_interleave_rows)(part1, part2)
+            interleaved = delayed(_interleave_rows)(part1, part2, gpu)
         elif part1 is not None:
             interleaved = part1
         elif part2 is not None:
             interleaved = part2
         interleaved_parts.append(interleaved)
 
-    return dd.from_delayed(interleaved_parts, meta=df1._meta)  # noqa: SLF001
+    if gpu:
+        return dask_cudf.from_delayed(interleaved_parts, meta=df1._meta)  # noqa: SLF001
+    else:
+        return dd.from_delayed(interleaved_parts, meta=df1._meta)  # noqa: SLF001
 
 
 def main(args: argparse.Namespace) -> None:
-    # TODO: Enable GPU support
-    if args.device == "gpu":
-        msg = "GPU is not supported yet"
-        raise NotImplementedError(msg)
+    if args.device != "gpu":
+        # Limit the total number of workers to ensure we don't run out of memory.
+        args.n_workers = min(args.n_workers, 4)
 
-    # Limit the total number of workers to ensure we don't run out of memory.
-    args.n_workers = min(args.n_workers, 4)
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     start_time = time.time()
@@ -365,24 +380,33 @@ def main(args: argparse.Namespace) -> None:
     )
     dataset_df = filter_steps(dataset).df
 
+    # Convert to GPU if requested
+    if args.device == "gpu":
+        dataset_df["input"] = dataset_df["input"].map(json.dumps, meta=("input", str))
+        dataset_df = dataset_df.map_partitions(lambda partition: cudf.from_pandas(partition))
+
     # Split into thinking ON and OFF
     print("Splitting dataset")
-    thinking_on = dataset_df[dataset_df["reasoning"] == "on"]
-    thinking_off = dataset_df[dataset_df["reasoning"] == "off"]
+    thinking_on = dataset_df.map_partitions(lambda df: df[df["reasoning"] == "on"])
+    thinking_off = dataset_df.map_partitions(lambda df: df[df["reasoning"] == "off"])
 
     # Sort each group by token count
     print("Sorting...")
     sorted_thinking_on = thinking_on.sort_values("completion_token_count")
     sorted_thinking_off = thinking_off.sort_values("completion_token_count")
 
-    if args.approximate_interleave:
+    if not args.global_interleave:
         print("Approximate interleaving...")
         # Interleave the sorted DataFrame partitions
-        interleaved_df = interleave_partitions(sorted_thinking_on, sorted_thinking_off)
+        interleaved_df = interleave_partitions(sorted_thinking_on, sorted_thinking_off, gpu=args.device == "gpu")
     else:
+        if args.device == "gpu":
+            msg = "Global interleaving on GPU is not supported. Please use --global-interleave or CPU."
+            raise RuntimeError(msg)
+
         print("Global interleaving...")
         # Interleave the sorted DataFrame rows
-        interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off)
+        interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off, gpu=args.device == "gpu")
 
     # Save dataset
     os.makedirs(args.output_dir, exist_ok=True)
@@ -412,11 +436,11 @@ def attach_args() -> argparse.ArgumentParser:
     )
     arg_helper.attach_bool_arg(
         parser,
-        "approximate-interleave",
+        "global-interleave",
         default=False,
         help="""
-        If False, the datasets will be interleaved globally, i.e., row by row.
-        If True, the datasets will be interleaved approximately, i.e., partition by partition.
+        If True, the datasets will be interleaved globally, i.e., row by row.
+        If False, the datasets will be interleaved approximately, i.e., partition by partition.
         Default is False.
         """,
     )
