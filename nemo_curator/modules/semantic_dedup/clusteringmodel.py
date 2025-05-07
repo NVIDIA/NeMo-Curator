@@ -105,7 +105,7 @@ class ClusteringModel:
         else:
             return logger
 
-    def __call__(self, embeddings_dataset: DocumentDataset) -> DocumentDataset:  # noqa: PLR0915
+    def __call__(self, embeddings_dataset: DocumentDataset) -> DocumentDataset:
         embeddings_df = embeddings_dataset.df
 
         if self.embedding_column not in embeddings_df.columns:
@@ -121,21 +121,11 @@ class ClusteringModel:
                 embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
 
             if self.clustering_input_partition_size is not None:
-                print(
-                    f"Repartitioning embeddings with partition size {self.clustering_input_partition_size}.",
-                    flush=True,
-                )
                 embeddings_df = embeddings_df.repartition(partition_size=self.clustering_input_partition_size)
 
-            print(
-                f"Calling kmeans on embeddings with npartitions={embeddings_df.npartitions} and optimized partitions {embeddings_df.optimize().npartitions}.",
-                flush=True,
-            )
             # We need this optimize call since the map_partitions(get_array_from_df) seems to be returning different
             # number of partitions
             embeddings_df = embeddings_df.optimize()
-            print(f"After optimization, embeddings with npartitions={embeddings_df.npartitions}.", flush=True)
-            t1 = time.perf_counter()
             # Normalize embeddings before clustering
             embeddings_df = embeddings_df.map_partitions(
                 normalize_embeddings_col_in_df,
@@ -144,11 +134,6 @@ class ClusteringModel:
             )
             cupy_normalized_darr = embeddings_df.map_partitions(
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
-            )
-            t2 = time.perf_counter()
-            print(
-                f"Took {(t2 - t1):.2f} seconds to normalize + get_array_from_df (npartitions={cupy_normalized_darr.npartitions}) + compute_chunk_sizes.",
-                flush=True,
             )
             # Perform KMeans clustering (KMeans.fit)
             t0 = time.time()
@@ -160,8 +145,6 @@ class ClusteringModel:
             )
             self.logger.info("KMeans starting fit")
             kmeans.fit(cupy_normalized_darr)
-            t3 = time.perf_counter()
-            print(f"Took {(t3 - t2):.2f} seconds to call KMeans Fit.", flush=True)
             self.logger.info("KMeans fit complete")
             self.logger.info(f"Time taken for KMeans fit: {time.time() - t0}")
             # Compute nearest centroids using kmeans.predict
@@ -170,7 +153,6 @@ class ClusteringModel:
             nearest_cents = kmeans.predict(cupy_normalized_darr)
             self.logger.info(f"Time taken for KMeans predict: {time.time() - t0}")
             t0 = time.time()
-            print(f"Nearest centers's npartitions = {nearest_cents.npartitions}", flush=True)
             embeddings_df["nearest_cent"] = nearest_cents.astype(np.int32)
             del nearest_cents
             # Add L2 and cosine distance to centroid columns to the dataframe
@@ -206,8 +188,6 @@ class ClusteringModel:
                 partition_on="nearest_cent",
                 write_index=False,
             )
-            t4 = time.perf_counter()
-            print(f"Took {(t4 - t3):.2f} seconds to call add distance and write to parquet.")
 
             self.logger.info(
                 f"Time taken for assigning distance to each embedding: {time.time() - t0}s"
