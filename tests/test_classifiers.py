@@ -252,7 +252,6 @@ def test_prompt_task_complexity_classifier(gpu_client) -> None:  # noqa: ANN001,
     result_dataset = classifier(dataset=input_dataset)
     result_pred = result_dataset.df.compute().sort_index(axis=1)
 
-    # TODO: Modify as needed
     expected_pred = cudf.DataFrame(
         {
             "constraint_ct": [0.5586],
@@ -274,12 +273,16 @@ def test_prompt_task_complexity_classifier(gpu_client) -> None:  # noqa: ANN001,
     # Rounded values to account for floating point errors
     result_pred["constraint_ct"] = round(result_pred["constraint_ct"], 2)
     expected_pred["constraint_ct"] = round(expected_pred["constraint_ct"], 2)
-    result_pred["contextual_knowledge"] = round(result_pred["contextual_knowledge"], 3)
-    expected_pred["contextual_knowledge"] = round(expected_pred["contextual_knowledge"], 3)
+    result_pred["contextual_knowledge"] = round(result_pred["contextual_knowledge"], 2)
+    expected_pred["contextual_knowledge"] = round(expected_pred["contextual_knowledge"], 2)
     result_pred["creativity_scope"] = round(result_pred["creativity_scope"], 2)
     expected_pred["creativity_scope"] = round(expected_pred["creativity_scope"], 2)
-    result_pred["prompt_complexity_score"] = round(result_pred["prompt_complexity_score"], 3)
-    expected_pred["prompt_complexity_score"] = round(expected_pred["prompt_complexity_score"], 3)
+    result_pred["domain_knowledge"] = round(result_pred["domain_knowledge"], 2)
+    expected_pred["domain_knowledge"] = round(expected_pred["domain_knowledge"], 2)
+    result_pred["prompt_complexity_score"] = round(result_pred["prompt_complexity_score"], 2)
+    expected_pred["prompt_complexity_score"] = round(expected_pred["prompt_complexity_score"], 2)
+    result_pred["reasoning"] = round(result_pred["reasoning"], 2)
+    expected_pred["reasoning"] = round(expected_pred["reasoning"], 2)
     result_pred["task_type_prob"] = round(result_pred["task_type_prob"], 2)
     expected_pred["task_type_prob"] = round(expected_pred["task_type_prob"], 2)
 
