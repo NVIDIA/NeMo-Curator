@@ -105,7 +105,7 @@ class ClusteringModel:
         else:
             return logger
 
-    def __call__(self, embeddings_dataset: DocumentDataset) -> DocumentDataset:
+    def __call__(self, embeddings_dataset: DocumentDataset) -> DocumentDataset:  # noqa: PLR0915
         embeddings_df = embeddings_dataset.df
 
         if self.embedding_column not in embeddings_df.columns:
@@ -131,9 +131,33 @@ class ClusteringModel:
                 embedding_col=self.embedding_column,
                 meta=embeddings_df._meta.copy(),  # noqa: SLF001
             )
+            # It's okay to add persist here since KMeansMG will persist the array too
             cupy_normalized_darr = embeddings_df.map_partitions(
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
+            print(f"before persist {type(cupy_normalized_darr)=}", flush=True)
+            cupy_normalized_darr.persist()
+            print(f"after persist {type(cupy_normalized_darr)=}", flush=True)
+
+            try:
+                cupy_normalized_darr.compute_chunk_sizes()
+            except Exception:  # noqa: BLE001
+                import dask
+
+                # For cudf 25.02 / 25.04 compute_chunk_sizes fails with a task fusion error
+                # This is a workaround to disable task fusion
+                with dask.config.set({"optimization.fuse.active": False}):
+                    cupy_normalized_darr.compute_chunk_sizes()
+
+            # TODO: Remove once https://github.com/rapidsai/cuml/issues/6643 is fixed
+            if len(cupy_normalized_darr) < self.n_clusters:
+                msg = (
+                    f"Number of clusters is greater than the number of documents in your dataset: "
+                    f"dataset length is {len(cupy_normalized_darr)} while n_clusters is set to {self.n_clusters}. "
+                    f"Please reduce n_clusters to be less than or equal to {len(cupy_normalized_darr)}."
+                )
+                raise ValueError(msg)
+
             # Perform KMeans clustering (KMeans.fit)
             t0 = time.time()
             kmeans = KMeans(
