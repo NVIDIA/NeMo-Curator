@@ -1,5 +1,5 @@
 # PII Modification with NeMo Curator and Large Language Models
-This tutorial demonstrates how to use NVIDIA's NeMo Curator library to modify text data containing Personally Identifiable Information (PII) using large language models (LLMs). We'll explore both asynchronous and synchronous approaches using AsyncLLMPiiModifier and LLMPiiModifier.
+This tutorial demonstrates how to use NVIDIA's NeMo Curator library to modify text data containing Personally Identifiable Information (PII) using large language models (LLMs). We'll explore both asynchronous and synchronous approaches using `AsyncLLMPiiModifier` and `LLMPiiModifier`.
 
 PII modification with NeMo Curator provides a sophisticated approach to privacy protection while maintaining data utility. The LLM-based modifiers offer intelligent, context-aware transformations that preserve the natural flow and usefulness of the dataset.
 
