@@ -206,7 +206,61 @@ class NonEnglishFilter(DocumentFilter):
 
 
 # TODO: Add this to NeMo Curator modules
-# TODO: TokenCountFilter
+# Tokenize system_prompt, input, and output and filter out samples with too many tokens
+class TokenCountFilter(DocumentFilter):
+    def __init__(
+        self,
+        pretrained_model_name_or_path: str,
+        max_token_count: int = 16_000,
+        text_fields: list[str] | None = None,
+    ):
+        super().__init__()
+        self._name = "token_count_filter"
+        self.pretrained_model_name_or_path = pretrained_model_name_or_path
+        self.max_token_count = max_token_count
+        if text_fields is None:
+            self.text_fields = ["system_prompt", "input", "output"]
+        else:
+            self.text_fields = text_fields
+
+    def apply_chat_template(self, system: str, inpt: list[dict], outpt: str) -> str:
+        text = self.tokenizer.apply_chat_template(
+            [
+                {"role": "system", "content": system},
+                *inpt,
+                {"role": "assistant", "content": outpt},
+            ],
+            tokenize=False,
+            add_generation_prompt=False,
+        )
+        return str(text).replace("\n", " ").strip()
+
+    @batched
+    def score_document(self, df: pd.DataFrame) -> pd.Series:
+        try:
+            self.tokenizer = load_object_on_worker(
+                attr=f"{self._name}.tokenizer",
+                load_object_function=AutoTokenizer.from_pretrained,
+                load_object_kwargs={"pretrained_model_name_or_path": self.pretrained_model_name_or_path},
+            )
+        except NoWorkerError as e:
+            msg = f"Error loading tokenizer: {e}"
+            raise RuntimeError(msg) from e
+
+        templates_list = df.apply(
+            lambda row: self.apply_chat_template(
+                row[self.text_fields[0]],
+                row[self.text_fields[1]],
+                row[self.text_fields[2]],
+            ),
+            axis=1,
+        ).tolist()
+        tokenized = self.tokenizer(templates_list)
+        return pd.Series([len(tokens) for tokens in tokenized["input_ids"]], index=df.index)
+
+    @batched
+    def keep_document(self, scores: pd.Series) -> pd.Series:
+        return (scores > 0) & (scores <= self.max_token_count)
 
 
 # TODO: Add this to NeMo Curator modules
@@ -214,14 +268,14 @@ class NonEnglishFilter(DocumentFilter):
 class CompletionTokenCountFilter(DocumentFilter):
     def __init__(
         self,
-        pretrained_model_name_or_path: str | None = None,
-        max_token_count: int = 8192,
+        pretrained_model_name_or_path: str,
+        max_completion_token_count: int = 8192,
         text_fields: list[str] | None = None,
     ):
         super().__init__()
         self._name = "completion_token_count_filter"
         self.pretrained_model_name_or_path = pretrained_model_name_or_path
-        self.max_token_count = max_token_count
+        self.max_completion_token_count = max_completion_token_count
         if text_fields is None:
             self.text_fields = ["output"]
         else:
@@ -230,9 +284,6 @@ class CompletionTokenCountFilter(DocumentFilter):
     @batched
     def score_document(self, df: pd.DataFrame) -> pd.Series:
         outpt = df[self.text_fields[0]]
-
-        if self.pretrained_model_name_or_path is None:
-            return outpt.str.len()
 
         try:
             tokenizer = load_object_on_worker(
@@ -258,7 +309,7 @@ class CompletionTokenCountFilter(DocumentFilter):
 
     @batched
     def keep_document(self, scores: pd.Series) -> pd.Series:
-        return (scores > 0) & (scores <= self.max_token_count)
+        return (scores > 0) & (scores <= self.max_completion_token_count)
 
 
 # TODO: Modifier for input and output chat templates
@@ -388,7 +439,13 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
                 score_type=bool,
             ),
             ScoreFilter(
-                CompletionTokenCountFilter(args.tokenizer if not args.skip_tokenize else None, args.max_token_count),
+                TokenCountFilter(args.tokenizer, args.max_token_count),
+                text_field=["system_prompt", "input", "output"],
+                score_field="token_count",
+                score_type=int,
+            ),
+            ScoreFilter(
+                CompletionTokenCountFilter(args.tokenizer, args.max_completion_token_count),
                 text_field=["output"],
                 score_field="completion_token_count",
                 score_type=int,
@@ -464,15 +521,6 @@ def attach_args() -> argparse.ArgumentParser:
     arg_helper.add_distributed_args()
     arg_helper.attach_bool_arg(
         parser,
-        "skip-tokenize",
-        default=False,
-        help="""
-        Whether or not to skip tokenizing the text before counting number of tokens.
-        If True, we do not tokenize and return the text length.
-        """,
-    )
-    arg_helper.attach_bool_arg(
-        parser,
         "global-interleave",
         default=False,
         help="""
@@ -495,7 +543,7 @@ def attach_args() -> argparse.ArgumentParser:
     parser.add_argument(
         "--input-dir",
         type=str,
-        help="Path to the input JSONL file or directory containing JSONL files.",
+        help="Path to the input directory containing JSONL files.",
         required=True,
     )
     parser.add_argument(
@@ -525,8 +573,14 @@ def attach_args() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-token-count",
         type=int,
-        default=8192,
+        default=16_000,
         help="Optional maximum token count. Rows exceeding this count will be filtered out.",
+    )
+    parser.add_argument(
+        "--max-completion-token-count",
+        type=int,
+        default=8192,
+        help="Optional maximum completion token count. Rows exceeding this count will be filtered out.",
     )
     parser.add_argument(
         "--output-dir",

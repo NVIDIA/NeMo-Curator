@@ -51,10 +51,11 @@ This tutorial can be run with:
 python main.py \
     --input-dir "/path/to/input/data" \
     --filename-filter "code" "math" \
-    --remove-columns "used_in_training" "license" \
+    --remove-columns "category" "generator" "license" "used_in_training" "version" \
     --tokenizer "meta-llama/Llama-3.1-8B-Instruct" \
     --lang-id-model-path "./lid.176.ftz" \
-    --max-token-count 8192 \
+    --max-token-count 16000 \
+    --max-completion-token-count 8192 \
     --output-dir "/path/to/output" \
     --device "gpu" \
     --n-workers 4
@@ -67,10 +68,11 @@ The above script applies basic filtering to the input dataset:
 - Only take samples used for Nemotron Nano training
 - Remove empty and malformed samples
 - Remove non-English samples
-- Remove samples longer than 8k tokens (with chat template applied via the tokenizer). For faster performance, the user can specify the boolean flag `--skip-tokenize`, which skips the tokenization step and returns the text length (number of characters) instead.
-- Remove any columns specified by the `--remove-columns` parameter
+- Remove samples with total length (system prompt, input, and output responses) longer than 16k tokens (with chat template applied via the tokenizer)
+- Remove samples with output responses longer than 8k tokens (with chat template applied via the tokenizer)
+- Remove any columns specified by the `--remove-columns` parameter. We recommend removing the columns specified above
 
-After filtering, it sorts all samples by completion length, then "interleaves" thinking ON/thinking OFF for curriculum learning. For large datasets, we recommend setting `--device "gpu"` and using an approximate interleaving approach which interleaves the data by Dask partition rather than row by row. If you prefer to interleave globally (per row), then you can specify the boolean flag `--global-interleave` from the script command.
+After filtering, it sorts all samples by completion (output response) length, then "interleaves" thinking ON/thinking OFF for curriculum learning. For large datasets, we recommend setting `--device "gpu"` and using an approximate interleaving approach which interleaves the data by Dask partition rather than row by row. If you prefer to interleave globally (per row), then you can specify the boolean flag `--global-interleave` from the script command.
 
 If you are interested in counting and displaying the number of rows after each step in the pipeline, then you can specify the boolean flag `--generate-statistics` from the script command. Please note that enabling this is computationally expensive and will slow down the pipeline, so it is not recommended for large datasets. The default value is False.
 
@@ -78,4 +80,4 @@ If you are interested in counting and displaying the number of rows after each s
 
 If you are running into out of memory (OOM) errors, there are a couple of approaches you can try. One is to avoid very large partitions of data. By default, the JSONL data is read with a blocksize of 256 MB per Dask partition. To customize the file reading logic, the user may specify `--json-blocksize "1gb"` with any string representation for the partition size (e.g., "1gb", "256mb"). Alternatively, the user may specify `--json-files-per-partition 2` with any integer to represent the number of JSONL files per Dask partition. Please note that either the blocksize or files per partition can be specified, but not both. For GPU workflows, a good general rule of thumb is to set the blocksize to 1/32 of the total GPU memory. In general, a blocksize between 100 MB and 1 GB is considered ideal.
 
-You may also encounter errors about Dask workers unexpectedly shutting down. To help mitigate this, consider lowering the `--n-workers` parameter. By default, we set the number of Dask workers equal to the number of CPU cores. It may be helpful to set `--n-workers` to half or a fourth of the number of CPU cores and possibly reduce the number from there. For example, if `lscpu` shows `CPU(s): 96`, then setting `--n-workers 48` or `--n-workers 24` may help optimize performance while avoiding memory issues. In the example bash script, we set `--n-workers 4` to help avoid errors.
+You may also encounter errors about Dask workers unexpectedly shutting down. To help mitigate this, consider lowering the `--n-workers` parameter. By default, we set the number of Dask workers equal to the number of CPU cores. It may be helpful to set `--n-workers` to half or a fourth of the number of CPU cores and possibly reduce the number from there. For example, if `lscpu` shows `CPU(s): 96`, then setting `--n-workers 48` or `--n-workers 24` may help optimize performance while avoiding memory issues. In the example bash script, we set `--n-workers 4` as a very safe option to help avoid errors.
