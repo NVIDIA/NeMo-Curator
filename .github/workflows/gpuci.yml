@@ -24,14 +24,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # This ensures we have the full git history
+          fetch-depth: 0
 
-      - name: Debug git history
+      - name: Get PR info
+        id: get-pr-info
+        if: startsWith(github.ref, 'refs/heads/pull-request/')
+        uses: nv-gha-runners/get-pr-info@main
+
+      - name: Determine base reference
+        id: base-ref
         run: |
-          echo "Current branch: $(git branch --show-current)"
-          echo "Last commit: $(git log -1 --pretty=format:'%h %s')"
-          echo "Changed files in last commit:"
-          git diff-tree --no-commit-id --name-only -r HEAD
+          if [[ "${{ github.ref }}" == refs/heads/pull-request/* ]]; then
+            # For PR branches, use the base branch from PR info
+            echo "base=${{ fromJSON(steps.get-pr-info.outputs.pr-info).base.ref }}" >> $GITHUB_OUTPUT
+          else
+            # For other branches, use the last commit
+            echo "base=HEAD~1" >> $GITHUB_OUTPUT
+          fi
 
       - name: Get changed files
         id: changed-files
@@ -43,18 +52,11 @@ jobs:
             .github/**
             pyproject.toml
             Dockerfile
-          files_separator: ","
-          separator: " "
-          base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}  # Compare against base branch for PRs, or previous commit for pushes
-
-      - name: Print changed files
-        run: |
-          echo "Any changes detected: ${{ steps.changed-files.outputs.any_changed }}"
-          echo "Changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
+          base_sha: ${{ steps.base-ref.outputs.base }}
 
   # First, we build and push a NeMo Curator container
   build-container:
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@d56b4b059e77e347af47ddcb8155ef086b30bf58
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@0.29.0
     needs: [changed-files]
     if: ${{ needs.changed-files.outputs.any_changed == 'true' }}
     with:
