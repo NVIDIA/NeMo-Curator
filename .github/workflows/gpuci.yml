@@ -19,9 +19,19 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       any_changed: ${{ steps.changed-files.outputs.any_changed }}
+      changed_files: ${{ steps.changed-files.outputs.all_changed_files }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # This ensures we have the full git history
+
+      - name: Debug git history
+        run: |
+          echo "Current branch: $(git branch --show-current)"
+          echo "Last commit: $(git log -1 --pretty=format:'%h %s')"
+          echo "Changed files in last commit:"
+          git diff-tree --no-commit-id --name-only -r HEAD
 
       - name: Get changed files
         id: changed-files
@@ -35,6 +45,12 @@ jobs:
             Dockerfile
           files_separator: ","
           separator: " "
+          base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}  # Compare against base branch for PRs, or previous commit for pushes
+
+      - name: Print changed files
+        run: |
+          echo "Any changes detected: ${{ steps.changed-files.outputs.any_changed }}"
+          echo "Changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
 
   # First, we build and push a NeMo Curator container
   build-container:
