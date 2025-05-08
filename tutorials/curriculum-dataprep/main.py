@@ -205,6 +205,9 @@ class NonEnglishFilter(DocumentFilter):
         return scores
 
 
+# TODO: TokenCountFilter
+
+
 # TODO: Add this to NeMo Curator modules
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
@@ -255,6 +258,9 @@ class CompletionTokenCountFilter(DocumentFilter):
     @batched
     def keep_document(self, scores: pd.Series) -> pd.Series:
         return (scores > 0) & (scores <= self.max_token_count)
+
+
+# TODO: Modifier for input and output chat templates
 
 
 def interleave_partitions(
@@ -319,23 +325,19 @@ def interleave_rows(
 
 
 def main(args: argparse.Namespace) -> None:
-    if args.device != "gpu":
-        # Limit the total number of workers to ensure we don't run out of memory.
-        args.n_workers = min(args.n_workers, 4)
-
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     start_time = time.time()
 
     # Handle input path
-    input_files = list(get_all_files_paths_under(args.input, keep_extensions="jsonl"))
+    input_files = list(get_all_files_paths_under(args.input_dir, keep_extensions="jsonl"))
     if args.filename_filter:
         # Filter out files that don't contain any of the provided substrings
         input_files = [filename for filename in input_files if any(s in filename for s in args.filename_filter)]
 
     # If neither is set, set the default blocksize to 1GB
     if args.json_blocksize is None and args.json_files_per_partition is None:
-        args.json_blocksize = "1gb"
+        args.json_blocksize = "256mb"
 
     dataset = DocumentDataset.read_json(
         input_files, blocksize=args.json_blocksize, files_per_partition=args.json_files_per_partition
@@ -390,10 +392,19 @@ def main(args: argparse.Namespace) -> None:
     )
     dataset_df = filter_steps(dataset).df
 
+    if args.remove_columns:
+        dataset_df = dataset_df.drop(columns=args.remove_columns, axis=1)
+
+    dataset_df = dataset_df.persist()
+
     # Convert to GPU if requested
     if args.device == "gpu":
+        print("Converting to GPU")
+        # TODO: May be able to remove this if we are reformatting the input column
         dataset_df["input"] = dataset_df["input"].map(json.dumps, meta=("input", str))
         dataset_df = dataset_df.map_partitions(lambda partition: cudf.from_pandas(partition))
+
+    # TODO: Experiment with splitting then sorting versus sorting then splitting
 
     # Split into thinking ON and OFF
     print("Splitting dataset")
@@ -404,6 +415,8 @@ def main(args: argparse.Namespace) -> None:
     print("Sorting...")
     sorted_thinking_on = thinking_on.sort_values("completion_token_count")
     sorted_thinking_off = thinking_off.sort_values("completion_token_count")
+    sorted_thinking_on = sorted_thinking_on.persist()
+    sorted_thinking_off = sorted_thinking_off.persist()
 
     if not args.global_interleave:
         print("Approximate interleaving...")
@@ -455,8 +468,10 @@ def attach_args() -> argparse.ArgumentParser:
         """,
     )
 
+    # TODO: --generate-statistics
+
     parser.add_argument(
-        "--input",
+        "--input-dir",
         type=str,
         help="Path to the input JSONL file or directory containing JSONL files.",
         required=True,
@@ -466,6 +481,12 @@ def attach_args() -> argparse.ArgumentParser:
         nargs="+",
         type=str,
         help="If specified, only files with names containing one or more of the provided substrings will be processed.",
+    )
+    parser.add_argument(
+        "--remove-columns",
+        nargs="+",
+        type=str,
+        help="Columns to remove from the dataset.",
     )
     parser.add_argument(
         "--tokenizer",
