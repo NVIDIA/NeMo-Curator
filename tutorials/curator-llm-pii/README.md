@@ -7,11 +7,8 @@ PII modification with NeMo Curator provides a sophisticated approach to privacy 
 
 The tutorial follows the steps below:
 
-# If building from source
-Please follow the instructions in NeMo Curator's [README](https://github.com/NVIDIA/NeMo-Curator?tab=readme-ov-file#source) to install the NeMo Curator package and import libraries 
-
-# To build from Nemo Curator Container; follow the steps below:
-Please follow the instructions in NeMo Curator's [README](https://github.com/NVIDIA/NeMo-Curator?tab=readme-ov-file#nemo-framework-container) to run the NeMo Framework Container and install the NeMo Curator package
+# Install Nemo Curator
+Please follow the instructions in NeMo Curator's [README](https://github.com/NVIDIA/NeMo-Curator/tree/main?tab=readme-ov-file#install-nemo-curator) to install the NeMo Curator package and import libraries 
 
 Step 1: Pull docker container from NGC
 ```
