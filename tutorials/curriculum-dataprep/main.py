@@ -205,6 +205,7 @@ class NonEnglishFilter(DocumentFilter):
         return scores
 
 
+# TODO: Add this to NeMo Curator modules
 # TODO: TokenCountFilter
 
 
@@ -343,6 +344,10 @@ def main(args: argparse.Namespace) -> None:
         input_files, blocksize=args.json_blocksize, files_per_partition=args.json_files_per_partition
     )
 
+    if args.generate_statistics:
+        initial_count = dataset.df.shape[0].compute()
+        print("Initial number of samples:", initial_count)
+
     # Filter out samples based on token count
     print("Applying filters and counting tokens")
     filter_steps = Sequential(
@@ -397,6 +402,10 @@ def main(args: argparse.Namespace) -> None:
 
     dataset_df = dataset_df.persist()
 
+    if args.generate_statistics:
+        removed_count = initial_count - dataset_df.shape[0].compute()
+        print(f"Removed {removed_count} samples")
+
     # Convert to GPU if requested
     if args.device == "gpu":
         print("Converting to GPU")
@@ -404,19 +413,21 @@ def main(args: argparse.Namespace) -> None:
         dataset_df["input"] = dataset_df["input"].map(json.dumps, meta=("input", str))
         dataset_df = dataset_df.map_partitions(lambda partition: cudf.from_pandas(partition))
 
-    # TODO: Experiment with splitting then sorting versus sorting then splitting
+    # Sort dataset by token count
+    print("Sorting...")
+    sorted_dataset_df = dataset_df.sort_values("completion_token_count")
+    sorted_dataset_df = sorted_dataset_df.persist()
 
     # Split into thinking ON and OFF
     print("Splitting dataset")
-    thinking_on = dataset_df.map_partitions(lambda df: df[df["reasoning"] == "on"])
-    thinking_off = dataset_df.map_partitions(lambda df: df[df["reasoning"] == "off"])
+    sorted_thinking_on = sorted_dataset_df.map_partitions(lambda df: df[df["reasoning"] == "on"])
+    sorted_thinking_off = sorted_dataset_df.map_partitions(lambda df: df[df["reasoning"] == "off"])
 
-    # Sort each group by token count
-    print("Sorting...")
-    sorted_thinking_on = thinking_on.sort_values("completion_token_count")
-    sorted_thinking_off = thinking_off.sort_values("completion_token_count")
-    sorted_thinking_on = sorted_thinking_on.persist()
-    sorted_thinking_off = sorted_thinking_off.persist()
+    if args.generate_statistics:
+        thinking_on_count = sorted_thinking_on.shape[0].compute()
+        thinking_off_count = sorted_thinking_off.shape[0].compute()
+        print(f"Number of samples in thinking ON: {thinking_on_count}")
+        print(f"Number of samples in thinking OFF: {thinking_off_count}")
 
     if not args.global_interleave:
         print("Approximate interleaving...")
@@ -430,6 +441,9 @@ def main(args: argparse.Namespace) -> None:
         print("Global interleaving...")
         # Interleave the sorted DataFrame rows
         interleaved_df = interleave_rows(sorted_thinking_on, sorted_thinking_off, gpu=args.device == "gpu")
+
+    if args.generate_statistics:
+        print(f"Final dataset size: {interleaved_df.shape[0].compute()}")
 
     # Save dataset
     os.makedirs(args.output_dir, exist_ok=True)
@@ -467,8 +481,16 @@ def attach_args() -> argparse.ArgumentParser:
         Default is False.
         """,
     )
-
-    # TODO: --generate-statistics
+    arg_helper.attach_bool_arg(
+        parser,
+        "generate-statistics",
+        default=False,
+        help="""
+        If True, statistics about the number of rows filtered from the original dataset will be displayed.
+        Generating statistics will slow down the script and is not recommended for large datasets.
+        Default is False.
+        """,
+    )
 
     parser.add_argument(
         "--input-dir",

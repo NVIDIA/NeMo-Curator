@@ -72,6 +72,8 @@ The above script applies basic filtering to the input dataset:
 
 After filtering, it sorts all samples by completion length, then "interleaves" thinking ON/thinking OFF for curriculum learning. For large datasets, we recommend setting `--device "gpu"` and using an approximate interleaving approach which interleaves the data by Dask partition rather than row by row. If you prefer to interleave globally (per row), then you can specify the boolean flag `--global-interleave` from the script command.
 
+If you are interested in counting and displaying the number of rows after each step in the pipeline, then you can specify the boolean flag `--generate-statistics` from the script command. Please note that enabling this is computationally expensive and will slow down the pipeline, so it is not recommended for large datasets. The default value is False.
+
 ## Debugging Out of Memory Errors
 
 If you are running into out of memory (OOM) errors, there are a couple of approaches you can try. One is to avoid very large partitions of data. By default, the JSONL data is read with a blocksize of 256 MB per Dask partition. To customize the file reading logic, the user may specify `--json-blocksize "1gb"` with any string representation for the partition size (e.g., "1gb", "256mb"). Alternatively, the user may specify `--json-files-per-partition 2` with any integer to represent the number of JSONL files per Dask partition. Please note that either the blocksize or files per partition can be specified, but not both. For GPU workflows, a good general rule of thumb is to set the blocksize to 1/32 of the total GPU memory. In general, a blocksize between 100 MB and 1 GB is considered ideal.
