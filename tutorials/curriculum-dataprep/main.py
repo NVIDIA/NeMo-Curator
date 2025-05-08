@@ -325,7 +325,7 @@ def interleave_rows(
         return dd.from_delayed(interleaved_parts, meta=df1._meta)  # noqa: SLF001
 
 
-def main(args: argparse.Namespace) -> None:
+def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
     client = get_client(**ArgumentHelper.parse_client_args(args))  # noqa: F841
 
     start_time = time.time()
