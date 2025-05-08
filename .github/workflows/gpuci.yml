@@ -16,17 +16,25 @@ permissions:
 
 jobs:
   changed-files:
-    id: changed-files
-    uses: step-security/changed-files@v45.0.1
-    with:
-      files: |
-        nemo_curator/**
-        config/**
-        .github/**
-        pyproject.toml
-        Dockerfile
-      files_separator: ","
-      separator: " "
+    runs-on: ubuntu-latest
+    outputs:
+      any_changed: ${{ steps.changed-files.outputs.any_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get changed files
+        id: changed-files
+        uses: step-security/changed-files@v45.0.1
+        with:
+          files: |
+            nemo_curator/**
+            config/**
+            .github/**
+            pyproject.toml
+            Dockerfile
+          files_separator: ","
+          separator: " "
 
   # First, we build and push a NeMo Curator container
   build-container:
