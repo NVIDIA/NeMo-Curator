@@ -121,6 +121,10 @@ class ClusteringModel:
                 # We persist here to avoid a re-read of the embeddings_df
                 # We only persist if we are not keeping all columns as text column can be large resulting in OOM
                 embeddings_df = embeddings_df.persist()
+            else:
+                self.logger.warning(
+                    "Since all columns are being kept, we will not persist the embeddings_df which will result in a slowdown"
+                )
 
             if self.clustering_input_partition_size is not None:
                 embeddings_df = embeddings_df.repartition(partition_size=self.clustering_input_partition_size)
@@ -139,11 +143,9 @@ class ClusteringModel:
             cupy_normalized_darr = embeddings_df.map_partitions(
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
-            # This persist should be a no-op if embeddings_df is already persisted
-            # But in case its not we want to make sure the len(cupy_normalized_darr) and KMeans.fit
-            # doesn't trigger graph again
-            cupy_normalized_darr = cupy_normalized_darr.persist()
-
+            # We ideally would persist here in case embeddings_df is not persisted
+            # However because of https://github.com/rapidsai/cudf/issues/18750 we run into an issue
+            # cupy_normalized_darr = cupy_normalized_darr.persist() # noqa: ERA001
             try:
                 cupy_normalized_darr.compute_chunk_sizes()
             except Exception:  # noqa: BLE001
@@ -209,7 +211,7 @@ class ClusteringModel:
             # Deleting kmeans triggers a future cancelled error in dask
             # See issue:https://github.com/NVIDIA/NeMo-Curator/issues/624
             # del kmeans
-            del centroids, cupy_normalized_darr
+            del centroids
 
             # Save embeddings by nearest center to a file
             clustering_output_dir = os.path.join(self.clustering_output_dir, "embs_by_nearest_center")
