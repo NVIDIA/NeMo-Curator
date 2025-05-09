@@ -210,7 +210,7 @@ class TokenCountFilter(DocumentFilter):
     def __init__(
         self,
         pretrained_model_name_or_path: str,
-        max_token_count: int = 16_000,
+        max_token_count: int = 16384,
         text_fields: list[str] | None = None,
     ):
         super().__init__()
@@ -223,7 +223,7 @@ class TokenCountFilter(DocumentFilter):
             self.text_fields = text_fields
 
     def apply_chat_template(self, system: str, inpt: list[dict], outpt: str) -> str:
-        text = self.tokenizer.apply_chat_template(
+        return self.tokenizer.apply_chat_template(
             [
                 {"role": "system", "content": system},
                 *inpt,
@@ -232,7 +232,6 @@ class TokenCountFilter(DocumentFilter):
             tokenize=False,
             add_generation_prompt=False,
         )
-        return str(text).replace("\n", " ").strip()
 
     @batched
     def score_document(self, df: pd.DataFrame) -> pd.Series:
@@ -329,9 +328,11 @@ def format_input_output(system_prompt: str, inpt: list[dict], outpt: str, tokeni
             *inpt,
         ],
         tokenize=False,
+        # We expect the model to start predicting tokens after it sees the start of the assistant response turn
         add_generation_prompt=True,
     )
 
+    # Remove the prompt from prompt_and_completion via string manipulation to extract the completion part
     completion = prompt_and_completion[len(prompt) :]
 
     # input, output
@@ -617,7 +618,7 @@ def attach_args() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-token-count",
         type=int,
-        default=16_000,
+        default=16384,
         help="Optional maximum token count. Rows exceeding this count will be filtered out.",
     )
     parser.add_argument(

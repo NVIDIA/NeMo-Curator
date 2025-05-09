@@ -54,7 +54,7 @@ python main.py \
     --remove-columns "category" "generator" "license" "used_in_training" "version" \
     --tokenizer "meta-llama/Llama-3.1-8B-Instruct" \
     --lang-id-model-path "./lid.176.ftz" \
-    --max-token-count 16000 \
+    --max-token-count 16384 \
     --max-completion-token-count 8192 \
     --output-dir "/path/to/output" \
     --device "gpu" \
