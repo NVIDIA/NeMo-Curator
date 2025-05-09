@@ -16,6 +16,7 @@ docker pull nvcr.io/nvidia/nemo:25.04.rc2
 
 ```
 Step 2: Once container image is pulled, start and exec into the container
+
 ```
 docker run -it --gpus=all \
 -p 8888:8888 \
