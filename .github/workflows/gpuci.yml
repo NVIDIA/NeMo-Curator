@@ -52,6 +52,7 @@ jobs:
             .github/**
             pyproject.toml
             Dockerfile
+            tests/**
           base_sha: ${{ steps.base-ref.outputs.base }}
 
   # First, we build and push a NeMo Curator container
