@@ -118,34 +118,43 @@ class ClusteringModel:
         with performance_report_if_with_ts_suffix(self.profile_dir, "clustering-model"):
             if not self.keep_all_columns:
                 embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
+                # We persist here to avoid a re-read of the embeddings_df
+                embeddings_df = embeddings_df.persist()
 
             if self.clustering_input_partition_size is not None:
                 embeddings_df = embeddings_df.repartition(partition_size=self.clustering_input_partition_size)
 
-            # We need this optimize call since the map_partitions(get_array_from_df) seems to be returning different
-            # number of partitions
+            # Optimize now to ensure consistent partition counts between embeddings_df and kmeans predictions
+            # Without this, the partition counts would mismatch and cause assignment errors
             embeddings_df = embeddings_df.optimize()
+
             # Normalize embeddings before clustering
             embeddings_df = embeddings_df.map_partitions(
                 normalize_embeddings_col_in_df,
                 embedding_col=self.embedding_column,
                 meta=embeddings_df._meta.copy(),  # noqa: SLF001
             )
-            # It's okay to add persist here since KMeansMG will persist the array too
+
             cupy_normalized_darr = embeddings_df.map_partitions(
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
-            cupy_normalized_darr.persist()
 
             try:
                 cupy_normalized_darr.compute_chunk_sizes()
             except Exception:  # noqa: BLE001
-                import dask
+                try:
+                    import dask
 
-                # For cudf 25.02 / 25.04 compute_chunk_sizes fails with a task fusion error
-                # This is a workaround to disable task fusion
-                with dask.config.set({"optimization.fuse.active": False}):
-                    cupy_normalized_darr.compute_chunk_sizes()
+                    # For cudf 25.02 / 25.04 compute_chunk_sizes fails with a task fusion error
+                    # This is a workaround to disable task fusion
+                    with dask.config.set({"optimization.fuse.active": False}):
+                        cupy_normalized_darr.compute_chunk_sizes()
+                except Exception as inner_e:
+                    msg = (
+                        "Unable to compute chunk sizes for the embeddings array. "
+                        "Please raise an issue at https://github.com/NVIDIA/NeMo-Curator/issues"
+                    )
+                    raise RuntimeError(msg) from inner_e
 
             # TODO: Remove once https://github.com/rapidsai/cuml/issues/6643 is fixed
             if len(cupy_normalized_darr) < self.n_clusters:
