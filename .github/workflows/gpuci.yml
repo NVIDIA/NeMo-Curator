@@ -82,8 +82,8 @@ jobs:
     if: ${{ needs.changed-files.outputs.any_changed == 'true' }}
     runs-on: linux-amd64-gpu-rtxa6000-latest-1
     environment: nemo-ci
-    # Unit tests should not take longer than 30 minutes
-    timeout-minutes: 30
+    # Unit tests should not take longer than 40 minutes including docker pull and startup time
+    timeout-minutes: 40
     env:
       DIR: ${{ github.run_id }}
     steps:
