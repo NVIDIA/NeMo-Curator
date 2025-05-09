@@ -494,9 +494,6 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
     )
     dataset_df = filter_steps(dataset).df
 
-    if args.remove_columns:
-        dataset_df = dataset_df.drop(columns=args.remove_columns, axis=1)
-
     # TODO: A lot of re-used logic around apply_chat_template...
     print("Reformatting input and output columns")
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, use_fast=True)
@@ -530,6 +527,10 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
         thinking_off_count = sorted_thinking_off.shape[0].compute()
         print(f"Number of samples in thinking ON: {thinking_on_count}")
         print(f"Number of samples in thinking OFF: {thinking_off_count}")
+
+    # No specific columns are accessed after this point, so we can drop any that the user specifies
+    if args.remove_columns:
+        dataset_df = dataset_df.drop(columns=args.remove_columns, axis=1)
 
     if not args.global_interleave:
         print("Approximate interleaving...")
