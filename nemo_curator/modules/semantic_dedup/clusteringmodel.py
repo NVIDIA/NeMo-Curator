@@ -119,6 +119,7 @@ class ClusteringModel:
             if not self.keep_all_columns:
                 embeddings_df = embeddings_df[[self.id_col, self.embedding_column]]
                 # We persist here to avoid a re-read of the embeddings_df
+                # We only persist if we are not keeping all columns as text column can be large resulting in OOM
                 embeddings_df = embeddings_df.persist()
 
             if self.clustering_input_partition_size is not None:
@@ -138,6 +139,10 @@ class ClusteringModel:
             cupy_normalized_darr = embeddings_df.map_partitions(
                 get_array_from_df, self.embedding_column, meta=cp.ndarray([1, 1])
             )
+            # This persist should be a no-op if embeddings_df is already persisted
+            # But in case its not we want to make sure the len(cupy_normalized_darr) and KMeans.fit
+            # doesn't trigger graph again
+            cupy_normalized_darr = cupy_normalized_darr.persist()
 
             try:
                 cupy_normalized_darr.compute_chunk_sizes()
