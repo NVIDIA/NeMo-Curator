@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import argparse
-import json
 import os
 import time
 from itertools import zip_longest
@@ -312,7 +311,47 @@ class CompletionTokenCountFilter(DocumentFilter):
         return (scores > 0) & (scores <= self.max_completion_token_count)
 
 
-# TODO: Modifier for input and output chat templates
+# Modifier for input and output chat templates
+def format_input_output(system_prompt: str, inpt: list[dict], outpt: str, tokenizer: AutoTokenizer) -> tuple[str, str]:
+    prompt_and_completion = tokenizer.apply_chat_template(
+        [
+            {"role": "system", "content": system_prompt},
+            *inpt,
+            {"role": "assistant", "content": outpt},
+        ],
+        tokenize=False,
+        add_generation_prompt=False,
+    )
+
+    prompt = tokenizer.apply_chat_template(
+        [
+            {"role": "system", "content": system_prompt},
+            *inpt,
+        ],
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+
+    completion = prompt_and_completion[len(prompt) :]
+
+    # input, output
+    return prompt, completion
+
+
+# Apply format_input_output to each row in the partition and overwrite the input and output columns
+def format_partition(df: pd.DataFrame, tokenizer: AutoTokenizer) -> pd.DataFrame:
+    new_inputs = []
+    new_outputs = []
+
+    for _, row in df.iterrows():
+        prompt, completion = format_input_output(row["system_prompt"], row["input"], row["output"], tokenizer)
+        new_inputs.append(prompt)
+        new_outputs.append(completion)
+
+    df["input"] = new_inputs
+    df["output"] = new_outputs
+
+    return df
 
 
 def interleave_partitions(
@@ -457,6 +496,13 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
     if args.remove_columns:
         dataset_df = dataset_df.drop(columns=args.remove_columns, axis=1)
 
+    # TODO: A lot of re-used logic around apply_chat_template...
+    print("Reformatting input and output columns")
+    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, use_fast=True)
+    meta = dataset_df._meta.copy()  # noqa: SLF001
+    meta["input"] = meta["input"].astype(str)
+    dataset_df = dataset_df.map_partitions(lambda df: format_partition(df, tokenizer), meta=meta)
+
     dataset_df = dataset_df.persist()
 
     if args.generate_statistics:
@@ -466,8 +512,6 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
     # Convert to GPU if requested
     if args.device == "gpu":
         print("Converting to GPU")
-        # TODO: May be able to remove this if we are reformatting the input column
-        dataset_df["input"] = dataset_df["input"].map(json.dumps, meta=("input", str))
         dataset_df = dataset_df.map_partitions(lambda partition: cudf.from_pandas(partition))
 
     # Sort dataset by token count
