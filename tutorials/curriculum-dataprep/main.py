@@ -522,15 +522,16 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
     sorted_thinking_on = sorted_dataset_df.map_partitions(lambda df: df[df["reasoning"] == "on"])
     sorted_thinking_off = sorted_dataset_df.map_partitions(lambda df: df[df["reasoning"] == "off"])
 
+    # No specific columns are accessed after this point, so we can drop any that the user specifies
+    if args.remove_columns:
+        sorted_thinking_on = sorted_thinking_on.drop(columns=args.remove_columns, axis=1)
+        sorted_thinking_off = sorted_thinking_off.drop(columns=args.remove_columns, axis=1)
+
     if args.generate_statistics:
         thinking_on_count = sorted_thinking_on.shape[0].compute()
         thinking_off_count = sorted_thinking_off.shape[0].compute()
         print(f"Number of samples in thinking ON: {thinking_on_count}")
         print(f"Number of samples in thinking OFF: {thinking_off_count}")
-
-    # No specific columns are accessed after this point, so we can drop any that the user specifies
-    if args.remove_columns:
-        dataset_df = dataset_df.drop(columns=args.remove_columns, axis=1)
 
     if not args.global_interleave:
         print("Approximate interleaving...")
