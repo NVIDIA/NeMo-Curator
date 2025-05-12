@@ -138,7 +138,6 @@ class MissingThinkOpenTagFilter(DocumentFilter):
         return scores
 
 
-# TODO: Add this to NeMo Curator modules
 # Tokenize and filter out non-English text
 class NonEnglishFilter(DocumentFilter):
     def __init__(
@@ -204,7 +203,6 @@ class NonEnglishFilter(DocumentFilter):
         return scores
 
 
-# TODO: Add this to NeMo Curator modules
 # Tokenize system_prompt, input, and output and filter out samples with too many tokens
 class TokenCountFilter(DocumentFilter):
     def __init__(
@@ -261,7 +259,6 @@ class TokenCountFilter(DocumentFilter):
         return (scores > 0) & (scores <= self.max_token_count)
 
 
-# TODO: Add this to NeMo Curator modules
 # Tokenize text and filter out samples with too many tokens
 class CompletionTokenCountFilter(DocumentFilter):
     def __init__(
@@ -494,7 +491,6 @@ def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0915
     )
     dataset_df = filter_steps(dataset).df
 
-    # TODO: A lot of re-used logic around apply_chat_template...
     print("Reformatting input and output columns")
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer, use_fast=True)
     meta = dataset_df._meta.copy()  # noqa: SLF001
