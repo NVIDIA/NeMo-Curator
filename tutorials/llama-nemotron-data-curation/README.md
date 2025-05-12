@@ -5,7 +5,25 @@ Organized into distinct subsets for supervised fine-tuning (SFT) or reinforcemen
 All samples are in JSON lines (JSONL) format and contain metadata such as license type, source model, as well as the [Llama Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/llama-nemotron/) model(s) trained with that sample.
 
 Each sample consists of a prompt, along with an expected reponse with detailed chain-of-thought (CoT) reasoning traces followed by responses (i.e., "reasoning on"), as well as samples with direct responses (i.e., "reasoning off").
-More concretely, the relevant attributes for this tutorial are:
+Here is an example of what a sample from the dataset may look like:
+
+```bash
+{
+  "input": [
+    {"role": "user", "content": "Can you explain the Pythagorean theorem?"}
+  ],
+  "output": "<think>The user is asking for an explanation of the Pythagorean theorem. This is a fundamental principle in geometry related to right-angled triangles. I should mention the formula and what each variable represents.</think>The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of the squares of the other two sides: a² + b² = c².",
+  "reasoning": "on",
+  "system_prompt": "detailed thinking on",
+  "category": "math",
+  "license": "apache_v2",
+  "generator": "llama-3.3-70b",
+  "used_in_training": ["Ultra"],
+  "version": "v1"
+}
+```
+
+The relevant attributes for this tutorial are as follows:
 
 - `input`: the prompt(s) to the model in the multi-turn chat completions message format. It always contains a message with the role `user`, followed by zero or more turns
 - `output`: the expected response from the model (ground truth)
@@ -73,7 +91,7 @@ python main.py \
     --max-completion-token-count 8192 \
     --output-dir "/path/to/curated-data" \
     --device "gpu" \
-    --n-workers 8
+    --n-workers 4
 ```
 
 Since the entire input dataset is very large, we recommend curating a focused subset of the data that aligns closely with your domain-specific tasks. To help with this, we provide a way to filter files before reading. There are many ways to subset the Llama Nemotron dataset, but we recommend starting with the math and chat subsets because they contain strong examples of domain-agnostic reasoning. To filter files by name, the user may pass `--filename-filter` followed by any number of strings, such as "chat" and "math_v1.1". When reading the input data directory, the list of files will be filtered to only include files with names containing at least 1 of the strings provided by `--filename-filter`. If `--filename-filter` is not specified, then all files within the directory (over 30 million rows) will be used.
@@ -95,4 +113,4 @@ If you are interested in counting and displaying the number of rows after each s
 
 If you are running into out of memory (OOM) errors, there are a couple of approaches you can try. One is to avoid very large partitions of data. By default, the JSONL data is read with a blocksize of 256 MB per Dask partition. To customize the file reading logic, the user may specify `--json-blocksize "1gb"` with any string representation for the partition size (e.g., "1gb", "256mb"). Alternatively, the user may specify `--json-files-per-partition 2` with any integer to represent the number of JSONL files per Dask partition. Please note that either the blocksize or files per partition can be specified, but not both. For GPU workflows, a good general rule of thumb is to set the blocksize to 1/32 of the total GPU memory. In general, a blocksize between 100 MB and 1 GB is considered ideal.
 
-You may also encounter errors about Dask workers unexpectedly shutting down. To help mitigate this, consider lowering the `--n-workers` parameter. By default, we set the number of Dask workers equal to the number of CPU cores. It may be helpful to set `--n-workers` to half or a fourth of the number of CPU cores and possibly reduce the number from there. For example, if `lscpu` shows `CPU(s): 96`, then setting `--n-workers 48` or `--n-workers 24` may help optimize performance while avoiding memory issues. In the example bash script, we set `--n-workers 8` as a safe option to help avoid errors.
+You may also encounter errors about Dask workers unexpectedly shutting down. To help mitigate this, consider lowering the `--n-workers` parameter. By default, we set the number of Dask workers equal to the number of CPU cores. It may be helpful to set `--n-workers` to half or a fourth of the number of CPU cores and possibly reduce the number from there. For example, if `lscpu` shows `CPU(s): 96`, then setting `--n-workers 48` or `--n-workers 24` may help optimize performance while avoiding memory issues. In the example bash script, we set `--n-workers 4` as a safe option to help avoid errors.
