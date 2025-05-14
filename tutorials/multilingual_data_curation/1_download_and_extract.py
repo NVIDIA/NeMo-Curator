@@ -31,13 +31,14 @@ def main(args: argparse.Namespace) -> None:
         raise ValueError(msg)
 
     # Step 1: Download and extract Common Crawl data
-    download_common_crawl(
+    common_crawl_dataset = download_common_crawl(
         output_path=extracted_data_dir,
         start_snapshot=snapshot,
         end_snapshot=snapshot,
         output_type="jsonl",
         algorithm=extraction_algorithm,
-    ).df.compute()
+    )
+    common_crawl_dataset.to_json(output_path=extracted_data_dir, write_to_filename=True)
 
     print(f"Downloaded Common Crawl data to {extracted_data_dir}")
     client.close()
