@@ -123,7 +123,8 @@ def get_embedding_dim_from_file(
                 arr = table[embedding_col][0]
                 return len(arr) if hasattr(arr, "__len__") else 1
         else:
-            return 1
+            # If the embedding column is not found, return a default dimension of 1024
+            return 1024
 
 
 def split_files_by_max_elements(
