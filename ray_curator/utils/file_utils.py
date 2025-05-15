@@ -68,6 +68,16 @@ def get_parquet_uncompressed_size(
         )
 
 
+def get_parquet_num_rows(
+    file_path: str,
+    storage_options: dict | None = None,
+) -> int:
+    """Get number of rows for local/cloud Parquet files"""
+    with fsspec.open(file_path, "rb", **(storage_options or {})) as f:
+        parquet_file = pq.ParquetFile(f)
+        return parquet_file.metadata.num_rows
+
+
 def _get_file_size(file: str, storage_options: dict | None = None) -> tuple[str, int]:
     return file, get_parquet_uncompressed_size(file, storage_options)
 
@@ -87,3 +97,74 @@ def split_parquet_files_into_chunks(files: list[str], n: int, storage_options: d
         chunk_sizes[min_index] += size
 
     return chunks
+
+
+def get_embedding_dim_from_file(
+    file: str,
+    embedding_col: str,
+    storage_options: dict | None = None,
+) -> int:
+    """
+    Get the embedding dimension from a single parquet file and embedding column.
+    """
+    with fsspec.open(file, "rb", **(storage_options or {})) as f:
+        parquet_file = pq.ParquetFile(f)
+        schema = parquet_file.schema_arrow
+        if embedding_col in schema.names:
+            field = schema.field(embedding_col)
+            if (
+                hasattr(field.type, "value_type")
+                and hasattr(field.type, "list_size")
+                and field.type.list_size is not None
+            ):
+                return field.type.list_size
+            else:
+                table = parquet_file.read_row_groups([0], columns=[embedding_col], use_threads=False)
+                arr = table[embedding_col][0]
+                return len(arr) if hasattr(arr, "__len__") else 1
+        else:
+            return 1
+
+
+def split_files_by_max_elements(
+    files: list[str],
+    embedding_dim: int,
+    max_total_elements: int = 2_000_000_000,
+    storage_options: dict | None = None,
+) -> list[list[str]]:
+    """
+    Split files into microbatches such that the total number of elements in the embedding column
+    (sum_rows * embedding_dim) in each microbatch does not exceed max_total_elements.
+    Uses a simple greedy bin-packing based on cumulative row count.
+    """
+    # Get num_rows for each file up front
+    num_rows_list = [get_parquet_num_rows(file, storage_options) for file in files]
+
+    microbatches = []
+    current_batch = []
+    current_rows = 0
+    for file, num_rows in zip(files, num_rows_list, strict=False):
+        if (current_rows + num_rows) * embedding_dim > max_total_elements and current_batch:
+            microbatches.append(current_batch)
+            current_batch = []
+            current_rows = 0
+        current_batch.append(file)
+        current_rows += num_rows
+    if current_batch:
+        microbatches.append(current_batch)
+    return microbatches
+
+
+def split_files_into_microbatches(
+    files: list[str],
+    embedding_col: str,
+    max_total_elements: int = 2_000_000_000,
+    storage_options: dict | None = None,
+) -> list[list[str]]:
+    """
+    Backward-compatible convenience function: gets embedding_dim from first file, then splits files.
+    """
+    if not files:
+        return []
+    embedding_dim = get_embedding_dim_from_file(files[0], embedding_col, storage_options)
+    return split_files_by_max_elements(files, embedding_dim, max_total_elements, storage_options)
