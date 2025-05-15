@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from nemo_curator import AddId
 from nemo_curator.dataset import DocumentDataset
@@ -12,7 +13,8 @@ def main(args: argparse.Namespace) -> None:
     id_data_dir = args.id_data_dir
 
     # Set up CPU-based Dask client
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(scheduler_file=os.environ.get("SCHEDULER_FILE"))
+    print(f"Dask client object: {client}")
 
     dataset = DocumentDataset.read_json(lang_data_dir)
 

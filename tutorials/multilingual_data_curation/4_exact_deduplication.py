@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.modules import ExactDuplicates
@@ -20,8 +21,9 @@ def main(args: argparse.Namespace) -> None:
     exact_dedup_dir = args.exact_dedup_dir
 
     # Set up GPU-based Dask client
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(scheduler_file=os.environ.get("SCHEDULER_FILE"))
     client.run(pre_imports)
+    print(f"Dask client object: {client}")
 
     # If neither is set, set the default blocksize to 1GB
     if json_blocksize is None and json_files_per_partition is None:

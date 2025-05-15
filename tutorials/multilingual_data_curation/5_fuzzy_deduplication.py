@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import dask
 
@@ -19,12 +20,14 @@ def main(args: argparse.Namespace) -> None:
     json_files_per_partition = args.json_files_per_partition
     fuzzy_dedup_cache_dir = args.fuzzy_dedup_cache_dir
     fuzzy_dedup_log_dir = args.fuzzy_dedup_log_dir
+    remove_duplicates = args.remove_duplicates
     fuzzy_dedup_dir = args.fuzzy_dedup_dir
 
     with dask.config.set({"dataframe.backend": "cudf"}):
         # Set up GPU-based Dask client
-        client = get_client(**ArgumentHelper.parse_client_args(args))
+        client = get_client(scheduler_file=os.environ.get("SCHEDULER_FILE"))
         client.run(pre_imports)
+        print(f"Dask client object: {client}")
 
         # If neither is set, set the default blocksize to 1GB
         if json_blocksize is None and json_files_per_partition is None:
@@ -59,17 +62,22 @@ def main(args: argparse.Namespace) -> None:
             print("No duplicates found")
             return
 
-        result = fuzzy_dupes.remove(dataset, duplicates)
-        result.to_json(fuzzy_dedup_dir)
+        if remove_duplicates:
+            result = fuzzy_dupes.remove(dataset, duplicates)
+            result.to_json(fuzzy_dedup_dir)
+            print(f"Saved fuzzy deduplicated data to {fuzzy_dedup_dir}")
+        else:
+            print(f"Fuzzy duplicate IDs saved to {fuzzy_dedup_cache_dir}/connected_components.parquet")
 
-        print(f"Saved fuzzy deduplicated data to {fuzzy_dedup_dir}")
         client.close()
 
 
 def attach_args(
     parser: argparse.ArgumentParser,
 ) -> argparse.ArgumentParser:
-    arg_helper = ArgumentHelper(parser).add_distributed_args()  # noqa: F841
+    arg_helper = ArgumentHelper(parser).add_distributed_args()
+    # Recommend not using this argument, keeping it False (default)
+    arg_helper.attach_bool_arg(parser, "remove-duplicates", default=False, help="Removes all duplicates in the dataset.")
 
     parser.add_argument(
         "--exact-dedup-dir",

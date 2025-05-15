@@ -20,6 +20,9 @@ export BASE_JOB_DIR=$BASE_DIR/nemo-curator-jobs
 export RUN_ID="`date +"%Y_%m_%d"`-$SLURM_JOB_ID"
 export JOB_DIR=$BASE_JOB_DIR/$RUN_ID
 
+# TODO: Edit this path
+DATA_DIR=/path/to/data
+
 # Directory for Dask cluster communication and logging
 # Must be paths inside the container that are accessible across nodes
 export LOGDIR=$JOB_DIR/logs
@@ -33,11 +36,12 @@ export DONE_MARKER=$LOGDIR/done.txt
 # We recommend passing the path to a Dask scheduler's file in a
 # nemo_curator.utils.distributed_utils.get_client call like the examples
 # TODO: Use GPU for deduplication modules, CPU for everything else
+# export NVIDIA_VISIBLE_DEVICES=void  # For CPU only
 export DEVICE="gpu"
 # TODO: Edit this path to match your script
 export SCRIPT_PATH=/path/to/script.py
 # TODO: Edit this command as needed to match your script's arguments
-export SCRIPT_COMMAND="python $SCRIPT_PATH \
+export SCRIPT_COMMAND="python -u $SCRIPT_PATH \
     --scheduler-file $SCHEDULER_FILE \
     --device $DEVICE"
 
@@ -47,7 +51,8 @@ export CONTAINER_IMAGE=/path/to/container.sqsh
 # Make sure to mount the directories your script references
 # TODO: Edit this path to match your container mounts
 export MOUNTS="$HOME:$HOME,\
-$BASE_DIR:$BASE_DIR"
+$BASE_DIR:$BASE_DIR,\
+$DATA_DIR:$DATA_DIR"
 # Below must be path to entrypoint script on your system
 export CONTAINER_ENTRYPOINT=$BASE_DIR/scripts/container-entrypoint.sh
 
@@ -58,6 +63,8 @@ export PROTOCOL=tcp
 # CPU related variables
 # 0 means no memory limit
 export CPU_WORKER_MEMORY_LIMIT=0
+# TODO: Edit this number to help avoid OOM errors on the CPU workers
+export CPU_WORKERS=84
 
 # GPU related variables
 export RAPIDS_NO_INITIALIZE="1"

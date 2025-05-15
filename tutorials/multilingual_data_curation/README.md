@@ -17,7 +17,12 @@ wget https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
 
 Above, steps 1-3 and step 6 are run on the CPU. Meanwhile, steps 4 and 5 are run on the GPU.
 
+For fuzzy deduplication, we recommend using the `5_fuzzy_deduplication.py` script.
+If there are limiting factors such as dataset size, compute resources, and/or time, we recommend running each stage of fuzzy deduplication as its own job on Slurm.
+Please refer to the `fuzzy_deduplication_stages/` directory for more information on how to do this.
+
 To start a job, please edit `scripts/start-slurm.sh` to match the expectations and parameters of the current job.
-Then, submit your job with `sbatch start-slurm.sh`.
+We suggest several places to customize parameters, marked by `TODO`s.
+You can submit your Slurm job with `sbatch start-slurm.sh`.
 
 To perform exact substring deduplication, please refer to: https://github.com/google-research/deduplicate-text-datasets/tree/master

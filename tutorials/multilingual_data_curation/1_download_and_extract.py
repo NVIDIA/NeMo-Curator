@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from nemo_curator.download import (
     JusTextExtractor,
@@ -17,7 +18,8 @@ def main(args: argparse.Namespace) -> None:
     extractor = args.extractor
 
     # Set up CPU-based Dask client
-    client = get_client(**ArgumentHelper.parse_client_args(args))
+    client = get_client(scheduler_file=os.environ.get("SCHEDULER_FILE"))
+    print(f"Dask client object: {client}")
 
     # Set up the extractor
     if extractor.lower() == "resiliparse":
