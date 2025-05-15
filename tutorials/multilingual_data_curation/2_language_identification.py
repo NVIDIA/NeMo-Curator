@@ -22,11 +22,13 @@ def main(args: argparse.Namespace) -> None:
 
     # Step 2: Language identification
     lang_id = FastTextLangId(lang_id_model_path)
-    language_id_pipeline = ScoreFilter(lang_id, score_field="language", score_type="object")
+    language_id_pipeline = ScoreFilter(lang_id, score_field="fasttext_language", score_type="object")
     dataset = language_id_pipeline(dataset)
 
     # Drop the score and keep the language label
-    dataset.df["language"] = dataset.df["language"].apply(lambda score: score[1], meta=("language", "object"))
+    dataset.df["fasttext_language"] = dataset.df["fasttext_language"].apply(
+        lambda score: score[1], meta=("fasttext_language", "object")
+    )
 
     dataset.to_json(lang_data_dir)
 
