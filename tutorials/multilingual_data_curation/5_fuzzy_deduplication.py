@@ -77,7 +77,9 @@ def attach_args(
 ) -> argparse.ArgumentParser:
     arg_helper = ArgumentHelper(parser).add_distributed_args()
     # Recommend not using this argument, keeping it False (default)
-    arg_helper.attach_bool_arg(parser, "remove-duplicates", default=False, help="Removes all duplicates in the dataset.")
+    arg_helper.attach_bool_arg(
+        parser, "remove-duplicates", default=False, help="Removes all duplicates in the dataset."
+    )
 
     parser.add_argument(
         "--exact-dedup-dir",
