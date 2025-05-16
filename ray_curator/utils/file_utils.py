@@ -158,65 +158,70 @@ def _get_pq_file_size(file: str, storage_options: dict | None = None) -> tuple[s
 
 
 def _split_files_as_per_fpp_or_num_partitions(
-    file_sizes: list[tuple[str, int]],
+    sorted_file_sizes: list[tuple[str, int]],
     files_per_partition: int | None = None,
     num_partitions: int | None = None,
 ) -> list[list[str]]:
-    n = len(file_sizes) // files_per_partition if files_per_partition is not None else num_partitions
+    n = len(sorted_file_sizes) // files_per_partition if files_per_partition is not None else num_partitions
     partitions = [[] for _ in range(n)]
     partition_sizes = [0] * n
 
-    for file, size in sorted(file_sizes, key=lambda x: -x[1]):
+    for file, size in sorted_file_sizes:
         min_index = partition_sizes.index(min(partition_sizes))
         partitions[min_index].append(file)
         partition_sizes[min_index] += size
     logger.info(
-        f"Split {len(file_sizes)} files into {n} partitions"
+        f"Split {len(sorted_file_sizes)} files into {n} partitions"
         + (f" with ~{files_per_partition} fpp" if files_per_partition is not None else "")
     )
     return partitions
 
 
-def _split_files_as_per_blocksize(file_sizes: list[tuple[str, int]], max_byte_per_chunk: int) -> list[list[str]]:
+def _split_files_as_per_blocksize(
+    sorted_file_sizes: list[tuple[str, int]], max_byte_per_chunk: int
+) -> list[list[str]]:
     partitions = []
     current_partition = []
     current_size = 0
 
-    for file, size in sorted(file_sizes, key=lambda x: -x[1]):
+    for file, size in sorted_file_sizes:
         if current_size + size > max_byte_per_chunk:
             partitions.append(current_partition)
             current_partition = []
             current_size = 0
         current_partition.append(file)
         current_size += size
+    if current_partition:
+        partitions.append(current_partition)
+
     logger.info(
-        f"Split {len(file_sizes)} files into {len(partitions)} partitions with max size {(max_byte_per_chunk / 1024 / 1024):.2f} MB."
+        f"Split {len(sorted_file_sizes)} files into {len(partitions)} partitions with max size {(max_byte_per_chunk / 1024 / 1024):.2f} MB."
     )
     return partitions
 
 
 def _split_files_as_per_read_approach(
-    file_sizes: list[tuple[str, int]],
+    sorted_file_sizes: list[tuple[str, int]],
     read_approach: Literal["blocksize", "fpp", "min_partitions"],
     read_size: int,
 ) -> list[list[str]]:
     if read_approach == "fpp":
         return _split_files_as_per_fpp_or_num_partitions(
-            file_sizes, files_per_partition=read_size, num_partitions=None
+            sorted_file_sizes, files_per_partition=read_size, num_partitions=None
         )
     elif read_approach == "min_partitions":
         return _split_files_as_per_fpp_or_num_partitions(
-            file_sizes, files_per_partition=None, num_partitions=read_size
+            sorted_file_sizes, files_per_partition=None, num_partitions=read_size
         )
     elif read_approach == "blocksize":
-        return _split_files_as_per_blocksize(file_sizes, read_size)
+        return _split_files_as_per_blocksize(sorted_file_sizes, read_size)
     else:
         msg = f"Invalid read approach: {read_approach}"
         raise ValueError(msg)
 
 
 def smart_split_files_as_per_read_approach(
-    file_sizes: list[tuple[str, int]],
+    sorted_file_sizes: list[tuple[str, int]],
     read_approach: Literal["blocksize", "fpp"],
     read_size: str | int,
     min_number_of_partitions: int | None = None,
@@ -226,21 +231,26 @@ def smart_split_files_as_per_read_approach(
         raise ValueError(msg)
     read_size = parse_bytes(read_size) if isinstance(read_size, str) else read_size
 
-    partitions = _split_files_as_per_read_approach(file_sizes, read_approach, read_size)
+    partitions = _split_files_as_per_read_approach(sorted_file_sizes, read_approach, read_size)
 
     # Perform binary search to ensure that number of partitions is atleast equal to number of workers
     # Following the binary search template, where we find the first K satisfying the condition
     # Here are condition is that number of partitions should be atleast equal to number of workers
-    left = 1  # this is either 1byte or 1 file
-    right = read_size
-    while len(partitions) < min_number_of_partitions:
-        mid = left + (right - left) // 2
-        partitions = _split_files_as_per_read_approach(file_sizes, read_approach, mid)
-    if len(partitions) < min_number_of_partitions:
-        msg = "Number of partitions is less than the number of workers. Please increase the number of partitions or set min_number_of_partitions to a higher value."
-        raise ValueError(msg)
-    else:
-        return partitions
+    if len(partitions) <= min_number_of_partitions:
+        min_increment = 1 if read_approach == "fpp" else 1024**2  # 1MB for blocksize
+        left = min_increment
+        right = read_size
+        while left < right:
+            mid = left + (right - left) // 2
+            partitions = _split_files_as_per_read_approach(sorted_file_sizes, read_approach, mid)
+            if len(partitions) <= min_number_of_partitions:
+                right = mid
+            else:
+                left = mid + min_increment
+
+        partitions = _split_files_as_per_read_approach(sorted_file_sizes, read_approach, left)
+
+    return partitions
 
 
 def split_parquet_files_into_chunks(
@@ -268,6 +278,8 @@ def split_parquet_files_into_chunks(
         # When we have more files than workers, we try to give each worker a fair share of files so we calculate sizes
         with Pool() as pool:
             file_sizes = pool.starmap(_get_pq_file_size, [(file, storage_options) for file in files])
+        # Sort files by size in descending order
+        file_sizes.sort(key=lambda x: -x[1])
         if read_approach == "min_partitions":
             return _split_files_as_per_fpp_or_num_partitions(
                 file_sizes, files_per_partition=None, num_partitions=min_number_of_partitions
