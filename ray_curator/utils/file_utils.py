@@ -1,3 +1,4 @@
+import os
 import warnings
 from multiprocessing import Pool
 from typing import Literal
@@ -57,6 +58,22 @@ def get_all_files_paths_under(
     if keep_extensions is not None:
         file_ls = filter_files_by_extension(file_ls, keep_extensions)
     return file_ls
+
+
+def remove_and_create_dir(
+    dir_path: str, fs: fsspec.AbstractFileSystem | None = None, storage_options: dict | None = None
+) -> None:
+    if fs is None:
+        fs = get_fs(dir_path, storage_options)
+
+    if fs.exists(dir_path):
+        logger.warning(f"Removing and recreating directory {dir_path}")
+        fs.rm(dir_path, recursive=True)
+    # if AWS then since mkdir doesn't exist we need to touch
+    if fs.protocol == "s3":
+        fs.touch(os.path.join(dir_path, ".empty"))
+    else:
+        fs.mkdir(dir_path)
 
 
 def parse_bytes(s: float | str) -> int:
