@@ -15,7 +15,9 @@ wget https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
 - *Step 5*: Fuzzy deduplication.
 - *Step 6*: Exact substring deduplication.
 
-Above, steps 1-3 and step 6 are run on the CPU. Meanwhile, steps 4 and 5 are run on the GPU.
+Above, steps 1-2 and step 6 are run on the CPU. Meanwhile, steps 3-5 are run on the GPU.
+
+Steps 2 and 4 (language identification and exact deduplication) are optional but recommended for this pipeline. The `download_common_crawl` function already creates a `language` field using [CLD2](https://github.com/CLD2Owners/cld2), however we recommend using the FastText model for more accurate language detection results. Running fuzzy deduplication will identify both exact and fuzzy duplicates, but running exact deduplication before fuzzy deduplication is recommended to help lower the dataset size and hence lessen the compute requirements for fuzzy deduplication, which is expensive.
 
 For fuzzy deduplication, we recommend using the `5_fuzzy_deduplication.py` script.
 If there are limiting factors such as dataset size, compute resources, and/or time, we recommend running each stage of fuzzy deduplication as its own job on Slurm.

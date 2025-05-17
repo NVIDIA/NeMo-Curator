@@ -2,7 +2,7 @@ import argparse
 import os
 
 from nemo_curator import ScoreFilter
-from nemo_curator.dataset import DocumentDataset
+from nemo_curator.datasets import DocumentDataset
 from nemo_curator.filters import FastTextLangId
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper

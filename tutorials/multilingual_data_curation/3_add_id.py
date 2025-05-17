@@ -2,7 +2,7 @@ import argparse
 import os
 
 from nemo_curator import AddId
-from nemo_curator.dataset import DocumentDataset
+from nemo_curator.datasets import DocumentDataset
 from nemo_curator.utils.distributed_utils import get_client
 from nemo_curator.utils.script_utils import ArgumentHelper
 
@@ -16,7 +16,7 @@ def main(args: argparse.Namespace) -> None:
     client = get_client(scheduler_file=os.environ.get("SCHEDULER_FILE"))
     print(f"Dask client object: {client}")
 
-    dataset = DocumentDataset.read_json(lang_data_dir)
+    dataset = DocumentDataset.read_json(lang_data_dir, backend="cudf", files_per_partition=20, blocksize=None)
 
     # Step 3: Add ID column
     add_id = AddId(id_field="id", id_prefix="cc_")
