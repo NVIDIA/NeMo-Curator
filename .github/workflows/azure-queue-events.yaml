@@ -100,6 +100,10 @@ jobs:
           pip install azure-storage-queue azure-identity requests
 
       - name: Read Events
+        env:
+          WORKER_ID: ${{ matrix.worker }}
+          JOB_ID: ${{ github.job }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python - <<EOF
           import os
@@ -118,7 +122,7 @@ jobs:
 
               # Get current run ID and job ID
               run_id = os.environ.get('GITHUB_RUN_ID')
-              current_job_id = os.environ.get('GITHUB_JOB_ID')
+              current_job_id = os.environ['JOB_ID']
 
               headers = {
                   'Authorization': f'token {token}',
@@ -205,9 +209,6 @@ jobs:
 
           print(f"Worker {worker_id}: Finished processing all messages")
           EOF
-        env:
-          WORKER_ID: ${{ matrix.worker }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   cleanup-queue:
     needs: read-events
