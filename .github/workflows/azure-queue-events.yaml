@@ -118,7 +118,7 @@ jobs:
 
               # Get current run ID and job ID
               run_id = os.environ.get('GITHUB_RUN_ID')
-              current_job_id = os.environ.get('GITHUB_JOB')
+              current_job_id = os.environ.get('GITHUB_JOB_ID')
 
               headers = {
                   'Authorization': f'token {token}',
@@ -133,7 +133,7 @@ jobs:
                   for job in jobs:
                       # Only cancel other read-events jobs that are in progress
                       if (job['name'].startswith('read-events') and
-                          job['name'] != current_job_id and
+                          job['id'] != int(current_job_id) and
                           job['status'] in ['queued', 'in_progress']):
                           cancel_url = f"{url}/{job['id']}/cancel"
                           cancel_response = requests.post(cancel_url, headers=headers)
