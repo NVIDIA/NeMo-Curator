@@ -12,6 +12,7 @@ env:
 jobs:
   process-events:
     runs-on: ubuntu-latest
+    environment: nemo-ci
     permissions:
       id-token: write
       contents: read
