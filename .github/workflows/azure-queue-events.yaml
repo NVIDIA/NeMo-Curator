@@ -68,6 +68,7 @@ jobs:
           EOF
 
   read-events:
+    name: read-events-${{ matrix.worker }}
     needs: process-events
     runs-on: ubuntu-latest
     environment: nemo-ci
@@ -134,25 +135,11 @@ jobs:
               response = requests.get(url, headers=headers)
               if response.status_code == 200:
                   jobs = response.json()['jobs']
-                  current_job = None
-
-                  # Find current job by matrix variables
-                  for job in jobs:
-                      if (job['name'].startswith('read-events') and
-                          'matrix' in job and
-                          'worker' in job['matrix'] and
-                          str(job['matrix']['worker']) == current_worker):
-                          current_job = job
-                          break
-
-                  if not current_job:
-                      print(f"Could not find current job for worker {current_worker}")
-                      return
 
                   # Cancel other read-events jobs
                   for job in jobs:
                       if (job['name'].startswith('read-events') and
-                          job['id'] != current_job['id'] and
+                          job['name'] != f"read-events-{current_worker}" and
                           job['status'] in ['queued', 'in_progress']):
                           cancel_url = f"{url}/{job['id']}/cancel"
                           cancel_response = requests.post(cancel_url, headers=headers)
