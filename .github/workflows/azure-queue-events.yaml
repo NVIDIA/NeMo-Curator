@@ -6,7 +6,7 @@ on:
       - '**'  # This will run on all branches
 
 env:
-  AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+  AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
   AZURE_STORAGE_QUEUE_NAME: events-queue-${{ github.run_id }}
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
           events_list = json.loads(os.environ.get('EVENTS_LIST', '[{"test": "test"}]'))
 
           # Create queue service client using managed identity
-          account_url = f"https://{os.environ.get('AZURE_STORAGE_ACCOUNT')}.queue.core.windows.net"
+          account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
 
           # Use DefaultAzureCredential which will automatically use the managed identity
@@ -65,4 +65,155 @@ jobs:
               queue_client.send_message(json.dumps(event))
 
           print(f"Successfully sent {len(events_list)} events to queue {queue_name}")
+          EOF
+
+  read-events:
+    needs: process-events
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-queue azure-identity
+
+      - name: Read Events
+        run: |
+          python - <<EOF
+          import os
+          import json
+          import time
+          from azure.storage.queue import QueueServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          # Create queue service client using managed identity
+          account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
+          queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+
+          # Use DefaultAzureCredential which will automatically use the managed identity
+          credential = DefaultAzureCredential()
+          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
+          queue_client = queue_service.get_queue_client(queue_name)
+
+          # Wait for messages to be available (with timeout)
+          max_attempts = 30
+          attempt = 0
+          while attempt < max_attempts:
+              try:
+                  # Try to peek at messages
+                  messages = queue_client.peek_messages(max_messages=1)
+                  if messages:
+                      break
+                  print(f"No messages yet, attempt {attempt + 1}/{max_attempts}")
+                  time.sleep(2)  # Wait 2 seconds between attempts
+                  attempt += 1
+              except Exception as e:
+                  print(f"Error peeking messages: {e}")
+                  time.sleep(2)
+                  attempt += 1
+
+          if attempt >= max_attempts:
+              print("No messages found in queue after waiting - exiting successfully")
+              exit(0)  # Exit with success code
+
+          # Receive and process messages
+          while True:
+              try:
+                  messages = queue_client.receive_messages(messages_per_page=1)
+                  if not messages:
+                      print("No more messages in queue - exiting successfully")
+                      exit(0)
+
+                  for message in messages:
+                      try:
+                          content = json.loads(message.content)
+                          print(f"Received message: {json.dumps(content, indent=2)}")
+                          # Delete the message after processing
+                          queue_client.delete_message(message.id, message.pop_receipt)
+
+                          # Check if there are more messages
+                          peek_messages = queue_client.peek_messages(max_messages=1)
+                          if not peek_messages:
+                              print("No more messages in queue - exiting successfully")
+                              exit(0)
+                      except json.JSONDecodeError as e:
+                          print(f"Error decoding message: {e}")
+                          print(f"Raw message content: {message.content}")
+              except Exception as e:
+                  print(f"Error processing messages: {e}")
+                  break
+
+          print("Finished processing all messages")
+          EOF
+
+  cleanup-queue:
+    needs: read-events
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-queue azure-identity
+
+      - name: Delete Queue
+        run: |
+          python - <<EOF
+          import os
+          from azure.storage.queue import QueueServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          # Create queue service client using managed identity
+          account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
+          queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+
+          # Use DefaultAzureCredential which will automatically use the managed identity
+          credential = DefaultAzureCredential()
+          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
+          queue_client = queue_service.get_queue_client(queue_name)
+
+          try:
+              # Delete the queue
+              queue_client.delete_queue()
+              print(f"Successfully deleted queue: {queue_name}")
+          except Exception as e:
+              print(f"Error deleting queue: {e}")
+              # Don't fail the job if queue deletion fails
+              exit(0)
           EOF
