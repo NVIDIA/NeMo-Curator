@@ -102,7 +102,7 @@ jobs:
       - name: Read Events
         env:
           WORKER_ID: ${{ matrix.worker }}
-          JOB_ID: ${{ github.job }}
+          JOB_ID: ${{ github.job_id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python - <<EOF
