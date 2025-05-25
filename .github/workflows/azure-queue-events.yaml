@@ -74,9 +74,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    concurrency:
-      group: read-events-${{ github.run_id }}
-      cancel-in-progress: true
+      actions: write  # Needed to cancel workflow runs
     strategy:
       matrix:
         worker: [1, 2, 3]
@@ -110,6 +108,40 @@ jobs:
           from azure.storage.queue import QueueServiceClient
           from azure.identity import DefaultAzureCredential
 
+          def cancel_other_workers():
+              # Get GitHub token from environment
+              token = os.environ.get('GITHUB_TOKEN')
+              if not token:
+                  print("No GitHub token available to cancel other workers")
+                  return
+
+              # Get current run ID and workflow ID
+              run_id = os.environ.get('GITHUB_RUN_ID')
+              workflow_id = os.environ.get('GITHUB_WORKFLOW_ID')
+
+              # Get all runs of this workflow
+              headers = {
+                  'Authorization': f'token {token}',
+                  'Accept': 'application/vnd.github.v3+json'
+              }
+
+              # Cancel all other runs of this workflow
+              url = f"https://api.github.com/repos/{os.environ.get('GITHUB_REPOSITORY')}/actions/runs"
+              response = requests.get(url, headers=headers)
+              if response.status_code == 200:
+                  runs = response.json()['workflow_runs']
+                  for run in runs:
+                      if (run['id'] != int(run_id) and
+                          run['workflow_id'] == int(workflow_id) and
+                          run['status'] in ['queued', 'in_progress'] and
+                          run['name'].startswith('read-events')):
+                          cancel_url = f"{url}/{run['id']}/cancel"
+                          cancel_response = requests.post(cancel_url, headers=headers)
+                          if cancel_response.status_code == 202:
+                              print(f"Cancelled run {run['id']} ({run['name']})")
+                          else:
+                              print(f"Failed to cancel run {run['id']}: {cancel_response.text}")
+
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
@@ -139,6 +171,7 @@ jobs:
 
           if attempt >= max_attempts:
               print(f"Worker {worker_id}: No messages found in queue after waiting - exiting successfully")
+              cancel_other_workers()
               exit(0)
 
           # Receive and process messages
@@ -147,6 +180,7 @@ jobs:
                   messages = queue_client.receive_messages(messages_per_page=1)
                   if not messages:
                       print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
+                      cancel_other_workers()
                       exit(0)
 
                   for message in messages:
@@ -160,6 +194,7 @@ jobs:
                           peek_messages = queue_client.peek_messages(max_messages=1)
                           if not peek_messages:
                               print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
+                              cancel_other_workers()
                               exit(0)
                       except json.JSONDecodeError as e:
                           print(f"Worker {worker_id}: Error decoding message: {e}")
@@ -172,6 +207,7 @@ jobs:
           EOF
         env:
           WORKER_ID: ${{ matrix.worker }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   cleanup-queue:
     needs: read-events
