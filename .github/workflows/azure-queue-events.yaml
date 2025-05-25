@@ -38,8 +38,6 @@ jobs:
           pip install azure-storage-queue azure-identity
 
       - name: Process Events
-        env:
-          EVENTS_LIST: ${{ inputs.events_list }}
         run: |
           python - <<EOF
           import os
