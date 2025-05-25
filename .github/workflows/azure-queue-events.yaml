@@ -46,7 +46,7 @@ jobs:
           from azure.identity import DefaultAzureCredential
 
           # Get events list from environment variable
-          events_list = json.loads(os.environ.get('EVENTS_LIST', '[{"test": "test"}]'))
+          events_list = [{"test": n} for n in range(20)]
 
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
@@ -74,6 +74,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    strategy:
+      matrix:
+        worker: [1, 2, 3]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -107,6 +110,7 @@ jobs:
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+          worker_id = os.environ.get('WORKER_ID')
 
           # Use DefaultAzureCredential which will automatically use the managed identity
           credential = DefaultAzureCredential()
@@ -122,47 +126,49 @@ jobs:
                   messages = queue_client.peek_messages(max_messages=1)
                   if messages:
                       break
-                  print(f"No messages yet, attempt {attempt + 1}/{max_attempts}")
+                  print(f"Worker {worker_id}: No messages yet, attempt {attempt + 1}/{max_attempts}")
                   time.sleep(2)  # Wait 2 seconds between attempts
                   attempt += 1
               except Exception as e:
-                  print(f"Error peeking messages: {e}")
+                  print(f"Worker {worker_id}: Error peeking messages: {e}")
                   time.sleep(2)
                   attempt += 1
 
           if attempt >= max_attempts:
-              print("No messages found in queue after waiting - exiting successfully")
-              exit(0)  # Exit with success code
+              print(f"Worker {worker_id}: No messages found in queue after waiting - exiting successfully")
+              exit(0)
 
           # Receive and process messages
           while True:
               try:
                   messages = queue_client.receive_messages(messages_per_page=1)
                   if not messages:
-                      print("No more messages in queue - exiting successfully")
+                      print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
                       exit(0)
 
                   for message in messages:
                       try:
                           content = json.loads(message.content)
-                          print(f"Received message: {json.dumps(content, indent=2)}")
+                          print(f"Worker {worker_id}: Received message: {json.dumps(content, indent=2)}")
                           # Delete the message after processing
                           queue_client.delete_message(message.id, message.pop_receipt)
 
                           # Check if there are more messages
                           peek_messages = queue_client.peek_messages(max_messages=1)
                           if not peek_messages:
-                              print("No more messages in queue - exiting successfully")
+                              print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
                               exit(0)
                       except json.JSONDecodeError as e:
-                          print(f"Error decoding message: {e}")
-                          print(f"Raw message content: {message.content}")
+                          print(f"Worker {worker_id}: Error decoding message: {e}")
+                          print(f"Worker {worker_id}: Raw message content: {message.content}")
               except Exception as e:
-                  print(f"Error processing messages: {e}")
+                  print(f"Worker {worker_id}: Error processing messages: {e}")
                   break
 
-          print("Finished processing all messages")
+          print(f"Worker {worker_id}: Finished processing all messages")
           EOF
+        env:
+          WORKER_ID: ${{ matrix.worker }}
 
   cleanup-queue:
     needs: read-events
