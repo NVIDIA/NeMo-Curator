@@ -74,6 +74,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    concurrency:
+      group: read-events-${{ github.run_id }}
+      cancel-in-progress: true
     strategy:
       matrix:
         worker: [1, 2, 3]
