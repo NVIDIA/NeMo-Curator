@@ -114,40 +114,6 @@ jobs:
           from azure.storage.queue import QueueServiceClient
           from azure.identity import DefaultAzureCredential
 
-          def cancel_other_workers():
-              # Get GitHub token from environment
-              token = os.environ.get('GITHUB_TOKEN')
-              if not token:
-                  print("No GitHub token available to cancel other workers")
-                  return
-
-              # Get current run ID and worker ID
-              run_id = os.environ.get('GITHUB_RUN_ID')
-              current_worker = os.environ.get('WORKER_ID')
-
-              headers = {
-                  'Authorization': f'token {token}',
-                  'Accept': 'application/vnd.github.v3+json'
-              }
-
-              # Get all jobs in the current workflow run
-              url = f"https://api.github.com/repos/{os.environ.get('GITHUB_REPOSITORY')}/actions/runs/{run_id}/jobs"
-              response = requests.get(url, headers=headers)
-              if response.status_code == 200:
-                  jobs = response.json()['jobs']
-
-                  # Cancel other read-events jobs
-                  for job in jobs:
-                      if (job['name'].startswith('read-events') and
-                          job['name'] != f"read-events-{current_worker}" and
-                          job['status'] in ['queued', 'in_progress']):
-                          cancel_url = f"{url}/{job['id']}/cancel"
-                          cancel_response = requests.post(cancel_url, headers=headers)
-                          if cancel_response.status_code == 202:
-                              print(f"Cancelled job {job['id']} ({job['name']})")
-                          else:
-                              print(f"Failed to cancel job {job['id']}: {cancel_response.text}")
-
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
@@ -177,7 +143,6 @@ jobs:
 
           if attempt >= max_attempts:
               print(f"Worker {worker_id}: No messages found in queue after waiting - exiting successfully")
-              cancel_other_workers()
               exit(0)
 
           # Receive and process messages
@@ -186,7 +151,6 @@ jobs:
                   messages = queue_client.receive_messages(messages_per_page=1)
                   if not messages:
                       print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
-                      cancel_other_workers()
                       exit(0)
 
                   for message in messages:
@@ -200,7 +164,6 @@ jobs:
                           peek_messages = queue_client.peek_messages(max_messages=1)
                           if not peek_messages:
                               print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
-                              cancel_other_workers()
                               exit(0)
                       except json.JSONDecodeError as e:
                           print(f"Worker {worker_id}: Error decoding message: {e}")
