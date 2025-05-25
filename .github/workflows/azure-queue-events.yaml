@@ -97,7 +97,7 @@ jobs:
       - name: Install Azure Storage SDK
         run: |
           python -m pip install --upgrade pip
-          pip install azure-storage-queue azure-identity
+          pip install azure-storage-queue azure-identity requests
 
       - name: Read Events
         run: |
@@ -105,6 +105,7 @@ jobs:
           import os
           import json
           import time
+          import requests
           from azure.storage.queue import QueueServiceClient
           from azure.identity import DefaultAzureCredential
 
@@ -115,32 +116,31 @@ jobs:
                   print("No GitHub token available to cancel other workers")
                   return
 
-              # Get current run ID and workflow ID
+              # Get current run ID and job ID
               run_id = os.environ.get('GITHUB_RUN_ID')
-              workflow_id = os.environ.get('GITHUB_WORKFLOW_ID')
+              job_id = os.environ.get('GITHUB_JOB')
 
-              # Get all runs of this workflow
               headers = {
                   'Authorization': f'token {token}',
                   'Accept': 'application/vnd.github.v3+json'
               }
 
-              # Cancel all other runs of this workflow
-              url = f"https://api.github.com/repos/{os.environ.get('GITHUB_REPOSITORY')}/actions/runs"
+              # Get all jobs in the current workflow run
+              url = f"https://api.github.com/repos/{os.environ.get('GITHUB_REPOSITORY')}/actions/runs/{run_id}/jobs"
               response = requests.get(url, headers=headers)
               if response.status_code == 200:
-                  runs = response.json()['workflow_runs']
-                  for run in runs:
-                      if (run['id'] != int(run_id) and
-                          run['workflow_id'] == int(workflow_id) and
-                          run['status'] in ['queued', 'in_progress'] and
-                          run['name'].startswith('read-events')):
-                          cancel_url = f"{url}/{run['id']}/cancel"
+                  jobs = response.json()['jobs']
+                  for job in jobs:
+                      # Only cancel other read-events jobs that are in progress
+                      if (job['name'].startswith('read-events') and
+                          job['id'] != int(job_id) and
+                          job['status'] in ['queued', 'in_progress']):
+                          cancel_url = f"{url}/{job['id']}/cancel"
                           cancel_response = requests.post(cancel_url, headers=headers)
                           if cancel_response.status_code == 202:
-                              print(f"Cancelled run {run['id']} ({run['name']})")
+                              print(f"Cancelled job {job['id']} ({job['name']})")
                           else:
-                              print(f"Failed to cancel run {run['id']}: {cancel_response.text}")
+                              print(f"Failed to cancel job {job['id']}: {cancel_response.text}")
 
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
@@ -211,6 +211,7 @@ jobs:
 
   cleanup-queue:
     needs: read-events
+    if: always()  # Run even if read-events was cancelled
     runs-on: ubuntu-latest
     environment: nemo-ci
     permissions:
