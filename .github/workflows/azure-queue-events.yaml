@@ -157,6 +157,7 @@ jobs:
                       text=True
                   )
 
+
                   # Create log content
                   log_content = json.dumps({
                       "event": {
