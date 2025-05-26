@@ -27,8 +27,8 @@ on:
 
 env:
   AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
+  AZURE_BLOB_STORAGE: ${{ secrets.AZURE_BLOB_STORAGE }}
   AZURE_STORAGE_QUEUE_NAME: events-queue-${{ github.run_id }}
-  AZURE_STORAGE_CONTAINER_NAME: event-logs-${{ github.run_id }}
 
 jobs:
   process-events:
@@ -88,11 +88,6 @@ jobs:
           queue_service = QueueServiceClient(account_url=account_url, credential=credential)
           queue_client = queue_service.get_queue_client(queue_name)
           queue_client.create_queue()
-
-          # Create blob container client
-          blob_service = BlobServiceClient(account_url=account_url, credential=credential)
-          container_client = blob_service.get_container_client(container_name)
-          container_client.create_container()
 
           # Send each event to the queue
           for event in events_list:
@@ -178,7 +173,7 @@ jobs:
 
                   # Upload log to blob storage
                   account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.blob.core.windows.net"
-                  container_name = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
+                  container_name = os.environ.get('AZURE_BLOB_STORAGE')
                   blob_name = f"{os.environ.get('GITHUB_RUN_ID')}/{event_data.get('type', 'unknown')}.json"
 
                   blob_service = BlobServiceClient(account_url=account_url, credential=DefaultAzureCredential())
@@ -309,7 +304,6 @@ jobs:
           # Create storage clients using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
-          container_name = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
 
           # Use DefaultAzureCredential which will automatically use the managed identity
           credential = DefaultAzureCredential()
@@ -322,13 +316,4 @@ jobs:
               print(f"Successfully deleted queue: {queue_name}")
           except Exception as e:
               print(f"Error deleting queue: {e}")
-
-          # Delete blob container
-          blob_service = BlobServiceClient(account_url=account_url, credential=credential)
-          container_client = blob_service.get_container_client(container_name)
-          try:
-              container_client.delete_container()
-              print(f"Successfully deleted container: {container_name}")
-          except Exception as e:
-              print(f"Error deleting container: {e}")
           EOF
