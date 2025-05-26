@@ -42,22 +42,54 @@ jobs:
       events: |
         [
           {
-            "type": "model_training",
-            "model_id": "model-1",
-            "config": {
-              "epochs": 10,
-              "batch_size": 32
-            }
+            "type": "event_1",
+            "name": "First Event",
+            "script": "echo 'Processing First Event'"
           },
           {
-            "type": "model_evaluation",
-            "model_id": "model-2",
-            "metrics": ["accuracy", "f1-score"]
+            "type": "event_2",
+            "name": "Second Event",
+            "script": "echo 'Processing Second Event'"
           },
           {
-            "type": "data_processing",
-            "dataset": "dataset-1",
-            "operations": ["clean", "normalize", "split"]
+            "type": "event_3",
+            "name": "Third Event",
+            "script": "echo 'Processing Third Event'"
+          },
+          {
+            "type": "event_4",
+            "name": "Fourth Event",
+            "script": "echo 'Processing Fourth Event'"
+          },
+          {
+            "type": "event_5",
+            "name": "Fifth Event",
+            "script": "echo 'Processing Fifth Event'"
+          },
+          {
+            "type": "event_6",
+            "name": "Sixth Event",
+            "script": "echo 'Processing Sixth Event'"
+          },
+          {
+            "type": "event_7",
+            "name": "Seventh Event",
+            "script": "echo 'Processing Seventh Event'"
+          },
+          {
+            "type": "event_8",
+            "name": "Eighth Event",
+            "script": "echo 'Processing Eighth Event'"
+          },
+          {
+            "type": "event_9",
+            "name": "Ninth Event",
+            "script": "echo 'Processing Ninth Event'"
+          },
+          {
+            "type": "event_10",
+            "name": "Tenth Event",
+            "script": "echo 'Processing Tenth Event'"
           }
         ]
     secrets:

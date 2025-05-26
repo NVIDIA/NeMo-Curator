@@ -28,6 +28,7 @@ on:
 env:
   AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
   AZURE_STORAGE_QUEUE_NAME: events-queue-${{ github.run_id }}
+  AZURE_STORAGE_CONTAINER_NAME: event-logs-${{ github.run_id }}
 
 jobs:
   process-events:
@@ -55,7 +56,7 @@ jobs:
       - name: Install Azure Storage SDK
         run: |
           python -m pip install --upgrade pip
-          pip install azure-storage-queue azure-identity
+          pip install azure-storage-queue azure-storage-blob azure-identity
 
       - name: Process Events
         run: |
@@ -63,6 +64,7 @@ jobs:
           import os
           import json
           from azure.storage.queue import QueueServiceClient
+          from azure.storage.blob import BlobServiceClient
           from azure.identity import DefaultAzureCredential
 
           # Get events list from input and parse JSON
@@ -74,17 +76,23 @@ jobs:
               print(f"Error parsing events JSON: {e}")
               exit(1)
 
-          # Create queue service client using managed identity
+          # Create storage clients using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+          container_name = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
 
           # Use DefaultAzureCredential which will automatically use the managed identity
           credential = DefaultAzureCredential()
-          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
 
-          # Create queue if it doesn't exist
+          # Create queue client
+          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
           queue_client = queue_service.get_queue_client(queue_name)
           queue_client.create_queue()
+
+          # Create blob container client
+          blob_service = BlobServiceClient(account_url=account_url, credential=credential)
+          container_client = blob_service.get_container_client(container_name)
+          container_client.create_container()
 
           # Send each event to the queue
           for event in events_list:
@@ -123,7 +131,7 @@ jobs:
       - name: Install Azure Storage SDK
         run: |
           python -m pip install --upgrade pip
-          pip install azure-storage-queue azure-identity requests
+          pip install azure-storage-queue azure-storage-blob azure-identity requests
 
       - name: Read Events
         env:
@@ -134,8 +142,61 @@ jobs:
           import json
           import time
           import requests
+          import subprocess
           from azure.storage.queue import QueueServiceClient
+          from azure.storage.blob import BlobServiceClient
           from azure.identity import DefaultAzureCredential
+
+          def run_script(script_content, event_data):
+              """Run the script from the event message"""
+              try:
+                  # Run the script directly with bash
+                  result = subprocess.run(
+                      ['bash', '-c', script_content],
+                      capture_output=True,
+                      text=True
+                  )
+
+                  # Create log content
+                  log_content = json.dumps({
+                      "event": {
+                          "type": event_data.get('type', 'unknown'),
+                          "name": event_data.get('name', 'unknown')
+                      },
+                      "execution": {
+                          "worker_id": os.environ.get('WORKER_ID'),
+                          "run_id": os.environ.get('GITHUB_RUN_ID'),
+                          "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
+                          "exit_code": result.returncode
+                      },
+                      "output": {
+                          "stdout": result.stdout,
+                          "stderr": result.stderr
+                      }
+                  }, indent=2)
+
+                  # Upload log to blob storage
+                  account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.blob.core.windows.net"
+                  container_name = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
+                  blob_name = f"{os.environ.get('GITHUB_RUN_ID')}/{event_data.get('type', 'unknown')}.json"
+
+                  blob_service = BlobServiceClient(account_url=account_url, credential=DefaultAzureCredential())
+                  container_client = blob_service.get_container_client(container_name)
+                  blob_client = container_client.get_blob_client(blob_name)
+
+                  blob_client.upload_blob(log_content, overwrite=True)
+                  print(f"Uploaded log to {blob_name}")
+
+                  if result.returncode != 0:
+                      print(f"Script execution failed with error: {result.stderr}")
+                      return False
+
+                  print(f"Script output: {result.stdout}")
+                  return True
+
+              except Exception as e:
+                  print(f"Error running script: {e}")
+                  return False
 
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
@@ -180,6 +241,15 @@ jobs:
                       try:
                           content = json.loads(message.content)
                           print(f"Worker {worker_id}: Received message: {json.dumps(content, indent=2)}")
+
+                          # Check if the message has a script to execute
+                          if 'script' in content:
+                              print(f"Worker {worker_id}: Executing script for event type: {content.get('type', 'unknown')}")
+                              script_success = run_script(content['script'], content)
+                              if not script_success:
+                                  print(f"Worker {worker_id}: Script execution failed, skipping message deletion")
+                                  continue
+
                           # Delete the message after processing
                           queue_client.delete_message(message.id, message.pop_receipt)
 
@@ -225,30 +295,39 @@ jobs:
       - name: Install Azure Storage SDK
         run: |
           python -m pip install --upgrade pip
-          pip install azure-storage-queue azure-identity
+          pip install azure-storage-queue azure-storage-blob azure-identity
 
-      - name: Delete Queue
+      - name: Delete Queue and Container
         run: |
           python - <<EOF
           import os
           from azure.storage.queue import QueueServiceClient
+          from azure.storage.blob import BlobServiceClient
           from azure.identity import DefaultAzureCredential
 
-          # Create queue service client using managed identity
+          # Create storage clients using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+          container_name = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
 
           # Use DefaultAzureCredential which will automatically use the managed identity
           credential = DefaultAzureCredential()
+
+          # Delete queue
           queue_service = QueueServiceClient(account_url=account_url, credential=credential)
           queue_client = queue_service.get_queue_client(queue_name)
-
           try:
-              # Delete the queue
               queue_client.delete_queue()
               print(f"Successfully deleted queue: {queue_name}")
           except Exception as e:
               print(f"Error deleting queue: {e}")
-              # Don't fail the job if queue deletion fails
-              exit(0)
+
+          # Delete blob container
+          blob_service = BlobServiceClient(account_url=account_url, credential=credential)
+          container_client = blob_service.get_container_client(container_name)
+          try:
+              container_client.delete_container()
+              print(f"Successfully deleted container: {container_name}")
+          except Exception as e:
+              print(f"Error deleting container: {e}")
           EOF
