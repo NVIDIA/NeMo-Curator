@@ -93,6 +93,7 @@ jobs:
           }
         ]
     secrets:
+      AZURE_BLOB_STORAGE: ${{ secrets.AZURE_BLOB_STORAGE }}
       AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

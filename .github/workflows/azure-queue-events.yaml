@@ -16,6 +16,8 @@ on:
         required: true
         type: string
     secrets:
+      AZURE_BLOB_STORAGE:
+        required: true
       AZURE_QUEUE_STORAGE_ACCOUNT:
         required: true
       AZURE_CLIENT_ID:
@@ -79,7 +81,6 @@ jobs:
           # Create storage clients using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
           queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
-          container_name = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
 
           # Use DefaultAzureCredential which will automatically use the managed identity
           credential = DefaultAzureCredential()
