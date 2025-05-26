@@ -1,9 +1,29 @@
-name: Azure Queue Events
+name: Azure Queue Events Template
 
 on:
-  push:
-    branches:
-      - '**'  # This will run on all branches
+  workflow_call:
+    inputs:
+      worker_configs:
+        description: |
+          JSON string containing list of worker configurations for the matrix.
+          Example: '[1, 2, 3]' or '[{"id": 1, "config": "value"}, {"id": 2, "config": "value"}]'
+        required: true
+        type: string
+      events:
+        description: |
+          JSON string containing list of events to add to the queue.
+          Example: '[{"type": "event1", "data": "value1"}, {"type": "event2", "data": "value2"}]'
+        required: true
+        type: string
+    secrets:
+      AZURE_QUEUE_STORAGE_ACCOUNT:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
 
 env:
   AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
@@ -45,8 +65,14 @@ jobs:
           from azure.storage.queue import QueueServiceClient
           from azure.identity import DefaultAzureCredential
 
-          # Get events list from environment variable
-          events_list = [{"test": n} for n in range(20)]
+          # Get events list from input and parse JSON
+          try:
+              events_list = json.loads('''${{ inputs.events }}''')
+              if not isinstance(events_list, list):
+                  raise ValueError("Events input must be a JSON array")
+          except json.JSONDecodeError as e:
+              print(f"Error parsing events JSON: {e}")
+              exit(1)
 
           # Create queue service client using managed identity
           account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
@@ -75,10 +101,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      actions: write  # Needed to cancel workflow runs
     strategy:
       matrix:
-        worker: [1, 2, 3]
+        worker: ${{ fromJson(inputs.worker_configs) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -103,8 +128,6 @@ jobs:
       - name: Read Events
         env:
           WORKER_ID: ${{ matrix.worker }}
-          JOB_ID: ${{ github.job_id }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python - <<EOF
           import os

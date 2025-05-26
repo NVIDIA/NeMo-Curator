@@ -1,0 +1,67 @@
+name: Example Queue Processing
+
+on:
+  push:
+    branches:
+      - '**'  # This will run on all branches
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  process-queue:
+    uses: ./.github/workflows/azure-queue-events.yaml
+    with:
+      # Example 1: Simple worker configs (just numbers)
+      worker_configs: |
+        [
+          1,
+          2,
+          3
+        ]
+
+      # Example 2: Complex worker configs with custom settings
+      # worker_configs: |
+      #   [
+      #     {
+      #       "id": 1,
+      #       "batch_size": 10,
+      #       "timeout": 30
+      #     },
+      #     {
+      #       "id": 2,
+      #       "batch_size": 20,
+      #       "timeout": 60
+      #     },
+      #     {
+      #       "id": 3,
+      #       "batch_size": 15,
+      #       "timeout": 45
+      #     }
+      #   ]
+
+      # Example events to process
+      events: |
+        [
+          {
+            "type": "model_training",
+            "model_id": "model-1",
+            "config": {
+              "epochs": 10,
+              "batch_size": 32
+            }
+          },
+          {
+            "type": "model_evaluation",
+            "model_id": "model-2",
+            "metrics": ["accuracy", "f1-score"]
+          },
+          {
+            "type": "data_processing",
+            "dataset": "dataset-1",
+            "operations": ["clean", "normalize", "split"]
+          }
+        ]
+    secrets:
+      AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
