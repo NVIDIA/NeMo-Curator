@@ -265,9 +265,110 @@ jobs:
           print(f"Worker {worker_id}: Finished processing all messages")
           EOF
 
+  monitor-logs:
+    name: monitor-logs-${{ matrix.event.type }}
+    needs: process-events
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        event: ${{ fromJson(inputs.events) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-blob azure-identity
+
+      - name: Monitor Event Log
+        run: |
+          python - <<EOF
+          import os
+          import json
+          import time
+          from azure.storage.blob import BlobServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          def wait_for_log():
+              """Wait for the event log to appear in blob storage"""
+              account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.blob.core.windows.net"
+              container_name = os.environ.get('AZURE_BLOB_STORAGE')
+              blob_name = f"{os.environ.get('GITHUB_RUN_ID')}/{os.environ.get('EVENT_TYPE')}.json"
+
+              blob_service = BlobServiceClient(account_url=account_url, credential=DefaultAzureCredential())
+              container_client = blob_service.get_container_client(container_name)
+              blob_client = container_client.get_blob_client(blob_name)
+
+              max_attempts = 30
+              attempt = 0
+              while attempt < max_attempts:
+                  try:
+                      if blob_client.exists():
+                          return blob_client.download_blob().readall()
+                      print(f"Log not found yet, attempt {attempt + 1}/{max_attempts}")
+                      time.sleep(2)
+                      attempt += 1
+                  except Exception as e:
+                      print(f"Error checking for log: {e}")
+                      time.sleep(2)
+                      attempt += 1
+
+              raise TimeoutError(f"Log not found after {max_attempts} attempts")
+
+          try:
+              # Get event type from matrix
+              event_type = os.environ.get('EVENT_TYPE')
+              print(f"Waiting for log for event type: {event_type}")
+
+              # Wait for and download the log
+              log_content = wait_for_log()
+              log_data = json.loads(log_content)
+
+              # Print the log contents
+              print("\n=== Event Information ===")
+              print(f"Type: {log_data['event']['type']}")
+              print(f"Name: {log_data['event']['name']}")
+              print(f"\n=== Execution Information ===")
+              print(f"Worker ID: {log_data['execution']['worker_id']}")
+              print(f"Run ID: {log_data['execution']['run_id']}")
+              print(f"Timestamp: {log_data['execution']['timestamp']}")
+              print(f"\n=== Script Output ===")
+              print("STDOUT:")
+              print(log_data['output']['stdout'])
+              print("\nSTDERR:")
+              print(log_data['output']['stderr'])
+              print(f"\nExit Code: {log_data['execution']['exit_code']}")
+
+              # Exit with the same code as the script
+              exit(log_data['execution']['exit_code'])
+
+          except Exception as e:
+              print(f"Error monitoring log: {e}")
+              exit(1)
+          EOF
+        env:
+          EVENT_TYPE: ${{ matrix.event.type }}
+
   cleanup-queue:
-    needs: read-events
-    if: always()  # Run even if read-events was cancelled
+    needs: [read-events, monitor-logs]
+    if: always()  # Run even if other jobs were cancelled
     runs-on: ubuntu-latest
     environment: nemo-ci
     permissions:
