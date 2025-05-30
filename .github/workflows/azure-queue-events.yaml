@@ -1,0 +1,421 @@
+name: Azure Queue Events Template
+
+on:
+  workflow_call:
+    inputs:
+      worker_configs:
+        description: |
+          JSON string containing list of worker configurations for the matrix.
+          Example: '[1, 2, 3]' or '[{"id": 1, "config": "value"}, {"id": 2, "config": "value"}]'
+        required: true
+        type: string
+      events:
+        description: |
+          JSON string containing list of events to add to the queue.
+          Example: '[{"type": "event1", "data": "value1"}, {"type": "event2", "data": "value2"}]'
+        required: true
+        type: string
+    secrets:
+      AZURE_BLOB_STORAGE:
+        required: true
+      AZURE_QUEUE_STORAGE_ACCOUNT:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+
+env:
+  AZURE_QUEUE_STORAGE_ACCOUNT: ${{ secrets.AZURE_QUEUE_STORAGE_ACCOUNT }}
+  AZURE_BLOB_STORAGE: ${{ secrets.AZURE_BLOB_STORAGE }}
+  AZURE_STORAGE_QUEUE_NAME: events-queue-${{ github.run_id }}
+
+jobs:
+  process-events:
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-queue azure-storage-blob azure-identity
+
+      - name: Process Events
+        run: |
+          python - <<EOF
+          import os
+          import json
+          from azure.storage.queue import QueueServiceClient
+          from azure.storage.blob import BlobServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          # Get events list from input and parse JSON
+          try:
+              events_list = json.loads('''${{ inputs.events }}''')
+              if not isinstance(events_list, list):
+                  raise ValueError("Events input must be a JSON array")
+          except json.JSONDecodeError as e:
+              print(f"Error parsing events JSON: {e}")
+              exit(1)
+
+          # Create storage clients using managed identity
+          account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
+          queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+
+          # Use DefaultAzureCredential which will automatically use the managed identity
+          credential = DefaultAzureCredential()
+
+          # Create queue client
+          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
+          queue_client = queue_service.get_queue_client(queue_name)
+          queue_client.create_queue()
+
+          # Send each event to the queue
+          for event in events_list:
+              queue_client.send_message(json.dumps(event))
+
+          print(f"Successfully sent {len(events_list)} events to queue {queue_name}")
+          EOF
+
+  read-events:
+    name: read-events-${{ matrix.worker }}
+    needs: process-events
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        worker: ${{ fromJson(inputs.worker_configs) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-queue azure-storage-blob azure-identity requests
+
+      - name: Read Events
+        env:
+          WORKER_ID: ${{ matrix.worker }}
+        run: |
+          python - <<EOF
+          import os
+          import json
+          import time
+          import requests
+          import subprocess
+          from azure.storage.queue import QueueServiceClient
+          from azure.storage.blob import BlobServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          def run_script(script_content, event_data):
+              """Run the script from the event message"""
+              try:
+                  # Run the script directly with bash
+                  result = subprocess.run(
+                      ['bash', '-c', script_content],
+                      capture_output=True,
+                      text=True
+                  )
+
+
+                  # Create log content
+                  log_content = json.dumps({
+                      "event": {
+                          "type": event_data.get('type', 'unknown'),
+                          "name": event_data.get('name', 'unknown')
+                      },
+                      "execution": {
+                          "worker_id": os.environ.get('WORKER_ID'),
+                          "run_id": os.environ.get('GITHUB_RUN_ID'),
+                          "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
+                          "exit_code": result.returncode
+                      },
+                      "output": {
+                          "stdout": result.stdout,
+                          "stderr": result.stderr
+                      }
+                  }, indent=2)
+
+                  # Upload log to blob storage
+                  account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.blob.core.windows.net"
+                  container_name = os.environ.get('AZURE_BLOB_STORAGE')
+                  blob_name = f"{os.environ.get('GITHUB_RUN_ID')}/{event_data.get('type', 'unknown')}.json"
+
+                  blob_service = BlobServiceClient(account_url=account_url, credential=DefaultAzureCredential())
+                  container_client = blob_service.get_container_client(container_name)
+                  blob_client = container_client.get_blob_client(blob_name)
+
+                  blob_client.upload_blob(log_content, overwrite=True)
+                  print(f"Uploaded log to {blob_name}")
+
+                  if result.returncode != 0:
+                      print(f"Script execution failed with error: {result.stderr}")
+                      return False
+
+                  print(f"Script output: {result.stdout}")
+                  return True
+
+              except Exception as e:
+                  print(f"Error running script: {e}")
+                  return False
+
+          # Create queue service client using managed identity
+          account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
+          queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+          worker_id = os.environ.get('WORKER_ID')
+
+          # Use DefaultAzureCredential which will automatically use the managed identity
+          credential = DefaultAzureCredential()
+          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
+          queue_client = queue_service.get_queue_client(queue_name)
+
+          # Wait for messages to be available (with timeout)
+          max_attempts = 30
+          attempt = 0
+          while attempt < max_attempts:
+              try:
+                  # Try to peek at messages
+                  messages = queue_client.peek_messages(max_messages=1)
+                  if messages:
+                      break
+                  print(f"Worker {worker_id}: No messages yet, attempt {attempt + 1}/{max_attempts}")
+                  time.sleep(2)  # Wait 2 seconds between attempts
+                  attempt += 1
+              except Exception as e:
+                  print(f"Worker {worker_id}: Error peeking messages: {e}")
+                  time.sleep(2)
+                  attempt += 1
+
+          if attempt >= max_attempts:
+              print(f"Worker {worker_id}: No messages found in queue after waiting - exiting successfully")
+              exit(0)
+
+          # Receive and process messages
+          while True:
+              try:
+                  messages = queue_client.receive_messages(messages_per_page=1)
+                  if not messages:
+                      print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
+                      exit(0)
+
+                  for message in messages:
+                      try:
+                          content = json.loads(message.content)
+                          print(f"Worker {worker_id}: Received message: {json.dumps(content, indent=2)}")
+
+                          # Check if the message has a script to execute
+                          if 'script' in content:
+                              print(f"Worker {worker_id}: Executing script for event type: {content.get('type', 'unknown')}")
+                              script_success = run_script(content['script'], content)
+                              if not script_success:
+                                  print(f"Worker {worker_id}: Script execution failed, skipping message deletion")
+                                  continue
+
+                          # Delete the message after processing
+                          queue_client.delete_message(message.id, message.pop_receipt)
+
+                          # Check if there are more messages
+                          peek_messages = queue_client.peek_messages(max_messages=1)
+                          if not peek_messages:
+                              print(f"Worker {worker_id}: No more messages in queue - exiting successfully")
+                              exit(0)
+                      except json.JSONDecodeError as e:
+                          print(f"Worker {worker_id}: Error decoding message: {e}")
+                          print(f"Worker {worker_id}: Raw message content: {message.content}")
+              except Exception as e:
+                  print(f"Worker {worker_id}: Error processing messages: {e}")
+                  break
+
+          print(f"Worker {worker_id}: Finished processing all messages")
+          EOF
+
+  monitor-logs:
+    name: monitor-logs-${{ matrix.event.type }}
+    needs: process-events
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        event: ${{ fromJson(inputs.events) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-blob azure-identity
+
+      - name: Monitor Event Log
+        run: |
+          python - <<EOF
+          import os
+          import json
+          import time
+          from azure.storage.blob import BlobServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          def wait_for_log():
+              """Wait for the event log to appear in blob storage"""
+              account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.blob.core.windows.net"
+              container_name = os.environ.get('AZURE_BLOB_STORAGE')
+              blob_name = f"{os.environ.get('GITHUB_RUN_ID')}/{os.environ.get('EVENT_TYPE')}.json"
+
+              blob_service = BlobServiceClient(account_url=account_url, credential=DefaultAzureCredential())
+              container_client = blob_service.get_container_client(container_name)
+              blob_client = container_client.get_blob_client(blob_name)
+
+              max_attempts = 30
+              attempt = 0
+              while attempt < max_attempts:
+                  try:
+                      if blob_client.exists():
+                          return blob_client.download_blob().readall()
+                      print(f"Log not found yet, attempt {attempt + 1}/{max_attempts}")
+                      time.sleep(2)
+                      attempt += 1
+                  except Exception as e:
+                      print(f"Error checking for log: {e}")
+                      time.sleep(2)
+                      attempt += 1
+
+              raise TimeoutError(f"Log not found after {max_attempts} attempts")
+
+          try:
+              # Get event type from matrix
+              event_type = os.environ.get('EVENT_TYPE')
+              print(f"Waiting for log for event type: {event_type}")
+
+              # Wait for and download the log
+              log_content = wait_for_log()
+              log_data = json.loads(log_content)
+
+              # Print the log contents
+              print("\n=== Event Information ===")
+              print(f"Type: {log_data['event']['type']}")
+              print(f"Name: {log_data['event']['name']}")
+              print(f"\n=== Execution Information ===")
+              print(f"Worker ID: {log_data['execution']['worker_id']}")
+              print(f"Run ID: {log_data['execution']['run_id']}")
+              print(f"Timestamp: {log_data['execution']['timestamp']}")
+              print(f"\n=== Script Output ===")
+              print("STDOUT:")
+              print(log_data['output']['stdout'])
+              print("\nSTDERR:")
+              print(log_data['output']['stderr'])
+              print(f"\nExit Code: {log_data['execution']['exit_code']}")
+
+              # Exit with the same code as the script
+              exit(log_data['execution']['exit_code'])
+
+          except Exception as e:
+              print(f"Error monitoring log: {e}")
+              exit(1)
+          EOF
+        env:
+          EVENT_TYPE: ${{ matrix.event.type }}
+
+  cleanup-queue:
+    needs: [read-events, monitor-logs]
+    if: always()  # Run even if other jobs were cancelled
+    runs-on: ubuntu-latest
+    environment: nemo-ci
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Azure Storage SDK
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-queue azure-storage-blob azure-identity
+
+      - name: Delete Queue and Container
+        run: |
+          python - <<EOF
+          import os
+          from azure.storage.queue import QueueServiceClient
+          from azure.storage.blob import BlobServiceClient
+          from azure.identity import DefaultAzureCredential
+
+          # Create storage clients using managed identity
+          account_url = f"https://{os.environ.get('AZURE_QUEUE_STORAGE_ACCOUNT')}.queue.core.windows.net"
+          queue_name = os.environ.get('AZURE_STORAGE_QUEUE_NAME')
+
+          # Use DefaultAzureCredential which will automatically use the managed identity
+          credential = DefaultAzureCredential()
+
+          # Delete queue
+          queue_service = QueueServiceClient(account_url=account_url, credential=credential)
+          queue_client = queue_service.get_queue_client(queue_name)
+          try:
+              queue_client.delete_queue()
+              print(f"Successfully deleted queue: {queue_name}")
+          except Exception as e:
+              print(f"Error deleting queue: {e}")
+          EOF
