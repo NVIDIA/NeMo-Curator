@@ -1,11 +1,12 @@
 """Pipeline definition for composing processing stages."""
 
+import logging
 from typing import Any
-
-from loguru import logger
 
 from ray_curator.readers.base import Reader
 from ray_curator.stages.base import ProcessingStage
+
+logger = logging.getLogger(__name__)
 
 
 class Pipeline:
