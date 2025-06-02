@@ -66,6 +66,7 @@ jobs:
       runner: linux-amd64-cpu8
       has-azure-credentials: true
       use-inline-cache: false
+      enable-pull-cache: true
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
