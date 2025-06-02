@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from ray_curator.data import Task
 
@@ -13,7 +13,7 @@ T = TypeVar("T", bound=Task)
 # Global registry for auto-discoverable stages.  The key is the *class name*
 # (unique) and the value is the class object itself.
 
-_STAGE_REGISTRY: Dict[str, Type["ProcessingStage"]] = {}
+_STAGE_REGISTRY: dict[str, type[ProcessingStage]] = {}
 
 
 class StageMeta(ABCMeta):
@@ -43,7 +43,7 @@ class StageMeta(ABCMeta):
         return cls
 
 
-def get_stage_class(name: str) -> Type["ProcessingStage"]:
+def get_stage_class(name: str) -> type[ProcessingStage]:
     """Retrieve a registered stage class by its *class name*.
 
     Raises
@@ -116,12 +116,12 @@ class ProcessingStage(ABC, Generic[T]):
         """Check if this is a composite stage that decomposes into sub-stages."""
         return self.stage_type == StageType.COMPOSITE
 
-    def decompose(self) -> List["ProcessingStage"]:
+    def decompose(self) -> list[ProcessingStage]:
         """Decompose this stage into execution stages.
-        
+
         High-level composite stages should override this method to return
         the list of low-level stages they represent.
-        
+
         Returns:
             List of execution stages. Returns [self] by default for regular stages.
         """
@@ -129,7 +129,7 @@ class ProcessingStage(ABC, Generic[T]):
 
     def supports_batch_processing(self) -> bool:
         """Whether this stage supports vectorized batch processing.
-        
+
         This is automatically determined by checking if the stage has
         overridden the process_batch method from the base class.
         """
@@ -151,19 +151,19 @@ class ProcessingStage(ABC, Generic[T]):
 
     def process_batch(self, tasks: list[T]) -> list[None | T | list[T]]:
         """Process a batch of tasks and return results.
-        
+
         Override this method to enable batch processing for your stage.
         If not overridden, the stage will only support single-task processing.
-        
+
         Args:
             tasks: List of input tasks to process
-            
+
         Returns:
             List of results, where each result can be:
             - Single task: For 1-to-1 transformations
             - List of tasks: For 1-to-many transformations
             - None: If the task should be filtered out
-            
+
         Note: The returned list should have the same length as the input list,
         with each element corresponding to the result of processing the task
         at the same index.
@@ -218,11 +218,11 @@ class ProcessingStage(ABC, Generic[T]):
 
 class CompositeStage(ProcessingStage[T], ABC):
     """Base class for high-level composite stages.
-    
+
     Composite stages are user-facing stages that decompose into multiple
     low-level execution stages during pipeline planning. They provide a
     simplified API while maintaining fine-grained control at execution time.
-    
+
     Composite stages never actually execute - they only exist to be decomposed
     into their constituent execution stages.
     """
@@ -233,12 +233,12 @@ class CompositeStage(ProcessingStage[T], ABC):
         return StageType.COMPOSITE
 
     @abstractmethod
-    def decompose(self) -> List[ProcessingStage]:
+    def decompose(self) -> list[ProcessingStage]:
         """Decompose into execution stages.
-        
+
         This method must be implemented by composite stages to define
         what low-level stages they represent.
-        
+
         Returns:
             List of execution stages that will actually run
         """
@@ -252,7 +252,7 @@ class CompositeStage(ProcessingStage[T], ABC):
 
     def get_description(self) -> str:
         """Get a description of what this composite stage does.
-        
+
         Override this to provide user-friendly documentation.
         """
         return f"Composite stage: {self.name}"

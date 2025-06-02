@@ -1,14 +1,16 @@
 """Pipeline runner for executing pipeline specifications."""
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ray_curator.data import Task
-from ray_curator.executors.xenna_executor import XennaExecutor
+from ray_curator.executors.factory import ExecutorFactory
 from ray_curator.pipeline.planner import ExecutionPlan, PipelinePlanner
 from ray_curator.pipeline.spec import PipelineSpec
 from ray_curator.readers.base import Reader
-from ray_curator.stages.base import ProcessingStage
+
+if TYPE_CHECKING:
+    from ray_curator.stages.base import ProcessingStage
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +18,14 @@ logger = logging.getLogger(__name__)
 class PipelineRunner:
     """Runs pipeline specifications by converting them to execution plans."""
 
-    def __init__(self, executor_config: dict[str, Any] | None = None):
+    def __init__(self, executor_type: str = "xenna", executor_config: dict[str, Any] | None = None):
         """Initialize the pipeline runner.
 
         Args:
+            executor_type: Type of executor to use ('xenna' or 'ray_data')
             executor_config: Configuration for the executor
         """
+        self.executor_type = executor_type
         self.executor_config = executor_config or {}
         self.planner = PipelinePlanner()
 
@@ -40,6 +44,7 @@ class PipelineRunner:
             List of output tasks from the pipeline
         """
         logger.info(f"Running pipeline: {spec.name}")
+        logger.info(f"Using executor: {self.executor_type}")
 
         # Validate the spec
         spec.validate()
@@ -50,8 +55,11 @@ class PipelineRunner:
         # Log the plan
         logger.info(f"\n{plan.describe()}")
 
-        # Create executor
-        executor = XennaExecutor(self.executor_config)
+        # Create executor using factory
+        executor = ExecutorFactory.create_executor(
+            executor_type=self.executor_type,
+            config=self.executor_config
+        )
 
         # Execute the plan
         results = executor.execute(plan)
@@ -73,10 +81,10 @@ class PipelineRunner:
         """
         # Collect all file groups from readers
         all_file_groups = []
-        reader_to_stage: dict[Reader, ProcessingStage] = {}
+        reader_mappings: list[tuple[int, ProcessingStage]] = []  # (reader_index, stage)
 
         # Process each reader to create file groups and stages
-        for stage in spec.stages:
+        for i, stage in enumerate(spec.stages):
             if isinstance(stage, Reader):
                 # Create file groups
                 file_groups = stage.create_file_groups()
@@ -88,18 +96,19 @@ class PipelineRunner:
 
                 if stage_class:
                     reader_stage = stage_class()
-                    reader_to_stage[stage] = reader_stage
+                    reader_mappings.append((i, reader_stage))
                     logger.info(f"Created {len(file_groups)} file groups for {stage.__class__.__name__}")
                 else:
                     raise ValueError(f"Unknown reader stage: {stage_name}")
 
         # Build the execution stages in the correct order
         execution_stages = []
+        reader_mapping_dict = dict(reader_mappings)
 
-        for stage in spec.stages:
+        for i, stage in enumerate(spec.stages):
             if isinstance(stage, Reader):
                 # Replace reader with its processing stage
-                execution_stages.append(reader_to_stage[stage])
+                execution_stages.append(reader_mapping_dict[i])
             else:
                 # Keep processing stages as-is
                 execution_stages.append(stage)
@@ -117,23 +126,29 @@ class PipelineRunner:
             initial_tasks=all_file_groups,
             graph=graph,
             fusion_info=fusion_info,
+            decomposition_info={},  # No composite stages in this simple runner
         )
 
         return plan
 
 
 # Convenience function for running pipelines
-def run_pipeline(spec: PipelineSpec, executor_config: dict[str, Any] | None = None) -> list[Task]:
+def run_pipeline(
+    spec: PipelineSpec, 
+    executor_type: str = "xenna",
+    executor_config: dict[str, Any] | None = None
+) -> list[Task]:
     """Run a pipeline specification.
 
     This is a convenience function that creates a runner and executes the spec.
 
     Args:
         spec: Pipeline specification to run
+        executor_type: Type of executor to use ('xenna' or 'ray_data')
         executor_config: Optional executor configuration
 
     Returns:
         List of output tasks
     """
-    runner = PipelineRunner(executor_config)
+    runner = PipelineRunner(executor_type=executor_type, executor_config=executor_config)
     return runner.run(spec)
