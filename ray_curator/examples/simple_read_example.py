@@ -100,9 +100,6 @@ def main() -> None:
     print(pipeline.describe())
     print("\n" + "=" * 50 + "\n")
 
-    # Build execution plan
-    pipeline.build()
-
     # Create executor
     executor = XennaExecutor()
 
@@ -112,20 +109,20 @@ def main() -> None:
     print("partitioning strategy. These tasks will be processed in parallel")
     print("by the available workers.\n")
 
-    results = executor.execute(pipeline)
+    results = pipeline.execute(executor)
 
     # Print results summary
     print("\nPipeline completed!")
-    print(f"Total output tasks: {len(results)}")
+    print(f"Total output tasks: {len(results) if results else 0}")
 
-    total_documents = sum(task.num_items for task in results)
+    total_documents = sum(task.num_items for task in results) if results else 0
     print(f"Total documents processed: {total_documents}")
 
     # Save results
     output_dir = Path("./test_output")
     output_dir.mkdir(exist_ok=True)
 
-    for i, batch in enumerate(results):
+    for i, batch in enumerate(results or []):
         print(f"Processing batch {i} with {batch.num_items} documents...")
 
         # Show sample of data

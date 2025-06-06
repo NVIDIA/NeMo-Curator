@@ -1,10 +1,10 @@
 """Pipeline definition for composing processing stages."""
 
-from typing import Any
-
 from loguru import logger
 
+from ray_curator.backends.base import BaseExecutor
 from ray_curator.stages.base import CompositeStage, ProcessingStage
+from ray_curator.tasks import Task
 
 
 class Pipeline:
@@ -19,7 +19,6 @@ class Pipeline:
         self.name = name
         self.description = description
         self.stages: list[ProcessingStage] = []
-        self._config: dict[str, Any] = {}
 
     def add_stage(self, stage: ProcessingStage) -> "Pipeline":
         """Add a stage to the pipeline.
@@ -35,23 +34,6 @@ class Pipeline:
         self.stages.append(stage)
         logger.info(f"Added stage '{stage.name}' to pipeline '{self.name}'")
         return self
-
-    def set_config(self, **kwargs) -> "Pipeline":
-        """Set configuration parameters for the pipeline.
-        Args:
-            **kwargs: Configuration parameters
-        Returns:
-            Self for method chaining
-        """
-        self._config.update(kwargs)
-        return self
-
-    def get_config(self) -> dict[str, Any]:
-        """Get pipeline configuration.
-        Returns:
-            Configuration dictionary
-        """
-        return self._config.copy()
 
     def build(self) -> None:
         """Build an execution plan from the pipeline.
@@ -165,3 +147,14 @@ class Pipeline:
         lines.append("")
 
         return "\n".join(lines)
+
+    def execute(self, executor: BaseExecutor, initial_tasks: list[Task] | None = None) -> list[Task] | None:
+        """Execute the pipeline.
+        Args:
+            executor: Executor to use
+            initial_tasks: Initial tasks to start the pipeline with
+        Returns:
+            List of tasks
+        """
+        self.build()
+        return executor.execute(self.stages, initial_tasks)

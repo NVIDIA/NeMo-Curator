@@ -21,6 +21,8 @@ class XennaStageAdapter(BaseStageAdapter, pipelines_v1.Stage):
         self,
         processing_stage: ProcessingStage,
     ):
+        # Initialize the base adapter with the processing stage
+        super().__init__(processing_stage)
         self.processing_stage = processing_stage
 
     @property

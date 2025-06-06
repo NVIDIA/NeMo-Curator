@@ -6,7 +6,7 @@ from loguru import logger
 
 from ray_curator.backends.base import BaseExecutor
 from ray_curator.backends.xenna.adapter import create_named_xenna_stage_adapter
-from ray_curator.pipeline import Pipeline
+from ray_curator.stages.base import ProcessingStage
 from ray_curator.tasks import EmptyTask, Task
 
 
@@ -28,7 +28,7 @@ class XennaExecutor(BaseExecutor):
                 - cpu_allocation_percentage: CPU allocation ratio (default: 0.95)
                 - autoscale_interval_s: Auto-scaling interval (default: 180)
         """
-        self.config = config or {}
+        super().__init__(config)
         self._default_pipeline_config = {
             "batch_size": 1,
             "logging_interval": 60,
@@ -38,10 +38,10 @@ class XennaExecutor(BaseExecutor):
             "autoscale_interval_s": 180,
         }
 
-    def execute(self, pipeline: Pipeline, initial_tasks: list[Task] | None = None) -> list[Task]:
+    def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> list[Task]:
         """Execute the pipeline using Cosmos-Xenna.
         Args:
-            pipeline: The pipeline to run
+            stages: The stages to run
             initial_tasks: The initial tasks to run. Empty list of Task is used if not provided.
         Returns:
             List of output tasks from the pipeline
@@ -52,7 +52,7 @@ class XennaExecutor(BaseExecutor):
         # Initialize with initial tasks if provided, otherwise start with EmptyTask
         initial_tasks = initial_tasks if initial_tasks else [EmptyTask]
 
-        for stage in pipeline.stages:
+        for stage in stages:
             # Get stage configuration
             stage_config = stage.xenna_stage_spec
 

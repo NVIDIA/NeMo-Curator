@@ -32,8 +32,8 @@ class WorkerMetadata:
 class BaseExecutor(ABC):
     """Executor for a pipeline."""
 
-    def __init__(self, config: dict[str, Any]):
-        self.config = config
+    def __init__(self, config: dict[str, Any] | None = None):
+        self.config = config or {}
 
     @abstractmethod
     def execute(self, stages: list["ProcessingStage"], initial_tasks: list[Task] | None = None) -> None:
@@ -66,7 +66,7 @@ class BaseStageAdapter:
 
         with self._timer.time_process(input_size):
             # Use the batch processing logic
-            results = self.process_batch(tasks)
+            results = self.stage.process_batch(tasks)
 
         # Log performance stats and add to result tasks
         _, stage_perf_stats = self._timer.log_stats()
