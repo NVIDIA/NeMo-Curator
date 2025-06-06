@@ -1,0 +1,167 @@
+"""Pipeline definition for composing processing stages."""
+
+import logging
+from typing import Any
+
+from ray_curator.stages.base import CompositeStage, ProcessingStage
+
+logger = logging.getLogger(__name__)
+
+
+class Pipeline:
+    """User-facing pipeline definition for composing processing stages."""
+
+    def __init__(self, name: str, description: str | None = None):
+        """Initialize a new pipeline.
+        Args:
+            name: Name of the pipeline
+            description: Optional description of what the pipeline does
+        """
+        self.name = name
+        self.description = description
+        self.stages: list[ProcessingStage] = []
+        self._config: dict[str, Any] = {}
+
+    def add_stage(self, stage: ProcessingStage) -> "Pipeline":
+        """Add a stage to the pipeline.
+        Args:
+            stage: Processing stage to add
+        Returns:
+            Self for method chaining
+        """
+        if not isinstance(stage, ProcessingStage):
+            raise TypeError(f"Stage must be a ProcessingStage, got {type(stage)}")
+
+        self.stages.append(stage)
+        logger.info(f"Added stage '{stage.name}' to pipeline '{self.name}'")
+        return self
+
+    def set_config(self, **kwargs) -> "Pipeline":
+        """Set configuration parameters for the pipeline.
+        Args:
+            **kwargs: Configuration parameters
+        Returns:
+            Self for method chaining
+        """
+        self._config.update(kwargs)
+        return self
+
+    def get_config(self) -> dict[str, Any]:
+        """Get pipeline configuration.
+        Returns:
+            Configuration dictionary
+        """
+        return self._config.copy()
+
+    def build(self) -> None:
+        """Build an execution plan from the pipeline.
+        Returns:
+            Optimized execution plan
+        """
+        logger.info(f"Planning pipeline: {self.name}")
+
+        # 1. Validate pipeline has stages
+        if not self.stages:
+            raise ValueError(f"Pipeline '{self.name}' has no stages")
+
+        # 2. Decompose composite stages into execution stages
+        execution_stages, decomposition_info = self._decompose_stages(self.stages)
+
+        self.stages = execution_stages
+        self.decomposition_info = decomposition_info
+
+
+    def _decompose_stages(self, stages: list[ProcessingStage | CompositeStage]) -> tuple[list[ProcessingStage], dict[str, list[str]]]:
+        """Decompose composite stages into execution stages.
+        
+        Args:
+            stages: List of stages that may include composite stages
+            
+        Returns:
+            Tuple of (execution stages, decomposition info dict)
+        """
+        execution_stages = []
+        decomposition_info = {}
+
+        for stage in stages:
+            # Get the decomposed stages (returns [self] for regular stages)
+            if isinstance(stage, CompositeStage):
+                sub_stages = stage.decompose()
+            else:
+                sub_stages = [stage]
+
+            if len(sub_stages) > 1:
+                # This was a composite stage
+                logger.info(f"Decomposing composite stage: {stage.name}")
+
+                # Validate that decomposed stages are not composite
+                for sub_stage in sub_stages:
+                    if isinstance(sub_stage, CompositeStage) and len(sub_stage.decompose()) > 1:
+                        raise ValueError(
+                            f"Composite stage '{stage.name}' decomposed into another "
+                            f"composite stage '{sub_stage.name}'. Nested composition "
+                            "is not supported."
+                        )
+
+                execution_stages.extend(sub_stages)
+                decomposition_info[stage.name] = [s.name for s in sub_stages]
+                logger.info(f"Expanded '{stage.name}' into {len(sub_stages)} execution stages")
+            else:
+                # Regular stage, add as-is
+                execution_stages.append(stage)
+
+        return execution_stages, decomposition_info
+
+    def __repr__(self) -> str:
+        """String representation of the pipeline."""
+        stage_info = ", ".join([f"{s.name}({s.__class__.__name__})" for s in self.stages])
+        return f"Pipeline(name='{self.name}', stages=[{stage_info}])"
+
+    def describe(self) -> str:
+        """Get a detailed description of the pipeline stages and their requirements."""
+        lines = [
+            f"Pipeline: {self.name}",
+            f"Description: {self.description or 'No description provided'}",
+            f"Stages: {len(self.stages)}",
+            "",
+        ]
+
+        for i, stage in enumerate(self.stages):
+            lines.append(f"Stage {i+1}: {stage.name}")
+
+            try:
+                required_attrs, required_cols = stage.inputs()
+                output_attrs, output_cols = stage.outputs()
+
+                lines.append(f"  Resources: {stage.resources.cpus} CPUs")
+                if stage.resources.requires_gpu:
+                    lines.append(f"    GPU Memory: {stage.resources.gpu_memory_gb} GB ({stage.resources.gpus} GPUs)")
+                if stage.resources.nvdecs > 0:
+                    lines.append(f"    NVDEC: {stage.resources.nvdecs}")
+                if stage.resources.nvencs > 0:
+                    lines.append(f"    NVENC: {stage.resources.nvencs}")
+
+                lines.append(f"  Batch size: {stage.batch_size}")
+
+                # Input requirements
+                if required_attrs or required_cols:
+                    lines.append("  Inputs:")
+                    if required_attrs:
+                        lines.append(f"    Required attributes: {', '.join(required_attrs)}")
+                    if required_cols:
+                        lines.append(f"    Required columns: {', '.join(required_cols)}")
+
+                # Output specification
+                if output_attrs or output_cols:
+                    lines.append("  Outputs:")
+                    if output_attrs:
+                        lines.append(f"    Output attributes: {', '.join(output_attrs)}")
+                    if output_cols:
+                        lines.append(f"    Output columns: {', '.join(output_cols)}")
+
+            except Exception as e:
+                lines.append(f"  Error getting stage info: {e}")
+
+        lines.append("")
+
+        return "\n".join(lines)
