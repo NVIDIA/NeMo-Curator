@@ -18,7 +18,6 @@ class PipelineRunner:
 
     def __init__(self, executor_config: dict[str, Any] | None = None):
         """Initialize the pipeline runner.
-
         Args:
             executor_config: Configuration for the executor
         """
@@ -27,15 +26,12 @@ class PipelineRunner:
 
     def run(self, spec: PipelineSpec) -> list[Task]:
         """Run a pipeline specification.
-
         This method:
         1. Validates the pipeline spec
         2. Converts it to an execution plan
         3. Executes the plan and returns results
-
         Args:
             spec: Pipeline specification to run
-
         Returns:
             List of output tasks from the pipeline
         """
@@ -61,13 +57,10 @@ class PipelineRunner:
 
     def _create_execution_plan(self, spec: PipelineSpec) -> ExecutionPlan:
         """Convert a pipeline spec to an execution plan.
-
         This handles the transformation of readers into file groups
         and reader stages, while preserving the order of operations.
-
         Args:
             spec: Pipeline specification
-
         Returns:
             Execution plan ready for execution
         """
@@ -125,13 +118,10 @@ class PipelineRunner:
 # Convenience function for running pipelines
 def run_pipeline(spec: PipelineSpec, executor_config: dict[str, Any] | None = None) -> list[Task]:
     """Run a pipeline specification.
-
     This is a convenience function that creates a runner and executes the spec.
-
     Args:
         spec: Pipeline specification to run
         executor_config: Optional executor configuration
-
     Returns:
         List of output tasks
     """

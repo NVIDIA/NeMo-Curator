@@ -14,7 +14,6 @@ class Pipeline:
 
     def __init__(self, name: str, description: str | None = None):
         """Initialize a new pipeline.
-
         Args:
             name: Name of the pipeline
             description: Optional description of what the pipeline does
@@ -27,13 +26,10 @@ class Pipeline:
 
     def add_reader(self, reader: Reader) -> "Pipeline":
         """Add a reader to the pipeline.
-
         Readers are special components that create file groups during planning.
         They must be added before any processing stages.
-
         Args:
             reader: Reader configuration
-
         Returns:
             Self for method chaining
         """
@@ -49,13 +45,10 @@ class Pipeline:
 
     def add_stage(self, stage: ProcessingStage | Reader) -> "Pipeline":
         """Add a stage to the pipeline.
-
         This method accepts both ProcessingStage and Reader for backward compatibility.
         If a Reader is passed, it will be added via add_reader.
-
         Args:
             stage: Processing stage or reader to add
-
         Returns:
             Self for method chaining
         """
@@ -71,10 +64,8 @@ class Pipeline:
 
     def set_config(self, **kwargs) -> "Pipeline":
         """Set configuration parameters for the pipeline.
-
         Args:
             **kwargs: Configuration parameters
-
         Returns:
             Self for method chaining
         """
@@ -83,7 +74,6 @@ class Pipeline:
 
     def get_config(self) -> dict[str, Any]:
         """Get pipeline configuration.
-
         Returns:
             Configuration dictionary
         """
@@ -91,7 +81,6 @@ class Pipeline:
 
     def validate(self) -> bool:
         """Validate the pipeline configuration.
-
         Returns:
             True if valid, raises exception otherwise
         """
@@ -117,7 +106,6 @@ class Pipeline:
 
     def build(self) -> "ExecutionPlan":
         """Build an execution plan from the pipeline.
-
         Returns:
             Optimized execution plan
         """

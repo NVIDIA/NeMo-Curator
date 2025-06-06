@@ -10,10 +10,8 @@ from ray_curator.stages.base import ProcessingStage
 @dataclass
 class PipelineSpec:
     """User-facing pipeline specification.
-
     This represents the logical pipeline as defined by the user,
     before it's transformed into an execution plan.
-
     Example:
         >>> spec = PipelineSpec(
         ...     stages=[
@@ -45,10 +43,8 @@ class PipelineSpec:
 
     def validate(self) -> bool:
         """Validate the pipeline specification.
-
         Returns:
             True if valid
-
         Raises:
             ValueError: If the pipeline is invalid
         """

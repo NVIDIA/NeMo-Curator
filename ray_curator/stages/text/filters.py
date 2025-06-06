@@ -15,7 +15,6 @@ class TextLengthFilterStage(ProcessingStage[DocumentBatch]):
 
     def __init__(self, min_length: int = 0, max_length: int | None = None):
         """Initialize the text length filter.
-
         Args:
             min_length: Minimum text length in characters
             max_length: Maximum text length in characters (None for no limit)
@@ -80,7 +79,6 @@ class TextLanguageFilterStage(ProcessingStage[DocumentBatch]):
 
     def __init__(self, languages: list[str], language_column: str = "language"):
         """Initialize the language filter.
-
         Args:
             languages: List of accepted language codes (e.g., ["en", "es"])
             language_column: Column containing language information
@@ -143,7 +141,6 @@ class TextContentFilterStage(ProcessingStage[DocumentBatch]):
 
     def __init__(self, patterns: list[str], mode: str = "contains", case_sensitive: bool = False):
         """Initialize the content filter.
-
         Args:
             patterns: List of patterns to search for
             mode: "contains" (keep if contains any pattern) or
@@ -222,7 +219,6 @@ class TextMetadataFilterStage(ProcessingStage[DocumentBatch]):
 
     def __init__(self, filters: dict):
         """Initialize the metadata filter.
-
         Args:
             filters: Dictionary of column_name -> accepted_values
                     e.g., {"source": ["wikipedia", "books"], "quality": ["high"]}
