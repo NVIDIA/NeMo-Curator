@@ -52,6 +52,7 @@ class Task(ABC, Generic[T]):
 class _EmptyTask(Task[None]):
     """Dummy task for testing."""
 
+    @property
     def num_items(self) -> int:
         return 0
 

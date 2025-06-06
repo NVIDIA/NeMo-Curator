@@ -33,7 +33,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
         return "jsonl_reader"
 
     def inputs(self) -> tuple[list[str], list[str]]:
-        return ["file_paths"], []
+        return [], []
 
     def outputs(self) -> tuple[list[str], list[str]]:
         output_columns = [self.text_column]

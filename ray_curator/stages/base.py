@@ -113,7 +113,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
 
         # Log warning with missing attributes
         if missing_top_level_attrs or missing_data_attrs:
-            logger.warning(
+            logger.error(
                 f"Task {task.task_id} missing required attributes: {missing_top_level_attrs} {missing_data_attrs}"
             )
 
@@ -150,7 +150,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         results = []
         for task in tasks:
             if not self.validate_input(task):
-                msg = f"Task {task} failed validation for stage {self}"
+                msg = f"Task {task!s} failed validation for stage {self}"
                 raise ValueError(msg)
 
             result = self.process(task)
@@ -247,10 +247,10 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             self._timer = StageTimer(self)
 
         # Calculate input data size for timer
-        input_size_bytes = sum(task.num_items for task in tasks)
+        input_size = sum(task.num_items for task in tasks)
 
         # Initialize performance timer for this batch
-        self._timer.reinit(input_size_bytes)
+        self._timer.reinit(input_size)
 
         results = []
 

@@ -40,9 +40,9 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
         return [], []
 
     def outputs(self) -> tuple[list[str], list[str]]:
-        return ["file_paths"], []
+        return [], []
 
-    def process(self, _: _EmptyTask) -> list[FileGroupTask] | None:
+    def process(self, _: _EmptyTask) -> list[FileGroupTask]:
         """Process the initial task to create file group tasks.
 
         This stage expects a simple Task with file paths information
@@ -50,10 +50,10 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
         """
         # Get list of files
         files = self._get_file_list()
-
+        logger.info(f"Found {len(files)} files")
         if not files:
             logger.warning(f"No files found matching pattern: {self.file_paths}")
-            return None
+            return []
 
         # Partition files
         if self.files_per_partition:
@@ -87,6 +87,7 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
 
     def _get_file_list(self) -> list[str]:
         """Get the list of files to process."""
+        logger.info(f"Getting file list for {self.file_paths}")
         if isinstance(self.file_paths, str):
             # TODO: This needs to change for fsspec
             path = Path(self.file_paths)
