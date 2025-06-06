@@ -9,7 +9,6 @@ from loguru import logger
 
 from ray_curator.stages.resources import Resources
 from ray_curator.tasks import Task
-from ray_curator.utils.performance_utils import StageTimer
 
 if TYPE_CHECKING:
     from ray_curator.backends.base import NodeInfo, WorkerMetadata
@@ -229,42 +228,6 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             "batch_size": self.batch_size,
             "supports_batch_processing": self.supports_batch_processing(),
         }
-
-    def process_with_monitoring(self, tasks: list[X]) -> list[Y]:
-        """Process tasks with automatic performance monitoring.
-
-        This method wraps the actual processing logic with performance tracking
-        and should be used by backend adapters instead of calling process/process_batch directly.
-
-        Args:
-            tasks: List of tasks to process
-
-        Returns:
-            List of processed tasks
-        """
-        # Lazy initialize timer if needed
-        if not hasattr(self, "_timer") or self._timer is None:
-            self._timer = StageTimer(self)
-
-        # Calculate input data size for timer
-        input_size = sum(task.num_items for task in tasks)
-
-        # Initialize performance timer for this batch
-        self._timer.reinit(input_size)
-
-        results = []
-
-        # Wrap processing with performance timer
-        with self._timer.time_process(len(tasks)):
-            # Use the batch processing logic
-            results = self.process_batch(tasks)
-
-        # Log performance stats and add to result tasks
-        stage_name, stage_perf_stats = self._timer.log_stats()
-        for task in results:
-            task.add_stage_perf(stage_perf_stats)
-
-        return results
 
 
 class CompositeStage(ProcessingStage[X, Y], ABC):

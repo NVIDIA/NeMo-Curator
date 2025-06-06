@@ -4,12 +4,13 @@ from cosmos_xenna.pipelines import v1 as pipelines_v1
 from cosmos_xenna.utils.verbosity import VerbosityLevel
 from loguru import logger
 
+from ray_curator.backends.base import BaseExecutor
 from ray_curator.backends.xenna.adapter import create_named_xenna_stage_adapter
 from ray_curator.pipeline import Pipeline
 from ray_curator.tasks import EmptyTask, Task
 
 
-class XennaExecutor:
+class XennaExecutor(BaseExecutor):
     """Executor that runs pipelines using Cosmos-Xenna.
     This executor provides integration between the ray-curator pipeline framework
     and the Cosmos-Xenna execution engine for distributed processing.

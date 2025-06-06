@@ -6,12 +6,12 @@ from cosmos_xenna.ray_utils.resources import Resources as XennaResources
 from cosmos_xenna.ray_utils.resources import WorkerMetadata as XennaWorkerMetadata
 from loguru import logger
 
-from ray_curator.backends.base import NodeInfo, WorkerMetadata
+from ray_curator.backends.base import BaseStageAdapter, NodeInfo, WorkerMetadata
 from ray_curator.stages.base import ProcessingStage
 from ray_curator.tasks import Task
 
 
-class XennaStageAdapter(pipelines_v1.Stage):
+class XennaStageAdapter(BaseStageAdapter, pipelines_v1.Stage):
     """Adapts ProcessingStage to Xenna.
     Args:
         stage: ProcessingStage to adapt
@@ -54,7 +54,7 @@ class XennaStageAdapter(pipelines_v1.Stage):
             List of processed tasks or None
         """
         # Use the base stage's monitoring capability
-        return self.processing_stage.process_with_monitoring(tasks)
+        return self.process_batch(tasks)
 
     def setup_on_node(self, node_info: XennaNodeInfo, worker_metadata: XennaWorkerMetadata) -> None:
         """Setup the stage on a node - Xenna-specific signature.
@@ -70,7 +70,7 @@ class XennaStageAdapter(pipelines_v1.Stage):
             worker_id=worker_metadata.worker_id,
             allocation=worker_metadata.allocation,  # Keep the original allocation object
         )
-        self.processing_stage.setup_on_node(generic_node_info, generic_worker_metadata)
+        super().setup_on_node(generic_node_info, generic_worker_metadata)
 
     def setup(self, worker_metadata: XennaWorkerMetadata) -> None:
         """Setup the stage per worker - Xenna-specific signature.
@@ -85,7 +85,7 @@ class XennaStageAdapter(pipelines_v1.Stage):
             allocation=worker_metadata.allocation,  # Keep the original allocation object
         )
 
-        self.processing_stage.setup(generic_worker_metadata)
+        super().setup(generic_worker_metadata)
 
 
 def create_named_xenna_stage_adapter(stage: ProcessingStage) -> XennaStageAdapter:
