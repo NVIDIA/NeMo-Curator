@@ -307,23 +307,23 @@ class PipelinePlanner:
 
     def _decompose_stages(self, stages: list[ProcessingStage]) -> tuple[list[ProcessingStage], dict[str, list[str]]]:
         """Decompose composite stages into execution stages.
-        
+
         Args:
             stages: List of stages that may include composite stages
-            
+
         Returns:
             Tuple of (execution stages, decomposition info dict)
         """
         execution_stages = []
         decomposition_info = {}
-        
+
         for stage in stages:
             if stage.is_composite():
                 logger.info(f"Decomposing composite stage: {stage.name}")
-                
+
                 # Get the execution stages this composite represents
                 sub_stages = stage.decompose()
-                
+
                 # Validate that decomposed stages are not composite
                 for sub_stage in sub_stages:
                     if sub_stage.is_composite():
@@ -332,12 +332,12 @@ class PipelinePlanner:
                             f"composite stage '{sub_stage.name}'. Nested composition "
                             "is not supported."
                         )
-                
+
                 execution_stages.extend(sub_stages)
                 decomposition_info[stage.name] = [s.name for s in sub_stages]
                 logger.info(f"Expanded '{stage.name}' into {len(sub_stages)} execution stages")
             else:
                 # Regular stage, add as-is
                 execution_stages.append(stage)
-        
+
         return execution_stages, decomposition_info
