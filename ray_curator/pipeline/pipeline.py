@@ -1,11 +1,10 @@
 """Pipeline definition for composing processing stages."""
 
-import logging
 from typing import Any
 
-from ray_curator.stages.base import CompositeStage, ProcessingStage
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+from ray_curator.stages.base import CompositeStage, ProcessingStage
 
 
 class Pipeline:
@@ -30,7 +29,8 @@ class Pipeline:
             Self for method chaining
         """
         if not isinstance(stage, ProcessingStage):
-            raise TypeError(f"Stage must be a ProcessingStage, got {type(stage)}")
+            msg = f"Stage must be a ProcessingStage, got {type(stage)}"
+            raise TypeError(msg)
 
         self.stages.append(stage)
         logger.info(f"Added stage '{stage.name}' to pipeline '{self.name}'")
@@ -62,7 +62,8 @@ class Pipeline:
 
         # 1. Validate pipeline has stages
         if not self.stages:
-            raise ValueError(f"Pipeline '{self.name}' has no stages")
+            msg = f"Pipeline '{self.name}' has no stages"
+            raise ValueError(msg)
 
         # 2. Decompose composite stages into execution stages
         execution_stages, decomposition_info = self._decompose_stages(self.stages)
@@ -70,13 +71,14 @@ class Pipeline:
         self.stages = execution_stages
         self.decomposition_info = decomposition_info
 
-
-    def _decompose_stages(self, stages: list[ProcessingStage | CompositeStage]) -> tuple[list[ProcessingStage], dict[str, list[str]]]:
+    def _decompose_stages(
+        self, stages: list[ProcessingStage | CompositeStage]
+    ) -> tuple[list[ProcessingStage], dict[str, list[str]]]:
         """Decompose composite stages into execution stages.
-        
+
         Args:
             stages: List of stages that may include composite stages
-            
+
         Returns:
             Tuple of (execution stages, decomposition info dict)
         """
@@ -85,10 +87,7 @@ class Pipeline:
 
         for stage in stages:
             # Get the decomposed stages (returns [self] for regular stages)
-            if isinstance(stage, CompositeStage):
-                sub_stages = stage.decompose()
-            else:
-                sub_stages = [stage]
+            sub_stages = stage.decompose() if isinstance(stage, CompositeStage) else [stage]
 
             if len(sub_stages) > 1:
                 # This was a composite stage
@@ -97,11 +96,12 @@ class Pipeline:
                 # Validate that decomposed stages are not composite
                 for sub_stage in sub_stages:
                     if isinstance(sub_stage, CompositeStage) and len(sub_stage.decompose()) > 1:
-                        raise ValueError(
+                        msg = (
                             f"Composite stage '{stage.name}' decomposed into another "
                             f"composite stage '{sub_stage.name}'. Nested composition "
                             "is not supported."
                         )
+                        raise ValueError(msg)
 
                 execution_stages.extend(sub_stages)
                 decomposition_info[stage.name] = [s.name for s in sub_stages]
@@ -117,7 +117,7 @@ class Pipeline:
         stage_info = ", ".join([f"{s.name}({s.__class__.__name__})" for s in self.stages])
         return f"Pipeline(name='{self.name}', stages=[{stage_info}])"
 
-    def describe(self) -> str:
+    def describe(self) -> str:  # noqa: C901
         """Get a detailed description of the pipeline stages and their requirements."""
         lines = [
             f"Pipeline: {self.name}",
@@ -127,7 +127,7 @@ class Pipeline:
         ]
 
         for i, stage in enumerate(self.stages):
-            lines.append(f"Stage {i+1}: {stage.name}")
+            lines.append(f"Stage {i + 1}: {stage.name}")
 
             try:
                 required_attrs, required_cols = stage.inputs()
@@ -159,7 +159,7 @@ class Pipeline:
                     if output_cols:
                         lines.append(f"    Output columns: {', '.join(output_cols)}")
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 lines.append(f"  Error getting stage info: {e}")
 
         lines.append("")

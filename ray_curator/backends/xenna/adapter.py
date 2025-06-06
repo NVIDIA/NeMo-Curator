@@ -1,20 +1,14 @@
 """Xenna executor for running pipelines using Cosmos-Xenna backend."""
 
-from loguru import logger
-from typing import Any, Optional, Union
-
-import ray
 from cosmos_xenna.pipelines import v1 as pipelines_v1
-from cosmos_xenna.ray_utils.resources import Resources as XennaResources
-from ray_curator.backends.base import NodeInfo, WorkerMetadata
-from ray_curator.stages.resources import Resources
 from cosmos_xenna.ray_utils.resources import NodeInfo as XennaNodeInfo
+from cosmos_xenna.ray_utils.resources import Resources as XennaResources
 from cosmos_xenna.ray_utils.resources import WorkerMetadata as XennaWorkerMetadata
+from loguru import logger
 
-from ray_curator.tasks import Task
-from ray_curator.pipeline import Pipeline
+from ray_curator.backends.base import NodeInfo, WorkerMetadata
 from ray_curator.stages.base import ProcessingStage
-from ray_curator.utils.performance_utils import StageTimer
+from ray_curator.tasks import Task
 
 
 class XennaStageAdapter(pipelines_v1.Stage):
@@ -23,9 +17,11 @@ class XennaStageAdapter(pipelines_v1.Stage):
         stage: ProcessingStage to adapt
     """
 
-    def __init__(self, processing_stage: ProcessingStage,):
+    def __init__(
+        self,
+        processing_stage: ProcessingStage,
+    ):
         self.processing_stage = processing_stage
-        self._timer = StageTimer(processing_stage)
 
     @property
     def required_resources(self) -> XennaResources:
@@ -50,57 +46,15 @@ class XennaStageAdapter(pipelines_v1.Stage):
         # Can be customized per stage if needed
         return None
 
-    def process_data(self, tasks: list[Task]) -> Optional[list[Task]]:
+    def process_data(self, tasks: list[Task]) -> list[Task] | None:
         """Process batch of tasks with automatic performance tracking.
         Args:
             tasks: List of tasks to process
         Returns:
             List of processed tasks or None
         """
-        if not tasks:
-            return None
-
-        # import pdb; pdb.set_trace()
-        # Calculate input data size for timer
-        input_size_bytes = sum(task.num_items for task in tasks)
-
-        # Initialize performance timer for this batch
-        self._timer.reinit(self.processing_stage, input_size_bytes)
-
-        results = []
-
-        # Wrap processing with performance timer
-        with self._timer.time_process(len(tasks)):
-            # Check if stage supports batch processing
-            if self.processing_stage.supports_batch_processing():
-                batch_results = self.processing_stage.process_batch(tasks)
-
-                # Process the batch results
-                for i, result in enumerate(batch_results):
-                    if result is not None:
-                        # Handle case where stage returns multiple tasks
-                        if isinstance(result, list):
-                            results.extend(result)
-                        else:
-                            results.append(result)
-            else:
-                for task in tasks:
-                    # Process task
-                    result = self.processing_stage.process(task)
-
-                    if result is not None:
-                        # Handle case where stage returns multiple tasks
-                        if isinstance(result, list):
-                            results.extend(result)
-                        else:
-                            results.append(result)
-
-        # Log performance stats and add to result tasks
-        stage_name, stage_perf_stats = self._timer.log_stats()
-        for task in results:
-            task.add_stage_perf(stage_perf_stats)
-
-        return results if results else None
+        # Use the base stage's monitoring capability
+        return self.processing_stage.process_with_monitoring(tasks)
 
     def setup_on_node(self, node_info: XennaNodeInfo, worker_metadata: XennaWorkerMetadata) -> None:
         """Setup the stage on a node - Xenna-specific signature.

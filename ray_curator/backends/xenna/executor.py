@@ -1,12 +1,13 @@
-
 from typing import Any
-from ray_curator.backends.xenna.adapter import create_named_xenna_stage_adapter
+
 from cosmos_xenna.pipelines import v1 as pipelines_v1
 from cosmos_xenna.utils.verbosity import VerbosityLevel
 from loguru import logger
 
+from ray_curator.backends.xenna.adapter import create_named_xenna_stage_adapter
 from ray_curator.pipeline import Pipeline
 from ray_curator.tasks import EmptyTask, Task
+
 
 class XennaExecutor:
     """Executor that runs pipelines using Cosmos-Xenna.
@@ -27,13 +28,13 @@ class XennaExecutor:
                 - autoscale_interval_s: Auto-scaling interval (default: 180)
         """
         self.config = config or {}
-        self._default_config = {
-            'batch_size': 1,
-            'logging_interval': 60,
-            'ignore_failures': False,
-            'execution_mode': 'streaming',
-            'cpu_allocation_percentage': 0.95,
-            'autoscale_interval_s': 180,
+        self._default_pipeline_config = {
+            "batch_size": 1,
+            "logging_interval": 60,
+            "ignore_failures": False,
+            "execution_mode": "streaming",
+            "cpu_allocation_percentage": 0.95,
+            "autoscale_interval_s": 180,
         }
 
     def execute(self, pipeline: Pipeline, initial_tasks: list[Task] | None = None) -> list[Task]:
@@ -50,11 +51,11 @@ class XennaExecutor:
         # Initialize with initial tasks if provided, otherwise start with EmptyTask
         initial_tasks = initial_tasks if initial_tasks else [EmptyTask]
 
-        for i, stage in enumerate(pipeline.stages):
+        for stage in pipeline.stages:
             # Get stage configuration
-            stage_config = stage.xenna_stage_spec()
+            stage_config = stage.xenna_stage_spec
 
-                    # Create Xenna stage adapter with the original stage's name
+            # Create Xenna stage adapter with the original stage's name
             xenna_stage = create_named_xenna_stage_adapter(
                 stage=stage,
             )
@@ -78,14 +79,14 @@ class XennaExecutor:
 
         # Determine execution mode
         exec_mode = pipelines_v1.ExecutionMode.STREAMING
-        if self._get_config('execution_mode') == 'batch':
+        if self._get_pipeline_config("execution_mode") == "batch":
             exec_mode = pipelines_v1.ExecutionMode.BATCH
 
         # Create streaming-specific configuration
         streaming_config = None
         if exec_mode == pipelines_v1.ExecutionMode.STREAMING:
             streaming_config = pipelines_v1.StreamingSpecificSpec(
-                autoscale_interval_s=self._get_config('autoscale_interval_s'),
+                autoscale_interval_s=self._get_pipeline_config("autoscale_interval_s"),
                 autoscaler_verbosity_level=VerbosityLevel.INFO,
                 executor_verbosity_level=VerbosityLevel.INFO,
             )
@@ -93,33 +94,32 @@ class XennaExecutor:
         # Create pipeline configuration
         pipeline_config = pipelines_v1.PipelineConfig(
             execution_mode=exec_mode,
-            logging_interval_s=self._get_config('logging_interval'),
+            logging_interval_s=self._get_pipeline_config("logging_interval"),
             log_worker_allocation_layout=True,
             return_last_stage_outputs=True,
-            ignore_failures=self._get_config('ignore_failures'),
-            cpu_allocation_percentage=self._get_config('cpu_allocation_percentage'),
+            ignore_failures=self._get_pipeline_config("ignore_failures"),
+            cpu_allocation_percentage=self._get_pipeline_config("cpu_allocation_percentage"),
             mode_specific=streaming_config,
             actor_pool_verbosity_level=VerbosityLevel.INFO,
             monitoring_verbosity_level=VerbosityLevel.INFO,
         )
-
 
         # Create pipeline specification
         pipeline_spec = pipelines_v1.PipelineSpec(input_data=initial_tasks, stages=stage_specs, config=pipeline_config)
 
         # Log pipeline configuration
         logger.info(f"Execution mode: {exec_mode.name}")
-        logger.info(f"Batch size: {self._get_config('batch_size')}")
+        logger.info(f"Batch size: {self._get_pipeline_config('batch_size')}")
 
         try:
             results = pipelines_v1.run_pipeline(pipeline_spec)
             logger.info(f"Pipeline completed successfully with {len(results) if results else 0} output tasks")
-            return results if results else []
         except Exception as e:
             logger.error(f"Pipeline execution failed: {e}")
             raise
 
-    def _get_config(self, key: str) -> Any:
-        """Get configuration value with fallback to defaults."""
-        return self.config.get(key, self._default_config.get(key))
+        return results if results else []
 
+    def _get_pipeline_config(self, key: str) -> Any:  # noqa: ANN401
+        """Get configuration value with fallback to defaults."""
+        return self.config.get(key, self._default_pipeline_config.get(key))

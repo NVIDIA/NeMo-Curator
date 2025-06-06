@@ -5,9 +5,15 @@ from __future__ import annotations
 import contextlib
 import statistics
 import time
+from typing import TYPE_CHECKING
 
 import attrs
 from loguru import logger
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from ray_curator.stages.base import ProcessingStage
 
 
 @attrs.define
@@ -40,7 +46,9 @@ class StagePerfStats:
         """Add two StagePerfStats together, if right is 0, returns itself."""
         if other == 0:
             return self
-        assert isinstance(other, StagePerfStats)
+        if not isinstance(other, StagePerfStats):
+            msg = f"Cannot add {type(other)} to {type(self)}"
+            raise TypeError(msg)
         return self.__add__(other)
 
     def reset(self) -> None:
@@ -79,11 +87,11 @@ class StageTimer:
         self._idle_time_s = 0.0
         self._startup_time_s = 0.0
 
-    def reinit(self, stage: ProcessingStage, stage_input_size: int = 1) -> None:
+    def reinit(self, stage_input_size: int = 1) -> None:
         """Reinitialize the stage timer.
         Args:
             stage: The stage to reinitialize the timer for.
-            stage_input_size: The size of the stage input in bytes.
+            stage_input_size: The size of the stage input.
         """
         self._reset()
         self._input_data_size_b = stage_input_size
@@ -137,4 +145,4 @@ class StageTimer:
             input_data_size_mb=input_data_size_mb,
             num_items_processed=num_items,
         )
-        return self._stage_name, stage_perf_stats 
+        return self._stage_name, stage_perf_stats

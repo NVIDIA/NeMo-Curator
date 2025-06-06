@@ -1,169 +1,17 @@
 """JSONL reader composite stage."""
-from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.json as pj
+from loguru import logger
 
-from ray_curator.tasks import DocumentBatch, _EmptyTask
 from ray_curator.stages.base import CompositeStage, ProcessingStage
-from ray_curator.stages.readers.base import FileGroupTask
-from ray_curator.utils.file_utils import get_all_files_paths_under
+from ray_curator.tasks import DocumentBatch, FileGroupTask, _EmptyTask
 
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
-    """Stage that partitions input file paths into FileGroupTasks.
-    
-    This stage runs as a dedicated processing stage (not on the driver)
-    and creates file groups based on the partitioning strategy.
-    """
-
-    file_paths: str | list[str]
-    files_per_partition: int | None = None
-    blocksize: int | str | None = None
-    file_extensions: list[str] | None = None
-    storage_options: dict[str, Any] | None = None
-
-    def __post_init__(self):
-        """Initialize default values."""
-        if self.file_extensions is None:
-            self.file_extensions = [".jsonl", ".json"]
-        if self.storage_options is None:
-            self.storage_options = {}
-
-    @property
-    def name(self) -> str:
-        return "file_partitioning"
-    
-    def inputs(self) -> tuple[list[str], list[str]]:
-        return [], []
-    
-    def outputs(self) -> tuple[list[str], list[str]]:
-        return ["file_paths"], []
-
-    def process(self, task: _EmptyTask) -> list[FileGroupTask] | None:
-        """Process the initial task to create file group tasks.
-        
-        This stage expects a simple Task with file paths information
-        and outputs multiple FileGroupTasks for parallel processing.
-        """
-        # Get list of files
-        files = self._get_file_list()
-
-        if not files:
-            logger.warning(f"No files found matching pattern: {self.file_paths}")
-            return None
-
-        # Partition files
-        if self.files_per_partition:
-            partitions = self._partition_by_count(files, self.files_per_partition)
-        elif self.blocksize:
-            partitions = self._partition_by_size(files, self.blocksize)
-        else:
-            # All files in one group
-            partitions = [files]
-
-        # Create FileGroupTask for each partition
-        tasks = []
-        dataset_name = self._get_dataset_name(files)
-
-        for i, file_group in enumerate(partitions):
-            file_task = FileGroupTask(
-                task_id=f"file_group_{i}",
-                dataset_name=dataset_name,
-                file_paths=file_group,
-                metadata={
-                    "partition_index": i,
-                    "total_partitions": len(partitions),
-                    "storage_options": self.storage_options,
-                },
-                reader_config={},  # Empty - will be populated by reader stage
-            )
-            tasks.append(file_task)
-
-        logger.info(f"Created {len(tasks)} file groups from {len(files)} files")
-        return tasks
-
-    def _get_file_list(self) -> list[str]:
-        """Get the list of files to process."""
-        if isinstance(self.file_paths, str):
-            path = Path(self.file_paths)
-            if path.is_file():
-                return [str(path)]
-            else:
-                # Directory or pattern
-                return get_all_files_paths_under(
-                    self.file_paths,
-                    recurse_subdirectories=True,
-                    keep_extensions=self.file_extensions,
-                    storage_options=self.storage_options,
-                )
-        else:
-            # List of files
-            return self.file_paths
-
-    def _get_dataset_name(self, files: list[str]) -> str:
-        """Extract dataset name from file paths."""
-        if files:
-            # Use the parent directory name or first file stem
-            first_file = Path(files[0])
-            if first_file.parent.name and first_file.parent.name != ".":
-                return first_file.parent.name
-            else:
-                return first_file.stem
-        return "dataset"
-
-    def _partition_by_count(self, files: list[str], count: int) -> list[list[str]]:
-        """Partition files by count."""
-        partitions = []
-        for i in range(0, len(files), count):
-            partitions.append(files[i : i + count])
-        return partitions
-
-    def _partition_by_size(self, files: list[str], blocksize: int | str) -> list[list[str]]:
-        """Partition files by target size.
-        
-        Note: This is a simplified implementation. A full implementation
-        would check actual file sizes and create balanced partitions.
-        """
-        # Convert blocksize to bytes if string
-        if isinstance(blocksize, str):
-            blocksize = self._parse_size(blocksize)
-
-        # For now, use a simple heuristic
-        # Assume average JSONL file is ~100MB
-        avg_file_size = 100 * 1024 * 1024  # 100MB
-        files_per_block = max(1, blocksize // avg_file_size)
-
-        return self._partition_by_count(files, files_per_block)
-
-    def _parse_size(self, size_str: str) -> int:
-        """Parse size string like '128MB' to bytes."""
-        size_str = size_str.upper().strip()
-
-        units = {
-            "B": 1,
-            "KB": 1024,
-            "MB": 1024 * 1024,
-            "GB": 1024 * 1024 * 1024,
-            "TB": 1024 * 1024 * 1024 * 1024
-        }
-
-        for unit, multiplier in units.items():
-            if size_str.endswith(unit):
-                number = float(size_str[: -len(unit)])
-                return int(number * multiplier)
-
-        # If no unit, assume bytes
-        return int(size_str)
+from .file_partitioning import FilePartitioningStage
 
 
 @dataclass
@@ -183,12 +31,12 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
     @property
     def name(self) -> str:
         return "jsonl_reader"
-    
+
     def inputs(self) -> tuple[list[str], list[str]]:
         return ["file_paths"], []
-    
+
     def outputs(self) -> tuple[list[str], list[str]]:
-        output_columns  = [self.text_column]
+        output_columns = [self.text_column]
         if self.id_column:
             output_columns.append(self.id_column)
         if self.additional_columns:
@@ -198,41 +46,38 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
     def process(self, task: FileGroupTask) -> DocumentBatch | None:
         """Process a single group of JSONL files.
-        
+
         Args:
             task: FileGroupTask containing file paths and configuration
-            
+
         Returns:
             DocumentBatch with the data from these files
         """
-        if not task.file_paths:
-            logger.warning(f"No files to process in task {task.task_id}")
-            return None
-
         # Get storage options from task metadata
         storage_options = task.metadata.get("storage_options", {})
 
         # Read the files
         if self.reader == "pandas":
-            df = self._read_with_pandas(task.file_paths, storage_options, self.reader_kwargs, self.columns)
+            df = self._read_with_pandas(task.data, storage_options, self.reader_kwargs, self.columns)
         elif self.reader == "pyarrow":
-            df = self._read_with_pyarrow(task.file_paths, self.reader_kwargs, self.columns)
+            df = self._read_with_pyarrow(task.data, self.reader_kwargs, self.columns)
         else:
-            raise ValueError(f"Unknown reader: {self.reader}")
+            msg = f"Unknown reader: {self.reader}"
+            raise ValueError(msg)
 
         if df is None or (hasattr(df, "empty") and df.empty) or (hasattr(df, "num_rows") and df.num_rows == 0):
             logger.warning(f"No data read from files in task {task.task_id}")
             return None
 
         # Create DocumentBatch
-        batch = DocumentBatch(
+        return DocumentBatch(
             task_id=f"{task.task_id}_processed",
             dataset_name=task.dataset_name,
             data=df,
             metadata={
                 **task.metadata,
-                "source_files": task.file_paths,
-                "num_files": len(task.file_paths),
+                "source_files": task.data,
+                "num_files": task.num_items,
                 "reader": self.name,
             },
             text_column=self.text_column,
@@ -240,10 +85,12 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
             additional_columns=self.additional_columns,
         )
 
-        return batch
-
     def _read_with_pandas(
-        self, file_paths: list[str], storage_options: dict[str, Any], reader_kwargs: dict[str, Any], columns: list[str] | None
+        self,
+        file_paths: list[str],
+        storage_options: dict[str, Any],
+        reader_kwargs: dict[str, Any],
+        columns: list[str] | None,
     ) -> pd.DataFrame | None:
         """Read JSONL files using pandas."""
 
@@ -271,7 +118,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
                 dfs.append(df)
                 logger.debug(f"Read {len(df)} records from {file_path}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(f"Failed to read {file_path}: {e}")
                 continue
 
@@ -281,7 +128,9 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
         # Concatenate all dataframes
         return pd.concat(dfs, ignore_index=True)
 
-    def _read_with_pyarrow(self, file_paths: list[str], reader_kwargs: dict[str, Any], columns: list[str] | None) -> pa.Table | None:
+    def _read_with_pyarrow(
+        self, file_paths: list[str], reader_kwargs: dict[str, Any], columns: list[str] | None
+    ) -> pa.Table | None:
         """Read JSONL files using pyarrow."""
 
         tables = []
@@ -309,7 +158,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
                 tables.append(table)
                 logger.debug(f"Read {len(table)} records from {file_path}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(f"Failed to read {file_path}: {e}")
                 continue
 
@@ -323,7 +172,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 @dataclass
 class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
     """Composite stage for reading JSONL files.
-    
+
     This high-level stage decomposes into:
     1. FilePartitioningStage - partitions files into groups
     2. JsonlReaderStage - reads file groups into DocumentBatches

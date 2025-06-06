@@ -1,18 +1,16 @@
 """Task data structures for the ray-curator pipeline framework."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Generic, TypeVar
+
 from ray_curator.utils.performance_utils import StagePerfStats
 
-import pandas as pd
-import pyarrow as pa
-
-
+T = TypeVar("T")
 
 
 @dataclass
-class Task:
+class Task(ABC, Generic[T]):
     """Abstract base class for tasks in the pipeline.
     A task represents a batch of data to be processed. Different modalities
     (text, audio, video) can implement their own task types.
@@ -25,92 +23,42 @@ class Task:
 
     task_id: str
     dataset_name: str
-    dataframe_attribute: str = "data"
+    data: T
     _stage_perf: list[StagePerfStats] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        """Post-initialization hook."""
+        self.validate()
+
     @property
+    @abstractmethod
     def num_items(self) -> int:
         """Get the number of items in this task."""
-        return 0
 
     def add_stage_perf(self, perf_stats: StagePerfStats) -> None:
         """Add performance stats for a stage."""
         self._stage_perf.append(perf_stats)
 
-@dataclass
-class _EmptyTask(Task):
-    """Dummy task for testing."""
-    data: Any = None
+    def __repr__(self) -> str:
+        subclass_name = self.__class__.__name__
+        return f"{subclass_name}(task_id={self.task_id}, dataset_name={self.dataset_name})"
 
-    @property
+    @abstractmethod
+    def validate(self) -> bool:
+        """Validate the task data."""
+
+
+@dataclass
+class _EmptyTask(Task[None]):
+    """Dummy task for testing."""
+
     def num_items(self) -> int:
-        """Get the number of items in this task."""
         return 0
 
     def validate(self) -> bool:
         """Validate the task data."""
         return True
 
+
 # Empty tasks are just used for `ls` stages
 EmptyTask = _EmptyTask(task_id="empty", dataset_name="empty", data=None)
-
-
-@dataclass
-class DocumentBatch(Task):
-    """Task for processing batches of text documents.
-    Documents are stored as a dataframe (PyArrow table or Pandas DataFrame).
-    The schema is flexible - users can specify which columns contain text
-    and other relevant data.
-    Attributes:
-        text_column: Name of the column containing text content
-        id_column: Name of the column containing document IDs (optional)
-        additional_columns: List of other columns to preserve during processing
-    """
-
-    text_column: str = "content"
-    id_column: str | None = "id"
-    additional_columns: list[str] = field(default_factory=list)
-    data: Union[pa.Table, pd.DataFrame] = field(default_factory=pa.Table)
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    def to_pyarrow(self) -> pa.Table:
-        """Convert data to PyArrow table."""
-        if isinstance(self.data, pa.Table):
-            return self.data
-        elif isinstance(self.data, pd.DataFrame):
-            return pa.Table.from_pandas(self.data)
-        else:
-            raise ValueError(f"Cannot convert {type(self.data)} to PyArrow table")
-
-    def to_pandas(self) -> pd.DataFrame:
-        """Convert data to Pandas DataFrame."""
-        if isinstance(self.data, pd.DataFrame):
-            return self.data
-        elif isinstance(self.data, pa.Table):
-            return self.data.to_pandas()
-        else:
-            raise ValueError(f"Cannot convert {type(self.data)} to Pandas DataFrame")
-
-    @property
-    def num_items(self) -> int:
-        """Get the number of documents in this batch."""
-        return len(self.data)
-
-@dataclass
-class ImageObject:
-    """Represents a single image with metadata."""
-
-    image_path: str = ""
-    image_id: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ImageBatch(Task):
-    """Task for processing batches of images.
-    Images are stored as a list of ImageObject instances, each containing
-    the path to the image and associated metadata.
-    """
-
-    data: list[ImageObject] = field(default_factory=list)
-
