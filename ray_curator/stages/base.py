@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
 from typing import Any, Generic, List, Optional, TypeVar
 
@@ -66,6 +66,7 @@ class StageType(Enum):
     WRITER = "writer"
     FUSED = "fused"
     COMPOSITE = "composite"  # High-level stages that decompose
+    CLASSIFIER = "classifier"
 
 
 class ProcessingStage(ABC, Generic[T]):

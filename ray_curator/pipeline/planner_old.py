@@ -20,7 +20,6 @@ class ExecutionPlan:
     initial_tasks: list[FileGroupTask]  # File groups created from readers
     graph: dict[str, Any]
     fusion_info: dict[str, list[str]]  # Maps fused stage names to original stage names
-    decomposition_info: dict[str, list[str]]  # Maps composite stage names to execution stage names
 
     def describe(self) -> str:
         """Get a description of the execution plan."""
@@ -37,12 +36,6 @@ class ExecutionPlan:
                 lines.append(f"  - {task.task_id}: {len(task.file_paths)} files")
             if len(self.initial_tasks) > 5:
                 lines.append(f"  ... and {len(self.initial_tasks) - 5} more")
-            lines.append("")
-
-        if self.decomposition_info:
-            lines.append("Composite stage decompositions:")
-            for composite_name, execution_names in self.decomposition_info.items():
-                lines.append(f"  - {composite_name} -> {', '.join(execution_names)}")
             lines.append("")
 
         if self.fusion_info:
@@ -66,15 +59,13 @@ class PipelinePlanner:
         # Map reader stage names to their processing stage classes
         self._reader_stage_map = {
             "jsonl_processing_stage": JsonlProcessingStage,
-            "parquet_processing_stage": None,  # ParquetProcessingStage,
+            "parquet_processing_stage": None,
         }
 
     def plan(self, pipeline: "Pipeline") -> ExecutionPlan:
         """Create an optimized execution plan.
-
         Args:
             pipeline: Pipeline to plan
-
         Returns:
             Optimized execution plan
         """
@@ -83,16 +74,13 @@ class PipelinePlanner:
         # 1. Process readers to create initial tasks and stages
         initial_tasks, reader_stages = self._process_readers(pipeline.readers)
 
-        # 2. Decompose composite stages into execution stages
-        execution_stages, decomposition_info = self._decompose_stages(pipeline.stages)
+        # 2. Combine reader stages with user-defined stages
+        all_stages = reader_stages + pipeline.stages
 
-        # 3. Combine reader stages with execution stages
-        all_stages = reader_stages + execution_stages
-
-        # 4. Identify fusion opportunities
+        # 3. Identify fusion opportunities
         fused_stages, fusion_info = self._fuse_stages(all_stages)
 
-        # 5. Create execution graph
+        # 4. Create execution graph
         execution_graph = self._build_graph(fused_stages)
 
         plan = ExecutionPlan(
@@ -101,7 +89,6 @@ class PipelinePlanner:
             initial_tasks=initial_tasks,
             graph=execution_graph,
             fusion_info=fusion_info,
-            decomposition_info=decomposition_info,
         )
 
         logger.info(
@@ -113,10 +100,8 @@ class PipelinePlanner:
 
     def _process_readers(self, readers: list[Reader]) -> tuple[list[FileGroupTask], list[ProcessingStage]]:
         """Process readers to create file groups and corresponding stages.
-
         Args:
             readers: List of reader configurations
-
         Returns:
             Tuple of (initial tasks, reader stages)
         """
@@ -144,10 +129,8 @@ class PipelinePlanner:
 
     def _fuse_stages(self, stages: list[ProcessingStage]) -> tuple[list[ProcessingStage], dict[str, list[str]]]:
         """Fuse compatible stages for efficiency.
-
         Args:
             stages: List of stages to potentially fuse
-
         Returns:
             Tuple of (fused stages list, fusion info dict)
         """
@@ -182,11 +165,9 @@ class PipelinePlanner:
 
     def _can_fuse(self, stage1: ProcessingStage, stage2: ProcessingStage) -> bool:
         """Check if two stages can be fused.
-
         Args:
             stage1: First stage
             stage2: Second stage
-
         Returns:
             True if stages can be fused
         """
@@ -206,11 +187,9 @@ class PipelinePlanner:
 
     def _create_fused_stage(self, stage1: ProcessingStage, stage2: ProcessingStage) -> ProcessingStage:
         """Create a fused stage from two compatible stages.
-
         Args:
             stage1: First stage
             stage2: Second stage
-
         Returns:
             Fused stage
         """
@@ -278,10 +257,8 @@ class PipelinePlanner:
 
     def _build_graph(self, stages: list[ProcessingStage]) -> dict[str, Any]:
         """Build execution graph.
-
         Args:
             stages: List of stages
-
         Returns:
             Execution graph as dictionary
         """
@@ -304,40 +281,3 @@ class PipelinePlanner:
             graph["edges"].append(edge)
 
         return graph
-
-    def _decompose_stages(self, stages: list[ProcessingStage]) -> tuple[list[ProcessingStage], dict[str, list[str]]]:
-        """Decompose composite stages into execution stages.
-        
-        Args:
-            stages: List of stages that may include composite stages
-            
-        Returns:
-            Tuple of (execution stages, decomposition info dict)
-        """
-        execution_stages = []
-        decomposition_info = {}
-        
-        for stage in stages:
-            if stage.is_composite():
-                logger.info(f"Decomposing composite stage: {stage.name}")
-                
-                # Get the execution stages this composite represents
-                sub_stages = stage.decompose()
-                
-                # Validate that decomposed stages are not composite
-                for sub_stage in sub_stages:
-                    if sub_stage.is_composite():
-                        raise ValueError(
-                            f"Composite stage '{stage.name}' decomposed into another "
-                            f"composite stage '{sub_stage.name}'. Nested composition "
-                            "is not supported."
-                        )
-                
-                execution_stages.extend(sub_stages)
-                decomposition_info[stage.name] = [s.name for s in sub_stages]
-                logger.info(f"Expanded '{stage.name}' into {len(sub_stages)} execution stages")
-            else:
-                # Regular stage, add as-is
-                execution_stages.append(stage)
-        
-        return execution_stages, decomposition_info

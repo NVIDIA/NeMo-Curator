@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 class JsonlProcessingStage(ProcessingStage[FileGroupTask]):
     """Stage that processes a group of JSONL files into a DocumentBatch.
-
     This stage is used internally by the pipeline to process file groups
     created by JsonlReader during the planning phase.
     """
@@ -35,10 +34,8 @@ class JsonlProcessingStage(ProcessingStage[FileGroupTask]):
 
     def process(self, task: FileGroupTask) -> DocumentBatch | None:
         """Process a single group of JSONL files.
-
         Args:
             task: FileGroupTask containing file paths and configuration
-
         Returns:
             DocumentBatch with the data from these files
         """
@@ -126,62 +123,3 @@ class JsonlProcessingStage(ProcessingStage[FileGroupTask]):
 
         # Concatenate all tables
         return pa.concat_tables(tables)
-
-
-class ParquetProcessingStage(ProcessingStage[FileGroupTask]):
-    """Stage that processes a group of Parquet files into a DocumentBatch."""
-
-    def __init__(self):
-        """Initialize the Parquet processing stage."""
-
-    @property
-    def name(self) -> str:
-        return "parquet_processing_stage"
-
-    @property
-    def stage_type(self) -> StageType:
-        return StageType.READER
-
-    def process(self, task: FileGroupTask) -> DocumentBatch | None:
-        """Process a single group of Parquet files."""
-        if not task.file_paths:
-            logger.warning(f"No files to process in task {task.task_id}")
-            return None
-
-        # Extract configuration
-        config = task.reader_config
-        text_column = config.get("text_column", "content")
-        id_column = config.get("id_column", "id")
-        additional_columns = config.get("additional_columns", [])
-        reader_kwargs = config.get("reader_kwargs", {})
-        storage_options = config.get("storage_options", {})
-
-        try:
-            # Read all files in the group
-            df = pd.read_parquet(task.file_paths, storage_options=storage_options, **reader_kwargs)
-        except Exception as e:
-            logger.error(f"Failed to read parquet files: {e}")
-            return None
-
-        if df.empty:
-            logger.warning(f"No data read from files in task {task.task_id}")
-            return None
-
-        # Create DocumentBatch
-        batch = DocumentBatch(
-            task_id=f"{task.task_id}_processed",
-            dataset_name=task.dataset_name,
-            data=df,
-            metadata={
-                **task.metadata,
-                "source_files": task.file_paths,
-                "num_files": len(task.file_paths),
-                "reader": self.name,
-            },
-            text_column=text_column,
-            id_column=id_column,
-            additional_columns=additional_columns,
-        )
-        batch.add_stage(self.name)
-
-        return batch
