@@ -1,5 +1,7 @@
 """Pipeline definition for composing processing stages."""
 
+from typing import Any
+
 from loguru import logger
 
 from ray_curator.backends.base import BaseExecutor
@@ -10,22 +12,34 @@ from ray_curator.tasks import Task
 class Pipeline:
     """User-facing pipeline definition for composing processing stages."""
 
-    def __init__(self, name: str, description: str | None = None):
+    def __init__(
+        self,
+        name: str,
+        description: str | None = None,
+        stages: list[ProcessingStage] | None = None,
+        config: dict[str, Any] | None = None,
+    ):
         """Initialize a new pipeline.
+
         Args:
-            name: Name of the pipeline
-            description: Optional description of what the pipeline does
+            name (str): Name of the pipeline
+            description (str, optional): Pipeline Description. Defaults to None.
+            stages (list[ProcessingStage], optional): List of stages to add to the pipeline. Defaults to None.
+            config (dict[str, Any], optional): Pipeline configuration that is valid across all executors. Defaults to None.
         """
         self.name = name
         self.description = description
-        self.stages: list[ProcessingStage] = []
+        self.stages: list[ProcessingStage] = stages or []
+        self.config = config or {}
 
     def add_stage(self, stage: ProcessingStage) -> "Pipeline":
         """Add a stage to the pipeline.
+
         Args:
-            stage: Processing stage to add
+            stage (ProcessingStage): Processing stage to add
+
         Returns:
-            Self for method chaining
+            Pipeline: Self (Pipeline) for method chaining
         """
         if not isinstance(stage, ProcessingStage):
             msg = f"Stage must be a ProcessingStage, got {type(stage)}"
@@ -37,8 +51,9 @@ class Pipeline:
 
     def build(self) -> None:
         """Build an execution plan from the pipeline.
-        Returns:
-            Optimized execution plan
+
+        Raises:
+            ValueError: If the pipeline has no stages
         """
         logger.info(f"Planning pipeline: {self.name}")
 
@@ -59,10 +74,13 @@ class Pipeline:
         """Decompose composite stages into execution stages.
 
         Args:
-            stages: List of stages that may include composite stages
+            stages (list[ProcessingStage  |  CompositeStage]): List of stages that may include composite stages
+
+        Raises:
+            TypeError: If a composite stage is decomposed into another composite stage
 
         Returns:
-            Tuple of (execution stages, decomposition info dict)
+            tuple[list[ProcessingStage], dict[str, list[str]]]: Tuple of (execution stages, decomposition info dict)
         """
         execution_stages = []
         decomposition_info = {}
@@ -83,7 +101,7 @@ class Pipeline:
                             f"composite stage '{sub_stage.name}'. Nested composition "
                             "is not supported."
                         )
-                        raise ValueError(msg)
+                        raise TypeError(msg)
 
                 execution_stages.extend(sub_stages)
                 decomposition_info[stage.name] = [s.name for s in sub_stages]
@@ -148,13 +166,15 @@ class Pipeline:
 
         return "\n".join(lines)
 
-    def execute(self, executor: BaseExecutor, initial_tasks: list[Task] | None = None) -> list[Task] | None:
-        """Execute the pipeline.
+    def run(self, executor: BaseExecutor, initial_tasks: list[Task] | None = None) -> list[Task] | None:
+        """Run the pipeline.
+
         Args:
-            executor: Executor to use
-            initial_tasks: Initial tasks to start the pipeline with
+            executor (BaseExecutor): Executor to use
+            initial_tasks (list[Task], optional): Initial tasks to start the pipeline with. Defaults to None.
+
         Returns:
-            List of tasks
+            list[Task] | None: List of tasks
         """
         self.build()
         return executor.execute(self.stages, initial_tasks)

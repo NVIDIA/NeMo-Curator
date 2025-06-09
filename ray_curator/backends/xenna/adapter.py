@@ -91,14 +91,16 @@ class XennaStageAdapter(BaseStageAdapter, pipelines_v1.Stage):
 
 
 def create_named_xenna_stage_adapter(stage: ProcessingStage) -> XennaStageAdapter:
-    """Create a XennaStageAdapter subclass with the same name as the wrapped stage.
+    """When we run a pipeline in Xenna, since we wrap using XennaStageAdapter,
+    the stage name is shown as XennaStageAdapter. This is not what we want.
+    So we create a dynamic subclass with the original stage's name.
     This ensures that when Xenna calls type(adapter).__name__, it returns the
     original stage's class name rather than 'XennaStageAdapter'.
     Args:
-        stage: ProcessingStage to adapt
-        batch_size: Number of tasks to process at once
+        stage (ProcessingStage): ProcessingStage to adapt
+
     Returns:
-        XennaStageAdapter instance with the wrapped stage's class name
+        XennaStageAdapter: XennaStageAdapter instance with the wrapped stage's class name
     """
     # Get the original stage's class name
     original_class_name = type(stage).__name__

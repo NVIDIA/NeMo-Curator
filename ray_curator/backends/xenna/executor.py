@@ -18,9 +18,9 @@ class XennaExecutor(BaseExecutor):
 
     def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the executor.
+
         Args:
-            config: Configuration dictionary with options like:
-                - batch_size: Number of tasks per batch (default: 100)
+            config (dict[str, Any], optional): Configuration dictionary with options like:
                 - logging_interval: Seconds between status logs (default: 60)
                 - ignore_failures: Whether to continue on failures (default: False)
                 - max_workers_per_stage: Max workers per stage (default: None)
@@ -30,7 +30,6 @@ class XennaExecutor(BaseExecutor):
         """
         super().__init__(config)
         self._default_pipeline_config = {
-            "batch_size": 1,
             "logging_interval": 60,
             "ignore_failures": False,
             "execution_mode": "streaming",
@@ -40,11 +39,13 @@ class XennaExecutor(BaseExecutor):
 
     def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> list[Task]:
         """Execute the pipeline using Cosmos-Xenna.
+
         Args:
-            stages: The stages to run
-            initial_tasks: The initial tasks to run. Empty list of Task is used if not provided.
+            stages (list[ProcessingStage]): The stages to run
+            initial_tasks (list[Task], optional): The initial tasks to run. Empty list of Task is used if not provided.
+
         Returns:
-            List of output tasks from the pipeline
+            list[Task]: List of output tasks from the pipeline
         """
         # Convert stages to Xenna stage specs
         stage_specs = []
@@ -88,7 +89,7 @@ class XennaExecutor(BaseExecutor):
         if exec_mode == pipelines_v1.ExecutionMode.STREAMING:
             streaming_config = pipelines_v1.StreamingSpecificSpec(
                 autoscale_interval_s=self._get_pipeline_config("autoscale_interval_s"),
-                autoscaler_verbosity_level=VerbosityLevel.INFO,
+                autoscaler_verbosity_level=VerbosityLevel.INFO,  # TODO: Move this to pipeline config
                 executor_verbosity_level=VerbosityLevel.INFO,
             )
 
@@ -101,7 +102,7 @@ class XennaExecutor(BaseExecutor):
             ignore_failures=self._get_pipeline_config("ignore_failures"),
             cpu_allocation_percentage=self._get_pipeline_config("cpu_allocation_percentage"),
             mode_specific=streaming_config,
-            actor_pool_verbosity_level=VerbosityLevel.INFO,
+            actor_pool_verbosity_level=VerbosityLevel.INFO,  # TODO: Move this to pipeline config
             monitoring_verbosity_level=VerbosityLevel.INFO,
         )
 
@@ -110,7 +111,6 @@ class XennaExecutor(BaseExecutor):
 
         # Log pipeline configuration
         logger.info(f"Execution mode: {exec_mode.name}")
-        logger.info(f"Batch size: {self._get_pipeline_config('batch_size')}")
 
         try:
             results = pipelines_v1.run_pipeline(pipeline_spec)

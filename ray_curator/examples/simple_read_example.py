@@ -1,6 +1,7 @@
 """Example text processing pipeline using ray-curator."""
 
 import json
+import os
 from pathlib import Path
 
 try:
@@ -85,7 +86,7 @@ def main() -> None:
     """Main function to run the pipeline."""
 
     # Create sample data directory
-    data_dir = Path("/raid/praateekm/ayush-ray-curator/sample_jsonl_data")
+    data_dir = Path(os.path.expanduser("./sample_jsonl_data"))
 
     # Create sample JSONL files
     print("Creating sample JSONL files...")
@@ -109,7 +110,7 @@ def main() -> None:
     print("partitioning strategy. These tasks will be processed in parallel")
     print("by the available workers.\n")
 
-    results = pipeline.execute(executor)
+    results = pipeline.run(executor)
 
     # Print results summary
     print("\nPipeline completed!")

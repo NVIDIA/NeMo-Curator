@@ -47,13 +47,13 @@ class BaseStageAdapter:
         self.stage = stage
 
     def process_batch(self, tasks: list[Task]) -> list[Task]:
-        """Process batch of tasks.
+        """Process a batch of tasks.
 
         Args:
-            tasks: List of tasks to process
+            tasks (list[Task]): List of tasks to process
 
         Returns:
-            List of processed tasks or None
+            list[Task]: List of processed tasks
         """
         # Lazy initialize timer if needed
         if not hasattr(self, "_timer") or self._timer is None:
@@ -79,8 +79,8 @@ class BaseStageAdapter:
         """Setup the stage on a node.
 
         Args:
-            node_info: Information about the node (optional)
-            worker_metadata: Information about the worker (optional)
+            node_info (NodeInfo, optional): Information about the node (optional)
+            worker_metadata (WorkerMetadata, optional): Information about the worker (optional)
         """
         # Call the underlying stage's setup_on_node method
         # Some backends may provide node/worker info, others may not
@@ -90,7 +90,7 @@ class BaseStageAdapter:
         """Setup the stage once per actor.
 
         Args:
-            worker_metadata: Information about the worker (optional)
+            worker_metadata (WorkerMetadata, optional): Information about the worker (optional)
         """
         self.stage.setup(worker_metadata)
 
