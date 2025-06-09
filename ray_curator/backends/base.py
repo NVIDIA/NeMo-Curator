@@ -79,8 +79,8 @@ class BaseStageAdapter:
         """Setup the stage on a node.
 
         Args:
-            node_info (NodeInfo, optional): Information about the node (optional)
-            worker_metadata (WorkerMetadata, optional): Information about the worker (optional)
+            node_info (NodeInfo, optional): Information about the node
+            worker_metadata (WorkerMetadata, optional): Information about the worker
         """
         # Call the underlying stage's setup_on_node method
         # Some backends may provide node/worker info, others may not
@@ -90,7 +90,7 @@ class BaseStageAdapter:
         """Setup the stage once per actor.
 
         Args:
-            worker_metadata (WorkerMetadata, optional): Information about the worker (optional)
+            worker_metadata (WorkerMetadata, optional): Information about the worker
         """
         self.stage.setup(worker_metadata)
 

@@ -122,8 +122,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     def process(self, task: X) -> Y | list[Y]:
         """Process a task and return the result.
         Args:
-            task: Input task to process
-        Returns:
+            task (X): Input task to process
+        Returns (Y | list[Y]):
             - Single task: For 1-to-1 transformations
             - List of tasks: For 1-to-many transformations (e.g., readers)
             - None: If the task should be filtered out
@@ -134,8 +134,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         Override this method to enable batch processing for your stage.
         If not overridden, the stage will only support single-task processing.
         Args:
-            tasks: List of input tasks to process
-        Returns:
+            tasks (list[X]): List of input tasks to process
+        Returns (list[Y]):
             List of results, where each result can be:
             - Single task: For 1-to-1 transformations
             - List of tasks: For 1-to-many transformations
@@ -163,8 +163,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         """Setup method called once per node in distributed settings.
         Override this method to perform node-level initialization.
         Args:
-            node_info: Information about the node (provided by some backends)
-            worker_metadata: Information about the worker (provided by some backends)
+            node_info (NodeInfo, optional): Information about the node (provided by some backends)
+            worker_metadata (WorkerMetadata, optional): Information about the worker (provided by some backends)
         """
 
     def setup(self, worker_metadata: WorkerMetadata | None = None) -> None:
@@ -172,7 +172,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         Override this method to perform any initialization that should
         happen once per worker.
         Args:
-            worker_metadata: Information about the worker (provided by some backends)
+            worker_metadata (WorkerMetadata, optional): Information about the worker (provided by some backends)
         """
 
     def teardown(self) -> None:
@@ -189,13 +189,14 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         return type(self).process_batch is not ProcessingStage.process_batch
 
     def __repr__(self) -> str:
+        """String representation of the stage."""
         return f"{self.__class__.__name__}"
 
     @abstractmethod
     def inputs(self) -> tuple[list[str], list[str]]:
         """Define stage input requirements.
 
-        Returns:
+        Returns (tuple[list[str], list[str]]):
             Tuple of (required_attributes, required_columns) where:
             - required_top_level_attributes: List of task attributes that must be present
             - required_data_attributes: List of attributes within the data that must be present
@@ -205,7 +206,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     def outputs(self) -> tuple[list[str], list[str]]:
         """Define stage output specification.
 
-        Returns:
+        Returns (tuple[list[str], list[str]]):
             Tuple of (output_attributes, output_columns) where:
             - output_top_level_attributes: List of task attributes this stage adds/modifies
             - output_data_attributes: List of attributes within the data that this stage adds/modifies
@@ -215,13 +216,16 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     def xenna_stage_spec(self) -> dict[str, Any]:
         """Get Xenna configuration for this stage.
 
-        Returns:
+        Returns (dict[str, Any]):
             Dictionary containing Xenna-specific configuration
         """
         return {}
 
     def get_config(self) -> dict[str, Any]:
-        """Get configuration for this stage."""
+        """Get configuration for this stage.
+        Returns (dict[str, Any]):
+            Dictionary containing configuration for this stage
+        """
         return {
             "name": self.name,
             "resources": self.resources,
@@ -256,7 +260,7 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
         This method must be implemented by composite stages to define
         what low-level stages they represent.
 
-        Returns:
+        Returns (list[ProcessingStage]):
             List of execution stages that will actually run
         """
 

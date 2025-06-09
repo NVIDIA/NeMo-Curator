@@ -44,14 +44,17 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
         return ["data", "metadata"], output_columns
 
-    def process(self, task: FileGroupTask) -> DocumentBatch | None:
+    def process(self, task: FileGroupTask) -> DocumentBatch:
         """Process a single group of JSONL files.
 
         Args:
-            task: FileGroupTask containing file paths and configuration
+            task (FileGroupTask): FileGroupTask containing file paths and configuration
+
+        Raises:
+            ValueError: If an unknown reader is provided
 
         Returns:
-            DocumentBatch with the data from these files
+            DocumentBatch | None: DocumentBatch with the data from these files
         """
         # Get storage options from task metadata
         storage_options = task.metadata.get("storage_options", {})
@@ -66,8 +69,8 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
             raise ValueError(msg)
 
         if df is None or (hasattr(df, "empty") and df.empty) or (hasattr(df, "num_rows") and df.num_rows == 0):
-            logger.warning(f"No data read from files in task {task.task_id}")
-            return None
+            msg = f"No data read from files in task {task.task_id}"
+            raise ValueError(msg)
 
         # Create DocumentBatch
         return DocumentBatch(
