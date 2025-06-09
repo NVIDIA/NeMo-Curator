@@ -152,8 +152,7 @@ def dedupe(dataset: DocumentDataset) -> DocumentDataset:
     deduplicator = ExactDuplicates(id_field="id", text_field="text", hash_method="md5")
     # Find the duplicates
     duplicates = deduplicator(dataset)
-    deduped = deduplicator.remove(dataset, duplicates)
-    return DocumentDataset(deduped)
+    return deduplicator.remove(dataset, duplicates)
 
 
 def run_curation_pipeline(args: argparse.Namespace, jsonl_dir: str) -> None:
@@ -173,7 +172,7 @@ def run_curation_pipeline(args: argparse.Namespace, jsonl_dir: str) -> None:
         keep_extensions="jsonl",
     )
     print("Reading the data...")
-    orig_dataset = DocumentDataset.read_json(files, add_filename=True)
+    orig_dataset = DocumentDataset.read_json(files, add_filename="_filename")
     dataset = orig_dataset
 
     curation_steps = Sequential(
@@ -199,7 +198,7 @@ def run_curation_pipeline(args: argparse.Namespace, jsonl_dir: str) -> None:
         shutil.rmtree(out_path)
 
     os.makedirs(out_path)
-    dataset.to_json(out_path, write_to_filename=True)
+    dataset.to_json(out_path, write_to_filename="_filename")
     client.close()
 
 
