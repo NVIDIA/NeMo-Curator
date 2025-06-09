@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod, ABCMeta
-from enum import Enum
-from typing import Any, Generic, List, Optional, TypeVar, Dict, Type
-from ray_curator.backends.base import NodeInfo, WorkerMetadata
+from abc import ABC, ABCMeta, abstractmethod
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+
+from loguru import logger
+
 from ray_curator.stages.resources import Resources
 from ray_curator.tasks import Task
-from ray_curator.tasks.utils import get_columns
-from loguru import logger
+
+if TYPE_CHECKING:
+    from ray_curator.backends.base import NodeInfo, WorkerMetadata
 
 X = TypeVar("X", bound=Task)  # Input task type
 Y = TypeVar("Y", bound=Task)  # Output task type
 
-_STAGE_REGISTRY: Dict[str, Type["ProcessingStage"]] = {}
+_STAGE_REGISTRY: dict[str, type[ProcessingStage]] = {}
 
 
 class StageMeta(ABCMeta):
@@ -25,7 +27,7 @@ class StageMeta(ABCMeta):
     registry because they have the ``_is_abstract`` attribute set.
     """
 
-    def __new__(mcls, name, bases, namespace, **kwargs):
+    def __new__(mcls, name, bases, namespace, **kwargs):  # noqa: ANN001
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
 
         # Skip registration for the abstract roots
@@ -38,12 +40,12 @@ class StageMeta(ABCMeta):
 
         if "ProcessingStage" in [base.__name__ for base in cls.mro()[1:]] and not isabstract(cls):
             # Ensure no duplicate class names (helps when reloading in notebooks)
-            _STAGE_REGISTRY[cls.__name__] = cls
+            _STAGE_REGISTRY[cls.__name__] = cls  # type: ignore[assignment]
 
         return cls
 
 
-def get_stage_class(name: str) -> Type["ProcessingStage"]:
+def get_stage_class(name: str) -> type[ProcessingStage]:
     """Retrieve a registered stage class by its *class name*.
     Raises
     ------
@@ -64,6 +66,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     - A list of tasks (for stages that split work, like readers)
     - None (for filtered out tasks)
     """
+
     _is_abstract_root = True  # prevent base from registering itself
 
     @property
@@ -93,31 +96,34 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         Returns:
             True if valid, False otherwise
         """
-        required_attrs, required_columns = self.inputs()
+        required_top_level_attrs, required_data_attrs = self.inputs()
 
         # Check required attributes exist
-        for attr in required_attrs:
+        missing_top_level_attrs = []
+        for attr in required_top_level_attrs:
             if not hasattr(task, attr):
-                logger.error(f"Task {task.task_id} missing required attribute: {attr}")
-                return False
+                missing_top_level_attrs.append(attr)
 
         # Check required columns exist
-        if required_columns:
-            task_columns = getattr(task, task.dataframe_attribute)
-            task_columns = get_columns(task_columns)
-            for col in required_columns:
-                if col not in task_columns:
-                    logger.error(f"Task {task.task_id} missing required column: {col}; required columns: {required_columns}; task columns: {task_columns}")
-                    return False
+        missing_data_attrs = []
+        for attr in required_data_attrs:
+            if not hasattr(task.data, attr):
+                missing_data_attrs.append(attr)
 
-        return True
+        # Log warning with missing attributes
+        if missing_top_level_attrs or missing_data_attrs:
+            logger.error(
+                f"Task {task.task_id} missing required attributes: {missing_top_level_attrs} {missing_data_attrs}"
+            )
+
+        return not missing_top_level_attrs and not missing_data_attrs
 
     @abstractmethod
     def process(self, task: X) -> Y | list[Y]:
         """Process a task and return the result.
         Args:
-            task: Input task to process
-        Returns:
+            task (X): Input task to process
+        Returns (Y | list[Y]):
             - Single task: For 1-to-1 transformations
             - List of tasks: For 1-to-many transformations (e.g., readers)
             - None: If the task should be filtered out
@@ -128,8 +134,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         Override this method to enable batch processing for your stage.
         If not overridden, the stage will only support single-task processing.
         Args:
-            tasks: List of input tasks to process
-        Returns:
+            tasks (list[X]): List of input tasks to process
+        Returns (list[Y]):
             List of results, where each result can be:
             - Single task: For 1-to-1 transformations
             - List of tasks: For 1-to-many transformations
@@ -143,7 +149,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         results = []
         for task in tasks:
             if not self.validate_input(task):
-                msg = f"Task {task} failed validation for stage {self}"
+                msg = f"Task {task!s} failed validation for stage {self}"
                 raise ValueError(msg)
 
             result = self.process(task)
@@ -157,8 +163,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         """Setup method called once per node in distributed settings.
         Override this method to perform node-level initialization.
         Args:
-            node_info: Information about the node (provided by some backends)
-            worker_metadata: Information about the worker (provided by some backends)
+            node_info (NodeInfo, optional): Information about the node (provided by some backends)
+            worker_metadata (WorkerMetadata, optional): Information about the worker (provided by some backends)
         """
 
     def setup(self, worker_metadata: WorkerMetadata | None = None) -> None:
@@ -166,7 +172,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         Override this method to perform any initialization that should
         happen once per worker.
         Args:
-            worker_metadata: Information about the worker (provided by some backends)
+            worker_metadata (WorkerMetadata, optional): Information about the worker (provided by some backends)
         """
 
     def teardown(self) -> None:
@@ -183,54 +189,58 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         return type(self).process_batch is not ProcessingStage.process_batch
 
     def __repr__(self) -> str:
+        """String representation of the stage."""
         return f"{self.__class__.__name__}"
-    
 
     @abstractmethod
     def inputs(self) -> tuple[list[str], list[str]]:
         """Define stage input requirements.
-        
-        Returns:
+
+        Returns (tuple[list[str], list[str]]):
             Tuple of (required_attributes, required_columns) where:
-            - required_attributes: List of task attributes that must be present
-            - required_columns: List of dataframe columns that must be present
+            - required_top_level_attributes: List of task attributes that must be present
+            - required_data_attributes: List of attributes within the data that must be present
         """
 
-    @abstractmethod  
+    @abstractmethod
     def outputs(self) -> tuple[list[str], list[str]]:
         """Define stage output specification.
-        
-        Returns:
+
+        Returns (tuple[list[str], list[str]]):
             Tuple of (output_attributes, output_columns) where:
-            - output_attributes: List of task attributes this stage adds/modifies
-            - output_columns: List of dataframe columns this stage adds/modifies
+            - output_top_level_attributes: List of task attributes this stage adds/modifies
+            - output_data_attributes: List of attributes within the data that this stage adds/modifies
         """
 
+    @property
     def xenna_stage_spec(self) -> dict[str, Any]:
         """Get Xenna configuration for this stage.
-        
-        Returns:
+
+        Returns (dict[str, Any]):
             Dictionary containing Xenna-specific configuration
         """
         return {}
-    
+
     def get_config(self) -> dict[str, Any]:
-        """Get configuration for this stage."""
+        """Get configuration for this stage.
+        Returns (dict[str, Any]):
+            Dictionary containing configuration for this stage
+        """
         return {
             "name": self.name,
             "resources": self.resources,
             "batch_size": self.batch_size,
             "supports_batch_processing": self.supports_batch_processing(),
         }
-    
+
 
 class CompositeStage(ProcessingStage[X, Y], ABC):
     """Base class for high-level composite stages.
-    
+
     Composite stages are user-facing stages that decompose into multiple
     low-level execution stages during pipeline planning. They provide a
     simplified API while maintaining fine-grained control at execution time.
-    
+
     Composite stages never actually execute - they only exist to be decomposed
     into their constituent execution stages.
     """
@@ -242,28 +252,27 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
     def outputs(self) -> tuple[list[str], list[str]]:
         """Get the outputs for this stage."""
         return self.decompose()[-1].outputs()
-    
+
     @abstractmethod
-    def decompose(self) -> List[ProcessingStage]:
+    def decompose(self) -> list[ProcessingStage]:
         """Decompose into execution stages.
-        
+
         This method must be implemented by composite stages to define
         what low-level stages they represent.
-        
-        Returns:
+
+        Returns (list[ProcessingStage]):
             List of execution stages that will actually run
         """
 
-    def process(self, task: X) -> Y | list[Y]:
+    def process(self, task: X) -> Y | list[Y]:  # noqa: ARG002
         """Composite stages should never be executed directly."""
-        raise RuntimeError(
-            f"Composite stage '{self.name}' should not be executed directly. "
-            "It should be decomposed into execution stages during planning."
-        )
+        msg = f"Composite stage '{self.name}' should not be executed directly. "
+        msg += "It should be decomposed into execution stages during planning."
+        raise RuntimeError(msg)
 
     def get_description(self) -> str:
         """Get a description of what this composite stage does.
-        
+
         Override this to provide user-friendly documentation.
         """
         return f"Composite stage: {self.name}"

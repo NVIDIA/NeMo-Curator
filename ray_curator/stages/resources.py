@@ -7,11 +7,12 @@ def _get_gpu_memory_gb() -> float:
     """Get GPU memory in GB for the current device."""
     try:
         import pynvml
+
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # Get first GPU
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         return float(info.total) / (1024**3)  # Convert bytes to GB
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Fallback to 24GB if detection fails
         return 24.0
 
@@ -19,16 +20,17 @@ def _get_gpu_memory_gb() -> float:
 @dataclass
 class Resources:
     """Define resource requirements for a processing stage.
-    
+
     Attributes:
         cpus: Number of CPU cores required
         gpu_memory_gb: GPU memory required in GB
-        nvdecs: Number of NVDEC units required 
+        nvdecs: Number of NVDEC units required
         nvencs: Number of NVENC units required
         entire_gpu: Whether to allocate entire GPU regardless of memory
         gpus: Number of GPUs required (calculated from gpu_memory_gb)
     """
 
+    # TODO : Revisit this gpu_memory_gb, gpus, entire_gpu too many variables for gpu
     cpus: float = 1.0
     gpu_memory_gb: float = 0.0
     nvdecs: int = 0
@@ -52,4 +54,4 @@ class Resources:
     @property
     def requires_gpu(self) -> bool:
         """Check if this stage requires GPU resources."""
-        return self.gpus > 0 or self.gpu_memory_gb > 0 or self.entire_gpu 
+        return self.gpus > 0 or self.gpu_memory_gb > 0 or self.entire_gpu
