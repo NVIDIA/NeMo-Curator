@@ -172,7 +172,8 @@ def run_curation_pipeline(args: argparse.Namespace, jsonl_dir: str) -> None:
         keep_extensions="jsonl",
     )
     print("Reading the data...")
-    orig_dataset = DocumentDataset.read_json(files, add_filename="_filename")
+    # We don't read with add_filename because it already exists in the jsonl files.
+    orig_dataset = DocumentDataset.read_json(files)
     dataset = orig_dataset
 
     curation_steps = Sequential(
@@ -198,7 +199,7 @@ def run_curation_pipeline(args: argparse.Namespace, jsonl_dir: str) -> None:
         shutil.rmtree(out_path)
 
     os.makedirs(out_path)
-    dataset.to_json(out_path, write_to_filename="_filename")
+    dataset.to_json(out_path, write_to_filename=True)
     client.close()
 
 
