@@ -181,7 +181,8 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
     def decompose(self) -> list[ProcessingStage]:
         """Decompose into file partitioning and processing stages."""
         if self.task_type != "text":
-            raise NotImplementedError(f"Converting DocumentBatch to {self.task_type} is not supported yet.")
+            msg = f"Converting DocumentBatch to {self.task_type} is not supported yet."
+            raise NotImplementedError(msg)
 
         return [
             # First stage: partition files into groups
