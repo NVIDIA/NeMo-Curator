@@ -35,10 +35,11 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
         return [], []
 
     def outputs(self) -> tuple[list[str], list[str]]:
-        return ["data"], []
+        return ["data"], self.columns or []
 
     def process(self, task: FileGroupTask) -> DocumentBatch:
-        """Process a single group of JSONL files.
+        """
+        Process a single group of JSONL files.
 
         Args:
             task (FileGroupTask): FileGroupTask containing file paths and configuration
@@ -48,14 +49,15 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
         Returns:
             DocumentBatch | None: DocumentBatch with the data from these files
+
         """
         # Get storage options from task metadata
         storage_options = task.metadata.get("storage_options", {})
 
         # Read the files
-        if self.reader == "pandas":
+        if self.reader.lower() == "pandas":
             df = self._read_with_pandas(task.data, storage_options, self.reader_kwargs, self.columns)
-        elif self.reader == "pyarrow":
+        elif self.reader.lower() == "pyarrow":
             df = self._read_with_pyarrow(task.data, self.reader_kwargs, self.columns)
         else:
             msg = f"Unknown reader: {self.reader}"
@@ -79,7 +81,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
         reader_kwargs: dict[str, Any],
         columns: list[str] | None,
     ) -> pd.DataFrame | None:
-        """Read JSONL files using pandas."""
+        """Read JSONL files using Pandas."""
 
         dfs = []
 
@@ -118,7 +120,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
     def _read_with_pyarrow(
         self, file_paths: list[str], reader_kwargs: dict[str, Any], columns: list[str] | None
     ) -> pa.Table | None:
-        """Read JSONL files using pyarrow."""
+        """Read JSONL files using PyArrow."""
 
         tables = []
 
@@ -172,7 +174,7 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
     reader: str = "pandas"  # "pandas" or "pyarrow"
     reader_kwargs: dict[str, Any] | None = None
     storage_options: dict[str, Any] | None = None
-    task_type: Literal["text", "image", "video", "audio"] = "text"
+    task_type: Literal["document", "image", "video", "audio"] = "document"
 
     @property
     def name(self) -> str:
@@ -180,7 +182,7 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
 
     def decompose(self) -> list[ProcessingStage]:
         """Decompose into file partitioning and processing stages."""
-        if self.task_type != "text":
+        if self.task_type != "document":
             msg = f"Converting DocumentBatch to {self.task_type} is not supported yet."
             raise NotImplementedError(msg)
 
