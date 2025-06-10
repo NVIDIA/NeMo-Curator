@@ -1,7 +1,7 @@
 """JSONL reader composite stage."""
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 import pyarrow as pa
@@ -16,14 +16,13 @@ from .file_partitioning import FilePartitioningStage
 
 @dataclass
 class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
-    """Stage that processes a group of JSONL files into a DocumentBatch.
+    """
+    Stage that processes a group of JSONL files into a DocumentBatch.
     This stage accepts FileGroupTasks created by FilePartitioningStage
     and reads the actual file contents into DocumentBatches.
+
     """
 
-    text_column: str = "content"
-    id_column: str | None = "id"
-    additional_columns: list[str] = field(default_factory=list)
     columns: list[str] | None = None  # If specified, only read these columns
     reader: str = "pandas"  # "pandas" or "pyarrow"
     reader_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -36,16 +35,11 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
         return [], []
 
     def outputs(self) -> tuple[list[str], list[str]]:
-        output_columns = [self.text_column]
-        if self.id_column:
-            output_columns.append(self.id_column)
-        if self.additional_columns:
-            output_columns.extend(self.additional_columns)
-
-        return ["data", "metadata"], output_columns
+        return ["data"], self.columns or []
 
     def process(self, task: FileGroupTask) -> DocumentBatch:
-        """Process a single group of JSONL files.
+        """
+        Process a single group of JSONL files.
 
         Args:
             task (FileGroupTask): FileGroupTask containing file paths and configuration
@@ -55,14 +49,15 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
         Returns:
             DocumentBatch | None: DocumentBatch with the data from these files
+
         """
         # Get storage options from task metadata
         storage_options = task.metadata.get("storage_options", {})
 
         # Read the files
-        if self.reader == "pandas":
+        if self.reader.lower() == "pandas":
             df = self._read_with_pandas(task.data, storage_options, self.reader_kwargs, self.columns)
-        elif self.reader == "pyarrow":
+        elif self.reader.lower() == "pyarrow":
             df = self._read_with_pyarrow(task.data, self.reader_kwargs, self.columns)
         else:
             msg = f"Unknown reader: {self.reader}"
@@ -77,15 +72,6 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
             task_id=f"{task.task_id}_processed",
             dataset_name=task.dataset_name,
             data=df,
-            metadata={
-                **task.metadata,
-                "source_files": task.data,
-                "num_files": task.num_items,
-                "reader": self.name,
-            },
-            text_column=self.text_column,
-            id_column=self.id_column,
-            additional_columns=self.additional_columns,
         )
 
     def _read_with_pandas(
@@ -95,7 +81,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
         reader_kwargs: dict[str, Any],
         columns: list[str] | None,
     ) -> pd.DataFrame | None:
-        """Read JSONL files using pandas."""
+        """Read JSONL files using Pandas."""
 
         dfs = []
 
@@ -134,7 +120,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
     def _read_with_pyarrow(
         self, file_paths: list[str], reader_kwargs: dict[str, Any], columns: list[str] | None
     ) -> pa.Table | None:
-        """Read JSONL files using pyarrow."""
+        """Read JSONL files using PyArrow."""
 
         tables = []
 
@@ -184,13 +170,11 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
     file_paths: str | list[str]
     files_per_partition: int | None = None
     blocksize: int | str | None = None
-    text_column: str = "content"
-    id_column: str | None = "id"
-    additional_columns: list[str] | None = None
     columns: list[str] | None = None  # If specified, only read these columns
     reader: str = "pandas"  # "pandas" or "pyarrow"
     reader_kwargs: dict[str, Any] | None = None
     storage_options: dict[str, Any] | None = None
+    task_type: Literal["document", "image", "video", "audio"] = "document"
 
     @property
     def name(self) -> str:
@@ -198,6 +182,10 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
 
     def decompose(self) -> list[ProcessingStage]:
         """Decompose into file partitioning and processing stages."""
+        if self.task_type != "document":
+            msg = f"Converting DocumentBatch to {self.task_type} is not supported yet."
+            raise NotImplementedError(msg)
+
         return [
             # First stage: partition files into groups
             FilePartitioningStage(
@@ -209,9 +197,6 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
             ),
             # Second stage: process file groups into document batches
             JsonlReaderStage(
-                text_column=self.text_column,
-                id_column=self.id_column,
-                additional_columns=self.additional_columns or [],
                 columns=self.columns,
                 reader=self.reader,
                 reader_kwargs=self.reader_kwargs or {},
@@ -220,11 +205,15 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
 
     def get_description(self) -> str:
         """Get a description of this composite stage."""
+
         parts = [f"Read JSONL files from {self.file_paths}"]
+
         if self.files_per_partition:
             parts.append(f"with {self.files_per_partition} files per partition")
         elif self.blocksize:
             parts.append(f"with target blocksize {self.blocksize}")
+
         if self.columns:
             parts.append(f"reading columns: {self.columns}")
+
         return ", ".join(parts)

@@ -10,7 +10,7 @@ try:
     HAS_PYARROW = True
 except ImportError:
     HAS_PYARROW = False
-    print("Warning: pyarrow not available. Results will not be saved to parquet.")
+    print("Warning: PyArrow not available. Results will not be saved to Parquet.")
 
 from ray_curator.backends.xenna.executor import XennaExecutor
 from ray_curator.pipeline import Pipeline
@@ -72,9 +72,6 @@ def create_text_processing_pipeline(data_dir: Path) -> Pipeline:
     pipeline.add_stage(
         JsonlReader(
             file_paths=str(data_dir),  # Read from our created sample files
-            text_column="text",  # Specify which column contains text
-            id_column=None,  # Optional ID column
-            additional_columns=["file_source", "doc_length"],  # Preserve these columns
             files_per_partition=2,  # Each task will process 2 files
             reader="pandas",  # Use pandas reader
         )
@@ -130,7 +127,6 @@ def main() -> None:
         if batch.num_items > 0:
             df = batch.to_pandas()
             print(f"Columns: {list(df.columns)}")
-            print(f"Text column: {batch.text_column}")
 
         # Save to parquet if pyarrow is available
         if HAS_PYARROW:
