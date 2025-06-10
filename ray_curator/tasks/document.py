@@ -10,21 +10,13 @@ from .tasks import Task
 
 @dataclass
 class DocumentBatch(Task[pa.Table | pd.DataFrame]):
-    """Task for processing batches of text documents.
-    Documents are stored as a dataframe (PyArrow table or Pandas DataFrame).
-    The schema is flexible - users can specify which columns contain text
-    and other relevant data.
-    Attributes:
-        text_column: Name of the column containing text content
-        id_column: Name of the column containing document IDs (optional)
-        additional_columns: List of other columns to preserve during processing
+    """
+    Task for processing batches of text documents.
+    Documents are stored as a dataframe (PyArrow Table or Pandas DataFrame).
+
     """
 
-    text_column: str = "content"
-    id_column: str | None = None
-    additional_columns: list[str] = field(default_factory=list)
     data: pa.Table | pd.DataFrame = field(default_factory=pa.Table)
-    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_pyarrow(self) -> pa.Table:
         """Convert data to PyArrow table."""
@@ -63,14 +55,8 @@ class DocumentBatch(Task[pa.Table | pd.DataFrame]):
 
     def validate(self) -> bool:
         """Validate the task data."""
-        missing_columns = []
-        cols_to_check = [*self.additional_columns, self.text_column]
-        if self.id_column:
-            cols_to_check.append(self.id_column)
-        for col in cols_to_check:
-            if col not in self.get_columns():
-                missing_columns.append(col)
-        if missing_columns:
-            logger.warning(f"Task {self.task_id} missing required columns: {missing_columns}")
+        if self.get_columns():
+            return True
+        else:
+            logger.warning(f"Task {self.task_id} could not find any columns in the data")
             return False
-        return True
