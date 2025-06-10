@@ -55,8 +55,13 @@ class DocumentBatch(Task[pa.Table | pd.DataFrame]):
 
     def validate(self) -> bool:
         """Validate the task data."""
-        if self.get_columns():
-            return True
-        else:
+
+        if self.num_items <= 0:
+            logger.warning(f"Task {self.task_id} has no items")
+            return False
+
+        if not self.get_columns():
             logger.warning(f"Task {self.task_id} could not find any columns in the data")
             return False
+
+        return True
