@@ -53,17 +53,22 @@ def expand_outdir_and_mkdir(
     storage_options: Optional[Dict[str, str]] = None,
     fs: Optional[fsspec.AbstractFileSystem] = None,
 ):
+    print(f"Expanding output directory: {outdir=}, {storage_options=}, {fs=}, type(fs)={type(fs)}", flush=True)
     if fs is None:
         fs = get_fs(outdir, storage_options)
 
     if isinstance(fs, fsspec.implementations.local.LocalFileSystem):
         outdir = os.path.abspath(os.path.expanduser(outdir))
+        print(f"Local filesystem detected, expanded outdir: {outdir}", flush=True)
 
     try:
+        print(f"Checking if S3FileSystem is available for {outdir=}", flush=True)
         from s3fs import S3FileSystem
+        print("s3fs is available")
 
         if isinstance(fs, S3FileSystem):
             fs.touch(os.path.join(outdir, ".empty"))
+            print(f"S3FileSystem is available, created a dummy file in {outdir}", flush=True)
     except (ImportError, ModuleNotFoundError):
         pass
     finally:

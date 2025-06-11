@@ -61,12 +61,19 @@ class SemDedup(BaseDeduplicationModule):
             cache_dir=config.cache_dir,
         )
         self.config = config
+        print(f"SemDedup: cache_dir={self.config.cache_dir}")
+        print(f"embeddings_save_loc={config.embeddings_save_loc}")
+        print(f"clustering_save_loc={config.clustering_save_loc}")
+
         embedding_output_dir = os.path.join(
             self.config.cache_dir, config.embeddings_save_loc
         )
         clustering_output_dir = os.path.join(
             self.config.cache_dir, config.clustering_save_loc
         )
+
+        print(f"embedding_output_dir={embedding_output_dir}")
+        print(f"clustering_output_dir={clustering_output_dir}")
 
         self.embedding_creator = EmbeddingCreator(
             embedding_model_name_or_path=config.embedding_model_name_or_path,

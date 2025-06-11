@@ -88,6 +88,10 @@ class ClusteringModel:
         self.storage_options = storage_options
         self.fs = get_fs(self.clustering_output_dir, self.storage_options)
 
+        print(f"Clustering output directory: {self.clustering_output_dir}")
+        print(f"Storage options: {self.storage_options}")
+        print(f"File system: {self.fs}")
+
         if not self.fs.exists(self.clustering_output_dir):
             expand_outdir_and_mkdir(
                 self.clustering_output_dir, self.storage_options, self.fs

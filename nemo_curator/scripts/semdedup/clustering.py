@@ -49,12 +49,18 @@ def main(args):
     dt1 = datetime.now()
     print("Start time:", dt1)
 
+    print(f"cache_dir: {semdedup_config.cache_dir}")
+    print(f"clustering_save_loc: {semdedup_config.clustering_save_loc}")
+    print(f"embeddings_save_loc: {semdedup_config.embeddings_save_loc}")
     embedding_fp = os.path.join(
         semdedup_config.cache_dir, semdedup_config.embeddings_save_loc
     )
     clustering_output_dir = os.path.join(
         semdedup_config.cache_dir, semdedup_config.clustering_save_loc
     )
+
+    print(f"embedding_fp: {embedding_fp}")
+    print(f"clustering_output_dir: {clustering_output_dir}")
 
     # Switch to https://github.com/NVIDIA/NeMo-Curator/issues/50
     # When we fix that
