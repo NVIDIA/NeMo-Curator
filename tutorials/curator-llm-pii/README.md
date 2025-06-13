@@ -26,6 +26,6 @@ nvcr.io/nvidia/nemo:25.04.rc2 bash
 
 ```
 
-Step 3: Start up Juputer lab once in the container with `Jupyter lab`
+Step 3: Start up Jupyter lab once in the container with `Jupyter lab`
 
 Step 4: Run through notebooks 1 and 2 in the workspace
