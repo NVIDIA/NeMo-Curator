@@ -4,13 +4,7 @@ import json
 import os
 from pathlib import Path
 
-try:
-    import pyarrow.parquet as pq
-
-    HAS_PYARROW = True
-except ImportError:
-    HAS_PYARROW = False
-    print("Warning: PyArrow not available. Results will not be saved to Parquet.")
+import pyarrow.parquet as pq
 
 from ray_curator.backends.xenna.executor import XennaExecutor
 from ray_curator.pipeline import Pipeline
@@ -84,6 +78,7 @@ def main() -> None:
 
     # Create sample data directory
     data_dir = Path(os.path.expanduser("./sample_jsonl_data"))
+    output_format = "parquet"
 
     # Create sample JSONL files
     print("Creating sample JSONL files...")
@@ -128,8 +123,7 @@ def main() -> None:
             df = batch.to_pandas()
             print(f"Columns: {list(df.columns)}")
 
-        # Save to parquet if pyarrow is available
-        if HAS_PYARROW:
+        if output_format == "parquet":
             output_file = output_dir / f"batch_{i}.parquet"
             table = batch.to_pyarrow()
             pq.write_table(table, output_file)
