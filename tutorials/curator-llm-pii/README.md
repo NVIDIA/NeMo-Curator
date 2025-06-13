@@ -8,7 +8,7 @@ PII modification with NeMo Curator provides a sophisticated approach to privacy 
 The tutorial follows the steps below:
 
 # Install Nemo Curator
-Please follow the instructions in NeMo Curator's [README](https://github.com/NVIDIA/NeMo-Curator/tree/main?tab=readme-ov-file#install-nemo-curator) to install the NeMo Curator package and import libraries 
+Please follow the instructions in NeMo Curator's [README](https://github.com/NVIDIA/NeMo-Curator/tree/main?tab=readme-ov-file#install-nemo-curator) to install the NeMo Curator package and import libraries
 
 Step 1: Pull docker container from NGC
 ```
@@ -29,4 +29,3 @@ nvcr.io/nvidia/nemo:25.04.rc2 bash
 Step 3: Start up Juputer lab once in the container with `Jupyter lab`
 
 Step 4: Run through notebooks 1 and 2 in the workspace
-
