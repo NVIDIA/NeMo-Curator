@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ray-curator"
+version = "0.1.0"
+authors = [
+    { name = "Ayush Dattagupta", email = "adattagupta@nvidia.com" },
+    { name = "Praateek Mahajan", email = "praateekm@nvidia.com" },
+]
+description = "A Ray-based data curator"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "ray[default]",
+    "fsspec",
+    "cudf-cu12==25.6.*",
+    "cuml-cu12==25.6.*",
+    "pylibraft-cu12==25.6.*",
+    "raft-dask-cu12==25.6.*",
+    "cugraph-cu12==25.6.*",
+    "nx-cugraph-cu12==25.6.*",
+    "torch",
+    "loguru",
+    "crossfit @ git+https://github.com/rapidsai/crossfit.git@main",
+    "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
+    "transformers>=4.48.0",
+    "pyarrow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "ruff==0.11.4",
+    "debugpy",
+    "pytest"
+]
+
+[tool.setuptools]
+packages = ["ray_curator"]
+[tool.ruff]
+line-length = 119
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",  # pydocstyle
+    "PTH",  # use pathlib
+    "G",  # no enforcement during logging
+    "FBT",  # allow booleans in function / class arguments
+    "T20",  # allow printing
+    "E501",  # Allow line length violations, leave it to Black
+    "ANN002",  # don't annotate **args
+    "ANN003",  # don't annotate **kwargs
+    "ANN204",  # don't annotate self/cls/special methods (__new__)
+    "PT013",  # how to import pytest
+    "PERF401",  # don't enforce list comprehension
+    "RET505", "RET506", "RET507", "RET508",  # allow branching (if else after return)
+    "PGH004",  # allow generic noqa
+    "PD901",  # allow naming dataframes df
+    "TD002",  # Allow TODO without author
+    "TD003",  # Allow TODO without link
+    "TRY003", # Allow long exception messages rather than creating a new exception class
+    "FIX002",  # Allow TODO to exist,
+    "EXE002", # Don't require for a shebang to be present if it's executable
+    "COM812", # Disable the trailing comma in linter, because ruff formatter ensures it
+]
+fixable = ["ALL"]
+
+
+[tool.ruff.lint.extend-per-file-ignores]
+"ray_curator/examples/**" = [
+    "INP001", # No __init__.py is required
+]
+"tests/**/*.py" = [
+    "S101", # asserts allowed in tests...
+    "PLR2004", # Magic value used in comparison, ...
+]
