@@ -52,7 +52,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
 
         """
         # Get storage options from task metadata
-        storage_options = task.metadata.get("storage_options", {})
+        storage_options = task._metadata.get("storage_options", {})  # noqa: SLF001
 
         # Read the files
         if self.reader.lower() == "pandas":
@@ -72,6 +72,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
             task_id=f"{task.task_id}_processed",
             dataset_name=task.dataset_name,
             data=df,
+            _metadata=task._metadata,  # Pass through metadata from input task #noqa: SLF001
         )
 
     def _read_with_pandas(

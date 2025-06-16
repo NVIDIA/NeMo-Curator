@@ -73,10 +73,11 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
                 task_id=f"file_group_{i}",
                 dataset_name=dataset_name,
                 data=file_group,
-                metadata={
+                _metadata={
                     "partition_index": i,
                     "total_partitions": len(partitions),
                     "storage_options": self.storage_options,
+                    "source_files": file_group,  # Add source files for deterministic naming
                 },
                 reader_config={},  # Empty - will be populated by reader stage
             )
