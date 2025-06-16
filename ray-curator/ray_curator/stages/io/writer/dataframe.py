@@ -1,4 +1,3 @@
-import os
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -67,7 +66,7 @@ class BaseWriter(ProcessingStage[DocumentBatch, FileGroupTask], ABC):
 
         # Generate filename with appropriate extension
         file_extension = self.get_file_extension()
-        file_path = os.path.join(self.output_dir, f"{filename}.{file_extension}")
+        file_path = self.fs.sep.join([self.output_dir, f"{filename}.{file_extension}"])
 
         # Skip if file already exists (idempotent writes)
         if self.fs.exists(file_path):
