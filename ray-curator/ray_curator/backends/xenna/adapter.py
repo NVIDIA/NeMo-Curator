@@ -40,7 +40,7 @@ class XennaStageAdapter(BaseStageAdapter, pipelines_v1.Stage):
     @property
     def stage_batch_size(self) -> int:
         """Get the batch size for this stage."""
-        return self.processing_stage.batch_size or 1
+        return self.processing_stage.batch_size
 
     @property
     def env_info(self) -> pipelines_v1.RuntimeEnv | None:

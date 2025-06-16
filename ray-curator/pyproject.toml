@@ -11,20 +11,22 @@ authors = [
 ]
 description = "A Ray-based data curator"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "ray[default]",
     "fsspec",
-    "cudf-cu12==25.4.*",
-    "cuml-cu12==25.4.*",
-    "pylibraft-cu12==25.4.*",
-    "raft-dask-cu12==25.4.*",
-    "cugraph-cu12==25.4.*",
-    "nx-cugraph-cu12==25.4.*",
+    "cudf-cu12==25.6.*",
+    "cuml-cu12==25.6.*",
+    "pylibraft-cu12==25.6.*",
+    "raft-dask-cu12==25.6.*",
+    "cugraph-cu12==25.6.*",
+    "nx-cugraph-cu12==25.6.*",
     "torch",
     "loguru",
     "crossfit @ git+https://github.com/rapidsai/crossfit.git@main",
-    "transformers>=4.48.0"
+    "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
+    "transformers>=4.48.0",
+    "pyarrow",
 ]
 
 [project.optional-dependencies]
