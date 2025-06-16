@@ -9,10 +9,12 @@ from ray_curator.backends.xenna.adapter import create_named_xenna_stage_adapter
 from ray_curator.stages.base import ProcessingStage
 from ray_curator.tasks import EmptyTask, Task
 
+from .ray_cluster_init import init_or_connect_to_cluster
+
 
 class XennaExecutor(BaseExecutor):
     """Executor that runs pipelines using Cosmos-Xenna.
-    This executor provides integration between the ray-curator pipeline framework
+    This executor provides integration between the nemo-curator pipeline framework
     and the Cosmos-Xenna execution engine for distributed processing.
     """
 
@@ -113,6 +115,10 @@ class XennaExecutor(BaseExecutor):
         logger.info(f"Execution mode: {exec_mode.name}")
 
         try:
+            # Initialize a ray cluster
+            init_or_connect_to_cluster()
+
+            # Run the pipeline
             results = pipelines_v1.run_pipeline(pipeline_spec)
             logger.info(f"Pipeline completed successfully with {len(results) if results else 0} output tasks")
         except Exception as e:
