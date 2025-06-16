@@ -60,8 +60,13 @@ class TestJsonlWriter:
         assert result._metadata["format"] == "jsonl"
         # assert previous keys from document_batch are present
         assert result._metadata["dummy_key"] == "dummy_value"
-        # assert stage_perf is copied over
-        assert result._stage_perf == document_batch._stage_perf
+        # Verify stage_perf is properly handled
+        # The stage should preserve all existing stage performance entries
+        assert len(result._stage_perf) >= len(document_batch._stage_perf)
+
+        # All original stage performance entries should be preserved
+        for original_perf in document_batch._stage_perf:
+            assert original_perf in result._stage_perf, "Original stage performance should be preserved"
 
         file_path = result.data[0]
         assert "_TEST_FILE_HASH" in file_path, f"File path should contain hash: {file_path}"
@@ -92,7 +97,11 @@ class TestJsonlWriter:
 
         # Verify task_id and stage_perf are preserved
         assert result.task_id == pandas_document_batch.task_id
-        assert result._stage_perf == pandas_document_batch._stage_perf
+
+        # Verify stage_perf is properly handled
+        assert len(result._stage_perf) >= len(pandas_document_batch._stage_perf)
+        for original_perf in pandas_document_batch._stage_perf:
+            assert original_perf in result._stage_perf, "Original stage performance should be preserved"
 
     def test_jsonl_writer_with_jsonl_kwargs_override(self, pandas_document_batch: DocumentBatch, tmpdir: str):
         """Test that jsonl_kwargs can override default parameters."""
@@ -153,4 +162,8 @@ class TestJsonlWriter:
 
         # Verify task_id and stage_perf are preserved
         assert result.task_id == pandas_document_batch.task_id
-        assert result._stage_perf == pandas_document_batch._stage_perf
+
+        # Verify stage_perf is properly handled
+        assert len(result._stage_perf) >= len(pandas_document_batch._stage_perf)
+        for original_perf in pandas_document_batch._stage_perf:
+            assert original_perf in result._stage_perf, "Original stage performance should be preserved"

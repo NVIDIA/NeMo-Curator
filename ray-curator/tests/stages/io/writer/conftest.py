@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from ray_curator.tasks import DocumentBatch
+from ray_curator.utils.performance_utils import StagePerfStats
 
 
 @pytest.fixture
@@ -22,7 +23,15 @@ def pandas_document_batch() -> DocumentBatch:
         dataset_name="test_dataset",
         data=df,
         _metadata={"dummy_key": "dummy_value"},
-        _stage_perf={"stage_name": "test_stage", "time_ms": 100},
+        _stage_perf=[
+            StagePerfStats(
+                stage_name="test_stage",
+                process_time=0.1,  # 100ms = 0.1s
+                actor_idle_time=0.0,
+                input_data_size_mb=0.001,  # Small test data
+                num_items_processed=3,  # 3 rows in the DataFrame
+            )
+        ],
     )
 
 
@@ -34,7 +43,15 @@ def pyarrow_document_batch(pandas_document_batch: DocumentBatch) -> DocumentBatc
         dataset_name="test_dataset",
         data=pandas_document_batch.to_pyarrow(),
         _metadata={"dummy_key": "dummy_value"},
-        _stage_perf={"stage_name": "test_stage", "time_ms": 100},
+        _stage_perf=[
+            StagePerfStats(
+                stage_name="test_stage",
+                process_time=0.1,  # 100ms = 0.1s
+                actor_idle_time=0.0,
+                input_data_size_mb=0.001,  # Small test data
+                num_items_processed=3,  # 3 rows in the DataFrame
+            )
+        ],
     )
 
 
