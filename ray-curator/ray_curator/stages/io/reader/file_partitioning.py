@@ -77,7 +77,7 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
                     "partition_index": i,
                     "total_partitions": len(partitions),
                     "storage_options": self.storage_options,
-                    "source_files": file_group,  # Add source files for deterministic naming
+                    "source_files": file_group,  # Add source files for deterministic naming during write stage
                 },
                 reader_config={},  # Empty - will be populated by reader stage
             )
