@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=45"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -81,7 +81,3 @@ fixable = ["ALL"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = ["-v", "--tb=short"]

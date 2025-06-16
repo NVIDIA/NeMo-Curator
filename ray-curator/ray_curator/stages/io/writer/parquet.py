@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from loguru import logger
-
 from ray_curator.tasks import DocumentBatch
 
 from .dataframe import BaseWriter
@@ -14,13 +12,11 @@ class ParquetWriter(BaseWriter):
 
     # Additional kwargs for pandas.DataFrame.to_parquet
     parquet_kwargs: dict[str, Any] = field(default_factory=dict)
+    file_extension: str = "parquet"
 
     @property
     def name(self) -> str:
         return "parquet_writer"
-
-    def get_file_extension(self) -> str:
-        return "parquet"
 
     def write_data(self, task: DocumentBatch, file_path: str) -> None:
         """Write data to Parquet file using pandas DataFrame.to_parquet."""
@@ -36,4 +32,3 @@ class ParquetWriter(BaseWriter):
         write_kwargs.update(self.parquet_kwargs)
 
         df.to_parquet(file_path, **write_kwargs)
-        logger.debug(f"Written {len(df)} records to Parquet file: {file_path}")

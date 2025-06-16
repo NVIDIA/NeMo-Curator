@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from loguru import logger
-
 from ray_curator.tasks import DocumentBatch
 
 from .dataframe import BaseWriter
@@ -13,14 +11,12 @@ class JsonlWriter(BaseWriter):
     """Writer that writes a DocumentBatch to a JSONL file."""
 
     # Additional kwargs for pandas.DataFrame.to_json
+    file_extension: str = "jsonl"
     jsonl_kwargs: dict[str, Any] = field(default_factory=dict)
 
     @property
     def name(self) -> str:
         return "jsonl_writer"
-
-    def get_file_extension(self) -> str:
-        return "jsonl"
 
     def write_data(self, task: DocumentBatch, file_path: str) -> None:
         """Write data to JSONL file using pandas DataFrame.to_json."""
@@ -37,4 +33,3 @@ class JsonlWriter(BaseWriter):
         json_kwargs.update(self.jsonl_kwargs)
 
         df.to_json(file_path, **json_kwargs)
-        logger.debug(f"Written {len(df)} records to JSONL file: {file_path}")

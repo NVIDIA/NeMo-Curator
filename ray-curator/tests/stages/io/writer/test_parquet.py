@@ -110,3 +110,30 @@ class TestParquetWriter:
         # Verify task_id and stage_perf are preserved
         assert result.task_id == pandas_document_batch.task_id
         assert result._stage_perf == pandas_document_batch._stage_perf
+
+    def test_parquet_writer_with_custom_file_extension(self, pandas_document_batch: DocumentBatch, tmpdir: str):
+        """Test ParquetWriter with custom file extension."""
+        output_dir = os.path.join(tmpdir, "parquet_custom_ext")
+        writer = ParquetWriter(
+            output_dir=output_dir,
+            file_extension="pq",  # Use custom extension
+        )
+
+        writer.setup()
+        result = writer.process(pandas_document_batch)
+
+        # Verify file was created with custom extension
+        file_path = result.data[0]
+        assert os.path.exists(file_path), f"Output file should exist: {file_path}"
+        assert os.path.getsize(file_path) > 0, "Output file should not be empty"
+
+        # Verify the file has the custom extension
+        assert file_path.endswith(".pq"), "File should have .pq extension when file_extension is set to 'pq'"
+
+        # Verify content is still readable as Parquet
+        df = pd.read_parquet(file_path)
+        pd.testing.assert_frame_equal(df, pandas_document_batch.to_pandas())
+
+        # Verify task_id and stage_perf are preserved
+        assert result.task_id == pandas_document_batch.task_id
+        assert result._stage_perf == pandas_document_batch._stage_perf

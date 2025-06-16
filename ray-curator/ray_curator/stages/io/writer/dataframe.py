@@ -22,6 +22,7 @@ class BaseWriter(ProcessingStage[DocumentBatch, FileGroupTask], ABC):
     """
 
     output_dir: str
+    file_extension: str
     storage_options: dict[str, Any] = field(default_factory=dict)
 
     def inputs(self) -> tuple[list[str], list[str]]:
@@ -37,9 +38,9 @@ class BaseWriter(ProcessingStage[DocumentBatch, FileGroupTask], ABC):
         storage_options_inferred = infer_storage_options(self.output_dir)
         self.fs = fsspec.filesystem(storage_options_inferred["protocol"], **self.storage_options)
 
-    @abstractmethod
     def get_file_extension(self) -> str:
         """Return the file extension for this writer format."""
+        return self.file_extension
 
     @abstractmethod
     def write_data(self, task: DocumentBatch, file_path: str) -> None:

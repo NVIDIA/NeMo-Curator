@@ -108,9 +108,10 @@ class TestJsonlWriter:
         with pytest.raises(ValueError, match="lines' keyword only valid when 'orient' is records"):
             writer.process(pandas_document_batch)
 
-        # Test with lines=False
+        # Test with lines=False and custom file extension
         writer = JsonlWriter(
             output_dir=output_dir,
+            file_extension="json",  # Change file extension to .json
             jsonl_kwargs={"orient": "index", "lines": False},  # Override via kwargs
         )
 
@@ -121,3 +122,35 @@ class TestJsonlWriter:
         file_path = result.data[0]
         assert os.path.exists(file_path), f"Output file should exist: {file_path}"
         assert os.path.getsize(file_path) > 0, "Output file should not be empty"
+
+        # Verify the file has the custom extension
+        assert file_path.endswith(".json"), "File should have .json extension when file_extension is set to 'json'"
+
+    def test_jsonl_writer_with_custom_file_extension(self, pandas_document_batch: DocumentBatch, tmpdir: str):
+        """Test JsonlWriter with custom file extension."""
+        output_dir = os.path.join(tmpdir, "jsonl_custom_ext")
+        writer = JsonlWriter(
+            output_dir=output_dir,
+            file_extension="ndjson",  # Use custom extension
+        )
+
+        writer.setup()
+        result = writer.process(pandas_document_batch)
+
+        # Verify file was created with custom extension
+        file_path = result.data[0]
+        assert os.path.exists(file_path), f"Output file should exist: {file_path}"
+        assert os.path.getsize(file_path) > 0, "Output file should not be empty"
+
+        # Verify the file has the custom extension
+        assert file_path.endswith(".ndjson"), (
+            "File should have .ndjson extension when file_extension is set to 'ndjson'"
+        )
+
+        # Verify content is still readable as JSONL
+        df = pd.read_json(file_path, lines=True)
+        pd.testing.assert_frame_equal(df, pandas_document_batch.to_pandas())
+
+        # Verify task_id and stage_perf are preserved
+        assert result.task_id == pandas_document_batch.task_id
+        assert result._stage_perf == pandas_document_batch._stage_perf
