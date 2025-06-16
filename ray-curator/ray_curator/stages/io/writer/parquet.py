@@ -1,12 +1,39 @@
-from .dataframe import DataFrameWriter
+from dataclasses import dataclass, field
+from typing import Any
+
+from loguru import logger
+
+from ray_curator.tasks import DocumentBatch
+
+from .dataframe import BaseWriter
 
 
-class ParquetWriter(DataFrameWriter):
-    """Writer that writes a DocumentBatch to a Parquet file."""
+@dataclass
+class ParquetWriter(BaseWriter):
+    """Writer that writes a DocumentBatch to a Parquet file using pandas."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, format="parquet", **kwargs)
+    # Additional kwargs for pandas.DataFrame.to_parquet
+    parquet_kwargs: dict[str, Any] = field(default_factory=dict)
 
     @property
     def name(self) -> str:
         return "parquet_writer"
+
+    def get_file_extension(self) -> str:
+        return "parquet"
+
+    def write_data(self, task: DocumentBatch, file_path: str) -> None:
+        """Write data to Parquet file using pandas DataFrame.to_parquet."""
+        df = task.to_pandas()  # Convert to pandas DataFrame if needed
+
+        # Build kwargs for to_parquet with explicit options
+        write_kwargs = {
+            "index": None,
+            "storage_options": self.storage_options,
+        }
+
+        # Add any additional kwargs, allowing them to override defaults
+        write_kwargs.update(self.parquet_kwargs)
+
+        df.to_parquet(file_path, **write_kwargs)
+        logger.debug(f"Written {len(df)} records to Parquet file: {file_path}")

@@ -1,14 +1,14 @@
 """Example text processing pipeline using ray-curator."""
 
+import argparse
 import json
-import os
 from pathlib import Path
+from typing import Literal
 
-import pyarrow.parquet as pq
-
-from ray_curator.backends.xenna.executor import XennaExecutor
+from ray_curator.backends.xenna import XennaExecutor
 from ray_curator.pipeline import Pipeline
-from ray_curator.stages.readers.jsonl import JsonlReader
+from ray_curator.stages.io.reader import JsonlReader
+from ray_curator.stages.io.writer import JsonlWriter, ParquetWriter
 
 
 def create_sample_jsonl_files(output_dir: Path, num_files: int = 3) -> None:
@@ -52,7 +52,9 @@ def create_sample_jsonl_files(output_dir: Path, num_files: int = 3) -> None:
         print(f"Created {file_path} with {end_idx - start_idx} documents")
 
 
-def create_text_processing_pipeline(data_dir: Path) -> Pipeline:
+def create_text_processing_pipeline(
+    input_dir: Path, output_dir: Path, output_format: Literal["parquet", "jsonl"]
+) -> Pipeline:
     """Create a pipeline for processing text data.
     The reader stage will create multiple tasks based on the partitioning
     strategy, which will then be processed in parallel.
@@ -65,43 +67,52 @@ def create_text_processing_pipeline(data_dir: Path) -> Pipeline:
     # The JsonlReader will create multiple tasks based on files_per_partition
     pipeline.add_stage(
         JsonlReader(
-            file_paths=str(data_dir),  # Read from our created sample files
+            file_paths=str(input_dir),  # Read from our created sample files
             files_per_partition=2,  # Each task will process 2 files
             reader="pandas",  # Use pandas reader
         )
     )
+    if output_format == "jsonl":
+        writer = JsonlWriter(output_dir=str(output_dir))
+    elif output_format == "parquet":
+        writer = ParquetWriter(output_dir=str(output_dir))
+    else:
+        msg = f"Invalid output format: {output_format}"
+        raise ValueError(msg)
+
+    pipeline.add_stage(writer)
+
     return pipeline
 
 
-def main() -> None:
+def main(args: argparse.Namespace) -> None:
     """Main function to run the pipeline."""
 
     # Create sample data directory
-    data_dir = Path(os.path.expanduser("./sample_jsonl_data"))
-    output_format = "parquet"
+    input_dir = Path(args.input_path).resolve()
 
     # Create sample JSONL files
     print("Creating sample JSONL files...")
-    create_sample_jsonl_files(data_dir, num_files=3)
-    print(f"Sample files created in: {data_dir}")
+    create_sample_jsonl_files(input_dir, num_files=3)
+    print(f"Sample files created in: {input_dir}")
     print("\n" + "=" * 50 + "\n")
 
     # Create pipeline
-    pipeline = create_text_processing_pipeline(data_dir)
+    pipeline = create_text_processing_pipeline(input_dir, Path(args.output_path).resolve(), args.output_format)
 
     # Print pipeline description
     print(pipeline.describe())
     print("\n" + "=" * 50 + "\n")
 
     # Create executor
-    executor = XennaExecutor()
+    if args.executor == "xenna":
+        executor = XennaExecutor()
+    else:
+        msg = f"Invalid executor type: {args.executor}"
+        raise ValueError(msg)
 
     # Execute pipeline
     print("Starting pipeline execution...")
-    print("\nNote: The reader stage will create multiple tasks based on the")
-    print("partitioning strategy. These tasks will be processed in parallel")
-    print("by the available workers.\n")
-
     results = pipeline.run(executor)
 
     # Print results summary
@@ -112,31 +123,22 @@ def main() -> None:
     print(f"Total documents processed: {total_documents}")
 
     # Save results
-    output_dir = Path("./test_output")
+    output_dir = Path(args.output_path).resolve()
     output_dir.mkdir(exist_ok=True)
 
     for i, batch in enumerate(results or []):
         print(f"Processing batch {i} with {batch.num_items} documents...")
-
-        # Show sample of data
-        if batch.num_items > 0:
-            df = batch.to_pandas()
-            print(f"Columns: {list(df.columns)}")
-
-        if output_format == "parquet":
-            output_file = output_dir / f"batch_{i}.parquet"
-            table = batch.to_pyarrow()
-            pq.write_table(table, output_file)
-            print(f"Saved batch {i} to {output_file}")
-        else:
-            # Save to CSV as fallback
-            output_file = output_dir / f"batch_{i}.csv"
-            df = batch.to_pandas()
-            df.to_csv(output_file, index=False)
-            print(f"Saved batch {i} to {output_file}")
-
-        print()
+        print(batch.data)
+        print(batch._stage_perf)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_path", type=str, default="./sample_jsonl_data")
+    parser.add_argument("--output_path", type=str, default="./test_output")
+    parser.add_argument("--output_format", type=str, default="parquet", choices=["parquet", "jsonl"])
+
+    parser.add_argument("--executor", type=str, default="xenna", choices=["xenna", "ray_data", "ray_actors"])
+    args = parser.parse_args()
+
+    main(args)

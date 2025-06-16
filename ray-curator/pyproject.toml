@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -64,6 +64,7 @@ ignore = [
     "FIX002",  # Allow TODO to exist,
     "EXE002", # Don't require for a shebang to be present if it's executable
     "COM812", # Disable the trailing comma in linter, because ruff formatter ensures it
+    "SLF001", # Allow accessing private attributes
 ]
 fixable = ["ALL"]
 
@@ -74,5 +75,13 @@ fixable = ["ALL"]
 ]
 "tests/**/*.py" = [
     "S101", # asserts allowed in tests...
+    "ANN201", # Allow methods to not return something
     "PLR2004", # Magic value used in comparison, ...
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["-v", "--tb=short"]
