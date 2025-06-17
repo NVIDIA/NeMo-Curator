@@ -148,7 +148,7 @@ class Pipeline:
     def add_stage(self, stage: ProcessingStage):
         """Add a stage to the pipeline."""
     
-    def run(self, executor: BaseExecutor | None = None) -> list[Task]:
+    def run(self, executor: BaseExecutor | None = None) -> list[Task] | None:
         """Run the pipeline."""
 ```
 
