@@ -117,7 +117,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
 
     @abstractmethod
     def process(self, task: X) -> Y | list[Y]:
-        """Process a single task."""
+        """Process a single task, can output one or more task."""
 ```
 
 #### Resource Specification
