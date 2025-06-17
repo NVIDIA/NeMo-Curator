@@ -30,7 +30,7 @@
 ### Why not Ray?
 - Limited support for distributed dataframes/arrays, especially distributed operations like groupby
 - Eager computation model (addressed through lazy evaluation at curator level)
-
+- Requires us to do building the physical plan, and do optimizations like task fusion
 ## Design Principles
 
 ### Task-Centric Architecture
