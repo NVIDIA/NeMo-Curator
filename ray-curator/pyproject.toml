@@ -17,7 +17,7 @@ dependencies = [
     "fsspec",
     "torch",
     "loguru",
-    "crossfit @ git+https://github.com/rapidsai/crossfit.git@main",
+    "crossfit>=0.0.9",
     "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
     "transformers>=4.48.0",
     "pyarrow",
