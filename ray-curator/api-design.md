@@ -103,7 +103,7 @@ class DocumentTask(Task[pd.DataFrame]):
 
 ```python
 class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
-    """Base class for all processing stages."""
+    """Base class for all processing stages that accepts a task of type X and outputs a task of type Y."""
     
     @property
     @abstractmethod
