@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from ray_curator.utils.performance_utils import StagePerfStats
 
@@ -25,6 +25,7 @@ class Task(ABC, Generic[T]):
     dataset_name: str
     data: T
     _stage_perf: list[StagePerfStats] = field(default_factory=list)
+    _metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Post-initialization hook."""
