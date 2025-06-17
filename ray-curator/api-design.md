@@ -1,8 +1,6 @@
 # NeMo Curator Ray API Design
 
-**Author:** Abhinav Garg (abhgarg@nvidia.com)  
-**Contributors:** Ayush Dattagupta US, Praateek Mahajan US, Sarah Yurick US  
-**Status:** Draft
+**Status:** Pre Release
 
 ## Table of Contents
 
