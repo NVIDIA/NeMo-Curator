@@ -178,7 +178,7 @@ class XennaExecutor(BaseExecutor):
     """Ray-based executor using Xenna backend."""
     
     def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> None:
-        # Convert stages to Xenna DAG
+        # Convert stages to Xenna acceptable format using Xenna Adapters
         # Handle resource allocation
         # Execute with autoscaling
 ```
