@@ -42,6 +42,7 @@ class CommonCrawlWARCDownloader(ProcessingStage[FileGroupTask, FileGroupTask]):
             dataset_name=task.dataset_name,
             data=downloaded_files,
             _stage_perf=task._stage_perf,
+            # this overrides the source_files metadata from the previous stage i.e BaseCommonCrawlUrlStage
             _metadata={"source_files": downloaded_files},
         )
 

@@ -73,6 +73,7 @@ class CommonCrawlHTMLExtractor(ProcessingStage[DocumentBatch, DocumentBatch]):
             dataset_name=task.dataset_name,
             data=table,
             _stage_perf=task._stage_perf,
+            _metadata=task._metadata,
         )
 
     def extract(self, content: bytes) -> dict[str, str] | None:

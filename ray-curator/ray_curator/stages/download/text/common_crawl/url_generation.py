@@ -99,10 +99,16 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
         """Process the task and return a list of WARC URLs"""
         path_urls = self.generate_path_urls()
         warc_urls = self.generate_data_urls(path_urls)
-
+        # We create one task per URL, if subsequent stages want to process more than one URL at a time
+        # they can configure the batch_size parameter
         return [
-            FileGroupTask(task_id=task.task_id, dataset_name=task.dataset_name, data=warc_urls)
-            for warc_url in warc_urls
+            FileGroupTask(
+                task_id=f"{task.task_id}_{i}",
+                dataset_name=task.dataset_name,
+                data=[warc_url],
+                _metadata={"source_files": [warc_url]},  # Each task should reference only its URL
+            )
+            for i, warc_url in enumerate(warc_urls)
         ]
 
     @property

@@ -34,6 +34,7 @@ class WarcReader(ProcessingStage[FileGroupTask, DocumentBatch]):
             dataset_name=task.dataset_name,
             data=data_df,
             _stage_perf=task._stage_perf,
+            _metadata=task._metadata,
         )
 
     def process_warc(self, warc_path: Path | str) -> list[dict]:
