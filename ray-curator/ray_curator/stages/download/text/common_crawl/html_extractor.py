@@ -4,8 +4,7 @@ from nemo_curator.download.doc_builder import (
 
 from ray_curator.stages.download.text.utils import decode_html, lang_detect
 
-from .html_extractors.base import HTMLExtractorAlgorithm
-from .html_extractors.justext import JusTextExtractor
+from .html_extractors import HTMLExtractorAlgorithm, JusTextExtractor
 from .utils import get_stop_list_dict
 
 
