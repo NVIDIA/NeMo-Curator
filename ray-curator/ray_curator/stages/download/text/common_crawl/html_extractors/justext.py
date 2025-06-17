@@ -1,7 +1,8 @@
+from typing import ClassVar
+
 import justext
 import lxml
 from loguru import logger
-from typing import ClassVar
 
 from .base import HTMLExtractorAlgorithm
 
