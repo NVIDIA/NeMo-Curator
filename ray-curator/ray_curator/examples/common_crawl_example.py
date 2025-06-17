@@ -2,6 +2,7 @@
 
 import argparse
 from pathlib import Path
+from pprint import pprint
 from typing import Literal
 
 from ray_curator.backends.xenna import XennaExecutor
@@ -133,7 +134,7 @@ def main(args: argparse.Namespace) -> None:
     if results:
         print("\nSample of processed documents:")
         for task in results:
-            print(task)
+            pprint(task)
             print("\n" + "=" * 50 + "\n")
 
 
