@@ -1,11 +1,15 @@
 import justext
 import lxml
 from loguru import logger
+from typing import ClassVar
 
 from .base import HTMLExtractorAlgorithm
 
 
 class JusTextExtractor(HTMLExtractorAlgorithm):
+    # Class-level set to track which languages we've already logged warnings for
+    _logged_languages: ClassVar[set[str]] = set()
+
     def __init__(  # noqa: PLR0913
         self,
         length_low: int = 70,
@@ -51,6 +55,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             is_boilerplate: If True, text extraction will ignore boilerplate content.
                 Default is True for space-separated languages and False for non-space-separated languages
                 (Thai, Chinese, Japanese, and Korean).
+            logger: Optional logger instance for logging messages.
 
         """
         self.length_low = length_low
@@ -73,8 +78,7 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
             lxml.sax.saxify(cleaned_dom, handler)
         except (lxml.etree.ParserError, ValueError, Exception):
             # Return nothing when we cannot segment the document
-            if self.logger is not None:
-                self.logger.info("Could not segment paragaphs in the document")
+            logger.info("Could not segment paragaphs in the document")
             return None
 
         paragraphs = handler.paragraphs
@@ -105,7 +109,9 @@ class JusTextExtractor(HTMLExtractorAlgorithm):
 
         if self.is_boilerplate is None:
             if language in self.NON_SPACED_LANGUAGES:
-                logger.warning("Disabling is_boilerplate check for jusText extraction.")
+                if language not in self._logged_languages:
+                    logger.warning(f"Disabling is_boilerplate check for jusText extraction for language: {language}")
+                    self._logged_languages.add(language)
                 is_boilerplate = False
             else:
                 is_boilerplate = True

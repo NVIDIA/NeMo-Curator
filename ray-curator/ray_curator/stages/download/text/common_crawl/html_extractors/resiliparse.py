@@ -1,5 +1,5 @@
 from loguru import logger
-from resiliparse.extract.html2text import extract_plain_text
+from resiliparse.extract.html2text import extract_plain_text as resiliparse_extract_plain_text
 
 from .base import HTMLExtractorAlgorithm
 
@@ -39,7 +39,7 @@ class ResiliparseExtractor(HTMLExtractorAlgorithm):
         self.alt_texts = alt_texts
 
     def extract_text(self, html: str, stop_words: frozenset[str], language: str) -> list[str] | None:
-        text = extract_plain_text(html, main_content=self.main_content, alt_texts=self.alt_texts)
+        text = resiliparse_extract_plain_text(html, main_content=self.main_content, alt_texts=self.alt_texts)
 
         paragraphs = list(filter(None, text.split("\n")))
 
