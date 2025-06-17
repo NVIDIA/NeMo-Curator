@@ -28,11 +28,6 @@ import justext
 import lxml
 import pycld2 as cld2
 from charset_normalizer import detect
-from resiliparse.extract.html2text import extract_plain_text
-from trafilatura import extract as extract_with_trafilatura
-from trafilatura.settings import DEFAULT_CONFIG as TRAFILATURA_DEFAULT_CONFIG
-from warcio.archiveiterator import ArchiveIterator
-
 from nemo_curator.datasets import DocumentDataset
 from nemo_curator.download.doc_builder import (
     DocumentDownloader,
@@ -42,6 +37,10 @@ from nemo_curator.download.doc_builder import (
 )
 from nemo_curator.utils.download_utils import get_common_crawl_urls
 from nemo_curator.utils.file_utils import expand_outdir_and_mkdir
+from resiliparse.extract.html2text import extract_plain_text
+from trafilatura import extract as extract_with_trafilatura
+from trafilatura.settings import DEFAULT_CONFIG as TRAFILATURA_DEFAULT_CONFIG
+from warcio.archiveiterator import ArchiveIterator
 
 NON_SPACED_LANGUAGES = ["THAI", "CHINESE", "JAPANESE", "KOREAN"]
 
