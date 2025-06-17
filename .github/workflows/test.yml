@@ -46,7 +46,8 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m coverage run --branch --source=nemo_curator --omit=nemo_curator/scripts/* -m pytest -v --cpu
+          cd ray-curator
+          python -m coverage run --branch --source=ray_curator -m pytest -v
 
       - name: Generate report
         run: |
@@ -59,4 +60,4 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           verbose: true
-          flags: cpu
+          flags: cpu, ray-api
