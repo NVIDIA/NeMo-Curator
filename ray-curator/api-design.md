@@ -155,6 +155,8 @@ class Pipeline:
 ### Executors (Advanced)
 
 **Executors** are responsible for running pipelines on different backends while maintaining a unified interface.
+They do so with the help of **Adapters** which are the translation piece between our `ProcessingStage` and the desired "executor".
+Each Executor runs a `list[ProcessingStage]` and then wraps each `ProcessingStage` to an `Adapter`, and then finally those wrapped classes, i.e adapters are executed.
 
 #### Base Executor Interface
 
