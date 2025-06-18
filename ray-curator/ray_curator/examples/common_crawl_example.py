@@ -1,9 +1,12 @@
 """Example script for downloading and processing Common Crawl data."""
 
 import argparse
+import time
 from pathlib import Path
 from pprint import pprint
 from typing import Literal
+
+from loguru import logger
 
 from ray_curator.backends.xenna import XennaExecutor
 from ray_curator.pipeline import Pipeline
@@ -154,7 +157,7 @@ if __name__ == "__main__":
 
     # Common Crawl configuration
     parser.add_argument(
-        "--crawl_type", type=str, default="news", choices=["main", "news"], help="Type of Common Crawl (main or news)"
+        "--crawl_type", type=str, default="main", choices=["main", "news"], help="Type of Common Crawl (main or news)"
     )
     parser.add_argument(
         "--start_snapshot",
@@ -163,7 +166,7 @@ if __name__ == "__main__":
         help="Start snapshot string (YYYY-WW for main, YYYY-MM for news)",
     )
     parser.add_argument(
-        "--end_snapshot", type=str, default="2023-01", help="End snapshot string (YYYY-WW for main, YYYY-MM for news)"
+        "--end_snapshot", type=str, default="2023-10", help="End snapshot string (YYYY-WW for main, YYYY-MM for news)"
     )
     parser.add_argument(
         "--html_extraction",
@@ -186,4 +189,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    start_time = time.perf_counter()
     main(args)
+    end_time = time.perf_counter()
+    logger.success(f"Time taken: {end_time - start_time} seconds")

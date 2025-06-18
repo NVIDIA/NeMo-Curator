@@ -61,8 +61,8 @@ class CommonCrawl(CompositeStage[_EmptyTask, DocumentBatch]):
         # Set up the pipeline
         self.stages = [
             url_stage,  # _EmptyTask -> FileGroupTask
-            download_stage,  # FileGroupTask -> FileGroupTask
-            warc_reader,  # FileGroupTask -> DocumentBatch
+            download_stage,  # FileGroupTask (cloud) -> FileGroupTask (local)
+            warc_reader,  # FileGroupTask (local) -> DocumentBatch
             html_stage,  # DocumentBatch -> DocumentBatch
         ]
 
