@@ -15,21 +15,25 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "ray[default]",
     "fsspec",
+    "torch",
+    "loguru",
+    "crossfit>=0.0.9",
+    "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
+    "transformers>=4.48.0",
+    "pyarrow",
+    "absl-py>=2.0.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+cuda12x = [
     "cudf-cu12==25.6.*",
     "cuml-cu12==25.6.*",
     "pylibraft-cu12==25.6.*",
     "raft-dask-cu12==25.6.*",
     "cugraph-cu12==25.6.*",
     "nx-cugraph-cu12==25.6.*",
-    "torch",
-    "loguru",
-    "crossfit @ git+https://github.com/rapidsai/crossfit.git@main",
-    "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
-    "transformers>=4.48.0",
-    "pyarrow",
 ]
 
-[project.optional-dependencies]
 dev = [
     "pre-commit",
     "ruff==0.11.4",
