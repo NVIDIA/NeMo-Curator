@@ -51,6 +51,7 @@ jobs:
 
       - name: Generate report
         run: |
+          cd ray-curator
           python -m coverage xml
           python -m coverage report
 
@@ -58,6 +59,6 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
+          files: ray-curator/coverage.xml
           verbose: true
           flags: cpu, ray-api
