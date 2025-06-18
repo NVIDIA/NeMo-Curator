@@ -62,7 +62,7 @@ jobs:
   build-container:
     needs: [pre-flight]
     if: ${{ needs.pre-flight.outputs.allowed_to_run == 'true' }}
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.35.0
+    uses: NVIDIA-NeMo/FW-CI-templates/.github/workflows/_build_container.yml@v0.35.0
     with:
       image-name: nemo_curator_container
       dockerfile: Dockerfile
