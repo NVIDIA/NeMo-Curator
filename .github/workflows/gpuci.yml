@@ -56,7 +56,7 @@ jobs:
       - name: Allowed to run
         id: allowed-to-run
         run: |
-          echo "allowed_to_run=${{ needs.changed-files.outputs.any_changed == 'true' || needs.changed-files.outputs.is_main_branch == 'true' }}" >> $GITHUB_OUTPUT
+          echo "allowed_to_run=${{ steps.changed-files.outputs.any_changed == 'true' || steps.changed-files.outputs.is_main_branch == 'true' }}" >> $GITHUB_OUTPUT
 
   # First, we build and push a NeMo Curator container
   build-container:
