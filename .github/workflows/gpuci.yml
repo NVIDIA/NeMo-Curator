@@ -60,9 +60,9 @@ jobs:
 
   # First, we build and push a NeMo Curator container
   build-container:
-    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.35.0
     needs: [pre-flight]
     if: ${{ needs.pre-flight.outputs.allowed_to_run == 'true' }}
+    uses: NVIDIA/NeMo-FW-CI-templates/.github/workflows/_build_container.yml@v0.35.0
     with:
       image-name: nemo_curator_container
       dockerfile: Dockerfile
