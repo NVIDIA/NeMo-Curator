@@ -1,8 +1,6 @@
 # NeMo Curator Ray API Design
 
-**Author:** Abhinav Garg (abhgarg@nvidia.com)  
-**Contributors:** Ayush Dattagupta US, Praateek Mahajan US, Sarah Yurick US  
-**Status:** Draft
+**Status:** Pre Release
 
 ## Table of Contents
 
@@ -20,7 +18,7 @@
 
 ### Current State
 - **Existing NeMo-Curator OSS:** Built on Dask for Text, Image, Synthetic Data Generation and Hard negative mining
-- **Video Curator:** Built on Ray core with Cosmos Xenna for streaming map-style pipeline
+- **Cosmos Curate:** Built on Ray core with Cosmos Xenna for streaming map-style pipeline
 - **API Pattern:** Stages/modules accept distributed Dask dataframes as input
 
 ### Why Ray?
@@ -32,7 +30,7 @@
 ### Why not Ray?
 - Limited support for distributed dataframes/arrays, especially distributed operations like groupby
 - Eager computation model (addressed through lazy evaluation at curator level)
-
+- Requires Curator to build a physical plan, and implement optimizations like task fusion
 ## Design Principles
 
 ### Task-Centric Architecture
@@ -104,7 +102,7 @@ class DocumentTask(Task[pd.DataFrame]):
 
 ```python
 class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
-    """Base class for all processing stages."""
+    """Base class for all processing stages that accepts a task of type X and outputs a task of type Y."""
     
     @property
     @abstractmethod
@@ -118,7 +116,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
 
     @abstractmethod
     def process(self, task: X) -> Y | list[Y]:
-        """Process a single task."""
+        """Process a single task, can output one or more task."""
 ```
 
 #### Resource Specification
@@ -149,13 +147,15 @@ class Pipeline:
     def add_stage(self, stage: ProcessingStage):
         """Add a stage to the pipeline."""
     
-    def run(self, executor: BaseExecutor | None = None) -> list[Task]:
+    def run(self, executor: BaseExecutor | None = None) -> list[Task] | None:
         """Run the pipeline."""
 ```
 
 ### Executors (Advanced)
 
 **Executors** are responsible for running pipelines on different backends while maintaining a unified interface.
+They do so with the help of **Adapters** which are the translation piece between our `ProcessingStage` and the desired "executor".
+Each Executor runs a `list[ProcessingStage]` and then wraps each `ProcessingStage` to an `Adapter`, and then finally those wrapped classes, i.e adapters are executed.
 
 #### Base Executor Interface
 
@@ -179,7 +179,7 @@ class XennaExecutor(BaseExecutor):
     """Ray-based executor using Xenna backend."""
     
     def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> None:
-        # Convert stages to Xenna DAG
+        # Convert stages to Xenna acceptable format using Xenna Adapters
         # Handle resource allocation
         # Execute with autoscaling
 ```
