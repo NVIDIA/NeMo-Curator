@@ -116,7 +116,8 @@ class XennaExecutor(BaseExecutor):
 
         try:
             # Initialize a ray cluster
-            init_or_connect_to_cluster()
+            # TODO: This is causing issues on local execution.
+            # init_or_connect_to_cluster()
 
             # Run the pipeline
             results = pipelines_v1.run_pipeline(pipeline_spec)
