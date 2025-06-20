@@ -7,19 +7,21 @@ This example shows 3 stages:
 3. SentimentStage: List[Task] -> List[Task] : This is a GPU stage that adds a new column with the sentiment of the sentences
 """
 
-from dataclasses import field
 import random
+from dataclasses import field
+
+import huggingface_hub
+import pandas as pd
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from loguru import logger
-from ray_curator.pipeline import Pipeline
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from ray_curator.backends.base import NodeInfo, WorkerMetadata
 from ray_curator.backends.xenna import XennaExecutor
+from ray_curator.pipeline import Pipeline
 from ray_curator.stages.base import ProcessingStage
 from ray_curator.stages.resources import Resources
 from ray_curator.tasks import Task, _EmptyTask
-from ray_curator.backends.base import NodeInfo, WorkerMetadata
-import pandas as pd
-import huggingface_hub
 
 SAMPLE_SENTENCES = [
     "I love this product",
@@ -27,36 +29,38 @@ SAMPLE_SENTENCES = [
     "I'm neutral about this product",
 ]
 
+
 class SampleTask(Task[pd.DataFrame]):
     """
     A sample task that contains a dataframe with a single column "sentence"
     """
+
     data: pd.DataFrame = field(default_factory=pd.DataFrame)
 
     @property
     def num_items(self) -> int:
         return len(self.data)
-    
+
     def validate(self) -> bool:
         return True
 
-class TaskCreationStage(ProcessingStage[_EmptyTask, SampleTask]):
 
+class TaskCreationStage(ProcessingStage[_EmptyTask, SampleTask]):
     def __init__(self, num_sentences_per_task: int, num_tasks: int):
         self.num_sentences_per_task = num_sentences_per_task
         self.num_tasks = num_tasks
-    
+
     @property
     def name(self) -> str:
         return "TaskCreationStage"
-    
+
     def inputs(self) -> tuple[list[str], list[str]]:
         return [], []
 
     def outputs(self) -> tuple[list[str], list[str]]:
         return ["data"], ["sentence"]
 
-    def process(self, task: _EmptyTask) -> SampleTask:
+    def process(self, _: _EmptyTask) -> SampleTask:
         """
         Process the input task and return a new task with the processed data
         """
@@ -64,12 +68,17 @@ class TaskCreationStage(ProcessingStage[_EmptyTask, SampleTask]):
         tasks = []
         for _ in range(self.num_tasks):
             sampled_sentences = random.sample(SAMPLE_SENTENCES, self.num_sentences_per_task)
-            tasks.append(SampleTask(data=pd.DataFrame({"sentence": sampled_sentences}), task_id=random.randint(0, 1000000), dataset_name="SampleDataset"))
+            tasks.append(
+                SampleTask(
+                    data=pd.DataFrame({"sentence": sampled_sentences}),
+                    task_id=random.randint(0, 1000000),  # noqa: S311
+                    dataset_name="SampleDataset",
+                )
+            )
         return tasks
-    
+
 
 class WordCountStage(ProcessingStage[SampleTask, SampleTask]):
-
     @property
     def name(self) -> str:
         return "WordCountStage"
@@ -80,23 +89,20 @@ class WordCountStage(ProcessingStage[SampleTask, SampleTask]):
     def outputs(self) -> tuple[list[str], list[str]]:
         return ["data"], ["sentence", "word_count"]
 
-
     @property
     def resources(self) -> Resources:
         """Resource requirements for this stage."""
         return Resources(cpus=1.0)
 
-    
     def process(self, task: SampleTask) -> SampleTask:
         """
         Process the input task and return a new task with the processed data
         """
         task.data["word_count"] = task.data["sentence"].str.split().str.len()
         return task
-    
+
 
 class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
-
     def __init__(self, model_name: str, batch_size: int):
         """
         Args:
@@ -128,7 +134,7 @@ class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
         """Resource requirements for this stage."""
         return Resources(cpus=1.0, gpu_memory_gb=10.0)
 
-    def setup_on_node(self, node_info: NodeInfo, worker_metadata: WorkerMetadata) -> None:
+    def setup_on_node(self, node_info: NodeInfo, _: WorkerMetadata) -> None:
         """Cache this model on the node. You can assume that this only gets called once per node."""
         logger.info(f"Ensuring model {self.model_name} artifacts are cached on node {node_info.node_id}...")
         # Use snapshot_download to download all files without loading the model into memory.
@@ -139,7 +145,7 @@ class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
         )
         logger.info(f"Model {self.model_name} artifacts are cached or downloading on node {node_info.node_id}.")
 
-    def setup(self, worker_metadata: WorkerMetadata) -> None:
+    def setup(self, _: WorkerMetadata) -> None:
         """Load the Hugging Face model and tokenizer from the cache."""
         logger.info(f"Loading model {self.model_name} from cache on worker...")
         # Load sentiment model from cache only.
@@ -157,53 +163,53 @@ class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
     def process_batch(self, tasks: list[SampleTask]) -> list[SampleTask]:
         """Process a batch of tasks using the sentiment model."""
         if not self.model or not self.tokenizer:
-            raise RuntimeError("Model and tokenizer not loaded. Setup must be called first.")
+            error_message = "Model and tokenizer not loaded. Setup must be called first."
+            logger.error(error_message)
+            raise RuntimeError(error_message)
 
         self.model.to("cuda")
         # Collect all sentences from all tasks
         all_sentences = []
         task_sentence_counts = []
-        
+
         for task in tasks:
             sentences = task.data["sentence"].tolist()
             all_sentences.extend(sentences)
             task_sentence_counts.append(len(sentences))
-        
+
         # Tokenize all sentences at once
-        inputs = self.tokenizer(
-            all_sentences, 
-            return_tensors="pt", 
-            padding=True, 
-            truncation=True, 
-            max_length=512
-        ).to("cuda")
-        
+        inputs = self.tokenizer(all_sentences, return_tensors="pt", padding=True, truncation=True, max_length=512).to(
+            "cuda"
+        )
+
         # Run inference
         with torch.no_grad():
             outputs = self.model(**inputs)
             predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
             # Get the sentiment labels (assuming 0=negative, 1=neutral, 2=positive)
             sentiment_scores = predictions.cpu().numpy()
-            sentiment_labels = ["negative" if s[0] > 0.5 else "positive" if s[2] > 0.5 else "neutral" 
-                              for s in sentiment_scores]
-        
+            sentiment_labels = [
+                "negative" if s[0] > 0.5 else "positive" if s[2] > 0.5 else "neutral"  # noqa: PLR2004
+                for s in sentiment_scores
+            ]
+
         # Distribute results back to tasks
         result_tasks = []
         sentence_idx = 0
-        
+
         for i, task in enumerate(tasks):
             num_sentences = task_sentence_counts[i]
-            task_sentiments = sentiment_labels[sentence_idx:sentence_idx + num_sentences]
-            
+            task_sentiments = sentiment_labels[sentence_idx : sentence_idx + num_sentences]
+
             # Create new task with sentiment column
             new_data = task.data.copy()
             new_data["sentiment"] = task_sentiments
-            
+
             result_task = SampleTask(data=new_data, task_id=task.task_id, dataset_name=task.dataset_name)
             result_tasks.append(result_task)
-            
+
             sentence_idx += num_sentences
-        
+
         return result_tasks
 
     def process(self, task: SampleTask) -> SampleTask:
@@ -211,31 +217,31 @@ class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
         return self.process_batch([task])[0]
 
 
-def main():
+def main() -> None:
     """Main function to run the pipeline."""
     # Create pipeline
     pipeline = Pipeline(name="sentiment_analysis", description="Analyze sentiment of sample sentences")
-    
+
     # Add stages
     pipeline.add_stage(TaskCreationStage(num_sentences_per_task=3, num_tasks=2))
     pipeline.add_stage(WordCountStage())
     pipeline.add_stage(SentimentStage(model_name="cardiffnlp/twitter-roberta-base-sentiment-latest", batch_size=2))
-    
+
     # Print pipeline description
     print(pipeline.describe())
     print("\n" + "=" * 50 + "\n")
-    
+
     # Create executor
     executor = XennaExecutor()
-    
+
     # Execute pipeline
     print("Starting pipeline execution...")
     results = pipeline.run(executor)
-    
+
     # Print results
     print("\nPipeline completed!")
     print(f"Total output tasks: {len(results) if results else 0}")
-    
+
     if results:
         for i, task in enumerate(results):
             print(f"\nTask {i}:")
@@ -244,5 +250,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

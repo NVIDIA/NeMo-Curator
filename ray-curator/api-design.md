@@ -22,7 +22,7 @@
 
 ### Why Ray?
 - **Unified backend** for all modalities (text, image, video)
-- **Better heterogeneous computing** support allowing interleaving of CPU and GPU stages  
+- **Better heterogeneous computing** support allowing interleaving of CPU and GPU stages
 - **Fractional GPU support** (multiple models per GPU) and multi-GPU support for larger models
 - **Enhanced autoscaling** for dynamic workloads
 
@@ -84,11 +84,11 @@ For text-based curation pipelines:
 @dataclass
 class DocumentTask(Task[pd.DataFrame]):
     """Task for document processing."""
-    
+
     @property
     def num_items(self) -> int:
         return len(self.data)
-    
+
     def validate(self) -> bool:
         return isinstance(self.data, pd.DataFrame) and not self.data.empty
 ```
@@ -102,7 +102,7 @@ class DocumentTask(Task[pd.DataFrame]):
 ```python
 class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     """Base class for all processing stages that accepts a task of type X and outputs a task of type Y."""
-    
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -139,13 +139,13 @@ A **Pipeline** is a collection of stages that defines the complete processing wo
 ```python
 class Pipeline:
     """A pipeline defines a sequence of processing stages."""
-    
+
     def __init__(self, stages: list[ProcessingStage]):
         self.stages = stages
-    
+
     def add_stage(self, stage: ProcessingStage):
         """Add a stage to the pipeline."""
-    
+
     def run(self, executor: BaseExecutor | None = None) -> list[Task] | None:
         """Run the pipeline."""
 ```
@@ -161,10 +161,10 @@ Each Executor runs a `list[ProcessingStage]` and then wraps each `ProcessingStag
 ```python
 class BaseExecutor(ABC):
     """Executor for a pipeline."""
-    
+
     def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
-    
+
     @abstractmethod
     def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> None:
         """Execute the pipeline."""
@@ -176,18 +176,18 @@ class BaseExecutor(ABC):
 ```python
 class XennaExecutor(BaseExecutor):
     """Ray-based executor using Xenna backend."""
-    
+
     def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> None:
         # Convert stages to Xenna acceptable format using Xenna Adapters
         # Handle resource allocation
         # Execute with autoscaling
 ```
 
-#### Ray Data Executor  
+#### Ray Data Executor
 ```python
 class RayDataExecutor(BaseExecutor):
     """Ray Data-based executor."""
-    
+
     def execute(self, stages: list[ProcessingStage], initial_tasks: list[Task] | None = None) -> None:
         # Convert to Ray Data operations
         # Execute pipeline

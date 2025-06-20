@@ -40,12 +40,13 @@ class Resources:
 
     def __post_init__(self):
         """Calculate GPU count based on memory requirements."""
-        
+
         if self.gpus > 0 and self.gpu_memory_gb > 0:
-            raise ValueError("Cannot specify both gpus and gpu_memory_gb. "
-                             "Please use gpus for multi-GPU stages and "
-                             "gpu_memory_gb for single-GPU stages.")
-        
+            error_message = "Cannot specify both gpus and gpu_memory_gb. "
+            error_message += "Please use gpus for multi-GPU stages and "
+            error_message += "gpu_memory_gb for single-GPU stages."
+            raise ValueError(error_message)
+
         if self.gpu_memory_gb > 0:
             # Get actual GPU memory for current device
             gpu_memory_per_device = _get_gpu_memory_gb()
@@ -53,10 +54,9 @@ class Resources:
             required_gpus = self.gpu_memory_gb / gpu_memory_per_device
             self.gpus = round(required_gpus, 1)
             if self.gpus > 1:
-                raise ValueError("gpu_memory_gb is too large for a single GPU. "
-                                 "Please use gpus for multi-GPU stages.")
-
-        
+                error_message = "gpu_memory_gb is too large for a single GPU. "
+                error_message += "Please use gpus for multi-GPU stages."
+                raise ValueError(error_message)
 
     @property
     def requires_gpu(self) -> bool:
