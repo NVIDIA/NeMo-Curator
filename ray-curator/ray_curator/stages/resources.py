@@ -23,11 +23,11 @@ class Resources:
 
     Attributes:
         cpus: Number of CPU cores required
-        gpu_memory_gb: GPU memory required in GB
+        gpu_memory_gb: GPU memory required in GB (Only for single-GPU stages)
         nvdecs: Number of NVDEC units required
         nvencs: Number of NVENC units required
-        entire_gpu: Whether to allocate entire GPU regardless of memory
-        gpus: Number of GPUs required (calculated from gpu_memory_gb)
+        entire_gpu: Whether to allocate entire GPU regardless of memory (This also gives you nvdecs and nvencs of that GPU)
+        gpus: Number of GPUs required (Only for multi-GPU stages)
     """
 
     # TODO : Revisit this gpu_memory_gb, gpus, entire_gpu too many variables for gpu
@@ -40,16 +40,23 @@ class Resources:
 
     def __post_init__(self):
         """Calculate GPU count based on memory requirements."""
-        if self.entire_gpu:
-            self.gpus = 1.0
-        elif self.gpu_memory_gb > 0:
+        
+        if self.gpus > 0 and self.gpu_memory_gb > 0:
+            raise ValueError("Cannot specify both gpus and gpu_memory_gb. "
+                             "Please use gpus for multi-GPU stages and "
+                             "gpu_memory_gb for single-GPU stages.")
+        
+        if self.gpu_memory_gb > 0:
             # Get actual GPU memory for current device
             gpu_memory_per_device = _get_gpu_memory_gb()
             # Calculate required GPUs and round to 1 decimal place
             required_gpus = self.gpu_memory_gb / gpu_memory_per_device
             self.gpus = round(required_gpus, 1)
-        else:
-            self.gpus = 0.0
+            if self.gpus > 1:
+                raise ValueError("gpu_memory_gb is too large for a single GPU. "
+                                 "Please use gpus for multi-GPU stages.")
+
+        
 
     @property
     def requires_gpu(self) -> bool:

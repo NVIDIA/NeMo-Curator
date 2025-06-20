@@ -11,8 +11,7 @@
    - [Stages](#stages)
    - [Pipelines](#pipelines)
    - [Executors](#executors)
-4. [API Reference](#api-reference)
-5. [Examples](#examples)
+4. [Examples](#examples)
 
 ## Background
 
@@ -193,3 +192,7 @@ class RayDataExecutor(BaseExecutor):
         # Convert to Ray Data operations
         # Execute pipeline
 ```
+
+## Examples
+
+Please refer to the [quickstart](./ray_curator/examples/quickstart.py) for a basic example.
