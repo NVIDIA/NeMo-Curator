@@ -18,7 +18,7 @@
 
 ### Current State
 - **Existing NeMo-Curator OSS:** Built on Dask for Text, Image, Synthetic Data Generation and Hard negative mining
-- **Video Curator:** Built on Ray core with Cosmos Xenna for streaming map-style pipeline
+- **Cosmos Curate:** Built on Ray core with Cosmos Xenna for streaming map-style pipeline
 - **API Pattern:** Stages/modules accept distributed Dask dataframes as input
 
 ### Why Ray?
