@@ -47,14 +47,6 @@ All stages are designed to be map-style on tasks, meaning they take task as inpu
 
 ## Core Components
 
-### Tasks
-
-
-### Stages
-
-### Pipelines
-## Core Components
-
 1. **Tasks** : The fundamental unit of data that flows through the curation pipeline.
 2. **Stages** : The fundamental processing unit that takes Tasks as input and produces Tasks as output.
 3. **Pipelines** : A collection of stages that defines the complete processing workflow.
