@@ -28,6 +28,18 @@ class CommonCrawlWARCDownloader(ProcessingStage[FileGroupTask, FileGroupTask]):
         self._aws = aws
         self._verbose = verbose
         os.makedirs(download_dir, exist_ok=True)  # TOOD: Should this be possible on Remote?
+        if self._aws and not self._check_s5cmd_installed():
+            msg = "s5cmd is not installed. Please install it from https://github.com/peak/s5cmd"
+            raise RuntimeError(msg)
+
+    def _check_s5cmd_installed(self) -> bool:
+        """Check if s5cmd is installed."""
+        try:
+            subprocess.run(["s5cmd", "version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)  # noqa: S603, S607
+        except FileNotFoundError:
+            return False
+        else:
+            return True
 
     def process(self, task: FileGroupTask) -> FileGroupTask:
         """Process a task containing WARC URLs and download them."""
@@ -56,25 +68,30 @@ class CommonCrawlWARCDownloader(ProcessingStage[FileGroupTask, FileGroupTask]):
                 logger.info(f"WARC file: {output_file} exists. Not downloading")
             return output_file
 
+        url_to_download = os.path.join("s3://commoncrawl/", urlpath) if self._aws else url
+
         if self._verbose:
-            logger.info(f"Downloading {url} and writing to {output_file}")
+            logger.info(f"Downloading {url_to_download} and writing to {output_file}")
         # Download with either wget or s5cmd (aws)
         if self._aws:
-            s3path = os.path.join("s3://commoncrawl/", urlpath)
-            cmd = ["s5cmd", "cp", s3path, output_file]
+            cmd = ["s5cmd", "cp", url_to_download, output_file]
         else:
-            cmd = ["wget", url, "-O", output_file]
+            cmd = ["wget", url_to_download, "-O", output_file]
+
+        # Always capture stderr so we can provide meaningful error messages
         if self._verbose:
             stdout, stderr = None, None
         else:
-            stdout, stderr = subprocess.DEVNULL, subprocess.DEVNULL
+            stdout, stderr = subprocess.DEVNULL, subprocess.PIPE
         p = subprocess.run(  # noqa: S603, PLW1510
             cmd,
             stdout=stdout,
             stderr=stderr,
         )
         if p.returncode != 0:
-            logger.error(f"Failed to download {url} to {output_file} due to {p.stderr}")
+            # Get the error message from stderr if available
+            error_msg = p.stderr.decode("utf-8") if p.stderr else "Unknown error"
+            logger.error(f"Failed to download {url_to_download} to {output_file} due to {error_msg}")
             return None
 
         return output_file

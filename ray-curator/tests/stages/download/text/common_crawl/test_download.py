@@ -109,3 +109,62 @@ class TestCommonCrawlWARCDownloader:
 
         outputs = downloader.outputs()
         assert outputs == (["data"], [])
+
+    def test_common_crawl_downloader_aws_mode(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+        """Test that downloader uses s5cmd when aws=True."""
+        download_dir = tmp_path / "downloads"
+        download_dir.mkdir()
+        url = "http://dummy/crawl-data/CC-MAIN-2024-10/segments/1234567890/warc/CC-MAIN-123.warc.gz"
+
+        # Mock s5cmd check to return True
+        def fake_check_s5cmd_installed(self) -> bool:  # noqa: ANN001, ARG001
+            return True
+
+        monkeypatch.setattr(CommonCrawlWARCDownloader, "_check_s5cmd_installed", fake_check_s5cmd_installed)
+
+        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=True, verbose=False)
+
+        captured_cmd = None
+
+        def fake_run(cmd: list[str], stdout: str, stderr: str) -> subprocess.CompletedProcess:  # noqa: ARG001
+            nonlocal captured_cmd
+            captured_cmd = cmd
+            return mock.Mock(returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        result = downloader.download(url)
+
+        # Verify the command used s5cmd with correct s3 path
+        assert captured_cmd is not None
+        assert captured_cmd[0] == "s5cmd"
+        assert captured_cmd[1] == "cp"
+        assert (
+            captured_cmd[2]
+            == "s3://commoncrawl/crawl-data/CC-MAIN-2024-10/segments/1234567890/warc/CC-MAIN-123.warc.gz"
+        )
+        assert captured_cmd[3].endswith("crawl-data-CC-MAIN-2024-10-segments-1234567890-warc-CC-MAIN-123.warc.gz")
+
+        # Verify result
+        assert result is not None
+        assert result.endswith("crawl-data-CC-MAIN-2024-10-segments-1234567890-warc-CC-MAIN-123.warc.gz")
+
+    def test_check_s5cmd_installed(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+        """Test _check_s5cmd_installed method."""
+        download_dir = tmp_path / "downloads"
+        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
+
+        # Test when s5cmd is available
+        def fake_run_success(cmd: list[str], stdout: str, stderr: str) -> subprocess.CompletedProcess:  # noqa: ARG001
+            return mock.Mock(returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run_success)
+        assert downloader._check_s5cmd_installed() is True
+
+        # Test when s5cmd is not available
+        def fake_run_fail(cmd: list[str], stdout: str, stderr: str) -> None:  # noqa: ARG001
+            msg = "s5cmd not found"
+            raise FileNotFoundError(msg)
+
+        monkeypatch.setattr(subprocess, "run", fake_run_fail)
+        assert downloader._check_s5cmd_installed() is False
