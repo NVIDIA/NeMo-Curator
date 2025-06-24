@@ -26,7 +26,7 @@ class TestCommonCrawlWARCDownloader:
         with open(file_path, "w") as f:
             f.write("existing content")
 
-        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
+        downloader = CommonCrawlWARCDownloader(str(download_dir), use_aws_to_download=False, verbose=False)
 
         # Monkey-patch subprocess.run to track if it gets called.
         called_run = False
@@ -55,7 +55,7 @@ class TestCommonCrawlWARCDownloader:
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
+        downloader = CommonCrawlWARCDownloader(str(download_dir), use_aws_to_download=False, verbose=False)
 
         called_run = False
 
@@ -80,7 +80,7 @@ class TestCommonCrawlWARCDownloader:
 
         task = FileGroupTask(task_id="test_task", dataset_name="test_dataset", data=urls, _stage_perf=[], _metadata={})
 
-        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
+        downloader = CommonCrawlWARCDownloader(str(download_dir), use_aws_to_download=False, verbose=False)
 
         def fake_run(cmd: list[str], stdout: str, stderr: str) -> subprocess.CompletedProcess:  # noqa: ARG001
             return mock.Mock(returncode=0)
@@ -100,7 +100,7 @@ class TestCommonCrawlWARCDownloader:
     def test_downloader_properties(self, tmp_path: Path) -> None:
         """Test downloader properties and methods."""
         download_dir = tmp_path / "downloads"
-        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
+        downloader = CommonCrawlWARCDownloader(str(download_dir), use_aws_to_download=False, verbose=False)
 
         assert downloader.name == "common_crawl_warc_downloader"
 
@@ -122,7 +122,7 @@ class TestCommonCrawlWARCDownloader:
 
         monkeypatch.setattr(CommonCrawlWARCDownloader, "_check_s5cmd_installed", fake_check_s5cmd_installed)
 
-        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=True, verbose=False)
+        downloader = CommonCrawlWARCDownloader(str(download_dir), use_aws_to_download=True, verbose=False)
 
         captured_cmd = None
 
@@ -152,7 +152,7 @@ class TestCommonCrawlWARCDownloader:
     def test_check_s5cmd_installed(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test _check_s5cmd_installed method."""
         download_dir = tmp_path / "downloads"
-        downloader = CommonCrawlWARCDownloader(str(download_dir), aws=False, verbose=False)
+        downloader = CommonCrawlWARCDownloader(str(download_dir), use_aws_to_download=True, verbose=False)
 
         # Test when s5cmd is available
         def fake_run_success(cmd: list[str], stdout: str, stderr: str) -> subprocess.CompletedProcess:  # noqa: ARG001

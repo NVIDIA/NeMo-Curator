@@ -13,22 +13,22 @@ class CommonCrawlWARCDownloader(ProcessingStage[FileGroupTask, FileGroupTask]):
     Downloads WARC files from the Common Crawl to a local directory
     """
 
-    def __init__(self, download_dir: str, aws: bool = False, verbose: bool = False):
+    def __init__(self, download_dir: str, use_aws_to_download: bool = False, verbose: bool = False):
         """
         Creates a downloader
 
         Args:
           download_dir: Path to store raw compressed WARC files
-          aws: If True, uses the s5cmd command to download from the Common Crawl's S3 bucket.
+          use_aws_to_download: If True, uses the s5cmd command to download from the Common Crawl's S3 bucket.
             If False, uses wget.
           verbose: If True, logs stdout and stderr of the download command (s5cmd/wget)
         """
         super().__init__()
         self._download_dir = download_dir
-        self._aws = aws
+        self.use_aws_to_download = use_aws_to_download
         self._verbose = verbose
         os.makedirs(download_dir, exist_ok=True)  # TOOD: Should this be possible on Remote?
-        if self._aws and not self._check_s5cmd_installed():
+        if self.use_aws_to_download and not self._check_s5cmd_installed():
             msg = "s5cmd is not installed. Please install it from https://github.com/peak/s5cmd"
             raise RuntimeError(msg)
 
@@ -68,12 +68,12 @@ class CommonCrawlWARCDownloader(ProcessingStage[FileGroupTask, FileGroupTask]):
                 logger.info(f"WARC file: {output_file} exists. Not downloading")
             return output_file
 
-        url_to_download = os.path.join("s3://commoncrawl/", urlpath) if self._aws else url
+        url_to_download = os.path.join("s3://commoncrawl/", urlpath) if self.use_aws_to_download else url
 
         if self._verbose:
             logger.info(f"Downloading {url_to_download} and writing to {output_file}")
         # Download with either wget or s5cmd (aws)
-        if self._aws:
+        if self.use_aws_to_download:
             cmd = ["s5cmd", "cp", url_to_download, output_file]
         else:
             cmd = ["wget", url_to_download, "-O", output_file]

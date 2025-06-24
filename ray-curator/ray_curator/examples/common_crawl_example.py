@@ -23,7 +23,7 @@ def create_common_crawl_pipeline(  # noqa: PLR0913
     start_snapshot: str,
     end_snapshot: str,
     html_extraction_algorithm: str = "justext",
-    aws: bool = False,
+    use_aws_to_download: bool = False,
     verbose: bool = False,
     limit: int | None = None,
 ) -> Pipeline:
@@ -37,7 +37,7 @@ def create_common_crawl_pipeline(  # noqa: PLR0913
         start_snapshot: Start snapshot string (YYYY-WW for main, YYYY-MM for news)
         end_snapshot: End snapshot string (YYYY-WW for main, YYYY-MM for news)
         html_extraction_algorithm: Algorithm to use for HTML extraction
-        aws: Whether to use AWS S3 for downloading
+        use_aws_to_download: Whether to use AWS S3 for downloading
         verbose: Whether to print verbose output
         limit: Limit the number of WARC files to process
 
@@ -57,7 +57,7 @@ def create_common_crawl_pipeline(  # noqa: PLR0913
             download_dir=str(download_dir),
             crawl_type=crawl_type,
             html_extraction=html_extraction_algorithm,
-            aws=aws,
+            use_aws_to_download=use_aws_to_download,
             verbose=verbose,
             limit=limit,
         )
@@ -95,7 +95,7 @@ def main(args: argparse.Namespace) -> None:
         start_snapshot=args.start_snapshot,
         end_snapshot=args.end_snapshot,
         html_extraction_algorithm=args.html_extraction,
-        aws=args.aws,
+        use_aws_to_download=args.aws,
         verbose=args.verbose,
         limit=args.limit,
     )

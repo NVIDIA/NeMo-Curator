@@ -29,7 +29,7 @@ class CommonCrawl(CompositeStage[_EmptyTask, DocumentBatch]):
     html_extraction: HTMLExtractorAlgorithm | str | None = None
     html_extraction_kwargs: dict | None = None
     stop_lists: dict[str, frozenset[str]] | None = None  # TODO: Find better name
-    aws: bool = False
+    use_aws_to_download: bool = False
     verbose: bool = False
     limit: int | None = None
 
@@ -46,7 +46,9 @@ class CommonCrawl(CompositeStage[_EmptyTask, DocumentBatch]):
             )
 
         # Download stage
-        download_stage = CommonCrawlWARCDownloader(download_dir=self.download_dir, aws=self.aws, verbose=self.verbose)
+        download_stage = CommonCrawlWARCDownloader(
+            download_dir=self.download_dir, use_aws_to_download=self.use_aws_to_download, verbose=self.verbose
+        )
 
         # WARC processing stage
         warc_reader = WarcReader()
