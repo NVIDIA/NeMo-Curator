@@ -82,7 +82,7 @@ For text-based curation pipelines:
 
 ```python
 @dataclass
-class DocumentTask(Task[pd.DataFrame]):
+class DocumentBatch(Task[pa.Table | pd.DataFrame]):
     """Task for document processing."""
 
     @property
