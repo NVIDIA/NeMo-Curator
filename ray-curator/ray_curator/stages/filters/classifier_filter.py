@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import fasttext
 import numpy as np
-import pandas as pd
 
 from ray_curator.stages.filters.doc_filter import DocumentFilter
 
@@ -33,6 +31,9 @@ class FastTextQualityFilter(DocumentFilter):
         self._name = "fasttext_quality_filter"
 
     def score_document(self, text: str) -> float:
+        # See setup() function in modules/filter.py
+        model = self.model
+
         text = text.replace("\n", " ").replace("__label__", " ")
         pred = model.predict(text)
         document_score = pred[1][0]
@@ -42,7 +43,7 @@ class FastTextQualityFilter(DocumentFilter):
         return document_score
 
     def keep_document(self, score: float) -> bool:
-        return np.random.pareto(self._alpha) > 1 - score
+        return np.random.pareto(self._alpha) > 1 - score  # noqa: NPY002
 
 
 class FastTextLangId(DocumentFilter):
@@ -69,6 +70,6 @@ class FastTextLangId(DocumentFilter):
 
     def keep_document(self, score: float | str) -> bool:
         if isinstance(score, str):
-            score = eval(score)
+            score = eval(score)  # noqa: S307
 
         return score[0] >= self._cutoff

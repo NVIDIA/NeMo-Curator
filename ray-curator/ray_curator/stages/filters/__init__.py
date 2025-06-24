@@ -54,13 +54,10 @@ from .heuristic_filter import (
 
 __all__ = [
     "AlphaFilter",
-    "AnswerabilityFilter",
-    "BitextFilter",
     "BoilerPlateStringFilter",
     "BulletsFilter",
     "CommonEnglishWordsFilter",
     "DocumentFilter",
-    "EasinessFilter",
     "EllipsisFilter",
     "FastTextLangId",
     "FastTextQualityFilter",
@@ -77,7 +74,6 @@ __all__ = [
     "PornographicUrlsFilter",
     "PunctuationFilter",
     "PythonCommentToCodeFilter",
-    "QualityEstimationFilter",
     "RepeatedLinesByCharFilter",
     "RepeatedLinesFilter",
     "RepeatedParagraphsByCharFilter",

@@ -44,7 +44,7 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
     score_fn: Callable | DocumentFilter
     score_field: str
     text_field: str = "text"
-    
+
     @property
     def name(self) -> str:
         return self.score_fn.name if isinstance(self.score_fn, DocumentFilter) else "score_fn"
@@ -55,9 +55,9 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
     def outputs(self) -> tuple[list[str], list[str]]:
         return ["data"], [self.score_field]
 
-    def setup(self, worker_metadata: WorkerMetadata | None = None) -> None:
+    def setup(self, worker_metadata: WorkerMetadata | None = None) -> None:  # noqa: ARG002
         if self.name in ["lang_id", "fasttext_quality_filter"]:
-            self.score_fn.model = fasttext.load_model(self.score_fn._model_path)  # noqa: SLF001
+            self.score_fn.model = fasttext.load_model(self.score_fn._model_path)
 
     def process(self, batch: DocumentBatch) -> DocumentBatch | None:
         """
@@ -79,13 +79,11 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
         df[self.score_field] = df[self.text_field].apply(self.score_fn)
 
         # Create output batch
-        output_batch = DocumentBatch(
+        return DocumentBatch(
             task_id=f"{batch.task_id}_{self.name}",
             dataset_name=batch.dataset_name,
             data=df,
         )
-
-        return output_batch
 
 
 @dataclass
@@ -161,13 +159,11 @@ class Filter(ProcessingStage[DocumentBatch, DocumentBatch]):
             return None
 
         # Create output batch
-        output_batch = DocumentBatch(
+        return DocumentBatch(
             task_id=f"{batch.task_id}_{self.name}",
             dataset_name=batch.dataset_name,
             data=result_df,
         )
-
-        return output_batch
 
 
 @dataclass
@@ -205,10 +201,10 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
     def outputs(self) -> tuple[list[str], list[str]]:
         return ["data"], [self.score_field] if self.score_field else []
 
-    def setup(self, worker_metadata: WorkerMetadata | None = None) -> None:
+    def setup(self, worker_metadata: WorkerMetadata | None = None) -> None:  # noqa: ARG002
         # TODO: Could use setup_on_node to verify that the model is downloaded
         if self.name in ["lang_id", "fasttext_quality_filter"]:
-            self.filter_obj.model = fasttext.load_model(self.filter_obj._model_path)  # noqa: SLF001
+            self.filter_obj.model = fasttext.load_model(self.filter_obj._model_path)
 
     def compute_filter_mask(self, df: pd.DataFrame) -> pd.Series:
         """Compute the bool mask to filter the dataset.
@@ -254,10 +250,8 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
             return None
 
         # Create output batch
-        output_batch = DocumentBatch(
+        return DocumentBatch(
             task_id=f"{batch.task_id}_{self.name}",
             dataset_name=batch.dataset_name,
             data=result_df,
         )
-
-        return output_batch

@@ -50,8 +50,8 @@ class ParallelScoreFilter(BaseModule):
             invert (bool, optional): If True, will keep all documents that are normally discarded. Defaults to False.
         """
         super().__init__(input_backend=src_filter_obj.backend)
-        self.source_score_filter = ScoreFilter(src_filter_obj, src_field, src_score, score_type, invert)
-        self.target_score_filter = ScoreFilter(tgt_filter_obj, tgt_field, tgt_score, score_type, invert)
+        self.source_score_filter = ScoreFilter(src_filter_obj, src_field, src_score, score_type, invert)  # noqa: F821
+        self.target_score_filter = ScoreFilter(tgt_filter_obj, tgt_field, tgt_score, score_type, invert)  # noqa: F821
 
     def call(self, dataset: ParallelDataset) -> ParallelDataset:
         src_bool_mask = self.source_score_filter.compute_filter_mask(dataset)

@@ -652,6 +652,7 @@ class TokenCountFilter(DocumentFilter):
                 Set to infinity to disable the maximum token count filter.
         """
         super().__init__()
+        # TODO: Maybe use setup function to initialize the tokenizer
         self._tokenizer = tokenizer
         self._min_tokens = min_tokens
         self._max_tokens = max_tokens
