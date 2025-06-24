@@ -19,9 +19,9 @@ import sentencepiece
 from bs4 import BeautifulSoup
 from comment_parser import comment_parser
 
-from nemo_curator.filters.doc_filter import DocumentFilter
-from nemo_curator.utils.constants import regex_alpha, regex_alphanum
-from nemo_curator.utils.text_utils import get_comments_and_docstring
+from ray_curator.stages.filters.doc_filter import DocumentFilter
+from ray_curator.stages.utils.constants import regex_alpha, regex_alphanum
+from ray_curator.stages.utils.text_utils import get_comments_and_docstring
 
 
 class PythonCommentToCodeFilter(DocumentFilter):
