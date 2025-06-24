@@ -34,6 +34,9 @@ class CommonCrawlHTMLExtractor(ProcessingStage[DocumentBatch, DocumentBatch]):
                 algorithm = ResiliparseExtractor(**algorithm_kwargs)
             elif algorithm == "trafilatura":
                 algorithm = TrafilaturaExtractor(**algorithm_kwargs)
+            else:
+                msg = f"Invalid algorithm: {algorithm}"
+                raise ValueError(msg)
         elif isinstance(algorithm, HTMLExtractorAlgorithm):
             if algorithm_kwargs:
                 logger.warning("Algorithm kwargs provided are ignored when an HTMLExtractorAlgorithm is provided")

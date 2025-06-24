@@ -15,7 +15,9 @@ from ray_curator.tasks import FileGroupTask, _EmptyTask
 
 @dataclass
 class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
-    """Get URLs for Common Crawl data"""
+    """Get URLs for Common Crawl data
+    Each concrete implementation must implement `_parse_datetime_from_snapshot_string` and `generate_path_urls`
+    """
 
     start_snapshot_str: str
     end_snapshot_str: str
@@ -26,7 +28,13 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
     def _parse_datetime_from_snapshot_string(self, snapshot_str: str, for_start: bool) -> datetime:
         """Parses a snapshot string (YYYY-WW or YYYY-MM) into a datetime object."""
 
-    @cached_property
+    @abstractmethod
+    def generate_path_urls(self) -> list[str]:
+        """Generates the list of URLs pointing to warc.paths.gz files."""
+
+    def __post_init__(self):
+        self._start_date, self._end_date = self._start_end_dates()
+
     def _start_end_dates(self) -> tuple[date, date]:
         """
         Parses the start and end snapshot strings into date objects.
@@ -51,10 +59,6 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
             end_date = today_utc_date
         return start_date, end_date
 
-    @abstractmethod
-    def generate_path_urls(self) -> list[str]:
-        """Generates the list of URLs pointing to warc.paths.gz files."""
-
     def generate_data_urls(self, path_urls: str | list[str] | None = None) -> list[str]:  # noqa: C901
         """
         Fetches all relevant warc.paths.gz files, decompresses them,
@@ -62,11 +66,12 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
         """
         if path_urls is None:
             gz_path_urls = self.generate_path_urls()
-        gz_path_urls = [path_urls] if isinstance(path_urls, str) else path_urls
+        else:
+            gz_path_urls = [path_urls] if isinstance(path_urls, str) else path_urls
 
         all_individual_warc_urls = []
 
-        if not path_urls:
+        if not gz_path_urls:
             return []
 
         for gz_path_url in gz_path_urls:  # TODO: check this
@@ -153,10 +158,11 @@ class MainCommonCrawlUrlStage(BaseCommonCrawlUrlStage):
             raise RuntimeError(msg) from e
 
     def generate_path_urls(self) -> list[str]:
-        start_date, end_date = self._start_end_dates
+        start_date = self._start_date
+        end_date = self._end_date
         if start_date.year < 2013:  # noqa: PLR2004
             logger.warning(
-                "Warning: Only snapshots after 2013 are supported by this script. Adjusting start date to 2013-01-01"
+                "Only snapshots after 2013 are supported by this script. Adjusting start date to 2013-01-01"
             )
             start_date = date(2013, 1, 1)
         snapshot_data = self._snapshot_index
@@ -210,7 +216,8 @@ class NewsCommonCrawlUrlStage(BaseCommonCrawlUrlStage):
             raise ValueError(msg) from e
 
     def generate_path_urls(self) -> list[str]:
-        start_date, end_date = self._start_end_dates
+        start_date = self._start_date
+        end_date = self._end_date
 
         # CC-NEWS specific constraints
         min_news_date = date(2016, 8, 1)
