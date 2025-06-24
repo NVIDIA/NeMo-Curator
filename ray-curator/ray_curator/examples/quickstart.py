@@ -153,6 +153,7 @@ class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
             self.model_name,
             local_files_only=True,  # Fail if not cached
         )
+        self.model.to("cuda")
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name,
@@ -167,7 +168,6 @@ class SentimentStage(ProcessingStage[SampleTask, SampleTask]):
             logger.error(error_message)
             raise RuntimeError(error_message)
 
-        self.model.to("cuda")
         # Collect all sentences from all tasks
         all_sentences = []
         task_sentence_counts = []
