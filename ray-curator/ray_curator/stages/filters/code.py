@@ -210,8 +210,7 @@ class PerExtensionFilter(DocumentFilter):
         self._name = "per_extension_filter"
 
     def _load_filter_csv(self, path: str, language: str | None = None) -> dict:
-        """Load csv file that specifies the filter to apply for each (lang, extension).
-        TODO: add some tests. Check that filters are correctly set."""
+        """Load csv file that specifies the filter to apply for each (lang, extension)."""
         # (Lang, extension) -> filter_args
         ext_to_filter = {}
         with open(path) as f:
@@ -245,7 +244,6 @@ class PerExtensionFilter(DocumentFilter):
 
     def _language_format_from_dataset(self, lang: str) -> str:
         """Convert: Language field in dataset -> language field in csv file that defines the filters."""
-        # TODO: other special cases?
         if lang == "C#":
             return "c-sharp"
         if lang == "F#":
