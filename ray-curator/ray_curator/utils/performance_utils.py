@@ -5,9 +5,9 @@ from __future__ import annotations
 import contextlib
 import statistics
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import attrs
 from loguru import logger
 
 if TYPE_CHECKING:
@@ -16,10 +16,11 @@ if TYPE_CHECKING:
     from ray_curator.stages.base import ProcessingStage
 
 
-@attrs.define
+@dataclass
 class StagePerfStats:
     """Statistics for tracking stage performance metrics.
     Attributes:
+        stage_name: Name of the processing stage.
         process_time: Total processing time in seconds.
         actor_idle_time: Time the actor spent idle in seconds.
         input_data_size_mb: Size of input data in megabytes.
@@ -57,10 +58,6 @@ class StagePerfStats:
         self.actor_idle_time = 0.0
         self.input_data_size_mb = 0.0
         self.num_items_processed = 0
-
-    def to_dict(self) -> dict[str, float | int]:
-        """Convert the stats to a dictionary."""
-        return attrs.asdict(self)
 
 
 class StageTimer:
