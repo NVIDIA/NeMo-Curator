@@ -22,6 +22,7 @@ dependencies = [
     "transformers>=4.48.0",
     "pyarrow",
     "absl-py>=2.0.0,<3.0.0",
+    "sentencepiece",
 ]
 
 [project.optional-dependencies]
