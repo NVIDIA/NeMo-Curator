@@ -16,8 +16,6 @@ import numpy as np
 
 from ray_curator.stages.filters.doc_filter import DocumentFilter
 
-# TODO: Remove @batched for now
-
 
 class FastTextQualityFilter(DocumentFilter):
     def __init__(self, model_path: str | None = None, label: str = "__label__hq", alpha: float = 3, seed: int = 42):
