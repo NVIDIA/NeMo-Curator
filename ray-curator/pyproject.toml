@@ -20,6 +20,7 @@ dependencies = [
     "comment_parser",
     "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
     "crossfit>=0.0.9",
+    "fasttext==0.9.3",
     "fsspec",
     "loguru",
     "pyarrow",
