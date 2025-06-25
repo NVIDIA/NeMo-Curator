@@ -7,7 +7,9 @@ name = "ray-curator"
 version = "0.1.0"
 authors = [
     { name = "Ayush Dattagupta", email = "adattagupta@nvidia.com" },
+    { name = "Abhinav Garg", email = "abhgarg@nvidia.com" },
     { name = "Praateek Mahajan", email = "praateekm@nvidia.com" },
+    { name = "Sarah Yurick", email = "syurick@nvidia.com" },
 ]
 description = "A Ray-based data curator"
 readme = "README.md"
@@ -15,6 +17,7 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "absl-py>=2.0.0,<3.0.0",
     "beautifulsoup4",
+    "comment_parser",
     "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
     "crossfit>=0.0.9",
     "fsspec",
