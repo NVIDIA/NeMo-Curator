@@ -70,14 +70,6 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     _is_abstract_root = True  # prevent base from registering itself
 
     @property
-    def is_fanout_stage(self) -> bool:
-        """Whether this stage is a fanout stage.
-        A fanout stage is one where process() can return a list[Task] instead of a single Task,
-        meaning one input task can produce multiple output tasks.
-        """
-        return False
-
-    @property
     @abstractmethod
     def name(self) -> str:
         """Unique name for this stage."""
@@ -88,7 +80,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         return Resources(cpus=1.0)
 
     @property
-    def batch_size(self) -> int:
+    def batch_size(self) -> int | None:
         """Number of tasks to process in a batch."""
         return 1
 
