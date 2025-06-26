@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from loguru import logger
 
 from ray_curator.stages.base import ProcessingStage
+from ray_curator.stages.resources import Resources
 from ray_curator.tasks import FileGroupTask
 
 
@@ -95,6 +96,11 @@ class CommonCrawlWARCDownloader(ProcessingStage[FileGroupTask, FileGroupTask]):
             return None
 
         return output_file
+
+    @property
+    def resources(self) -> Resources:
+        """Resource requirements for this stage."""
+        return Resources(cpus=0.5)
 
     @property
     def name(self) -> str:

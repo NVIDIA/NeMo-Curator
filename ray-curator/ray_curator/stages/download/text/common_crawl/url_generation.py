@@ -10,6 +10,7 @@ import requests
 from loguru import logger
 
 from ray_curator.stages.base import ProcessingStage
+from ray_curator.stages.resources import Resources
 from ray_curator.tasks import FileGroupTask, _EmptyTask
 
 
@@ -125,6 +126,16 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
 
     def outputs(self) -> tuple[list[str], list[str]]:
         return ["data"], []
+
+    @property
+    def is_fanout_stage(self) -> bool:
+        """Whether this stage is a fanout stage."""
+        return True
+
+    @property
+    def resources(self) -> Resources:
+        """Resource requirements for this stage."""
+        return Resources(cpus=0.5)
 
 
 @dataclass
