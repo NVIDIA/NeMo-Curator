@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from functools import cached_property
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -128,14 +129,15 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
         return ["data"], []
 
     @property
-    def is_fanout_stage(self) -> bool:
-        """Whether this stage is a fanout stage."""
-        return True
-
-    @property
     def resources(self) -> Resources:
         """Resource requirements for this stage."""
         return Resources(cpus=0.5)
+
+    @property
+    def ray_stage_spec(self) -> dict[str, Any]:
+        return {
+            "is_fanout_stage": True,
+        }
 
 
 @dataclass
