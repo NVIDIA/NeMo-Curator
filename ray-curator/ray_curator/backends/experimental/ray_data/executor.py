@@ -27,9 +27,7 @@ class RayDataExecutor(BaseExecutor):
 
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
-        # Initialize Ray if not already initialized
-        if not ray.is_initialized():
-            ray.init()
+        logger.warning("Ray Data executor is experimental and might not work as expected.")
 
     def execute(self, stages: list["ProcessingStage"], initial_tasks: list[Task] | None = None) -> list[Task]:
         """Execute the pipeline stages using Ray Data.
