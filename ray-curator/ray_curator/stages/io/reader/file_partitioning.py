@@ -7,6 +7,7 @@ from typing import Any
 from loguru import logger
 
 from ray_curator.stages.base import ProcessingStage
+from ray_curator.stages.resources import Resources
 from ray_curator.tasks import FileGroupTask, _EmptyTask
 from ray_curator.utils.file_utils import get_all_files_paths_under
 
@@ -41,6 +42,16 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
 
     def outputs(self) -> tuple[list[str], list[str]]:
         return [], []
+
+    @property
+    def is_fanout_stage(self) -> bool:
+        """Whether this stage is a fanout stage."""
+        return True
+
+    @property
+    def resources(self) -> Resources:
+        """Resource requirements for this stage."""
+        return Resources(cpus=0.5)
 
     def process(self, _: _EmptyTask) -> list[FileGroupTask]:
         """Process the initial task to create file group tasks.
