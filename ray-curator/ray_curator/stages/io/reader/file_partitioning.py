@@ -44,14 +44,16 @@ class FilePartitioningStage(ProcessingStage[_EmptyTask, FileGroupTask]):
         return [], []
 
     @property
-    def is_fanout_stage(self) -> bool:
-        """Whether this stage is a fanout stage."""
-        return True
-
-    @property
     def resources(self) -> Resources:
         """Resource requirements for this stage."""
         return Resources(cpus=0.5)
+
+    @property
+    def ray_stage_spec(self) -> dict[str, Any]:
+        """Ray stage specification for this stage."""
+        return {
+            "is_fanout_stage": True,
+        }
 
     def process(self, _: _EmptyTask) -> list[FileGroupTask]:
         """Process the initial task to create file group tasks.

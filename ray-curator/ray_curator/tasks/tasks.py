@@ -21,8 +21,6 @@ class Task(ABC, Generic[T]):
         _stage_perf: List of stages perfs this task has passed through
     """
 
-    _is_abstract_root = True  # Prevent registration of the base Task class
-
     task_id: str
     dataset_name: str
     data: T
