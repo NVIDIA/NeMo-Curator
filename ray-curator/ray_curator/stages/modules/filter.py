@@ -65,7 +65,9 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
         """Number of tasks to process in a batch."""
         return self.processing_batch_size
 
-    def setup_on_node(self, _node_info: NodeInfo, _worker_metadata: WorkerMetadata) -> None:
+    def setup_on_node(
+        self, _node_info: NodeInfo | None = None, _worker_metadata: WorkerMetadata | None = None
+    ) -> None:
         if self.name in ["lang_id", "fasttext_quality_filter"]:
             if not os.path.exists(self.score_fn._model_path):
                 msg = f"Model file {self.score_fn._model_path} not found"
@@ -79,7 +81,7 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
                 resume_download=True,  # Resume interrupted downloads
             )
 
-    def setup(self, _: WorkerMetadata) -> None:
+    def setup(self, _: WorkerMetadata | None = None) -> None:
         if self.name in ["lang_id", "fasttext_quality_filter"]:
             self.score_fn.model = fasttext.load_model(self.score_fn._model_path)
         elif self.name in ["token_count"] and self.score_fn._tokenizer is None:
@@ -328,7 +330,6 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
         filter_obj (DocumentFilter): The score function that takes in a document string and outputs a score for the document.
         text_field (str): The field the documents will be read from.
         score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
-        score_type (Union[type, str]): The datatype of the score that will be made for each document.
         id_field (str | None): The field to use as the document ID. Required for batch_size > 1.
         invert (bool): If True, will keep all documents that are normally discarded.
         processing_batch_size (int): The number of tasks to process in a batch.
@@ -338,7 +339,6 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
     filter_obj: DocumentFilter
     text_field: str = "text"
     score_field: str | None = None
-    score_type: type | str | None = None
     id_field: str | None = None
     invert: bool = False
     processing_batch_size: int = 1
@@ -358,7 +358,9 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
         """Number of tasks to process in a batch."""
         return self.processing_batch_size
 
-    def setup_on_node(self, _node_info: NodeInfo, _worker_metadata: WorkerMetadata) -> None:
+    def setup_on_node(
+        self, _node_info: NodeInfo | None = None, _worker_metadata: WorkerMetadata | None = None
+    ) -> None:
         if self.name in ["lang_id", "fasttext_quality_filter"]:
             if not os.path.exists(self.filter_obj._model_path):
                 msg = f"Model file {self.filter_obj._model_path} not found"
@@ -372,7 +374,7 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
                 resume_download=True,  # Resume interrupted downloads
             )
 
-    def setup(self, _: WorkerMetadata) -> None:
+    def setup(self, _: WorkerMetadata | None = None) -> None:
         if self.name in ["lang_id", "fasttext_quality_filter"]:
             self.filter_obj.model = fasttext.load_model(self.filter_obj._model_path)
         elif self.name in ["token_count"] and self.filter_obj._tokenizer is None:
