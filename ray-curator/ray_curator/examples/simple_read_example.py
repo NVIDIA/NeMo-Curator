@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+from pprint import pprint
 from typing import Literal
 
 from ray_curator.backends.xenna import XennaExecutor
@@ -28,7 +29,6 @@ def create_sample_jsonl_files(output_dir: Path, num_files: int = 3) -> None:
         "Ninth document explores web development and modern frontend technologies.",
         "The final document discusses software engineering best practices and methodologies.",
     ]
-
     # Create multiple JSONL files
     docs_per_file = len(sample_texts) // num_files
 
@@ -107,6 +107,14 @@ def main(args: argparse.Namespace) -> None:
     # Create executor
     if args.executor == "xenna":
         executor = XennaExecutor()
+    elif args.executor == "ray_data":
+        from ray_curator.backends.experimental.ray_data import RayDataExecutor
+
+        executor = RayDataExecutor()
+    elif args.executor == "ray_actors":
+        from ray_curator.backends.experimental.ray_actors import RayActorExecutor
+
+        executor = RayActorExecutor()
     else:
         msg = f"Invalid executor type: {args.executor}"
         raise ValueError(msg)
@@ -126,10 +134,11 @@ def main(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_path).resolve()
     output_dir.mkdir(exist_ok=True)
 
-    for i, batch in enumerate(results or []):
-        print(f"Processing batch {i} with {batch.num_items} documents...")
-        print(batch.data)
-        print(batch._stage_perf)
+    if results:
+        print("\nSample of processed documents:")
+        for task in results:
+            pprint(task)
+            print("\n" + "=" * 50 + "\n")
 
 
 if __name__ == "__main__":

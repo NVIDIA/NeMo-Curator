@@ -27,7 +27,6 @@ class RayDataExecutor(BaseExecutor):
 
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
-
         # Initialize Ray if not already initialized
         if not ray.is_initialized():
             ray.init()
@@ -57,7 +56,6 @@ class RayDataExecutor(BaseExecutor):
         try:
             # Process through each stage
             for i, stage in enumerate(stages):
-                # TODO: add pipeline level config for verbosity
                 logger.info(f"Processing stage {i + 1}/{len(stages)}: {stage}")
                 logger.info(f"  CPU cores: {stage.resources.cpus}, GPU ratio: {stage.resources.gpus}")
 
@@ -90,25 +88,25 @@ class RayDataExecutor(BaseExecutor):
             tasks: List of Task objects
 
         Returns:
-            Ray Data dataset containing task dictionaries
+            Ray Data dataset containing Task objects directly
         """
-        # Convert tasks to dictionaries
-        task_dicts = [task.to_dict() for task in tasks]
-
-        # Create Ray Data dataset
-        return ray.data.from_items(task_dicts)
+        # Create Ray Data dataset directly from Task objects
+        return ray.data.from_items(tasks)
 
     def _dataset_to_tasks(self, dataset: Dataset) -> list[Task]:
         """Convert Ray Data dataset back to list of tasks.
 
         Args:
-            dataset: Ray Data dataset containing task dictionaries
+            dataset: Ray Data dataset containing Task objects
 
         Returns:
             List of Task objects
         """
         # Get all items from dataset
-        task_dicts = dataset.take_all()
+        items = dataset.take_all()
 
-        # Convert dictionaries back to Task objects
-        return [Task.from_dict(task_dict) for task_dict in task_dicts]
+        # Handle the fact that Ray Data might return different formats
+        tasks = []
+        for item in items:
+            tasks.append(item["item"])
+        return tasks
