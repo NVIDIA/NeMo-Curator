@@ -114,7 +114,7 @@ class AegisModel(nn.Module):
         # Importing PeftModel here to prevent cuda context issues
         # that seem to happen on Transformers 4.48.3
         # See related: https://github.com/rapidsai/crossfit/pull/113
-        from peft import PeftModel  # noqa: PLC0415
+        from peft import PeftModel
 
         self.model = PeftModel.from_pretrained(base_model, peft_model_name_or_path)
         self.autocast = autocast

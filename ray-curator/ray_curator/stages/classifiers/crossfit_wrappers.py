@@ -428,6 +428,7 @@ class CrossFitLabelerWrapper(ProcessingStage[DocumentBatch, DocumentBatch]):
         )
 
 
+# TODO: Move this to general utils file
 def _get_suggest_memory_for_classifier() -> int:
     # 0 grabs the first GPU available
     # This will raise a RuntimeError if no GPUs are available,
