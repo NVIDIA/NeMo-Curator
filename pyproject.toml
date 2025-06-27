@@ -41,7 +41,7 @@ requires-python = ">=3.10"
 dependencies = [
     "awscli>=1.22.55",
     "beautifulsoup4",
-    "charset_normalizer>=3.1.0",
+    "charset_normalizer>=3.0.0",
     "comment_parser",
     "crossfit>=0.0.9",
     "dask-mpi>=2021.11.0",
