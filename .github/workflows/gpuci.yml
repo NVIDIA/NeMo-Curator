@@ -206,3 +206,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
           flags: gpu
+
+  codecov-placeholder:
+    name: codecov/patch
+    needs: [pre-flight]
+    if: ${{ needs.pre-flight.outputs.allowed_to_run != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: codecov_placeholder
+        run: |
+          echo "This is a placeholder status check for when no tests are ran but the codecov status is expected"
