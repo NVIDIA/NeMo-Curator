@@ -4,19 +4,13 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      target-branches-pattern:
-        version-bump-branch:
-        type: string
-        required: false
-        default: 'r[0-9]+\.[0-9]+\.[0-9]+|cherry-pick-test'
+      - chtruong/update-cherry-pick
 
 jobs:
   cherry-pick:
     uses: NVIDIA-NeMo/FW-CI-templates/.github/workflows/_cherry_pick.yml@5a8a0a57fb7a9f56bff703a00607b3a754306ba0
     with:
-      target-branches-pattern: ${{ inputs.target-branches-pattern }}
+      target-branches-pattern: 'r[0-9]+\.[0-9]+\.[0-9]+|cherry-pick-test'
     secrets:
       PAT: ${{ secrets.PAT }}
       SLACK_WEBHOOK_ADMIN: ${{ secrets.SLACK_WEBHOOK_ADMIN }}
