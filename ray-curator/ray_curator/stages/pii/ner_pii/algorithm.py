@@ -21,10 +21,6 @@ from typing import Any
 # Ensure that this module is always imported after cluster creation only when the algorithm
 # needs to be executed. See: https://github.com/NVIDIA/NeMo-Curator/issues/64
 import yaml
-from nemo_curator.pii.constants import DEFAULT_LANGUAGE, SUPPORTED_ENTITIES
-from nemo_curator.pii.custom_batch_analyzer_engine import CustomBatchAnalyzerEngine
-from nemo_curator.pii.custom_nlp_engine import CustomNlpEngine
-from nemo_curator.pii.recognizers.address_recognizer import AddressRecognizer
 from presidio_analyzer import AnalyzerEngine, EntityRecognizer, RecognizerRegistry, RecognizerResult
 from presidio_analyzer.nlp_engine import NerModelConfiguration
 from presidio_analyzer.nlp_engine.ner_model_configuration import LABELS_TO_IGNORE
@@ -38,6 +34,11 @@ from presidio_analyzer.predefined_recognizers import (
 )
 from presidio_anonymizer import AnonymizerEngine, BatchAnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
+
+from ray_curator.stages.pii.ner_pii.constants import DEFAULT_LANGUAGE, SUPPORTED_ENTITIES
+from ray_curator.stages.pii.ner_pii.custom_batch_analyzer_engine import CustomBatchAnalyzerEngine
+from ray_curator.stages.pii.ner_pii.custom_nlp_engine import CustomNlpEngine
+from ray_curator.stages.pii.ner_pii.recognizers.address_recognizer import AddressRecognizer
 
 __all__ = [
     "PiiDeidentifier",
