@@ -41,6 +41,11 @@ Unlike the previous dataset-level operations, the new design operates on individ
 All stages are designed to be map-style on tasks, meaning they take task as input and produce task as output. This allows for easy parallelization and scaling.
 - We do not enforce 1-1 mapping between input and output tasks, but rather allow for multiple output tasks from a single input task and multiple input tasks from a single output task. More specifically, a stage applies a transformation from `X` to `Y`, where both `X` and `Y` can be `Task | list[Task] | None`.
 
+### Fault Tolerance Requirements
+**All stages MUST be fault-tolerant and retry-safe.** This is a critical requirement because:
+
+- **Task Preemption:** Xenna can preempt/kill running tasks before completion and potentially reschedule them later, especially during autoscaling events
+- **Partial Operations:** Tasks may be interrupted mid-execution, leaving partial state (e.g., incomplete file downloads)
 
 ## Core Components
 
