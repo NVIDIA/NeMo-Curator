@@ -124,6 +124,7 @@ class StreamingDataClassifier(CompositeStage[DocumentBatch, DocumentBatch]):
     max_chars: int
     device_type: str
     autocast: bool
+    gpu_tokenizer: bool = True
 
     @property
     def name(self) -> str:
@@ -154,6 +155,7 @@ class StreamingDataClassifier(CompositeStage[DocumentBatch, DocumentBatch]):
                 cols=[self.text_field],
                 tokenizer_type="default",
                 max_chars=self.max_chars,
+                use_gpu=self.gpu_tokenizer,
             ),
             CrossFitPredictorWrapper(
                 model=self.model,

@@ -57,7 +57,8 @@ def clip_tokens(token_o: dict, max_length: int | None, padding_side: Literal["le
     return token_o
 
 
-# TODO: Fix this function if needed
+# TODO: Check this function for correctness
+# Seems to be producing correct results in benchmarks
 def create_list_series_from_1d_or_2d_ar(ar: np.ndarray, index: pd.Index | None = None) -> pd.Series:
     if len(ar.shape) == 1:
         n_rows = ar.shape[0]
@@ -213,6 +214,7 @@ class CrossFitTokenizerWrapper(ProcessingStage[DocumentBatch, DocumentBatch]):
     cols: list[str]
     tokenizer_type: str
     max_chars: int
+    use_gpu: bool = True
 
     @property
     def name(self) -> str:
@@ -227,19 +229,32 @@ class CrossFitTokenizerWrapper(ProcessingStage[DocumentBatch, DocumentBatch]):
     @property
     def resources(self) -> Resources:
         """Resource requirements for this stage."""
-        return Resources(gpu_memory_gb=_get_suggest_memory_for_tokenizer())
+        if self.use_gpu:
+            return Resources(gpu_memory_gb=_get_suggest_memory_for_tokenizer())
+        else:
+            # Default CPU resources
+            return Resources(cpus=1.0)
 
     def process(self, batch: DocumentBatch) -> DocumentBatch | None:
         df = batch.to_pandas()
 
         # TODO: Tokenizer or op.Tokenizer
-        result_df = op.Tokenizer(
-            self.model,
-            cols=self.cols,
-            tokenizer_type=self.tokenizer_type,
-            max_chars=self.max_chars,
-            keep_cols=df.columns.to_list(),
-        )(df).to_pandas()
+        if self.use_gpu:
+            result_df = op.Tokenizer(
+                self.model,
+                cols=self.cols,
+                tokenizer_type=self.tokenizer_type,
+                max_chars=self.max_chars,
+                keep_cols=df.columns.to_list(),
+            )(df).to_pandas()
+        else:
+            result_df = Tokenizer(
+                self.model,
+                cols=self.cols,
+                tokenizer_type=self.tokenizer_type,
+                max_chars=self.max_chars,
+                keep_cols=df.columns.to_list(),
+            )(df)
 
         # Create output batch
         return DocumentBatch(

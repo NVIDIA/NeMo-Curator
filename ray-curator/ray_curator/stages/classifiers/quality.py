@@ -155,6 +155,8 @@ class StreamingQualityClassifier(StreamingDataClassifier):
         device_type: str = "cuda",
         autocast: bool = True,
         max_mem_gb: int | None = None,
+        # TODO: Remove this once we decide on a permanent solution
+        gpu_tokenizer: bool = True,
     ):
         config = AutoConfig.from_pretrained(QUALITY_IDENTIFIER)
 
@@ -177,6 +179,7 @@ class StreamingQualityClassifier(StreamingDataClassifier):
             max_chars=max_chars,
             device_type=device_type,
             autocast=autocast,
+            gpu_tokenizer=gpu_tokenizer,
         )
 
     @property

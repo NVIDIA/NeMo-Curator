@@ -19,22 +19,24 @@ def _get_total_memory_per_gpu() -> int:
     # 0 grabs the first GPU available
     # This will raise a RuntimeError if no GPUs are available,
     # which is desired behavior since the script is GPU-dependent
-    min_gpu_memory = torch.cuda.get_device_properties(0).total_memory
+    total_gpu_memory = torch.cuda.get_device_properties(0).total_memory
     # Convert memory from bytes to GB
-    return min_gpu_memory / (1024**3)
+    return total_gpu_memory / (1024**3)
 
 
 def _get_suggest_memory_for_classifier() -> int:
-    min_gpu_memory_gb = _get_total_memory_per_gpu()
-    # Subtract 4GB from the minimum
+    total_gpu_memory = _get_total_memory_per_gpu()
+    # Subtract 4GB from the total
     # to leave room for other operations
     # like cuDF operations
-    min_gpu_memory_gb = min_gpu_memory_gb - 4
-    return int(min_gpu_memory_gb)
+    classifier_gpu_memory_gb = total_gpu_memory - 4
+    return int(classifier_gpu_memory_gb)
 
 
+# TODO: This is not customizable for the user anywhere
 def _get_suggest_memory_for_tokenizer() -> int:
-    min_gpu_memory_gb = _get_total_memory_per_gpu()
+    total_gpu_memory = _get_total_memory_per_gpu()
     classifier_gpu_memory_gb = _get_suggest_memory_for_classifier()
     # TODO: The result is 4GB, but more finetuning is needed here
-    return int(min_gpu_memory_gb - classifier_gpu_memory_gb)
+    tokenizer_gpu_memory_gb = total_gpu_memory - classifier_gpu_memory_gb
+    return int(tokenizer_gpu_memory_gb)
