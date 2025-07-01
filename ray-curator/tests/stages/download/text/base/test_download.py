@@ -207,7 +207,11 @@ class TestDocumentDownloadStage:
         assert isinstance(result, FileGroupTask)
         assert result.task_id == "test_task"
         assert result.dataset_name == "test_dataset"
-        assert result._metadata == {"source": "test", "count": 3}
+        assert result._metadata == {
+            "source": "test",
+            "count": 3,
+            "source_files": [str(tmp_path / f"file{i + 1}.txt") for i in range(3)],
+        }
 
         # Verify all files were downloaded
         assert len(result.data) == 3
@@ -271,7 +275,7 @@ class TestDocumentDownloadStage:
         assert result.task_id == "empty_task"
         assert result.dataset_name == "test_dataset"
         assert result.data == []
-        assert result._metadata == {"source": "test"}
+        assert result._metadata == {"source": "test", "source_files": []}
 
     @mock.patch.object(MockDocumentDownloader, "download", return_value=None)
     def test_process_all_downloads_fail(self, mock_download: mock.Mock, tmp_path: Path) -> None:
@@ -293,7 +297,7 @@ class TestDocumentDownloadStage:
         assert len(result.data) == 0
         assert result.task_id == "test_task"
         assert result.dataset_name == "test_dataset"
-        assert result._metadata == {"source": "test"}
+        assert result._metadata == {"source": "test", "source_files": []}
 
         # Verify download was attempted for all URLs
         assert mock_download.call_count == 2

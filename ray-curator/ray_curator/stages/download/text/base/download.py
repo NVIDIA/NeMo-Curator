@@ -74,10 +74,6 @@ class DocumentDownloader(ABC):
                 logger.info(f"File: {output_file} exists. Not downloading")
             return output_file
 
-        # Clean up any existing temporary file from previous failed attempts
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
-
         # Download to temporary file
         success, error_message = self._download_to_path(url, temp_file)
 
@@ -140,6 +136,7 @@ class DocumentDownloadStage(ProcessingStage[FileGroupTask, FileGroupTask]):
             data=local_files,
             _metadata={
                 **task._metadata,
+                "source_files": local_files,  # Add downloaded files for deterministic naming during write stage
             },
             _stage_perf=task._stage_perf,
         )

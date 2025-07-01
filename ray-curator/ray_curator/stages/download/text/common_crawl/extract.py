@@ -47,9 +47,6 @@ class CommonCrawlHTMLExtractor(DocumentExtractor):
             self._stop_lists = get_stop_list_dict()
 
         self.algorithm = algorithm
-        self.time_taken_decode_html = 0
-        self.time_taken_lang_detect = 0
-        self.time_taken_extract_text = 0
 
     def extract(self, record: dict[str, Any]) -> dict[str, Any] | None:
         """Extract text from HTML content in the record.
