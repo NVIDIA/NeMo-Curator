@@ -84,7 +84,7 @@ The modules within NeMo Curator were primarily designed to process and curate hi
 The following figure shows that the use of different data curation modules implemented in NeMo Curator led to improved model zero-shot downstream task performance.
 
 <p align="center">
-  <img src="./docs/user-guide/assets/zeroshot_ablations.png" alt="drawing" width="700"/>
+  <img src="./docs/user-guide/assets/readme/chart.png" alt="drawing" width="700"/>
 </p>
 
 NeMo Curator leverages NVIDIA RAPIDS™ libraries like cuDF, cuML, and cuGraph along with Dask to scale workloads across multi-node, multi-GPU environments, significantly reducing data processing time. With NeMo Curator, developers can achieve 16X faster processing for text. Refer to the chart below to learn more details.
