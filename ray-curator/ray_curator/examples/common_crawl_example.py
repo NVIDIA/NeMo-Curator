@@ -10,7 +10,7 @@ from loguru import logger
 
 from ray_curator.backends.xenna import XennaExecutor
 from ray_curator.pipeline import Pipeline
-from ray_curator.stages.download.text.common_crawl import CommonCrawl
+from ray_curator.stages.download.text.common_crawl import CommonCrawlDownloadExtractStage
 from ray_curator.stages.io.writer import JsonlWriter, ParquetWriter
 from ray_curator.tasks import _EmptyTask
 
@@ -25,7 +25,9 @@ def create_common_crawl_pipeline(  # noqa: PLR0913
     html_extraction_algorithm: str = "justext",
     use_aws_to_download: bool = False,
     verbose: bool = False,
-    limit: int | None = None,
+    url_limit: int | None = None,
+    record_limit: int | None = None,
+    add_filename_column: bool = False,
 ) -> Pipeline:
     """Create a pipeline for downloading and processing Common Crawl data.
 
@@ -51,7 +53,7 @@ def create_common_crawl_pipeline(  # noqa: PLR0913
     # The CommonCrawlPipeline is a CompositeStage that will be decomposed
     # into its constituent stages during pipeline building
     pipeline.add_stage(
-        CommonCrawl(
+        CommonCrawlDownloadExtractStage(
             start_snapshot=start_snapshot,
             end_snapshot=end_snapshot,
             download_dir=str(download_dir),
@@ -59,7 +61,9 @@ def create_common_crawl_pipeline(  # noqa: PLR0913
             html_extraction=html_extraction_algorithm,
             use_aws_to_download=use_aws_to_download,
             verbose=verbose,
-            limit=limit,
+            url_limit=url_limit,
+            record_limit=record_limit,
+            add_filename_column=add_filename_column,
         )
     )
 
@@ -97,7 +101,9 @@ def main(args: argparse.Namespace) -> None:
         html_extraction_algorithm=args.html_extraction,
         use_aws_to_download=args.aws,
         verbose=args.verbose,
-        limit=args.limit,
+        url_limit=args.url_limit,
+        record_limit=args.record_limit,
+        add_filename_column=args.add_filename_column,
     )
 
     # Print pipeline description
@@ -177,7 +183,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--aws", action="store_true", help="Use AWS S3 for downloading")
     parser.add_argument("--verbose", action="store_true", help="Print verbose output")
-    parser.add_argument("--limit", type=int, default=5, help="Limit the number of WARC files to process")
+    parser.add_argument("--url_limit", type=int, default=5, help="Limit the number of WARC files to process")
+    parser.add_argument("--record_limit", type=int, default=5, help="Limit the number of records to process")
+    parser.add_argument("--add_filename_column", action="store_true", help="Add filename column to output")
 
     # Executor configuration
     parser.add_argument(

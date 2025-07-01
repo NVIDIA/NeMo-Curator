@@ -1,11 +1,9 @@
-from dataclasses import dataclass
+from typing import Any
 
-import pandas as pd
 from loguru import logger
 
-from ray_curator.stages.base import ProcessingStage
+from ray_curator.stages.download.text import DocumentExtractor
 from ray_curator.stages.download.text.utils import decode_html, lang_detect
-from ray_curator.tasks import DocumentBatch
 
 from .html_extractors import HTMLExtractorAlgorithm
 from .html_extractors.justext import JusTextExtractor
@@ -14,8 +12,7 @@ from .html_extractors.trafilatura import TrafilaturaExtractor
 from .utils import get_stop_list_dict
 
 
-@dataclass
-class CommonCrawlHTMLExtractor(ProcessingStage[DocumentBatch, DocumentBatch]):
+class CommonCrawlHTMLExtractor(DocumentExtractor):
     def __init__(
         self,
         algorithm: HTMLExtractorAlgorithm | str | None = None,
@@ -54,33 +51,19 @@ class CommonCrawlHTMLExtractor(ProcessingStage[DocumentBatch, DocumentBatch]):
         self.time_taken_lang_detect = 0
         self.time_taken_extract_text = 0
 
-    def process(self, task: DocumentBatch) -> DocumentBatch:
-        """Process WARC content and extract text into a DocumentBatch."""
-        records = []
-        for _, row in task.to_pandas().iterrows():
-            extracted = self.extract(row["content"])  # TODO: investigate exract needs bytes or str
-            if extracted:
-                records.append(
-                    {
-                        "url": row["url"],
-                        "warc_id": row["warc_id"],
-                        "source_id": row["source_id"],
-                        "language": extracted["language"],
-                        "text": extracted["text"],
-                    }
-                )
+    def extract(self, record: dict[str, Any]) -> dict[str, Any] | None:
+        """Extract text from HTML content in the record.
 
-        table = pd.DataFrame(records)
-        return DocumentBatch(
-            task_id=task.task_id,
-            dataset_name=task.dataset_name,
-            data=table,
-            _stage_perf=task._stage_perf,
-            _metadata=task._metadata,
-        )
+        Takes a record dict containing "content" field with HTML and returns
+        a new dict with only the output columns: url, warc_id, source_id, language, text.
+        """
+        # Extract the HTML content from the record
+        html_content = record.get("content")
+        if not html_content:
+            return None
 
-    def extract(self, content: bytes) -> dict[str, str] | None:
-        html = decode_html(content)
+        # Content from WARC records is bytes, even though type annotation suggests str
+        html = decode_html(html_content)
 
         if html is not None:
             # Language detection and HTML extraction
@@ -95,17 +78,19 @@ class CommonCrawlHTMLExtractor(ProcessingStage[DocumentBatch, DocumentBatch]):
             if text is not None:
                 if len(text) > 0:
                     text = "\n\n".join(text)
-                    return {"language": lang, "text": text}
+                    return {
+                        "url": record["url"],
+                        "warc_id": record["warc_id"],
+                        "source_id": record["source_id"],
+                        "language": lang,
+                        "text": text,
+                    }
                 else:
                     return None
         return None
 
-    @property
-    def name(self) -> str:
-        return "common_crawl_html_extractor"
+    def input_columns(self) -> list[str]:
+        return ["url", "warc_id", "source_id", "content"]
 
-    def inputs(self) -> tuple[list[str], list[str]]:
-        return ["data"], ["url", "warc_id", "source_id", "content"]
-
-    def outputs(self) -> tuple[list[str], list[str]]:
-        return ["data"], ["url", "warc_id", "source_id", "language", "text"]
+    def output_columns(self) -> list[str]:
+        return ["url", "warc_id", "source_id", "language", "text"]

@@ -1,3 +1,3 @@
-from .stage import CommonCrawl
+from .stage import CommonCrawlDownloadExtractStage
 
-__all__ = ["CommonCrawl"]
+__all__ = ["CommonCrawlDownloadExtractStage"]

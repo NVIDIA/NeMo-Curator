@@ -4,19 +4,16 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from functools import cached_property
-from typing import Any
 from urllib.parse import urljoin
 
 import requests
 from loguru import logger
 
-from ray_curator.stages.base import ProcessingStage
-from ray_curator.stages.resources import Resources
-from ray_curator.tasks import FileGroupTask, _EmptyTask
+from ray_curator.stages.download.text import URLGenerator
 
 
 @dataclass
-class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
+class BaseCommonCrawlUrlGenerator(URLGenerator, ABC):
     """Get URLs for Common Crawl data
     Each concrete implementation must implement `_parse_datetime_from_snapshot_string` and `generate_path_urls`
     """
@@ -102,46 +99,14 @@ class BaseCommonCrawlUrlStage(ProcessingStage[_EmptyTask, FileGroupTask], ABC):
 
         return all_individual_warc_urls
 
-    def process(self, task: _EmptyTask) -> list[FileGroupTask]:
+    def generate_urls(self) -> list[str]:
         """Process the task and return a list of WARC URLs"""
         path_urls = self.generate_path_urls()
-        warc_urls = self.generate_data_urls(path_urls)
-        # We create one task per URL, if subsequent stages want to process more than one URL at a time
-        # they can configure the batch_size parameter
-        return [
-            FileGroupTask(
-                task_id=f"{task.task_id}_{i}",
-                dataset_name=task.dataset_name,
-                data=[warc_url],
-                _metadata={"source_files": [warc_url]},  # Each task should reference only its URL
-            )
-            for i, warc_url in enumerate(warc_urls)
-        ]
-
-    @property
-    def name(self) -> str:
-        return "common_crawl_url_generation"
-
-    def inputs(self) -> tuple[list[str], list[str]]:
-        return [], []
-
-    def outputs(self) -> tuple[list[str], list[str]]:
-        return ["data"], []
-
-    @property
-    def resources(self) -> Resources:
-        """Resource requirements for this stage."""
-        return Resources(cpus=0.5)
-
-    @property
-    def ray_stage_spec(self) -> dict[str, Any]:
-        return {
-            "is_fanout_stage": True,
-        }
+        return self.generate_data_urls(path_urls)
 
 
 @dataclass
-class MainCommonCrawlUrlStage(BaseCommonCrawlUrlStage):
+class MainCommonCrawlUrlGenerator(BaseCommonCrawlUrlGenerator):
     index_prefix: str = "https://index.commoncrawl.org"
 
     def _parse_datetime_from_snapshot_string(self, snapshot_str: str, for_start: bool) -> datetime:  # noqa: ARG002
@@ -207,7 +172,7 @@ class MainCommonCrawlUrlStage(BaseCommonCrawlUrlStage):
 
 
 @dataclass
-class NewsCommonCrawlUrlStage(BaseCommonCrawlUrlStage):
+class NewsCommonCrawlUrlGenerator(BaseCommonCrawlUrlGenerator):
     def _parse_datetime_from_snapshot_string(self, snapshot_str: str, for_start: bool) -> datetime:
         try:
             year, month = map(int, snapshot_str.split("-"))

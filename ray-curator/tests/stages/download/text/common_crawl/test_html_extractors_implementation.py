@@ -62,33 +62,69 @@ def html_string() -> str:
 class TestHTMLExtractors:
     """Test suite for individual HTML extraction algorithms."""
 
-    def test_resiliparse_extract_text(self, html_string: str) -> None:
-        """Test Resiliparse text extraction."""
-        algorithm = ResiliparseExtractor()
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
+    def test_extract_english_text(
+        self, html_string: str, extraction_algorithm: Literal["justext", "resiliparse", "trafilatura"]
+    ) -> None:
+        """Test English text extraction with different algorithms."""
+        if extraction_algorithm == "justext":
+            algorithm = JusTextExtractor(is_boilerplate=False)
+            expected = [
+                "Nav 1",
+                "Nav 2",
+                "Nav 3",
+                "This is a sample paragraph. In it we write words.\nThese are stopwords: because did than has near we almost while what still.\nbar",
+                "This paragraph doesn't have many stopwords. Remove it.\nLet's keep this paragraph: either came does last new took taken making became from.",
+                "Cannot display object\nSorry, your browser doesn't support VB Script!",
+                "Copyright (C) 2021 Foo Bar",
+            ]
+        elif extraction_algorithm == "resiliparse":
+            algorithm = ResiliparseExtractor()
+            expected = [
+                "This is a sample paragraph. In it we write words. These are stopwords: because did than has near we almost while what still.",
+                "Let's keep this paragraph: either came does last new took taken making became from.",
+            ]
+        elif extraction_algorithm == "trafilatura":
+            algorithm = TrafilaturaExtractor(
+                min_extracted_size=10,
+                min_duplcheck_size=10,
+                max_repetitions=1,
+                deduplicate=True,
+            )
+            expected = [
+                "Let's keep this paragraph: either came does last new took taken making became from.",
+            ]
+
         stop_words = get_stop_list_dict()
         result = algorithm.extract_text(html_string, stop_words["ENGLISH"], "ENGLISH")
-
-        expected = [
-            "This is a sample paragraph. In it we write words. These are stopwords: because did than has near we almost while what still.",
-            "Let's keep this paragraph: either came does last new took taken making became from.",
-        ]
 
         assert result == expected
 
-    def test_trafilatura_extract_text(self, html_string: str) -> None:
-        """Test Trafilatura text extraction."""
-        algorithm = TrafilaturaExtractor(
-            min_extracted_size=10,
-            min_duplcheck_size=10,
-            max_repetitions=1,
-            deduplicate=True,
-        )
-        stop_words = get_stop_list_dict()
-        result = algorithm.extract_text(html_string, stop_words["ENGLISH"], "ENGLISH")
+    @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
+    def test_extract_simple_english_text(
+        self, extraction_algorithm: Literal["justext", "resiliparse", "trafilatura"]
+    ) -> None:
+        """Test simple English text extraction with different algorithms."""
+        simple_html = "<html><body><p>Common Crawl test paragraph for extraction. Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal.</p></body></html>"
 
-        expected = [
-            "Let's keep this paragraph: either came does last new took taken making became from.",
-        ]
+        if extraction_algorithm == "justext":
+            algorithm = JusTextExtractor()
+            expected = [
+                "Common Crawl test paragraph for extraction. Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal.",
+            ]
+        elif extraction_algorithm == "resiliparse":
+            algorithm = ResiliparseExtractor()
+            expected = [
+                "Common Crawl test paragraph for extraction. Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal.",
+            ]
+        elif extraction_algorithm == "trafilatura":
+            algorithm = TrafilaturaExtractor()
+            expected = [
+                "Common Crawl test paragraph for extraction. Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal.",
+            ]
+
+        stop_words = get_stop_list_dict()
+        result = algorithm.extract_text(simple_html, stop_words["ENGLISH"], "ENGLISH")
 
         assert result == expected
 

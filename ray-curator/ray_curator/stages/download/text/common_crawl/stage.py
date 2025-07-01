@@ -1,18 +1,16 @@
-from dataclasses import dataclass
 from typing import Literal
 
-from ray_curator.stages.base import CompositeStage, ProcessingStage
-from ray_curator.tasks import DocumentBatch, _EmptyTask
+from ray_curator.stages.base import ProcessingStage
+from ray_curator.stages.download.text import DocumentDownloadExtractStage
 
 from .download import CommonCrawlWARCDownloader
-from .html_extractor import CommonCrawlHTMLExtractor
+from .extract import CommonCrawlHTMLExtractor
 from .html_extractors import HTMLExtractorAlgorithm
-from .url_generation import MainCommonCrawlUrlStage, NewsCommonCrawlUrlStage
-from .warc_reader import WarcReader
+from .url_generation import MainCommonCrawlUrlGenerator, NewsCommonCrawlUrlGenerator
+from .warc_iterator import CommonCrawlWarcIterator
 
 
-@dataclass
-class CommonCrawl(CompositeStage[_EmptyTask, DocumentBatch]):
+class CommonCrawlDownloadExtractStage(DocumentDownloadExtractStage):
     """Composite stage for downloading and processing Common Crawl data.
 
     This pipeline:
@@ -22,51 +20,53 @@ class CommonCrawl(CompositeStage[_EmptyTask, DocumentBatch]):
     4. Extracts text from HTML content
     """
 
-    start_snapshot: str  # Format: YYYY-WW for main, YYYY-MM for news
-    end_snapshot: str  # Format: YYYY-WW for main, YYYY-MM for news
-    download_dir: str
-    crawl_type: Literal["main", "news"] = "main"
-    html_extraction: HTMLExtractorAlgorithm | str | None = None
-    html_extraction_kwargs: dict | None = None
-    stop_lists: dict[str, frozenset[str]] | None = None  # TODO: Find better name
-    use_aws_to_download: bool = False
-    verbose: bool = False
-    limit: int | None = None
+    def __init__(  # noqa: PLR0913
+        self,
+        start_snapshot: str,
+        end_snapshot: str,
+        download_dir: str,
+        crawl_type: Literal["main", "news"] = "main",
+        html_extraction: HTMLExtractorAlgorithm | str | None = None,
+        html_extraction_kwargs: dict | None = None,
+        stop_lists: dict[str, frozenset[str]] | None = None,
+        use_aws_to_download: bool = False,
+        verbose: bool = False,
+        url_limit: int | None = None,
+        record_limit: int | None = None,
+        add_filename_column: bool | str = True,
+    ):
+        self.crawl_type = crawl_type
+        self.start_snapshot = start_snapshot
+        self.end_snapshot = end_snapshot
 
-    def __post_init__(self):
-        """Initialize the pipeline stages."""
-        # URL generation stage
-        if self.crawl_type == "main":
-            url_stage = MainCommonCrawlUrlStage(
-                start_snapshot_str=self.start_snapshot, end_snapshot_str=self.end_snapshot, limit=self.limit
+        if crawl_type == "main":
+            self.url_generator = MainCommonCrawlUrlGenerator(
+                start_snapshot_str=start_snapshot, end_snapshot_str=end_snapshot, limit=url_limit
             )
         else:
-            url_stage = NewsCommonCrawlUrlStage(
-                start_snapshot_str=self.start_snapshot, end_snapshot_str=self.end_snapshot, limit=self.limit
+            self.url_generator = NewsCommonCrawlUrlGenerator(
+                start_snapshot_str=start_snapshot, end_snapshot_str=end_snapshot, limit=url_limit
             )
 
-        # Download stage
-        download_stage = CommonCrawlWARCDownloader(
-            download_dir=self.download_dir, use_aws_to_download=self.use_aws_to_download, verbose=self.verbose
+        self.downloader = CommonCrawlWARCDownloader(
+            download_dir=download_dir, use_aws_to_download=use_aws_to_download, verbose=verbose
+        )
+        self.iterator = CommonCrawlWarcIterator()
+        self.extractor = CommonCrawlHTMLExtractor(
+            algorithm=html_extraction,
+            algorithm_kwargs=html_extraction_kwargs,
+            stop_lists=stop_lists,
         )
 
-        # WARC processing stage
-        warc_reader = WarcReader()
-
-        # HTML extraction stage
-        html_stage = CommonCrawlHTMLExtractor(
-            algorithm=self.html_extraction,
-            algorithm_kwargs=self.html_extraction_kwargs,
-            stop_lists=self.stop_lists,
+        super().__init__(
+            url_generator=self.url_generator,
+            downloader=self.downloader,
+            iterator=self.iterator,
+            extractor=self.extractor,
+            url_limit=url_limit,
+            record_limit=record_limit,
+            add_filename_column=add_filename_column,
         )
-
-        # Set up the pipeline
-        self.stages = [
-            url_stage,  # _EmptyTask -> FileGroupTask
-            download_stage,  # FileGroupTask (cloud) -> FileGroupTask (local)
-            warc_reader,  # FileGroupTask (local) -> DocumentBatch
-            html_stage,  # DocumentBatch -> DocumentBatch
-        ]
 
     @property
     def name(self) -> str:

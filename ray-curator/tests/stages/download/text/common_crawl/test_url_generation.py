@@ -1,68 +1,46 @@
 import json
 import zlib
-from datetime import date, datetime
 from unittest.mock import Mock, patch
 
 import pytest
 import requests
 
 from ray_curator.stages.download.text.common_crawl.url_generation import (
-    MainCommonCrawlUrlStage,
-    NewsCommonCrawlUrlStage,
+    MainCommonCrawlUrlGenerator,
+    NewsCommonCrawlUrlGenerator,
 )
-from ray_curator.tasks import _EmptyTask
 
 
-class TestMainCommonCrawlUrlStage:
-    def test_post_init_sets_date_attributes(self):
-        """Test that __post_init__ properly sets _start_date and _end_date attributes"""
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
-
-        # After initialization, date attributes should be available
-        assert hasattr(stage, "_start_date")
-        assert hasattr(stage, "_end_date")
-        assert stage._start_date == date(2021, 3, 8)  # 2021 week 10
-        assert stage._end_date == date(2021, 3, 22)  # 2021 week 12
+class TestMainCommonCrawlUrlGenerator:
+    """Test suite for MainCommonCrawlUrlGenerator."""
 
     def test_parse_datetime_from_snapshot_string_valid(self):
-        """Test parsing valid snapshot strings"""
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        """Test parsing valid snapshot strings for main crawl"""
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
 
-        # Test valid snapshot
-        dt = stage._parse_datetime_from_snapshot_string("2021-10", for_start=True)
+        # Test parsing (should work for both start and end)
+        dt = generator._parse_datetime_from_snapshot_string("2021-10", for_start=True)
         assert dt.year == 2021
-        assert dt.isocalendar()[1] == 10  # Week 10
+        assert dt.isocalendar().week == 10
+
+        dt = generator._parse_datetime_from_snapshot_string("2021-12", for_start=False)
+        assert dt.year == 2021
+        assert dt.isocalendar().week == 12
 
     def test_parse_datetime_from_snapshot_string_invalid(self):
-        """Test parsing invalid snapshot strings"""
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        """Test parsing invalid snapshot strings for main crawl"""
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
 
         # Test invalid format
         with pytest.raises(ValueError, match="Invalid Main CC snapshot format"):
-            stage._parse_datetime_from_snapshot_string("2021", for_start=True)
+            generator._parse_datetime_from_snapshot_string("2021", for_start=True)
 
         # Test invalid week number
         with pytest.raises(ValueError, match="Week number must be between 1 and 53"):
-            stage._parse_datetime_from_snapshot_string("2021-55", for_start=True)
+            generator._parse_datetime_from_snapshot_string("2021-54", for_start=True)
 
-    def test_start_end_dates_validation(self):
-        """Test start/end date validation"""
-        # Test start date after end date - validation happens during object creation
-        with pytest.raises(ValueError, match="Start snapshot .* is after end snapshot"):
-            MainCommonCrawlUrlStage(start_snapshot_str="2021-12", end_snapshot_str="2021-10")
-
-    @patch("ray_curator.stages.download.text.common_crawl.url_generation.datetime")
-    def test_future_end_date_adjustment(self, mock_datetime: Mock):
-        """Test that future end dates are adjusted to today"""
-        # Mock today's date to be 2021-06-15
-        mock_datetime.now.return_value.date.return_value = date(2021, 6, 15)
-        mock_datetime.fromisocalendar = datetime.fromisocalendar
-
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2022-10")
-
-        # After __post_init__, the dates are available as attributes
-        assert stage._end_date == date(2021, 6, 15)  # Should be adjusted to today
-        assert stage._start_date == date(2021, 3, 8)  # 2021 week 10
+        with pytest.raises(ValueError, match="Week number must be between 1 and 53"):
+            generator._parse_datetime_from_snapshot_string("2021-00", for_start=True)
 
     @patch("requests.get")
     def test_snapshot_index_success(self, mock_get: Mock):
@@ -88,8 +66,8 @@ class TestMainCommonCrawlUrlStage:
         ]
         mock_get.return_value = mock_response
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
-        index = stage._snapshot_index
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        index = generator._snapshot_index
 
         assert len(index) == 2
         assert index[0]["id"] == "CC-MAIN-2025-21"
@@ -101,10 +79,10 @@ class TestMainCommonCrawlUrlStage:
         """Test request failure when fetching snapshot index"""
         mock_get.side_effect = requests.RequestException("Network error")
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
 
         with pytest.raises(RuntimeError, match="Failed to fetch Common Crawl index"):
-            _ = stage._snapshot_index
+            _ = generator._snapshot_index
 
     @patch("requests.get")
     def test_snapshot_index_json_decode_error(self, mock_get: Mock):
@@ -113,10 +91,10 @@ class TestMainCommonCrawlUrlStage:
         mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
         mock_get.return_value = mock_response
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
 
         with pytest.raises(RuntimeError, match="Failed to decode JSON"):
-            _ = stage._snapshot_index
+            _ = generator._snapshot_index
 
     @patch("requests.get")
     def test_generate_path_urls(self, mock_get: Mock):
@@ -133,8 +111,8 @@ class TestMainCommonCrawlUrlStage:
         ]
         mock_get.return_value = mock_response
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-17")
-        urls = stage.generate_path_urls()
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-17")
+        urls = generator.generate_path_urls()
 
         expected_urls = [
             "https://data.commoncrawl.org/crawl-data/CC-MAIN-2021-17/warc.paths.gz",
@@ -152,10 +130,10 @@ class TestMainCommonCrawlUrlStage:
         mock_get.return_value = mock_response
 
         # Request data from 2010, should be adjusted to 2013
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2010-01", end_snapshot_str="2021-10")
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2010-01", end_snapshot_str="2021-10")
 
         with patch("ray_curator.stages.download.text.common_crawl.url_generation.logger") as mock_logger:
-            _ = stage.generate_path_urls()
+            _ = generator.generate_path_urls()
             mock_logger.warning.assert_called_once()
             assert "Adjusting start date to 2013-01-01" in str(mock_logger.warning.call_args)
 
@@ -170,12 +148,13 @@ class TestMainCommonCrawlUrlStage:
 
         mock_response = Mock()
         mock_response.content = compressed_content
+        mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
 
         path_urls = ["https://data.commoncrawl.org/crawl-data/CC-MAIN-2021-10/warc.paths.gz"]
-        data_urls = stage.generate_data_urls(path_urls)
+        data_urls = generator.generate_data_urls(path_urls)
 
         expected_urls = [
             "https://data.commoncrawl.org/crawl-data/CC-MAIN-2021-10/segments/file1.warc.gz",
@@ -191,25 +170,26 @@ class TestMainCommonCrawlUrlStage:
 
         mock_response = Mock()
         mock_response.content = compressed_content
+        mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12", limit=2)
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12", limit=2)
 
         path_urls = ["https://data.commoncrawl.org/test.warc.paths.gz"]
-        data_urls = stage.generate_data_urls(path_urls)
+        data_urls = generator.generate_data_urls(path_urls)
 
         assert len(data_urls) == 2
 
     @patch("requests.get")
     def test_generate_data_urls_error_handling(self, mock_get: Mock):
         """Test handling of various errors in generate_data_urls"""
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
         path_urls = ["https://data.commoncrawl.org/test.warc.paths.gz"]
 
         with patch("ray_curator.stages.download.text.common_crawl.url_generation.logger") as mock_logger:
             # Test network error
             mock_get.side_effect = requests.RequestException("Network error")
-            data_urls = stage.generate_data_urls(path_urls)
+            data_urls = generator.generate_data_urls(path_urls)
             assert data_urls == []
             assert mock_logger.error.call_count == 1
 
@@ -217,77 +197,80 @@ class TestMainCommonCrawlUrlStage:
             mock_logger.reset_mock()
             mock_response = Mock()
             mock_response.content = b"invalid compressed data"
+            mock_response.raise_for_status.return_value = None
             mock_get.side_effect = None
             mock_get.return_value = mock_response
 
-            data_urls = stage.generate_data_urls(path_urls)
+            data_urls = generator.generate_data_urls(path_urls)
             assert data_urls == []
             assert mock_logger.error.call_count == 1
 
     def test_generate_data_urls_empty_path_urls(self):
         """Test generate_data_urls with empty path_urls"""
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
 
-        data_urls = stage.generate_data_urls([])
+        data_urls = generator.generate_data_urls([])
         assert data_urls == []
 
-    @patch.object(MainCommonCrawlUrlStage, "generate_path_urls")
-    @patch.object(MainCommonCrawlUrlStage, "generate_data_urls")
-    def test_process(self, mock_generate_data_urls: Mock, mock_generate_path_urls: Mock):
-        """Test the process method"""
+    @patch.object(MainCommonCrawlUrlGenerator, "generate_path_urls")
+    @patch.object(MainCommonCrawlUrlGenerator, "generate_data_urls")
+    def test_generate_urls(self, mock_generate_data_urls: Mock, mock_generate_path_urls: Mock):
+        """Test the generate_urls method"""
         mock_generate_path_urls.return_value = ["path1.gz", "path2.gz"]
         mock_generate_data_urls.return_value = [
             "https://data.commoncrawl.org/file1.warc.gz",
             "https://data.commoncrawl.org/file2.warc.gz",
         ]
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
-        task = _EmptyTask(task_id="test_task", dataset_name="test_dataset", data=None)
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        urls = generator.generate_urls()
 
-        result = stage.process(task)
+        assert len(urls) == 2
+        assert urls == [
+            "https://data.commoncrawl.org/file1.warc.gz",
+            "https://data.commoncrawl.org/file2.warc.gz",
+        ]
 
-        assert len(result) == 2
-        assert result[0].task_id == "test_task_0"
-        assert result[0].dataset_name == "test_dataset"
-        assert result[0].data == ["https://data.commoncrawl.org/file1.warc.gz"]
-        assert result[1].task_id == "test_task_1"
-        assert result[1].data == ["https://data.commoncrawl.org/file2.warc.gz"]
+        mock_generate_path_urls.assert_called_once()
+        mock_generate_data_urls.assert_called_once_with(["path1.gz", "path2.gz"])
 
 
-class TestNewsCommonCrawlUrlStage:
+class TestNewsCommonCrawlUrlGenerator:
+    """Test suite for NewsCommonCrawlUrlGenerator."""
+
     def test_parse_datetime_from_snapshot_string_valid(self):
         """Test parsing valid snapshot strings for news"""
-        stage = NewsCommonCrawlUrlStage(start_snapshot_str="2021-04", end_snapshot_str="2021-10")
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2021-04", end_snapshot_str="2021-10")
 
         # Test start date
-        dt = stage._parse_datetime_from_snapshot_string("2021-04", for_start=True)
+        dt = generator._parse_datetime_from_snapshot_string("2021-04", for_start=True)
         assert dt.year == 2021
         assert dt.month == 4
         assert dt.day == 1
 
         # Test end date (should be last day of month)
-        dt = stage._parse_datetime_from_snapshot_string("2021-04", for_start=False)
+        dt = generator._parse_datetime_from_snapshot_string("2021-04", for_start=False)
         assert dt.year == 2021
         assert dt.month == 4
         assert dt.day == 30  # April has 30 days
 
     def test_parse_datetime_from_snapshot_string_invalid(self):
         """Test parsing invalid snapshot strings for news"""
-        stage = NewsCommonCrawlUrlStage(start_snapshot_str="2021-04", end_snapshot_str="2021-10")
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2021-04", end_snapshot_str="2021-10")
 
         # Test invalid format
         with pytest.raises(ValueError, match="Invalid News CC snapshot format"):
-            stage._parse_datetime_from_snapshot_string("2021", for_start=True)
+            generator._parse_datetime_from_snapshot_string("2021", for_start=True)
 
         # Test invalid month - the error message will be wrapped in the general format error
         with pytest.raises(ValueError, match="Invalid News CC snapshot format"):
-            stage._parse_datetime_from_snapshot_string("2021-13", for_start=True)
+            generator._parse_datetime_from_snapshot_string("2021-13", for_start=True)
 
     def test_generate_path_urls(self):
         """Test generating path URLs for news data"""
-        stage = NewsCommonCrawlUrlStage(start_snapshot_str="2021-04", end_snapshot_str="2021-06")
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2021-04", end_snapshot_str="2021-06")
 
-        urls = stage.generate_path_urls()
+        urls = generator.generate_path_urls()
 
         expected_urls = [
             "https://data.commoncrawl.org/crawl-data/CC-NEWS/2021/06/warc.paths.gz",
@@ -298,10 +281,10 @@ class TestNewsCommonCrawlUrlStage:
 
     def test_generate_path_urls_early_date(self):
         """Test handling of dates before news data availability"""
-        stage = NewsCommonCrawlUrlStage(start_snapshot_str="2015-01", end_snapshot_str="2021-06")
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2015-01", end_snapshot_str="2021-06")
 
         with patch("ray_curator.stages.download.text.common_crawl.url_generation.logger") as mock_logger:
-            urls = stage.generate_path_urls()
+            urls = generator.generate_path_urls()
             mock_logger.warning.assert_called_once()
             assert "2016" in str(mock_logger.warning.call_args)
 
@@ -310,8 +293,8 @@ class TestNewsCommonCrawlUrlStage:
 
     def test_generate_path_urls_cross_year(self):
         """Test generating URLs across year boundary"""
-        stage = NewsCommonCrawlUrlStage(start_snapshot_str="2020-11", end_snapshot_str="2021-02")
-        urls = stage.generate_path_urls()
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2020-11", end_snapshot_str="2021-02")
+        urls = generator.generate_path_urls()
 
         expected_urls = [
             "https://data.commoncrawl.org/crawl-data/CC-NEWS/2021/02/warc.paths.gz",
@@ -321,16 +304,27 @@ class TestNewsCommonCrawlUrlStage:
         ]
         assert urls == expected_urls
 
-    def test_stage_metadata(self):
-        """Test stage name and input/output specifications"""
-        main_stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
-        news_stage = NewsCommonCrawlUrlStage(start_snapshot_str="2021-04", end_snapshot_str="2021-10")
+    @patch.object(NewsCommonCrawlUrlGenerator, "generate_path_urls")
+    @patch.object(NewsCommonCrawlUrlGenerator, "generate_data_urls")
+    def test_generate_urls(self, mock_generate_data_urls: Mock, mock_generate_path_urls: Mock):
+        """Test the generate_urls method"""
+        mock_generate_path_urls.return_value = ["path1.gz", "path2.gz"]
+        mock_generate_data_urls.return_value = [
+            "https://data.commoncrawl.org/news1.warc.gz",
+            "https://data.commoncrawl.org/news2.warc.gz",
+        ]
 
-        # Both stages should have the same name and specifications
-        for stage in [main_stage, news_stage]:
-            assert stage.name == "common_crawl_url_generation"
-            assert stage.inputs() == ([], [])
-            assert stage.outputs() == (["data"], [])
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2021-04", end_snapshot_str="2021-06")
+        urls = generator.generate_urls()
+
+        assert len(urls) == 2
+        assert urls == [
+            "https://data.commoncrawl.org/news1.warc.gz",
+            "https://data.commoncrawl.org/news2.warc.gz",
+        ]
+
+        mock_generate_path_urls.assert_called_once()
+        mock_generate_data_urls.assert_called_once_with(["path1.gz", "path2.gz"])
 
 
 # Integration-style tests for realistic scenarios
@@ -355,22 +349,21 @@ class TestIntegrationScenarios:
                 return mock_response
             elif "2021-10" in url:
                 mock_response.content = zlib.compress(warc_content1.encode("utf-8"))
+                mock_response.raise_for_status.return_value = None
                 return mock_response
             else:
                 mock_response.content = zlib.compress(warc_content2.encode("utf-8"))
+                mock_response.raise_for_status.return_value = None
                 return mock_response
 
         mock_get.side_effect = mock_get_side_effect
 
-        stage = MainCommonCrawlUrlStage(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
-        task = _EmptyTask(task_id="integration_test", dataset_name="cc_main", data=None)
-
-        result = stage.process(task)
+        generator = MainCommonCrawlUrlGenerator(start_snapshot_str="2021-10", end_snapshot_str="2021-12")
+        urls = generator.generate_urls()
 
         # Should have files from both snapshots (2 + 1 = 3 total)
-        assert len(result) == 3  # 3 WARC files total
-        assert all(task.dataset_name == "cc_main" for task in result)
-        assert all("file" in task.data[0] for task in result)
+        assert len(urls) == 3  # 3 WARC files total
+        assert all("file" in url for url in urls)
 
     @patch("requests.get")
     def test_news_crawl_realistic_scenario(self, mock_get: Mock):
@@ -379,13 +372,11 @@ class TestIntegrationScenarios:
 
         mock_response = Mock()
         mock_response.content = zlib.compress(warc_content.encode("utf-8"))
+        mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        stage = NewsCommonCrawlUrlStage(start_snapshot_str="2021-04", end_snapshot_str="2021-04")
-        task = _EmptyTask(task_id="news_test", dataset_name="cc_news", data=None)
+        generator = NewsCommonCrawlUrlGenerator(start_snapshot_str="2021-04", end_snapshot_str="2021-04")
+        urls = generator.generate_urls()
 
-        result = stage.process(task)
-
-        assert len(result) == 2
-        assert all(task.dataset_name == "cc_news" for task in result)
-        assert all("CC-NEWS" in task.data[0] for task in result)
+        assert len(urls) == 2
+        assert all("CC-NEWS" in url for url in urls)
