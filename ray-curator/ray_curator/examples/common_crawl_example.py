@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--aws", action="store_true", help="Use AWS S3 for downloading")
     parser.add_argument("--verbose", action="store_true", help="Print verbose output")
     parser.add_argument("--url_limit", type=int, default=5, help="Limit the number of WARC files to process")
-    parser.add_argument("--record_limit", type=int, default=5, help="Limit the number of records to process")
+    parser.add_argument("--record_limit", type=int, default=None, help="Limit the number of records to process")
     parser.add_argument("--add_filename_column", action="store_true", help="Add filename column to output")
 
     # Executor configuration
