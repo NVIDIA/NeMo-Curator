@@ -32,7 +32,8 @@ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 from ray_curator.backends.base import WorkerMetadata
 
 from .aegis_utils import format_aegis
-from .base import DistributedDataClassifier, _get_suggest_memory_for_classifier
+from .base import DistributedDataClassifier
+from .utils import _get_suggest_memory_for_classifier
 
 
 @dataclass

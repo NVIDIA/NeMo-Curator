@@ -24,7 +24,8 @@ from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTok
 
 from ray_curator.backends.base import WorkerMetadata
 
-from .base import DistributedDataClassifier, _get_suggest_memory_for_classifier
+from .base import DistributedDataClassifier
+from .utils import _get_suggest_memory_for_classifier
 
 FINEWEB_EDU_IDENTIFIER = "HuggingFaceFW/fineweb-edu-classifier"
 FINEWEB_MIXTRAL_IDENTIFIER = "nvidia/nemocurator-fineweb-mixtral-edu-classifier"

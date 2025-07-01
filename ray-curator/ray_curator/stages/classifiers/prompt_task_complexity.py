@@ -28,7 +28,8 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from ray_curator.backends.base import WorkerMetadata
 
-from .base import DistributedDataClassifier, _get_suggest_memory_for_classifier
+from .base import DistributedDataClassifier
+from .utils import _get_suggest_memory_for_classifier
 
 PROMPT_TASK_COMPLEXITY_IDENTIFIER = "nvidia/prompt-task-and-complexity-classifier"
 

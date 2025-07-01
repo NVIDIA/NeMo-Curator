@@ -28,6 +28,8 @@ from ray_curator.stages.base import ProcessingStage
 from ray_curator.stages.resources import Resources
 from ray_curator.tasks import DocumentBatch
 
+from .utils import _get_suggest_memory_for_classifier, _get_suggest_memory_for_tokenizer
+
 if TYPE_CHECKING:
     from ray_curator.stages.classifiers.base import HFModel
 
@@ -55,7 +57,7 @@ def clip_tokens(token_o: dict, max_length: int | None, padding_side: Literal["le
     return token_o
 
 
-# TODO: Fix this function
+# TODO: Fix this function if needed
 def create_list_series_from_1d_or_2d_ar(ar: np.ndarray, index: pd.Index | None = None) -> pd.Series:
     if len(ar.shape) == 1:
         n_rows = ar.shape[0]
@@ -222,16 +224,22 @@ class CrossFitTokenizerWrapper(ProcessingStage[DocumentBatch, DocumentBatch]):
     def outputs(self) -> tuple[list[str], list[str]]:
         return ["data"], []
 
+    @property
+    def resources(self) -> Resources:
+        """Resource requirements for this stage."""
+        return Resources(gpu_memory_gb=_get_suggest_memory_for_tokenizer())
+
     def process(self, batch: DocumentBatch) -> DocumentBatch | None:
         df = batch.to_pandas()
 
-        result_df = Tokenizer(
+        # TODO: Tokenizer or op.Tokenizer
+        result_df = op.Tokenizer(
             self.model,
             cols=self.cols,
             tokenizer_type=self.tokenizer_type,
             max_chars=self.max_chars,
             keep_cols=df.columns.to_list(),
-        )(df)
+        )(df).to_pandas()
 
         # Create output batch
         return DocumentBatch(
@@ -426,18 +434,3 @@ class CrossFitLabelerWrapper(ProcessingStage[DocumentBatch, DocumentBatch]):
             dataset_name=batch.dataset_name,
             data=result_df,
         )
-
-
-# TODO: Move this to general utils file
-def _get_suggest_memory_for_classifier() -> int:
-    # 0 grabs the first GPU available
-    # This will raise a RuntimeError if no GPUs are available,
-    # which is desired behavior since the script is GPU-dependent
-    min_gpu_memory = torch.cuda.get_device_properties(0).total_memory
-    # Convert memory from bytes to GB
-    min_gpu_memory_gb = min_gpu_memory / (1024**3)
-    # Subtract 4GB from the minimum
-    # to leave room for other operations
-    # like cuDF operations
-    min_gpu_memory_gb = min_gpu_memory_gb - 4
-    return int(min_gpu_memory_gb)

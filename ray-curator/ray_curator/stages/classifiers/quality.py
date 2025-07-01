@@ -27,9 +27,9 @@ from .base import (
     DistributedDataClassifier,
     HFDeberta,
     StreamingDataClassifier,
-    _get_suggest_memory_for_classifier,
     _run_classifier_helper,
 )
+from .utils import _get_suggest_memory_for_classifier
 
 QUALITY_IDENTIFIER = "nvidia/quality-classifier-deberta"
 

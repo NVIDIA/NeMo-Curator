@@ -26,9 +26,9 @@ from ray_curator.backends.base import WorkerMetadata
 from .base import (
     DistributedDataClassifier,
     HFDeberta,
-    _get_suggest_memory_for_classifier,
     _run_classifier_helper,
 )
+from .utils import _get_suggest_memory_for_classifier
 
 CONTENT_TYPE_IDENTIFIER = "nvidia/content-type-classifier-deberta"
 

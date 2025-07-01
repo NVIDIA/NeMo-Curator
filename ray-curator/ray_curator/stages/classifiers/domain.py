@@ -26,9 +26,9 @@ from ray_curator.backends.base import WorkerMetadata
 from .base import (
     DistributedDataClassifier,
     HFDeberta,
-    _get_suggest_memory_for_classifier,
     _run_classifier_helper,
 )
+from .utils import _get_suggest_memory_for_classifier
 
 DOMAIN_IDENTIFIER = "nvidia/domain-classifier"
 DOMAIN_BASE_MODEL = "microsoft/deberta-v3-base"

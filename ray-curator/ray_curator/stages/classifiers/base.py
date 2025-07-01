@@ -35,6 +35,7 @@ from ray_curator.stages.resources import Resources
 from ray_curator.tasks import DocumentBatch
 
 from .crossfit_wrappers import CrossFitLabelerWrapper, CrossFitPredictorWrapper, CrossFitTokenizerWrapper
+from .utils import _get_suggest_memory_for_classifier
 
 
 @dataclass(kw_only=True)
@@ -229,18 +230,3 @@ def _run_classifier_helper(  # noqa: PLR0913
     )
 
     return classifier_pipe(df)
-
-
-# TODO: Move this to general utils file
-def _get_suggest_memory_for_classifier() -> int:
-    # 0 grabs the first GPU available
-    # This will raise a RuntimeError if no GPUs are available,
-    # which is desired behavior since the script is GPU-dependent
-    min_gpu_memory = torch.cuda.get_device_properties(0).total_memory
-    # Convert memory from bytes to GB
-    min_gpu_memory_gb = min_gpu_memory / (1024**3)
-    # Subtract 4GB from the minimum
-    # to leave room for other operations
-    # like cuDF operations
-    min_gpu_memory_gb = min_gpu_memory_gb - 4
-    return int(min_gpu_memory_gb)
