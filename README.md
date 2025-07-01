@@ -65,19 +65,17 @@ Learn more about various image processing features supported:
 NeMo Curator provides pre-built pipelines that make it easy to get started with tasks like evaluating and customizing embedding models, generating prompts (open or closed Q&A, writing, math/coding), creating synthetic two-turn prompts, building dialogues, and performing entity classification.
 
 Learn more about various synthetic data generation pipelines supported:
-- **Generate Synthetic Prompts**
-- **Generate Open Q&A Prompts**
-- **Generate Writing Prompts**
-- **Generate Closed Q&A Prompts**
-- **Generate Math Prompts**
-- **Generate Coding Prompts**
-- **Generate Dialogue**
-- **Generate Synthetic Two-Turn Prompts**
-- **Nemotron CC pipeline - Rewrite to Wikipedia Style**
-- **Nemotron CC pipeline - Knowledge Distillation**
 
-These modules offer flexibility and permit reordering, with only a few exceptions.
-All the modules automatically scale to multiple nodes to increase throughput.
+- [**Generate Synthetic Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-synthetic-prompts)
+- [**Generate Open Q&A Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-open-q-a-prompts)
+- [**Generate Writing Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-writing-prompts)
+- [**Generate Closed Q&A Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-closed-q-a-prompts)
+- [**Generate Math Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-math-prompts)
+- [**Generate Coding Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-coding-prompts)
+- [**Generate Dialogue**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-dialogue)
+- [**Generate Synthetic Two-Turn Prompts**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#generate-synthetic-two-turn-prompts)
+- [**Nemotron CC pipeline - Rewrite to Wikipedia Style**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#rewrite-to-wikipedia-style)
+- [**Nemotron CC pipeline - Knowledge Distillation**](https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/syntheticdata.html#rewrite-to-wikipedia-style)
 
 ## Module Ablation and Compute Performance
 
