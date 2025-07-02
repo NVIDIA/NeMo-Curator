@@ -20,10 +20,9 @@ def main() -> None:
     pipeline = Pipeline(name="synthetic_data_generation", description="Generate synthetic text data using LLM")
 
     # Create NeMo Curator LLM client
+    # You can get your API key from https://build.nvidia.com/settings/api-keys
     llm_client = OpenAIClient(
-        api_key=os.environ.get(
-            "NVIDIA_API_KEY", "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"
-        ),
+        api_key=os.environ.get("NVIDIA_API_KEY", "<your-nvidia-api-key>"),
         base_url="https://integrate.api.nvidia.com/v1",
     )
 
