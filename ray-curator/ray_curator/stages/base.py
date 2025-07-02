@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 
 from loguru import logger
 
@@ -221,6 +221,18 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         """
         return {}
 
+    def with_(
+        self, name: str | None = None, resources: Resources | None = None, batch_size: int | None = None
+    ) -> Self:
+        """Apply configuration changes to this stage."""
+        if name is not None:
+            self.name = name
+        if resources is not None:
+            self.resources = resources
+        if batch_size is not None:
+            self.batch_size = batch_size
+        return self
+
     def get_config(self) -> dict[str, Any]:
         """Get configuration for this stage.
         Returns (dict[str, Any]):
@@ -263,6 +275,23 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
         Returns (list[ProcessingStage]):
             List of execution stages that will actually run
         """
+
+    def with_(self, stage_with_dict: dict[str, Any]) -> Self:
+        """Apply configuration changes to this stage."""
+        stages = self.decompose()
+        stage_name_to_stage = {stage.name: stage for stage in stages}
+
+        # Verify that all stages have unique names
+        if len(stage_name_to_stage) != len(stages):
+            err = "All stages must have unique names in composite stage to apply configuration changes using with_()."
+            raise ValueError(err)
+
+        # Apply configuration changes to each stage
+        for stage_name, config in stage_with_dict.items():
+            stage = stage_name_to_stage[stage_name]
+            stage.with_(**config)
+
+        return self
 
     def process(self, task: X) -> Y | list[Y]:  # noqa: ARG002
         """Composite stages should never be executed directly."""
