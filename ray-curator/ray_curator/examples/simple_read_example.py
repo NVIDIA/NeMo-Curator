@@ -8,45 +8,8 @@ from typing import Literal
 
 from ray_curator.backends.xenna import XennaExecutor
 from ray_curator.pipeline import Pipeline
-from ray_curator.stages.base import ProcessingStage, Resources
 from ray_curator.stages.io.reader import JsonlReader
 from ray_curator.stages.io.writer import JsonlWriter, ParquetWriter
-from ray_curator.tasks import DocumentBatch
-
-
-class RepeatTextStage(ProcessingStage[DocumentBatch, DocumentBatch]):
-    """Stage that repeats text."""
-
-    def __init__(self, num_repeats: int = 2):
-        self.num_repeats = num_repeats
-
-    @property
-    def name(self) -> str:
-        return "repeat_text"
-
-    @property
-    def resources(self) -> Resources:
-        return Resources(cpus=1, gpus=6)
-
-    def inputs(self) -> tuple[list[str], list[str]]:
-        return ["data"], ["text"]
-
-    def outputs(self) -> tuple[list[str], list[str]]:
-        return ["data"], ["text", "new_text"]
-
-    def process(self, task: DocumentBatch) -> DocumentBatch:
-        import cudf
-
-        df = cudf.DataFrame(task.data)
-        df["new_text"] = df["text"].str.repeat(repeats=self.num_repeats)
-
-        return DocumentBatch(
-            dataset_name=task.dataset_name,
-            data=df.to_pandas(),
-            task_id=task.task_id,
-            _metadata=task._metadata,
-            _stage_perf=task._stage_perf,
-        )
 
 
 def create_sample_jsonl_files(output_dir: Path, num_files: int = 3) -> None:
@@ -117,7 +80,6 @@ def create_text_processing_pipeline(
         msg = f"Invalid output format: {output_format}"
         raise ValueError(msg)
 
-    pipeline.add_stage(RepeatTextStage())
     pipeline.add_stage(writer)
 
     return pipeline
