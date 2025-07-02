@@ -9,13 +9,13 @@ from ray_curator.stages.download.text.base.iterator import DocumentIterateStage
 from ray_curator.stages.download.text.base.url_generation import URLGenerationStage
 from ray_curator.stages.download.text.common_crawl.download import CommonCrawlWARCDownloader
 from ray_curator.stages.download.text.common_crawl.extract import CommonCrawlHTMLExtractor
-from ray_curator.stages.download.text.common_crawl.html_extractors import JusTextExtractor, ResiliparseExtractor
 from ray_curator.stages.download.text.common_crawl.stage import CommonCrawlDownloadExtractStage
 from ray_curator.stages.download.text.common_crawl.url_generation import (
     MainCommonCrawlUrlGenerator,
     NewsCommonCrawlUrlGenerator,
 )
 from ray_curator.stages.download.text.common_crawl.warc_iterator import CommonCrawlWarcIterator
+from ray_curator.stages.download.text.html_extractors import JusTextExtractor, ResiliparseExtractor
 
 
 class TestCommonCrawlDownloadExtractStage:

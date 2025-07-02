@@ -3,13 +3,12 @@ from typing import Any
 from loguru import logger
 
 from ray_curator.stages.download.text import DocumentExtractor
+from ray_curator.stages.download.text.html_extractors import HTMLExtractorAlgorithm
+from ray_curator.stages.download.text.html_extractors.justext import JusTextExtractor
+from ray_curator.stages.download.text.html_extractors.resiliparse import ResiliparseExtractor
+from ray_curator.stages.download.text.html_extractors.trafilatura import TrafilaturaExtractor
+from ray_curator.stages.download.text.html_extractors.utils import get_stop_list_dict
 from ray_curator.stages.download.text.utils import decode_html, lang_detect
-
-from .html_extractors import HTMLExtractorAlgorithm
-from .html_extractors.justext import JusTextExtractor
-from .html_extractors.resiliparse import ResiliparseExtractor
-from .html_extractors.trafilatura import TrafilaturaExtractor
-from .utils import get_stop_list_dict
 
 
 class CommonCrawlHTMLExtractor(DocumentExtractor):
@@ -67,8 +66,6 @@ class CommonCrawlHTMLExtractor(DocumentExtractor):
             lang = lang_detect(html)
 
             text = None
-            # TODO: Understand more on why we need to check for stop_lists here and why only
-            # few of the records make it
             if lang in self._stop_lists:
                 text = self.algorithm.extract_text(html, self._stop_lists[lang], lang)
 

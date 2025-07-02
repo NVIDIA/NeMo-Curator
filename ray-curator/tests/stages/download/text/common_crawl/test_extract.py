@@ -3,7 +3,7 @@ from typing import Literal
 import pytest
 
 from ray_curator.stages.download.text.common_crawl.extract import CommonCrawlHTMLExtractor
-from ray_curator.stages.download.text.common_crawl.html_extractors import (
+from ray_curator.stages.download.text.html_extractors import (
     JusTextExtractor,
     ResiliparseExtractor,
     TrafilaturaExtractor,

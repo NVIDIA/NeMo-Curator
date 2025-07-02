@@ -2,10 +2,10 @@ from typing import Literal
 
 from ray_curator.stages.base import ProcessingStage
 from ray_curator.stages.download.text import DocumentDownloadExtractStage
+from ray_curator.stages.download.text.html_extractors import HTMLExtractorAlgorithm
 
 from .download import CommonCrawlWARCDownloader
 from .extract import CommonCrawlHTMLExtractor
-from .html_extractors import HTMLExtractorAlgorithm
 from .url_generation import MainCommonCrawlUrlGenerator, NewsCommonCrawlUrlGenerator
 from .warc_iterator import CommonCrawlWarcIterator
 

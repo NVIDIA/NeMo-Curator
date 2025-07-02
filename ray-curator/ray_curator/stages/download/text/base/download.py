@@ -52,11 +52,8 @@ class DocumentDownloader(ABC):
     def download(self, url: str) -> str | None:
         """Download a document from URL with temporary file handling.
 
-        This method provides robust download with:
-        - Atomic file operations using temporary files
-        - Skip download if file already exists and is non-empty
-        - Cleanup of failed download attempts
-
+        Downloads file to temporary location then atomically moves to final path.
+        Checks for existing file to avoid re-downloading. Supports resumable downloads.
         Args:
             url: URL to download
 

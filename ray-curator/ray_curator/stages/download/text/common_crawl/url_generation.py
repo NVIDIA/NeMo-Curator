@@ -151,6 +151,7 @@ class MainCommonCrawlUrlGenerator(BaseCommonCrawlUrlGenerator):
             snapshot_id = snapshot_info.get("id")
             # 2008-2010 are old snapshots and not supported by this script
             if not snapshot_id or snapshot_id in {"CC-MAIN-2009-2010", "CC-MAIN-2008-2009"}:
+                logger.warning(f"Skipping old snapshot for common crawl: {snapshot_id}")
                 continue
             try:
                 parts = snapshot_id.split("-")
