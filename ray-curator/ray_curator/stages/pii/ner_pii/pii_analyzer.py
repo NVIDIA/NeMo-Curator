@@ -18,7 +18,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ray_curator.backends.base import WorkerMetadata
     from ray_curator.stages.pii.ner_pii.config import PiiAnalyzerConfig
+
 from loguru import logger
 from presidio_analyzer import AnalyzerEngine, EntityRecognizer, RecognizerRegistry, RecognizerResult
 from presidio_analyzer.nlp_engine import NerModelConfiguration
@@ -203,8 +205,8 @@ class PiiDetectionStage(ProcessingStage[DocumentBatch, DocumentBatch]):
     def resources(self) -> Resources:
         """Resource requirements for this stage."""
         return Resources(
-            cpus=1.0 if self.config.device == "cpu" else 0.1,
             gpus=1.0 if self.config.device == "gpu" else 0.0,
+            cpus=1.0,
         )
 
     def inputs(self) -> tuple[list[str], list[str]]:
@@ -215,10 +217,11 @@ class PiiDetectionStage(ProcessingStage[DocumentBatch, DocumentBatch]):
         """Define outputs - adds pii_entities to metadata."""
         return ["data", "_pii_entities"], [self.text_column]
 
+    """TODO: Add this back in when we have a way to load the models on the node
     def setup_on_node(self) -> None:
-        """Initialize spaCy and load NER models once per node."""
+        # Initialize spaCy and load NER models once per node.
         import spacy
-
+        breakpoint()
         # Set up GPU if requested - this should be done once per node
         if self.config.device == "gpu":
             spacy.require_gpu()
@@ -231,10 +234,12 @@ class PiiDetectionStage(ProcessingStage[DocumentBatch, DocumentBatch]):
             self.analyzer.analyzer.nlp_engine.load()
             primary_language = self.config.models[0]["language"] if self.config.models else "en"
             logger.info(f"Pre-loaded spaCy model for language: {primary_language} on node")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.warning(f"Failed to pre-load spaCy model on node: {e}")
+        pass
+    """
 
-    def setup(self) -> None:
+    def setup(self, worker_metadata: "WorkerMetadata | None" = None) -> None:  # noqa: ARG002
         """Initialize the PII detector once per worker."""
         # Ensure the NLP engine is loaded (in case setup_on_node wasn't called)
         self.analyzer.ensure_nlp_engine_loaded()

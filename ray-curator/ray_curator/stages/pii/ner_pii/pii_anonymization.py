@@ -18,7 +18,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ray_curator.backends.base import WorkerMetadata
     from ray_curator.stages.pii.ner_pii.config import PiiAnonymizationConfig
+
 from loguru import logger
 from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine, BatchAnonymizerEngine
@@ -125,7 +127,7 @@ class PiiAnonymizationStage(ProcessingStage[DocumentBatch, DocumentBatch]):
         """Define outputs - modifies text column."""
         return ["data"], [self.text_column]
 
-    def setup(self) -> None:
+    def setup(self, worker_metadata: "WorkerMetadata | None" = None) -> None:  # noqa: ARG002
         """Initialize the anonymizer once per worker."""
         # Initialize the PII anonymizer
         self.anonymizer = PiiAnonymizer(config=self.config)
