@@ -217,7 +217,7 @@ jobs:
           if [ "${{ needs.pre-flight.outputs.allowed_to_run }}" == "false" ]; then
             echo "No tests were required to run, marking as success"
             exit 0
-          elif [ "${{ needs.run-gpu-tests.conclusion }}" == "success" ]; then
+          elif [ "${{ needs.run-gpu-tests.result }}" == "success" ]; then
             echo "GPU tests passed successfully"
             exit 0
           else
