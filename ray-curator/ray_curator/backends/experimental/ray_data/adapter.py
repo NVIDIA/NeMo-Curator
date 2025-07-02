@@ -8,7 +8,7 @@ from ray.data import Dataset
 from ray_curator.backends.base import BaseStageAdapter
 from ray_curator.stages.base import ProcessingStage
 
-from .setup_utils import setup_stage_with_coordination
+from .setup_utils import setup_stage
 
 
 class RayDataStageAdapter(BaseStageAdapter):
@@ -18,7 +18,7 @@ class RayDataStageAdapter(BaseStageAdapter):
     1. Working directly with Task objects (no dictionary conversion)
     2. Using Ray Data's map_batches for parallel processing
     3. Handling single and batch processing modes
-    4. Supporting setup() and setup_on_node() calls like other backends
+    4. TODO: Supporting setup() and setup_on_node() calls like other backends
     """
 
     def __init__(self, stage: ProcessingStage):
@@ -37,15 +37,15 @@ class RayDataStageAdapter(BaseStageAdapter):
     def _setup_if_needed(self) -> None:
         """Setup the stage if it hasn't been setup yet.
 
-        This method ensures setup happens exactly once per Ray Data worker,
-        and setup_on_node happens exactly once per node.
+        This method ensures setup happens exactly once per Ray Data worker.
+        TODO: We need to improve this implementation to better support setup_on_node.
         """
         if not hasattr(self, "_setup_done") or not getattr(self, "_setup_done", False):
             # Mark setup as done first to avoid recursion
             self._setup_done = True
 
             # Use the setup utilities for coordinated setup
-            setup_stage_with_coordination(stage=self.stage, setup_fn=self.setup, setup_on_node_fn=self.setup_on_node)
+            setup_stage(stage=self.stage, setup_fn=self.setup, setup_on_node_fn=self.setup_on_node)
 
     def _process_batch_internal(self, batch: dict[str, Any]) -> dict[str, Any]:
         """Internal method that handles the actual batch processing logic.
@@ -75,6 +75,11 @@ class RayDataStageAdapter(BaseStageAdapter):
         Returns:
             Dataset: Processed Ray Data dataset
         """
+        # TODO: Support nvdecs / nvencs
+        if self.stage.resources.gpus <= 0 and (self.stage.resources.nvdecs > 0 or self.stage.resources.nvencs > 0):
+            msg = "Ray Data does not support nvdecs / nvencs. Please use gpus instead."
+            raise ValueError(msg)
+
         processed_dataset = dataset.map_batches(
             create_named_ray_data_stage_adapter(self.stage).map_batch_fn,
             batch_size=self.batch_size,

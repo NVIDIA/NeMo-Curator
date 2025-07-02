@@ -221,15 +221,6 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         """
         return {}
 
-    @property
-    def ray_stage_spec(self) -> dict[str, Any]:
-        """Get Ray configuration for this stage.
-
-        Returns (dict[str, Any]):
-            Dictionary containing Ray-specific configuration
-        """
-        return {}
-
     def get_config(self) -> dict[str, Any]:
         """Get configuration for this stage.
         Returns (dict[str, Any]):
@@ -241,6 +232,16 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             "batch_size": self.batch_size,
             "supports_batch_processing": self.supports_batch_processing(),
         }
+
+    @property
+    def ray_stage_spec(self) -> dict[str, Any]:
+        """Get Ray configuration for this stage.
+        Note : This is only used for Ray Data which is an experimental backend.
+
+        Returns (dict[str, Any]):
+            Dictionary containing Ray-specific configuration
+        """
+        return {}
 
 
 class CompositeStage(ProcessingStage[X, Y], ABC):

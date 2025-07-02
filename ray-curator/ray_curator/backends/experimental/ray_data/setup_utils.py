@@ -3,16 +3,17 @@ from collections.abc import Callable
 from loguru import logger
 
 from ray_curator.backends.base import NodeInfo, WorkerMetadata
-from ray_curator.backends.utils import get_worker_metadata_and_node_id
+from ray_curator.backends.experimental.utils import get_worker_metadata_and_node_id
 from ray_curator.stages.base import ProcessingStage
 
 
-def setup_stage_with_coordination(
+def setup_stage(
     stage: ProcessingStage,  # noqa: ARG001
     setup_fn: Callable[[WorkerMetadata], None],
     setup_on_node_fn: Callable[[NodeInfo | None, WorkerMetadata | None], None],
 ) -> None:
-    """Setup the stage with coordination.
+    """Setup the stage on the worker and the node.
+    Currently it is a barebone implementation, but ideally we improve it such that setup_on_node_fn is called only once per node.
 
     Args:
         stage (ProcessingStage): Processing stage to setup
