@@ -27,6 +27,13 @@ dependencies = [
     "cosmos-xenna @ git+https://github.com/nvidia-cosmos/cosmos-xenna.git@main",
     "transformers>=4.48.0",
     "pyarrow",
+    # Text Download / Extract
+    "justext",
+    "lxml",
+    "resiliparse",
+    "trafilatura==2.0.0",
+    "pycld2",
+    "warcio"
 ]
 
 [project.optional-dependencies]

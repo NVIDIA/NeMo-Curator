@@ -63,7 +63,9 @@ class CommonCrawlWARCDownloader(DocumentDownloader):
         if self.use_aws_to_download:
             cmd = ["s5cmd", "cp", url_to_download, path]
         else:
-            cmd = ["wget", "-c", url_to_download, "-O", path]
+            # We don't use -c (for continue resume) because we want to download file to temp path using -O
+            # but -c and -O don't work well together
+            cmd = ["wget", url_to_download, "-O", path]
 
         # Always capture stderr so we can provide meaningful error messages
         if self._verbose:

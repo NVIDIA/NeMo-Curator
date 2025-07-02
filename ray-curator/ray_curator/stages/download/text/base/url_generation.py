@@ -61,7 +61,6 @@ class URLGenerationStage(ProcessingStage[_EmptyTask, FileGroupTask]):
                 dataset_name=task.dataset_name,
                 data=[url],
                 _metadata={"source_url": url},
-                _stage_perf=task._stage_perf,
             )
             for i, url in enumerate(urls)
         ]

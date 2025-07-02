@@ -56,14 +56,7 @@ class BaseWriter(ProcessingStage[DocumentBatch, FileGroupTask], ABC):
         """
         # Get source files from metadata for deterministic naming
         if source_files := task._metadata.get("source_files"):
-            if len(source_files) == 1:
-                filename = source_files[0]
-                # remove extension and keep only filename
-                import os
-
-                filename = ".".join(os.path.basename(filename).split(".")[:-1])
-            else:
-                filename = writer_utils.get_deterministic_hash(source_files, task.task_id)
+            filename = writer_utils.get_deterministic_hash(source_files, task.task_id)
         else:
             logger.warning("The task does not have source_files in metadata, using UUID for base filename")
             filename = uuid.uuid4().hex

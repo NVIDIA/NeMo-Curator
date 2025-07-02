@@ -74,6 +74,10 @@ class DocumentDownloader(ABC):
                 logger.info(f"File: {output_file} exists. Not downloading")
             return output_file
 
+        # If temp file exists delete it
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+
         # Download to temporary file
         success, error_message = self._download_to_path(url, temp_file)
 

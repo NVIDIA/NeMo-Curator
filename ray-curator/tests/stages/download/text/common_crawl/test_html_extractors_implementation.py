@@ -130,7 +130,6 @@ class TestHTMLExtractors:
 
     @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_thai_text(self, extraction_algorithm: Literal["justext", "resiliparse", "trafilatura"]) -> None:
-        """Test Thai text extraction with different algorithms."""
         thai_html = """<!doctype html>
             <head>
                 <title>ชื่อเรื่องของฉัน</title>
@@ -180,7 +179,6 @@ class TestHTMLExtractors:
     def test_extract_chinese_text(
         self, extraction_algorithm: Literal["justext", "resiliparse", "trafilatura"]
     ) -> None:
-        """Test Chinese text extraction with different algorithms."""
         chinese_html = """<!doctype html>
             <head>
                 <title>我的标题</title>
@@ -228,7 +226,6 @@ class TestHTMLExtractors:
     def test_extract_japanese_text(
         self, extraction_algorithm: Literal["justext", "resiliparse", "trafilatura"]
     ) -> None:
-        """Test Japanese text extraction with different algorithms."""
         japanese_html = """<!doctype html>
             <head>
                 <title>私のタイトル</title>
@@ -275,7 +272,6 @@ class TestHTMLExtractors:
 
     @pytest.mark.parametrize("extraction_algorithm", ["justext", "resiliparse", "trafilatura"])
     def test_extract_korean_text(self, extraction_algorithm: Literal["justext", "resiliparse", "trafilatura"]) -> None:
-        """Test Korean text extraction with different algorithms."""
         korean_html = """<!doctype html>
             <head>
                 <title>내 제목</title>
