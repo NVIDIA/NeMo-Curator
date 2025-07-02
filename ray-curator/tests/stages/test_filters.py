@@ -284,14 +284,12 @@ class TestFilterModule:
 
     def test_filter_batch_size(self) -> None:
         letter_count_data_1 = DocumentBatch(
-            data=pd.DataFrame(
-                {"documents": ["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"], "id": [1, 2, 3, 4]}
-            ),
+            data=pd.DataFrame({"documents": ["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"]}),
             task_id="batch_1",
             dataset_name="test_1",
         )
         letter_count_data_2 = DocumentBatch(
-            data=pd.DataFrame({"documents": ["One a", "a a aa Eight aaa a"], "id": [5, 6]}),
+            data=pd.DataFrame({"documents": ["One a", "a a aa Eight aaa a"]}),
             task_id="batch_2",
             dataset_name="test_2",
         )
@@ -308,25 +306,19 @@ class TestFilterModule:
         score_step.setup()
         scored_data = score_step.process_batch([letter_count_data_1, letter_count_data_2])
 
-        # Should raise ValueError if id_field is not provided
-        filter_step_no_id = Filter(letter_filter.keep_document, "a_count", processing_batch_size=2)
-        filter_step_no_id.setup()
-        with pytest.raises(ValueError):  # noqa: PT011
-            filter_step_no_id.process_batch(scored_data)
-
-        filter_step = Filter(letter_filter.keep_document, "a_count", id_field="id", processing_batch_size=2)
+        filter_step = Filter(letter_filter.keep_document, "a_count", processing_batch_size=2)
 
         filter_step.setup()
         filtered_data = filter_step.process_batch(scored_data)
 
         expected_data = [
             DocumentBatch(
-                data=pd.DataFrame({"documents": ["Five aaa aa", "aaaSeven aaaa"], "id": [3, 4]}),
+                data=pd.DataFrame({"documents": ["Five aaa aa", "aaaSeven aaaa"]}),
                 task_id="batch_1_score_fn_filter_fn",
                 dataset_name="test_1",
             ),
             DocumentBatch(
-                data=pd.DataFrame({"documents": ["a a aa Eight aaa a"], "id": [6]}),
+                data=pd.DataFrame({"documents": ["a a aa Eight aaa a"]}),
                 task_id="batch_2_score_fn_filter_fn",
                 dataset_name="test_2",
             ),
@@ -338,36 +330,22 @@ class TestFilterModule:
 
     def test_score_filter_batch_size(self) -> None:
         letter_count_data_1 = DocumentBatch(
-            data=pd.DataFrame(
-                {"documents": ["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"], "id": [1, 2, 3, 4]}
-            ),
+            data=pd.DataFrame({"documents": ["Two aa", "a a Three a", "Five aaa aa", "aaaSeven aaaa"]}),
             task_id="batch_1",
             dataset_name="test_1",
         )
         letter_count_data_2 = DocumentBatch(
-            data=pd.DataFrame({"documents": ["One a", "a a aa Eight aaa a"], "id": [5, 6]}),
+            data=pd.DataFrame({"documents": ["One a", "a a aa Eight aaa a"]}),
             task_id="batch_2",
             dataset_name="test_2",
         )
 
         letter_filter = LetterCountFilter()
 
-        # Should raise ValueError if id_field is not provided
-        score_filter_step_no_id = ScoreFilter(
-            letter_filter,
-            text_field="documents",
-            score_field="a_count",
-            processing_batch_size=2,
-        )
-        score_filter_step_no_id.setup()
-        with pytest.raises(ValueError):  # noqa: PT011
-            score_filter_step_no_id.process_batch([letter_count_data_1, letter_count_data_2])
-
         score_filter_step = ScoreFilter(
             letter_filter,
             text_field="documents",
             score_field="a_count",
-            id_field="id",
             processing_batch_size=2,
         )
 
@@ -376,12 +354,12 @@ class TestFilterModule:
 
         expected_data = [
             DocumentBatch(
-                data=pd.DataFrame({"documents": ["Five aaa aa", "aaaSeven aaaa"], "id": [3, 4]}),
+                data=pd.DataFrame({"documents": ["Five aaa aa", "aaaSeven aaaa"]}),
                 task_id="batch_1_letter_count",
                 dataset_name="test_1",
             ),
             DocumentBatch(
-                data=pd.DataFrame({"documents": ["a a aa Eight aaa a"], "id": [6]}),
+                data=pd.DataFrame({"documents": ["a a aa Eight aaa a"]}),
                 task_id="batch_2_letter_count",
                 dataset_name="test_2",
             ),

@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+import fasttext
 import numpy as np
 
 from ray_curator.stages.filters.doc_filter import DocumentFilter
@@ -27,6 +30,14 @@ class FastTextQualityFilter(DocumentFilter):
         self._alpha = alpha
         self._seed = np.random.seed(seed)  # noqa: NPY002
         self._name = "fasttext_quality_filter"
+
+    def model_check_or_download(self) -> None:
+        if not os.path.exists(self._model_path):
+            msg = f"Model file {self._model_path} not found"
+            raise FileNotFoundError(msg)
+
+    def load_model(self) -> None:
+        self.model = fasttext.load_model(self._model_path)
 
     def score_document(self, text: str) -> float:
         # See setup() function in modules/filter.py
@@ -53,6 +64,14 @@ class FastTextLangId(DocumentFilter):
         self._lang_code = None
         self._cutoff = min_langid_score
         self._name = "lang_id"
+
+    def model_check_or_download(self) -> None:
+        if not os.path.exists(self._model_path):
+            msg = f"Model file {self._model_path} not found"
+            raise FileNotFoundError(msg)
+
+    def load_model(self) -> None:
+        self.model = fasttext.load_model(self._model_path)
 
     def score_document(self, text: str) -> list[float | str]:
         # See setup() function in modules/filter.py

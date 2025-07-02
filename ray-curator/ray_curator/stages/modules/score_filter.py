@@ -12,14 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections.abc import Callable
 from dataclasses import dataclass
 
-import fasttext
-import huggingface_hub
 import pandas as pd
-from transformers import AutoTokenizer
 
 from ray_curator.backends.base import NodeInfo, WorkerMetadata
 from ray_curator.stages.base import ProcessingStage
@@ -45,9 +41,10 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
 
     """
 
-    score_fn: Callable | DocumentFilter
+    score_fn: Callable[[str], float | str] | DocumentFilter
     score_field: str
     text_field: str = "text"
+    # TODO: Remove this once we have .with(batch_size=...)
     processing_batch_size: int = 1
 
     @property
@@ -66,29 +63,19 @@ class Score(ProcessingStage[DocumentBatch, DocumentBatch]):
         return self.processing_batch_size
 
     def setup_on_node(
-        self, _node_info: NodeInfo | None = None, _worker_metadata: WorkerMetadata | None = None
+        self,
+        _node_info: NodeInfo | None = None,
+        _worker_metadata: WorkerMetadata | None = None,
     ) -> None:
-        if self.name in ["lang_id", "fasttext_quality_filter"]:
-            if not os.path.exists(self.score_fn._model_path):
-                msg = f"Model file {self.score_fn._model_path} not found"
-                raise FileNotFoundError(msg)
-        elif self.name in ["token_count"]:
-            # Use snapshot_download to download all files without loading the model into memory.
-            huggingface_hub.snapshot_download(
-                repo_id=self.score_fn._hf_model_name,
-                token=self.score_fn._hf_token,
-                local_files_only=False,  # Download if not cached
-                resume_download=True,  # Resume interrupted downloads
-            )
+        if isinstance(self.score_fn, DocumentFilter) and hasattr(self.score_fn, "model_check_or_download"):
+            self.score_fn.model_check_or_download()
 
     def setup(self, _: WorkerMetadata | None = None) -> None:
-        if self.name in ["lang_id", "fasttext_quality_filter"]:
-            self.score_fn.model = fasttext.load_model(self.score_fn._model_path)
-        elif self.name in ["token_count"] and self.score_fn._tokenizer is None:
-            self.score_fn._tokenizer = AutoTokenizer.from_pretrained(
-                self.score_fn._hf_model_name,
-                local_files_only=True,  # Fail if not cached
-            )
+        if isinstance(self.score_fn, DocumentFilter):
+            if hasattr(self.score_fn, "load_model"):
+                self.score_fn.load_model()
+            elif hasattr(self.score_fn, "load_tokenizer"):
+                self.score_fn.load_tokenizer()
 
     def process_batch(self, tasks: list[DocumentBatch]) -> list[DocumentBatch]:
         """
@@ -172,7 +159,6 @@ class Filter(ProcessingStage[DocumentBatch, DocumentBatch]):
         filter_fn (Callable | DocumentFilter): A function that returns True if the document is to be kept or a DocumentFilter object,
             in which case the filter_fn will be the keep_document method of the DocumentFilter.
         filter_field (str): The field(s) to be passed into the filter function.
-        id_field (str | None): The field to use as the document ID. Required for batch_size > 1.
         invert (bool): Whether to invert the filter condition.
         processing_batch_size (int): The number of tasks to process in a batch.
 
@@ -180,8 +166,8 @@ class Filter(ProcessingStage[DocumentBatch, DocumentBatch]):
 
     filter_fn: Callable | DocumentFilter
     filter_field: str
-    id_field: str | None = None
     invert: bool = False
+    # TODO: Remove this once we have .with(batch_size=...)
     processing_batch_size: int = 1
 
     @property
@@ -235,30 +221,20 @@ class Filter(ProcessingStage[DocumentBatch, DocumentBatch]):
         if self.processing_batch_size == 1:
             return [self.process(tasks[0])]
 
-        if self.id_field is None:
-            msg = "id_field must be provided for batch_size > 1"
-            raise ValueError(msg)
-
-        id_field = self.id_field
-        id_to_batch = {}
         dfs = []
-
-        for _, task in enumerate(tasks):
+        for i, task in enumerate(tasks):
             df = task.to_pandas().copy()
-            if id_field not in df.columns:
-                msg = f"Expected id_field '{id_field}' not found in batch {task.task_id}"
-                raise ValueError(msg)
-
-            for doc_id in df[id_field]:
-                id_to_batch[doc_id] = (task.task_id, task.dataset_name)
-
+            df["__original_batch_id__"] = i
             dfs.append(df)
 
-        # Combine into a single Pandas DataFrame
         combined_df = pd.concat(dfs, ignore_index=True)
 
-        # Process the all DocumentBatch objects together as a single DocumentBatch
-        combined_batch = DocumentBatch(data=combined_df, task_id="batch_list", dataset_name="batch_list")
+        task_ids = [task.task_id for task in tasks]
+        dataset_names = [task.dataset_name for task in tasks]
+        batch_id_str = "_".join(task_ids)
+        batch_name_str = "_".join(dataset_names)
+        combined_batch = DocumentBatch(data=combined_df, task_id=batch_id_str, dataset_name=batch_name_str)
+
         processed_batch = self.process(combined_batch)
 
         if processed_batch is None:
@@ -266,24 +242,20 @@ class Filter(ProcessingStage[DocumentBatch, DocumentBatch]):
 
         filtered_df = processed_batch.to_pandas()
 
-        # Group rows back into batches by id_field
-        grouped = {}
-        for _, row in filtered_df.iterrows():
-            doc_id = row[id_field]
-            if doc_id not in id_to_batch:
-                msg = f"Filtered document ID '{doc_id}' not found in original batches"
-                raise ValueError(msg)
+        if "__original_batch_id__" not in filtered_df.columns:
+            msg = "Expected '__original_batch_id__' column is missing after processing."
+            raise ValueError(msg)
 
-            task_id, dataset_name = id_to_batch[doc_id]
-            grouped.setdefault((task_id, dataset_name), []).append(row)
-
-        # Rebuild original DocumentBatch objects after filtering
+        # Reconstruct batches based on the temp column
         result_batches = []
-        for (task_id, dataset_name), rows in grouped.items():
-            batch_df = pd.DataFrame(rows)
+        for i, group_df in filtered_df.groupby("__original_batch_id__"):
+            task = tasks[i]
+            cleaned_df = group_df.drop(columns="__original_batch_id__").reset_index(drop=True)
             result_batches.append(
                 DocumentBatch(
-                    task_id=f"{task_id}_{self.name}", dataset_name=dataset_name, data=batch_df.reset_index(drop=True)
+                    task_id=f"{task.task_id}_{self.name}",
+                    dataset_name=task.dataset_name,
+                    data=cleaned_df,
                 )
             )
 
@@ -330,7 +302,6 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
         filter_obj (DocumentFilter): The score function that takes in a document string and outputs a score for the document.
         text_field (str): The field the documents will be read from.
         score_field: The field to which the scores will be written. If None, scores will be immediately discarded after use.
-        id_field (str | None): The field to use as the document ID. Required for batch_size > 1.
         invert (bool): If True, will keep all documents that are normally discarded.
         processing_batch_size (int): The number of tasks to process in a batch.
 
@@ -339,8 +310,8 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
     filter_obj: DocumentFilter
     text_field: str = "text"
     score_field: str | None = None
-    id_field: str | None = None
     invert: bool = False
+    # TODO: Remove this once we have .with(batch_size=...)
     processing_batch_size: int = 1
 
     @property
@@ -359,29 +330,19 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
         return self.processing_batch_size
 
     def setup_on_node(
-        self, _node_info: NodeInfo | None = None, _worker_metadata: WorkerMetadata | None = None
+        self,
+        _node_info: NodeInfo | None = None,
+        _worker_metadata: WorkerMetadata | None = None,
     ) -> None:
-        if self.name in ["lang_id", "fasttext_quality_filter"]:
-            if not os.path.exists(self.filter_obj._model_path):
-                msg = f"Model file {self.filter_obj._model_path} not found"
-                raise FileNotFoundError(msg)
-        elif self.name in ["token_count"]:
-            # Use snapshot_download to download all files without loading the model into memory.
-            huggingface_hub.snapshot_download(
-                repo_id=self.filter_obj._hf_model_name,
-                token=self.filter_obj._hf_token,
-                local_files_only=False,  # Download if not cached
-                resume_download=True,  # Resume interrupted downloads
-            )
+        if isinstance(self.filter_obj, DocumentFilter) and hasattr(self.filter_obj, "model_check_or_download"):
+            self.filter_obj.model_check_or_download()
 
     def setup(self, _: WorkerMetadata | None = None) -> None:
-        if self.name in ["lang_id", "fasttext_quality_filter"]:
-            self.filter_obj.model = fasttext.load_model(self.filter_obj._model_path)
-        elif self.name in ["token_count"] and self.filter_obj._tokenizer is None:
-            self.filter_obj._tokenizer = AutoTokenizer.from_pretrained(
-                self.filter_obj._hf_model_name,
-                local_files_only=True,  # Fail if not cached
-            )
+        if isinstance(self.filter_obj, DocumentFilter):
+            if hasattr(self.filter_obj, "load_model"):
+                self.filter_obj.load_model()
+            elif hasattr(self.filter_obj, "load_tokenizer"):
+                self.filter_obj.load_tokenizer()
 
     def compute_filter_mask(self, df: pd.DataFrame) -> pd.Series:
         """Compute the bool mask to filter the dataset.
@@ -421,30 +382,20 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
         if self.processing_batch_size == 1:
             return [self.process(tasks[0])]
 
-        if self.id_field is None:
-            msg = "id_field must be provided for batch_size > 1"
-            raise ValueError(msg)
-
-        id_field = self.id_field
-        id_to_batch = {}
         dfs = []
-
-        for _, task in enumerate(tasks):
+        for i, task in enumerate(tasks):
             df = task.to_pandas().copy()
-            if id_field not in df.columns:
-                msg = f"Expected id_field '{id_field}' not found in batch {task.task_id}"
-                raise ValueError(msg)
-
-            for doc_id in df[id_field]:
-                id_to_batch[doc_id] = (task.task_id, task.dataset_name)
-
+            df["__original_batch_id__"] = i
             dfs.append(df)
 
-        # Combine into a single Pandas DataFrame
         combined_df = pd.concat(dfs, ignore_index=True)
 
-        # Process the all DocumentBatch objects together as a single DocumentBatch
-        combined_batch = DocumentBatch(data=combined_df, task_id="batch_list", dataset_name="batch_list")
+        task_ids = [task.task_id for task in tasks]
+        dataset_names = [task.dataset_name for task in tasks]
+        batch_id_str = "_".join(task_ids)
+        batch_name_str = "_".join(dataset_names)
+        combined_batch = DocumentBatch(data=combined_df, task_id=batch_id_str, dataset_name=batch_name_str)
+
         processed_batch = self.process(combined_batch)
 
         if processed_batch is None:
@@ -452,24 +403,20 @@ class ScoreFilter(ProcessingStage[DocumentBatch, DocumentBatch]):
 
         filtered_df = processed_batch.to_pandas()
 
-        # Group rows back into batches by id_field
-        grouped = {}
-        for _, row in filtered_df.iterrows():
-            doc_id = row[id_field]
-            if doc_id not in id_to_batch:
-                msg = f"Filtered document ID '{doc_id}' not found in original batches"
-                raise ValueError(msg)
+        if "__original_batch_id__" not in filtered_df.columns:
+            msg = "Expected '__original_batch_id__' column is missing after processing."
+            raise ValueError(msg)
 
-            task_id, dataset_name = id_to_batch[doc_id]
-            grouped.setdefault((task_id, dataset_name), []).append(row)
-
-        # Rebuild original DocumentBatch objects with the filtered data and/or score columns
+        # Reconstruct batches based on the temp column
         result_batches = []
-        for (task_id, dataset_name), rows in grouped.items():
-            batch_df = pd.DataFrame(rows)
+        for i, group_df in filtered_df.groupby("__original_batch_id__"):
+            task = tasks[i]
+            cleaned_df = group_df.drop(columns="__original_batch_id__").reset_index(drop=True)
             result_batches.append(
                 DocumentBatch(
-                    task_id=f"{task_id}_{self.name}", dataset_name=dataset_name, data=batch_df.reset_index(drop=True)
+                    task_id=f"{task.task_id}_{self.name}",
+                    dataset_name=task.dataset_name,
+                    data=cleaned_df,
                 )
             )
 
