@@ -1,10 +1,10 @@
 import argparse
 
 from ray_curator.pipeline import Pipeline
-from ray_curator.stages.io.reader.video_download import VideoDownloadStage
 from ray_curator.backends.xenna import XennaExecutor
-from ray_curator.stages.clipping.clip_extraction_stages import FixedStrideExtractorSrage, ClipTranscodingStage
-from ray_curator.stages.clipping.frame_extraction import VideoFrameExtractionStage
+from ray_curator.stages.video.io.video_download import VideoDownloadStage
+from ray_curator.stages.video.clipping.clip_extraction_stages import FixedStrideExtractorSrage, ClipTranscodingStage
+from ray_curator.stages.video.clipping.frame_extraction import VideoFrameExtractionStage
 
 def create_video_splitting_pipeline(args: argparse.Namespace) -> Pipeline:
     
