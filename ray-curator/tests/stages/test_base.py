@@ -115,3 +115,86 @@ class TestProcessingStageWith:
         assert stage.name == "ConcreteProcessingStage"
         assert stage.batch_size == 2
         assert stage.resources == Resources(cpus=2.0)
+
+    def test_with_method_thread_safety(self):
+        """Test that with_ method is thread-safe."""
+        import threading
+        import time
+
+        stage = ConcreteProcessingStage()
+        original_name = stage.name
+        original_resources = stage.resources
+        original_batch_size = stage.batch_size
+
+        # Results from different threads
+        thread_results = []
+
+        def worker(worker_id: int) -> None:
+            """Worker function that calls with_ method."""
+            # Add a small delay to increase chance of concurrent access
+            time.sleep(0.01)
+
+            # Call with_ to create a modified stage
+            modified_stage = stage.with_(
+                name=f"Worker{worker_id}Stage",
+                resources=Resources(cpus=float(worker_id + 1)),
+                batch_size=worker_id + 10,
+            )
+
+            thread_results.append(
+                {
+                    "worker_id": worker_id,
+                    "modified_stage": modified_stage,
+                    "original_stage_name": stage.name,
+                    "original_stage_resources": stage.resources,
+                    "original_stage_batch_size": stage.batch_size,
+                }
+            )
+
+        # Create multiple threads
+        threads = []
+        num_threads = 5
+
+        for i in range(num_threads):
+            t = threading.Thread(target=worker, args=(i,))
+            threads.append(t)
+            t.start()
+
+        # Wait for all threads to complete
+        for t in threads:
+            t.join()
+
+        # Verify that all threads completed successfully
+        assert len(thread_results) == num_threads
+
+        # Verify that each thread got a unique modified stage
+        modified_stages = [result["modified_stage"] for result in thread_results]
+        modified_names = [stage.name for stage in modified_stages]
+        modified_resources = [stage.resources for stage in modified_stages]
+        modified_batch_sizes = [stage.batch_size for stage in modified_stages]
+
+        # All modified stages should be different from each other
+        assert len(set(modified_names)) == num_threads
+        assert len({str(resources) for resources in modified_resources}) == num_threads
+        assert len(set(modified_batch_sizes)) == num_threads
+
+        # Verify that the original stage was never modified
+        for result in thread_results:
+            assert result["original_stage_name"] == original_name
+            assert result["original_stage_resources"] == original_resources
+            assert result["original_stage_batch_size"] == original_batch_size
+
+        # Verify that the current stage is still unchanged
+        assert stage.name == original_name
+        assert stage.resources == original_resources
+        assert stage.batch_size == original_batch_size
+
+        # Verify specific values for each worker
+        for i in range(num_threads):
+            expected_name = f"Worker{i}Stage"
+            expected_resources = Resources(cpus=float(i + 1))
+            expected_batch_size = i + 10
+
+            assert modified_names[i] == expected_name
+            assert modified_resources[i] == expected_resources
+            assert modified_batch_sizes[i] == expected_batch_size
