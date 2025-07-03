@@ -42,12 +42,12 @@ class TestProcessingStageWith:
 
     def test_all(self):
         stage = ConcreteProcessingStage()
-        assert stage.resources.cpus == 2.0
+        assert stage.resources == Resources(cpus=2.0)
 
         # Test the with_ method that returns a new instance
         stage_new = stage.with_(resources=Resources(cpus=4.0))
-        assert stage_new.resources.cpus == 4.0
-        assert stage.resources.cpus == 2.0  # Original unchanged
+        assert stage_new.resources == Resources(cpus=4.0)
+        assert stage.resources == Resources(cpus=2.0)  # Original unchanged
 
         # Test with name override
         stage_with_name = stage.with_(name="CustomStage")
@@ -70,12 +70,12 @@ class TestProcessingStageWith:
         stage_new = stage.with_(name="MultiParamStage", resources=new_resources, batch_size=10)
 
         assert stage_new.name == "MultiParamStage"
-        assert stage_new.resources.cpus == 3.0
+        assert stage_new.resources == Resources(cpus=3.0)
         assert stage_new.batch_size == 10
 
         # Original should be unchanged
         assert stage.name == "ConcreteProcessingStage"
-        assert stage.resources.cpus == 2.0
+        assert stage.resources == Resources(cpus=2.0)
         assert stage.batch_size == 2
 
     def test_none_parameters_preserve_original(self):
@@ -109,9 +109,9 @@ class TestProcessingStageWith:
         assert result is not stage
         assert result.name == "ChainedStage"
         assert result.batch_size == 8
-        assert result.resources.cpus == 6.0
+        assert result.resources == Resources(cpus=6.0)
 
         # Original should be unchanged
         assert stage.name == "ConcreteProcessingStage"
         assert stage.batch_size == 2
-        assert stage.resources.cpus == 2.0
+        assert stage.resources == Resources(cpus=2.0)
