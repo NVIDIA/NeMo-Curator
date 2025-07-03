@@ -80,7 +80,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         return Resources(cpus=1.0)
 
     @property
-    def batch_size(self) -> int:
+    def batch_size(self) -> int | None:
         """Number of tasks to process in a batch."""
         return 1
 
@@ -232,6 +232,16 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             "batch_size": self.batch_size,
             "supports_batch_processing": self.supports_batch_processing(),
         }
+
+    @property
+    def ray_stage_spec(self) -> dict[str, Any]:
+        """Get Ray configuration for this stage.
+        Note : This is only used for Ray Data which is an experimental backend.
+
+        Returns (dict[str, Any]):
+            Dictionary containing Ray-specific configuration
+        """
+        return {}
 
 
 class CompositeStage(ProcessingStage[X, Y], ABC):
