@@ -69,22 +69,11 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
 
     _is_abstract_root = True  # prevent base from registering itself
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Unique name for this stage."""
+    def __init__(self, name: str = "ProcessingStage", resources: Resources | None = None, batch_size: int = 1):
+        self.name = name
+        self.resources = resources or Resources(cpus=1.0)
+        self.batch_size = batch_size
 
-    @property
-    def resources(self) -> Resources:
-        """Resource requirements for this stage."""
-        return Resources(cpus=1.0)
-
-    @property
-    def batch_size(self) -> int:
-        """Number of tasks to process in a batch."""
-        return 1
-
-    @property
     def num_workers(self) -> int | None:
         """Number of workers required. If None, then executor will determine the number of workers."""
         return None
@@ -192,7 +181,6 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         """String representation of the stage."""
         return f"{self.__class__.__name__}"
 
-    @abstractmethod
     def inputs(self) -> tuple[list[str], list[str]]:
         """Define stage input requirements.
 
@@ -201,8 +189,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             - required_top_level_attributes: List of task attributes that must be present
             - required_data_attributes: List of attributes within the data that must be present
         """
+        return [], []
 
-    @abstractmethod
     def outputs(self) -> tuple[list[str], list[str]]:
         """Define stage output specification.
 
@@ -211,8 +199,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             - output_top_level_attributes: List of task attributes this stage adds/modifies
             - output_data_attributes: List of attributes within the data that this stage adds/modifies
         """
+        return [], []
 
-    @property
     def xenna_stage_spec(self) -> dict[str, Any]:
         """Get Xenna configuration for this stage.
 
@@ -224,13 +212,16 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     def with_(
         self, name: str | None = None, resources: Resources | None = None, batch_size: int | None = None
     ) -> Self:
-        """Apply configuration changes to this stage."""
-        if name is not None:
-            self.name = name
-        if resources is not None:
-            self.resources = resources
-        if batch_size is not None:
-            self.batch_size = batch_size
+        """Apply configuration changes to this stage with overridden properties.
+
+        Args:
+            name: Override the name property
+            resources: Override the resources property
+            batch_size: Override the batch_size property
+        """
+        self.name = name or self.name
+        self.resources = resources or self.resources
+        self.batch_size = batch_size or self.batch_size
         return self
 
     def get_config(self) -> dict[str, Any]:
