@@ -229,18 +229,32 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             resources: Override the resources property
             batch_size: Override the batch_size property
         """
-        # Create a copy of the current instance
-        import copy
+        # Create a new class dynamically with modified class-level attributes
+        class_name = f"{self.__class__.__name__}WithOverrides"
 
-        new_instance = copy.deepcopy(self)
+        # Get the current class-level attributes
+        current_name = getattr(self.__class__, "_name", self._name)
+        current_resources = getattr(self.__class__, "_resources", self._resources)
+        current_batch_size = getattr(self.__class__, "_batch_size", self._batch_size)
 
-        # Set instance-level attributes to override class-level ones
-        if name is not None:
-            new_instance._name = name
-        if resources is not None:
-            new_instance._resources = resources
-        if batch_size is not None:
-            new_instance._batch_size = batch_size
+        # Create new class attributes dictionary
+        new_attrs = {
+            "_name": name if name is not None else current_name,
+            "_resources": resources if resources is not None else current_resources,
+            "_batch_size": batch_size if batch_size is not None else current_batch_size,
+        }
+
+        # Create new class that inherits from the current class
+        new_class = type(class_name, (self.__class__,), new_attrs)
+
+        # Create and return a new instance of the new class
+        # Copy any instance-specific state
+        new_instance = new_class()
+
+        # Copy instance attributes (excluding the class-level ones we just overrode)
+        for attr_name, attr_value in self.__dict__.items():
+            if attr_name not in ("_name", "_resources", "_batch_size"):
+                setattr(new_instance, attr_name, attr_value)
 
         return new_instance
 
@@ -268,6 +282,9 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
     into their constituent execution stages.
     """
 
+    def __init__(self):
+        self._with_operations = []
+
     def inputs(self) -> tuple[list[str], list[str]]:
         """Get the inputs for this stage."""
         return self.decompose()[0].inputs()
@@ -288,9 +305,42 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
         """
 
     def with_(self, stage_with_dict: dict[str, Any]) -> CompositeStage:
-        """We don't support with_() for composite stages."""
-        msg = "with_() is not supported for composite stages."
-        raise NotImplementedError(msg)
+        """Apply configuration changes to this stage."""
+        # Probably should return a new CompositeStage object
+        self._with_operations.append(stage_with_dict)
+        return self
+
+    def decompose_and_apply_with(self) -> list[ProcessingStage]:
+        """Decompose and apply configuration changes to this stage."""
+        return self._apply_with_(self.decompose())
+
+    def _apply_with_(self, stages: list[ProcessingStage]) -> list[ProcessingStage]:
+        """Apply configuration changes to this stage."""
+        for stage_with_dict in self._with_operations:
+            stage_name_to_stage = {stage.name: stage for stage in stages}
+
+            # Verify that all stages have unique names
+            if len(stage_name_to_stage) != len(stages):
+                err = "All stages must have unique names in composite stage to apply configuration changes using with_()."
+                raise ValueError(err)
+
+            # Ensure that we can cover all the keys in stage_with_dict
+            for stage_name in stage_with_dict:
+                if stage_name not in stage_name_to_stage:
+                    err = f"Stage {stage_name} not found in composite stage to apply configuration changes using with_()."
+                    raise ValueError(err)
+
+            new_stages = []
+            # Apply configuration changes to each stage
+            for stage in stages:
+                if stage.name in stage_with_dict:
+                    new_stages.append(stage.with_(**stage_with_dict[stage.name]))
+                else:
+                    new_stages.append(stage)
+
+            stages = new_stages
+
+        return stages
 
     def process(self, task: X) -> Y | list[Y]:  # noqa: ARG002
         """Composite stages should never be executed directly."""
