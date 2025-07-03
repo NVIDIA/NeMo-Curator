@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from loguru import logger
 
@@ -221,7 +221,7 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
 
     def with_(
         self, name: str | None = None, resources: Resources | None = None, batch_size: int | None = None
-    ) -> Self:
+    ) -> ProcessingStage:
         """Apply configuration changes to this stage with overridden properties.
 
         Args:
@@ -229,10 +229,20 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             resources: Override the resources property
             batch_size: Override the batch_size property
         """
-        self._name = name or self._name
-        self._resources = resources or self._resources
-        self._batch_size = batch_size or self._batch_size
-        return self
+        # Create a copy of the current instance
+        import copy
+
+        new_instance = copy.deepcopy(self)
+
+        # Set instance-level attributes to override class-level ones
+        if name is not None:
+            new_instance._name = name
+        if resources is not None:
+            new_instance._resources = resources
+        if batch_size is not None:
+            new_instance._batch_size = batch_size
+
+        return new_instance
 
     def get_config(self) -> dict[str, Any]:
         """Get configuration for this stage.
@@ -277,7 +287,7 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
             List of execution stages that will actually run
         """
 
-    def with_(self, stage_with_dict: dict[str, Any]) -> Self:
+    def with_(self, stage_with_dict: dict[str, Any]) -> CompositeStage:
         """We don't support with_() for composite stages."""
         msg = "with_() is not supported for composite stages."
         raise NotImplementedError(msg)
