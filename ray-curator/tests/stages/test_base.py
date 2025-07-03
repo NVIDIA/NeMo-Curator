@@ -26,8 +26,9 @@ class MockTask(Task[dict]):
 class ConcreteProcessingStage(ProcessingStage[MockTask, MockTask]):
     """Concrete implementation of ProcessingStage for testing."""
 
-    def __init__(self, name: str = "ConcreteProcessingStage", resources: Resources | None = None, batch_size: int = 1):
-        super().__init__(name=name, resources=resources or Resources(cpus=2.0), batch_size=batch_size)
+    _name = "ConcreteProcessingStage"
+    _resources = Resources(cpus=2.0)
+    _batch_size = 2
 
     def process(self, task: MockTask) -> MockTask:
         return task
@@ -53,3 +54,49 @@ class TestProcessingStageWith:
         # Test with name override
         stage.with_(name="CustomStage")
         assert stage.name == "CustomStage"
+
+    def test_batch_size_override(self):
+        """Test overriding batch_size parameter."""
+        stage = ConcreteProcessingStage()
+        assert stage.batch_size == 2
+
+        stage.with_(batch_size=5)
+        assert stage.batch_size == 5
+
+    def test_multiple_parameters(self):
+        """Test overriding multiple parameters at once."""
+        stage = ConcreteProcessingStage()
+        new_resources = Resources(cpus=3.0)
+        stage.with_(name="MultiParamStage", resources=new_resources, batch_size=10)
+
+        assert stage.name == "MultiParamStage"
+        assert stage.resources.cpus == 3.0
+        assert stage.batch_size == 10
+
+    def test_none_parameters_preserve_original(self):
+        """Test that None parameters preserve original values."""
+        stage = ConcreteProcessingStage()
+        original_name = stage.name
+        original_resources = stage.resources
+        original_batch_size = stage.batch_size
+
+        # Pass None for all parameters
+        stage.with_(name=None, resources=None, batch_size=None)
+
+        # Values should remain unchanged
+        assert stage.name == original_name
+        assert stage.resources == original_resources
+        assert stage.batch_size == original_batch_size
+
+    def test_chained_with_calls(self):
+        """Test that with_ can be chained and returns self."""
+        stage = ConcreteProcessingStage()
+
+        # Chain multiple with_ calls
+        result = stage.with_(name="ChainedStage").with_(batch_size=8).with_(resources=Resources(cpus=6.0))
+
+        # Should return self
+        assert result is stage
+        assert stage.name == "ChainedStage"
+        assert stage.batch_size == 8
+        assert stage.resources.cpus == 6.0

@@ -26,10 +26,7 @@ class JsonlReaderStage(ProcessingStage[FileGroupTask, DocumentBatch]):
     columns: list[str] | None = None  # If specified, only read these columns
     reader: str = "pandas"  # "pandas" or "pyarrow"
     reader_kwargs: dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def name(self) -> str:
-        return "jsonl_reader"
+    _name: str = "jsonl_reader"
 
     def inputs(self) -> tuple[list[str], list[str]]:
         return [], []
@@ -176,10 +173,7 @@ class JsonlReader(CompositeStage[_EmptyTask, DocumentBatch]):
     reader_kwargs: dict[str, Any] | None = None
     storage_options: dict[str, Any] | None = None
     task_type: Literal["document", "image", "video", "audio"] = "document"
-
-    @property
-    def name(self) -> str:
-        return "jsonl_reader"
+    _name: str = "jsonl_reader"
 
     def decompose(self) -> list[ProcessingStage]:
         """Decompose into file partitioning and processing stages."""

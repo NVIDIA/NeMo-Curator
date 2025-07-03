@@ -68,15 +68,25 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     """
 
     _is_abstract_root = True  # prevent base from registering itself
-
-    def __init__(self, name: str = "ProcessingStage", resources: Resources | None = None, batch_size: int = 1):
-        self.name = name
-        self.resources = resources or Resources(cpus=1.0)
-        self.batch_size = batch_size
+    _name = "ProcessingStage"
+    _resources = Resources(cpus=1.0)
+    _batch_size = 1
 
     def num_workers(self) -> int | None:
         """Number of workers required. If None, then executor will determine the number of workers."""
         return None
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def resources(self) -> Resources:
+        return self._resources
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
 
     def validate_input(self, task: Task) -> bool:
         """Validate input task meets requirements.
@@ -219,9 +229,9 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             resources: Override the resources property
             batch_size: Override the batch_size property
         """
-        self.name = name or self.name
-        self.resources = resources or self.resources
-        self.batch_size = batch_size or self.batch_size
+        self._name = name or self._name
+        self._resources = resources or self._resources
+        self._batch_size = batch_size or self._batch_size
         return self
 
     def get_config(self) -> dict[str, Any]:
@@ -268,21 +278,9 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
         """
 
     def with_(self, stage_with_dict: dict[str, Any]) -> Self:
-        """Apply configuration changes to this stage."""
-        stages = self.decompose()
-        stage_name_to_stage = {stage.name: stage for stage in stages}
-
-        # Verify that all stages have unique names
-        if len(stage_name_to_stage) != len(stages):
-            err = "All stages must have unique names in composite stage to apply configuration changes using with_()."
-            raise ValueError(err)
-
-        # Apply configuration changes to each stage
-        for stage_name, config in stage_with_dict.items():
-            stage = stage_name_to_stage[stage_name]
-            stage.with_(**config)
-
-        return self
+        """We don't support with_() for composite stages."""
+        msg = "with_() is not supported for composite stages."
+        raise NotImplementedError(msg)
 
     def process(self, task: X) -> Y | list[Y]:  # noqa: ARG002
         """Composite stages should never be executed directly."""
