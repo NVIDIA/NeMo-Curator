@@ -68,26 +68,25 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
     """
 
     _is_abstract_root = True  # prevent base from registering itself
+    _name = "ProcessingStage"
+    _resources = Resources(cpus=1.0)
+    _batch_size = 1
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Unique name for this stage."""
-
-    @property
-    def resources(self) -> Resources:
-        """Resource requirements for this stage."""
-        return Resources(cpus=1.0)
-
-    @property
-    def batch_size(self) -> int:
-        """Number of tasks to process in a batch."""
-        return 1
-
-    @property
     def num_workers(self) -> int | None:
         """Number of workers required. If None, then executor will determine the number of workers."""
         return None
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def resources(self) -> Resources:
+        return self._resources
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
 
     def validate_input(self, task: Task) -> bool:
         """Validate input task meets requirements.
@@ -192,7 +191,6 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
         """String representation of the stage."""
         return f"{self.__class__.__name__}"
 
-    @abstractmethod
     def inputs(self) -> tuple[list[str], list[str]]:
         """Define stage input requirements.
 
@@ -201,8 +199,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             - required_top_level_attributes: List of task attributes that must be present
             - required_data_attributes: List of attributes within the data that must be present
         """
+        return [], []
 
-    @abstractmethod
     def outputs(self) -> tuple[list[str], list[str]]:
         """Define stage output specification.
 
@@ -211,8 +209,8 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             - output_top_level_attributes: List of task attributes this stage adds/modifies
             - output_data_attributes: List of attributes within the data that this stage adds/modifies
         """
+        return [], []
 
-    @property
     def xenna_stage_spec(self) -> dict[str, Any]:
         """Get Xenna configuration for this stage.
 
@@ -220,6 +218,45 @@ class ProcessingStage(ABC, Generic[X, Y], metaclass=StageMeta):
             Dictionary containing Xenna-specific configuration
         """
         return {}
+
+    def with_(
+        self, name: str | None = None, resources: Resources | None = None, batch_size: int | None = None
+    ) -> ProcessingStage:
+        """Apply configuration changes to this stage with overridden properties.
+
+        Args:
+            name: Override the name property
+            resources: Override the resources property
+            batch_size: Override the batch_size property
+        """
+        # Create a new class dynamically with modified class-level attributes
+        class_name = f"{self.__class__.__name__}WithOverrides"
+
+        # Get the current class-level attributes
+        current_name = getattr(self.__class__, "_name", self._name)
+        current_resources = getattr(self.__class__, "_resources", self._resources)
+        current_batch_size = getattr(self.__class__, "_batch_size", self._batch_size)
+
+        # Create new class attributes dictionary
+        new_attrs = {
+            "_name": name if name is not None else current_name,
+            "_resources": resources if resources is not None else current_resources,
+            "_batch_size": batch_size if batch_size is not None else current_batch_size,
+        }
+
+        # Create new class that inherits from the current class
+        new_class = type(class_name, (self.__class__,), new_attrs)
+
+        # Create and return a new instance of the new class
+        # Copy any instance-specific state
+        new_instance = new_class()
+
+        # Copy instance attributes (excluding the class-level ones we just overrode)
+        for attr_name, attr_value in self.__dict__.items():
+            if attr_name not in ("_name", "_resources", "_batch_size"):
+                setattr(new_instance, attr_name, attr_value)
+
+        return new_instance
 
     def get_config(self) -> dict[str, Any]:
         """Get configuration for this stage.
@@ -245,6 +282,9 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
     into their constituent execution stages.
     """
 
+    def __init__(self):
+        self._with_operations = []
+
     def inputs(self) -> tuple[list[str], list[str]]:
         """Get the inputs for this stage."""
         return self.decompose()[0].inputs()
@@ -263,6 +303,44 @@ class CompositeStage(ProcessingStage[X, Y], ABC):
         Returns (list[ProcessingStage]):
             List of execution stages that will actually run
         """
+
+    def with_(self, stage_with_dict: dict[str, Any]) -> CompositeStage:
+        """Apply configuration changes to this stage."""
+        # Probably should return a new CompositeStage object
+        self._with_operations.append(stage_with_dict)
+        return self
+
+    def decompose_and_apply_with(self) -> list[ProcessingStage]:
+        """Decompose and apply configuration changes to this stage."""
+        return self._apply_with_(self.decompose())
+
+    def _apply_with_(self, stages: list[ProcessingStage]) -> list[ProcessingStage]:
+        """Apply configuration changes to this stage."""
+        for stage_with_dict in self._with_operations:
+            stage_name_to_stage = {stage.name: stage for stage in stages}
+
+            # Verify that all stages have unique names
+            if len(stage_name_to_stage) != len(stages):
+                err = "All stages must have unique names in composite stage to apply configuration changes using with_()."
+                raise ValueError(err)
+
+            # Ensure that we can cover all the keys in stage_with_dict
+            for stage_name in stage_with_dict:
+                if stage_name not in stage_name_to_stage:
+                    err = f"Stage {stage_name} not found in composite stage to apply configuration changes using with_()."
+                    raise ValueError(err)
+
+            new_stages = []
+            # Apply configuration changes to each stage
+            for stage in stages:
+                if stage.name in stage_with_dict:
+                    new_stages.append(stage.with_(**stage_with_dict[stage.name]))
+                else:
+                    new_stages.append(stage)
+
+            stages = new_stages
+
+        return stages
 
     def process(self, task: X) -> Y | list[Y]:  # noqa: ARG002
         """Composite stages should never be executed directly."""
